@@ -1,0 +1,7 @@
+# 这样仓库里这些源码和文档会统一保存成 LF，Windows、Linux、Codex 之间协作会更稳定。
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
