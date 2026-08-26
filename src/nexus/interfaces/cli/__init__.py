@@ -1,0 +1,2 @@
+"""Typer CLI adapter."""
+
