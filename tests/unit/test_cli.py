@@ -22,8 +22,8 @@ def test_root_help_exits_successfully() -> None:
 
 
 def test_explicit_and_chat_help() -> None:
-    root_help = runner.invoke(app, ["--help"])
-    chat_help = runner.invoke(app, ["chat", "--help"])
+    root_help = runner.invoke(app, ["--help"], color=False)
+    chat_help = runner.invoke(app, ["chat", "--help"], color=False)
 
     assert root_help.exit_code == 0
     assert chat_help.exit_code == 0

@@ -63,6 +63,7 @@ def chat(
 async def _run_chat(config: RuntimeConfig, task: str) -> bool:
     succeeded = True
     async with bootstrap_application(config) as application:
+        # event:系统内部执行过程对外暴露的结构化事实。
         async for event in application.runtime.run(task):
             succeeded = render_event(event) and succeeded
     return succeeded
