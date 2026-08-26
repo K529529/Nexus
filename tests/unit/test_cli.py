@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from nexus.domain.runtime_events import FinalResult, RuntimeEvent, TaskStarted
 from nexus.interfaces.cli.app import app
 
 runner = CliRunner()
+ANSI_ESCAPE_SEQUENCE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def test_root_help_exits_successfully() -> None:
@@ -24,13 +26,14 @@ def test_root_help_exits_successfully() -> None:
 def test_explicit_and_chat_help() -> None:
     root_help = runner.invoke(app, ["--help"], color=False)
     chat_help = runner.invoke(app, ["chat", "--help"], color=False)
+    chat_help_text = ANSI_ESCAPE_SEQUENCE.sub("", chat_help.stdout)
 
     assert root_help.exit_code == 0
     assert chat_help.exit_code == 0
-    assert "TASK" in chat_help.stdout
-    assert "--model" in chat_help.stdout
-    assert "--base-url" in chat_help.stdout
-    assert "--api-key" not in chat_help.stdout
+    assert "TASK" in chat_help_text
+    assert "--model" in chat_help_text
+    assert "--base-url" in chat_help_text
+    assert "--api-key" not in chat_help_text
 
 
 class FakeRuntime:
