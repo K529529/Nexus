@@ -158,6 +158,14 @@ class NexusRuntime:
             content = self._final_content(result)
             await self._session_service.complete_run(run.run_id, content)
         except NexusError as exc:
+            try:
+                await self._session_service.fail_run(
+                    run.run_id,
+                    code=exc.code,
+                    message=str(exc),
+                )
+            except NexusError as persistence_exc:
+                exc = persistence_exc
             yield ErrorOccurred(
                 run_id=run.run_id,
                 session_id=run.session_id,
@@ -167,12 +175,25 @@ class NexusRuntime:
             )
             return
         except Exception:
+            code = "RUNTIME_ERROR"
+            message = "Nexus could not resume the task."
+            retryable = False
+            try:
+                await self._session_service.fail_run(
+                    run.run_id,
+                    code=code,
+                    message=message,
+                )
+            except NexusError as persistence_exc:
+                code = persistence_exc.code
+                message = str(persistence_exc)
+                retryable = persistence_exc.retryable
             yield ErrorOccurred(
                 run_id=run.run_id,
                 session_id=run.session_id,
-                code="RUNTIME_ERROR",
-                message="Nexus could not resume the task.",
-                retryable=False,
+                code=code,
+                message=message,
+                retryable=retryable,
             )
             return
         yield FinalResult(run_id=run.run_id, session_id=run.session_id, content=content)

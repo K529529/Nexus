@@ -207,9 +207,12 @@ class SessionService:
                         "Only a running or interrupted run may complete.",
                         code="INVALID_RUN_TRANSITION",
                     )
-                if status is RunStatus.FAILED and run.status is not RunStatus.RUNNING:
+                if status is RunStatus.FAILED and run.status not in {
+                    RunStatus.RUNNING,
+                    RunStatus.INTERRUPTED,
+                }:
                     raise SessionError(
-                        "Only a running run may fail.",
+                        "Only a running or interrupted run may fail.",
                         code="INVALID_RUN_TRANSITION",
                     )
                 updated = replace(
