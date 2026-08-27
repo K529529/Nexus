@@ -13,7 +13,9 @@ class SuccessfulGraph:
     def __init__(self) -> None:
         self.called = False
 
-    async def run(self, state: AgentState) -> AgentState:
+    async def run(
+        self, state: AgentState, *, thread_id: str | None = None
+    ) -> AgentState:
         self.called = True
         return AgentState(
             task=state.task,
@@ -23,10 +25,18 @@ class SuccessfulGraph:
             status=RuntimeStatus.COMPLETED,
         )
 
+    async def resume(self, *, thread_id: str) -> AgentState:
+        raise NotImplementedError
+
 
 class FailingGraph:
-    async def run(self, state: AgentState) -> AgentState:
+    async def run(
+        self, state: AgentState, *, thread_id: str | None = None
+    ) -> AgentState:
         raise ModelError("Model is temporarily unavailable.", retryable=True)
+
+    async def resume(self, *, thread_id: str) -> AgentState:
+        raise NotImplementedError
 
 
 async def _collect(events: AsyncIterator[object]) -> list[object]:
@@ -65,4 +75,3 @@ async def test_runtime_emits_structured_terminal_error() -> None:
     assert error.code == "MODEL_ERROR"
     assert error.message == "Model is temporarily unavailable."
     assert error.retryable is True
-

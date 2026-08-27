@@ -9,9 +9,10 @@ from typing import Any
 
 
 class RuntimeStatus(StrEnum):
-    """Terminal and non-terminal statuses available during Day 1."""
+    """Terminal and non-terminal statuses available through Day 2."""
 
     STARTED = "STARTED"
+    INTERRUPTED = "INTERRUPTED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
@@ -62,6 +63,14 @@ class FinalResult(RuntimeEvent):
 
     status: RuntimeStatus = field(default=RuntimeStatus.COMPLETED, init=False)
     content: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RunInterrupted(RuntimeEvent):
+    """A run reached a durable checkpoint and may be resumed later."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.INTERRUPTED, init=False)
+    message: str = "Run interrupted; resume it with the session command."
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

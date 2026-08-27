@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import typer
 
-from nexus.domain.runtime_events import ErrorOccurred, FinalResult, RuntimeEvent, TaskStarted
+from nexus.domain.runtime_events import (
+    ErrorOccurred,
+    FinalResult,
+    RunInterrupted,
+    RuntimeEvent,
+    TaskStarted,
+)
 
 
 def render_event(event: RuntimeEvent) -> bool:
@@ -16,8 +22,10 @@ def render_event(event: RuntimeEvent) -> bool:
     if isinstance(event, FinalResult):
         typer.echo(event.content)
         return True
+    if isinstance(event, RunInterrupted):
+        typer.echo(event.message)
+        return True
     if isinstance(event, ErrorOccurred):
         typer.echo(f"Error [{event.code}]: {event.message}", err=True)
         return False
     return True
-
