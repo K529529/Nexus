@@ -39,4 +39,23 @@ class SessionError(NexusError):
     default_code = "SESSION_ERROR"
 
 
-__all__ = ["ConfigurationError", "ModelError", "NexusError", "SessionError"]
+class ToolExecutionError(NexusError):
+    """A tool operation failed behind the structured Tool boundary."""
+
+    default_code = "TOOL_EXECUTION_ERROR"
+
+
+class PermissionDeniedError(NexusError):
+    """A centralized security policy denied an operation."""
+
+    default_code = "PERMISSION_DENIED"
+
+
+__all__ = [
+    "ConfigurationError",
+    "ModelError",
+    "NexusError",
+    "PermissionDeniedError",
+    "SessionError",
+    "ToolExecutionError",
+]

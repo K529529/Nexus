@@ -1,12 +1,13 @@
 # Nexus
 
-Nexus is a transparent and extensible coding-agent runtime. Through **Day 2**, it includes
+Nexus is a transparent and extensible coding-agent runtime. Through **Day 3**, it includes
 the Day 1 model-backed runtime plus durable Repository/Session/Run/SessionTurn business
-state, official PostgreSQL-backed LangGraph checkpoints, and session list/resume commands.
+state, official PostgreSQL-backed LangGraph checkpoints, session list/resume commands,
+and a policy-governed native Tool Runtime for bounded workspace inspection.
 
-Day 2 still does **not** explore repositories, search or edit code, create full plans, call
-tools, request approval, retrieve semantic context, use MCP, validate modifications, or
-act as a complete coding agent.
+Day 3 native Tools can list/search/read files and perform fixed read-only Git inspection.
+They are not yet wired into the Agent graph. Day 3 does **not** edit code, execute WRITE
+operations, create approved Plans, use MCP, or act as a complete coding agent.
 
 ## Requirements
 
@@ -106,5 +107,6 @@ The PostgreSQL connectivity test skips only when an external service is genuinel
 unavailable. Start the Compose service to exercise the real connection path locally.
 
 See the [Day 1 architecture](docs/day1-architecture.md) and
-[Day 2 session guide](docs/day2-session-cli.md), plus the
+[Day 2 session guide](docs/day2-session-cli.md), the
+[Day 3 Tool Runtime and security guide](docs/day3-native-tool-runtime-security.md), plus the
 [architecture decisions](docs/adr/), for boundary rationale and durable resume evidence.
