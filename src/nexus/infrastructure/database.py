@@ -1,7 +1,12 @@
 """Day 1 PostgreSQL engine bootstrap and connectivity check."""
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 
 class DatabaseBootstrap:
@@ -14,6 +19,13 @@ class DatabaseBootstrap:
             hide_parameters=True,
             pool_timeout=5,
         )
+        self._session_factory = async_sessionmaker(self._engine, expire_on_commit=False)
+
+    @property
+    def session_factory(self) -> async_sessionmaker[AsyncSession]:
+        """Provide transaction-scoped sessions to infrastructure adapters."""
+
+        return self._session_factory
 
     async def check_connection(self) -> None:
         """Open a connection and execute the smallest useful smoke query."""

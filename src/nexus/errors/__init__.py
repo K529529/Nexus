@@ -33,5 +33,10 @@ class ModelError(NexusError):
     default_code = "MODEL_ERROR"
 
 
-__all__ = ["ConfigurationError", "ModelError", "NexusError"]
+class SessionError(NexusError):
+    """A session operation failed a Nexus business rule or persistence boundary."""
 
+    default_code = "SESSION_ERROR"
+
+
+__all__ = ["ConfigurationError", "ModelError", "NexusError", "SessionError"]
