@@ -103,7 +103,7 @@ class LocalProcessSandbox:
 
         loop_factory = cast(
             Callable[[], asyncio.AbstractEventLoop],
-            asyncio.ProactorEventLoop,
+            vars(asyncio)["ProactorEventLoop"],
         )
         loop = loop_factory()
         try:
@@ -222,7 +222,10 @@ class LocalProcessSandbox:
                 stdin=subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                creationflags=cast(
+                    int,
+                    vars(subprocess)["CREATE_NEW_PROCESS_GROUP"],
+                ),
             )
         return await asyncio.create_subprocess_exec(
             *argv,
