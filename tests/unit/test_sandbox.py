@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import cast
 
 import pytest
 from pytest import MonkeyPatch
@@ -180,3 +181,13 @@ async def test_each_process_stream_is_bounded_while_reading(tmp_path: Path) -> N
 
 def test_test_uses_current_interpreter() -> None:
     assert Path(sys.executable).exists()
+
+
+def test_sandbox_request_rejects_non_string_argv_before_normalization() -> None:
+    with pytest.raises(ValueError, match="non-empty strings"):
+        SandboxRequest(
+            "shell",
+            ["python", cast(str, 1)],
+            ".",
+            10.0,
+        )

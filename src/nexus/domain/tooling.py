@@ -98,7 +98,9 @@ class SandboxRequest:
     def __post_init__(self) -> None:
         if not self.operation:
             raise ValueError("Sandbox operation must not be empty.")
-        if not self.argv or any(not item for item in self.argv):
+        if not self.argv or any(
+            not isinstance(item, str) or not item for item in self.argv
+        ):
             raise ValueError("Sandbox argv must contain non-empty strings.")
         if not self.cwd:
             raise ValueError("Sandbox cwd must not be empty.")

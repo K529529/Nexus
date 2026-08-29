@@ -220,6 +220,32 @@ async def test_write_approval_is_persisted_but_tool_is_not_executed_without_plan
     ]
 
 
+@pytest.mark.asyncio
+async def test_unknown_tool_emits_start_finish_pair_with_tool_not_found() -> None:
+    events: list[RuntimeEvent] = []
+    approvals = FakeApprovalService()
+    runtime = ToolRuntime(
+        ToolRegistry([]),
+        FixedPolicy(RiskLevel.SAFE),
+        InteractiveApprovalPolicy(_approve),
+        cast(ApprovalService, approvals),
+        emit=_collector(events),
+    )
+
+    result = await runtime.execute(_invocation("missing", tool_name="not_registered"))
+
+    assert not result.success
+    assert result.error is not None and result.error.code == "TOOL_NOT_FOUND"
+    assert [type(event) for event in events] == [ToolStarted, ToolFinished]
+    started, finished = events
+    assert isinstance(started, ToolStarted)
+    assert started.risk_level is RiskLevel.DANGEROUS
+    assert isinstance(finished, ToolFinished)
+    assert finished.error_code == "TOOL_NOT_FOUND"
+    assert finished.risk_level is RiskLevel.DANGEROUS
+    assert approvals.records == []
+
+
 def test_tool_result_has_structured_serializable_fields() -> None:
     result = ToolResult(
         str(uuid4()),

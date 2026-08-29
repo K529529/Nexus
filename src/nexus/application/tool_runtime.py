@@ -52,7 +52,7 @@ class ToolRuntime:
         try:
             tool = self._registry.resolve(invocation.tool_name)
         except ToolExecutionError as exc:
-            return replace(
+            result = replace(
                 _failure(
                     invocation,
                     risk_level=RiskLevel.DANGEROUS,
@@ -62,6 +62,17 @@ class ToolRuntime:
                 ),
                 duration_ms=_duration_ms(started),
             )
+            await self._emit(
+                ToolStarted(
+                    run_id=invocation.run_id,
+                    session_id=invocation.session_id,
+                    invocation_id=invocation.invocation_id,
+                    tool_name=invocation.tool_name,
+                    risk_level=result.risk_level,
+                )
+            )
+            await self._emit(_finished_event(invocation, result))
+            return result
 
         proposed_risk = self._command_policy.classify(
             operation=invocation.tool_name,
