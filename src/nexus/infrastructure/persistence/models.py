@@ -1,4 +1,4 @@
-"""Private SQLAlchemy rows for the Day 2 business schema."""
+"""Private SQLAlchemy rows for the business schema through Day 3."""
 
 from __future__ import annotations
 
@@ -104,3 +104,43 @@ class SessionTurnRow(Base):
         "metadata", JSONB, nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ApprovalRow(Base):
+    __tablename__ = "approvals"
+    __table_args__ = (
+        CheckConstraint(
+            "risk_level IN ('SAFE', 'WRITE', 'DANGEROUS')",
+            name="ck_approvals_risk_level_day3",
+        ),
+        CheckConstraint(
+            "decision IN ('PENDING', 'APPROVED', 'DENIED')",
+            name="ck_approvals_decision_day3",
+        ),
+        CheckConstraint(
+            "(decision = 'PENDING' AND decided_at IS NULL) OR "
+            "(decision IN ('APPROVED', 'DENIED') AND decided_at IS NOT NULL)",
+            name="ck_approvals_decided_at_day3",
+        ),
+        Index("ix_approvals_run_created", "run_id", "created_at", "approval_id"),
+    )
+
+    approval_id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("runs.run_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    session_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("sessions.session_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    operation: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(16), nullable=False)
+    resource_or_command_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    actor: Mapped[str] = mapped_column(Text, nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

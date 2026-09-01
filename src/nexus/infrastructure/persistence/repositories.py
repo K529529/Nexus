@@ -1,4 +1,4 @@
-"""Async SQLAlchemy implementations of the Day 2 repository ports."""
+"""Async SQLAlchemy implementations of repository ports through Day 3."""
 
 from __future__ import annotations
 
@@ -7,13 +7,62 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.persistence import NexusSession, Repository, Run, RunStatus, SessionTurn
+from nexus.domain.tooling import ApprovalDecision, RiskLevel
 from nexus.infrastructure.persistence.models import (
+    ApprovalRow,
     RepositoryRow,
     RunRow,
     SessionRow,
     SessionTurnRow,
 )
+
+
+class SqlAlchemyApprovalRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, approval: ApprovalRequest) -> None:
+        self._session.add(_approval_to_row(approval))
+        await self._session.flush()
+
+    async def get(self, approval_id: str) -> ApprovalRequest | None:
+        row = await self._session.get(ApprovalRow, approval_id)
+        return None if row is None else _approval_from_row(row)
+
+    async def list_by_run(self, run_id: str) -> list[ApprovalRequest]:
+        rows = (
+            await self._session.scalars(
+                select(ApprovalRow)
+                .where(ApprovalRow.run_id == run_id)
+                .order_by(ApprovalRow.created_at.asc(), ApprovalRow.approval_id.asc())
+            )
+        ).all()
+        return [_approval_from_row(row) for row in rows]
+
+    async def update(self, approval: ApprovalRequest) -> None:
+        row = await self._session.get(ApprovalRow, approval.approval_id)
+        if row is None:
+            raise LookupError(f"Approval {approval.approval_id} no longer exists.")
+        if row.decision != ApprovalDecision.PENDING.value:
+            raise ValueError("A terminal approval decision cannot be changed.")
+        if approval.decision is ApprovalDecision.PENDING:
+            raise ValueError("Approval update requires a terminal decision.")
+        if (
+            row.run_id != approval.run_id
+            or row.session_id != approval.session_id
+            or row.operation != approval.operation
+            or row.risk_level != approval.risk_level.value
+            or row.resource_or_command_summary != approval.resource_or_command_summary
+            or row.created_at != approval.created_at
+        ):
+            raise ValueError("Immutable approval fields cannot be changed.")
+        row.decision = approval.decision.value
+        row.actor = approval.actor
+        row.reason = approval.reason
+        row.decided_at = approval.decided_at
+        await self._session.flush()
 
 
 class SqlAlchemyRepositoryRepository:
@@ -243,3 +292,35 @@ def _turn_from_row(row: SessionTurnRow) -> SessionTurn:
 
 def _optional_dict(value: dict[str, Any] | None) -> dict[str, object] | None:
     return None if value is None else dict(value)
+
+
+def _approval_to_row(entity: ApprovalRequest) -> ApprovalRow:
+    return ApprovalRow(
+        approval_id=entity.approval_id,
+        run_id=entity.run_id,
+        session_id=entity.session_id,
+        operation=entity.operation,
+        risk_level=entity.risk_level.value,
+        resource_or_command_summary=entity.resource_or_command_summary,
+        decision=entity.decision.value,
+        actor=entity.actor,
+        reason=entity.reason,
+        created_at=entity.created_at,
+        decided_at=entity.decided_at,
+    )
+
+
+def _approval_from_row(row: ApprovalRow) -> ApprovalRequest:
+    return ApprovalRequest(
+        approval_id=row.approval_id,
+        run_id=row.run_id,
+        session_id=row.session_id,
+        operation=row.operation,
+        risk_level=RiskLevel(row.risk_level),
+        resource_or_command_summary=row.resource_or_command_summary,
+        decision=ApprovalDecision(row.decision),
+        actor=row.actor,
+        reason=row.reason,
+        created_at=row.created_at,
+        decided_at=row.decided_at,
+    )

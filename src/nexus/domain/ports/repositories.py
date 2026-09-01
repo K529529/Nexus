@@ -1,8 +1,19 @@
-"""Async ports for Nexus-owned Day 2 business data."""
+"""Async ports for Nexus-owned business data through Day 3."""
 
 from typing import Protocol
 
+from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.persistence import NexusSession, Repository, Run, SessionTurn
+
+
+class ApprovalRepository(Protocol):
+    async def add(self, approval: ApprovalRequest) -> None: ...
+
+    async def get(self, approval_id: str) -> ApprovalRequest | None: ...
+
+    async def list_by_run(self, run_id: str) -> list[ApprovalRequest]: ...
+
+    async def update(self, approval: ApprovalRequest) -> None: ...
 
 
 class RepositoryRepository(Protocol):
