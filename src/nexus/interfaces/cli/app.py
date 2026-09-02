@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 import typer
 
+from nexus.application.runtime import NexusRuntime
 from nexus.config import load_runtime_config
 from nexus.config.models import RuntimeConfig
 from nexus.domain.persistence import SessionSummary
+from nexus.domain.planning import PlanApprovalResumeInput
+from nexus.domain.runtime_events import (
+    ApprovalRequested,
+    ApprovalSubject,
+    RunInterrupted,
+    RuntimeEvent,
+)
+from nexus.domain.tooling import ApprovalDecision
 from nexus.errors import NexusError
 from nexus.infrastructure.bootstrap import bootstrap_application
 from nexus.interfaces.cli.renderer import render_event
@@ -64,12 +74,11 @@ def chat(
 
 
 async def _run_chat(config: RuntimeConfig, task: str) -> bool:
-    succeeded = True
     async with bootstrap_application(config) as application:
-        # event:系统内部执行过程对外暴露的结构化事实。
-        async for event in application.runtime.run(task):
-            succeeded = render_event(event) and succeeded
-    return succeeded
+        return await _consume_with_plan_approval(
+            application.runtime.run(task),
+            application.runtime,
+        )
 
 
 @session_app.command("list")
@@ -110,11 +119,58 @@ async def _list_sessions(config: RuntimeConfig) -> list[SessionSummary]:
 
 
 async def _run_resume(config: RuntimeConfig, session_id: str) -> bool:
-    succeeded = True
     async with bootstrap_application(config) as application:
-        async for event in application.runtime.resume(session_id):
+        return await _consume_with_plan_approval(
+            application.runtime.resume(session_id),
+            application.runtime,
+            requested_session_id=session_id,
+        )
+
+
+async def _consume_with_plan_approval(
+    events: AsyncIterator[RuntimeEvent],
+    runtime: NexusRuntime,
+    *,
+    requested_session_id: str | None = None,
+) -> bool:
+    succeeded = True
+    current_events = events
+    session_id = requested_session_id
+    while True:
+        pending: ApprovalRequested | None = None
+        interrupted = False
+        async for event in current_events:
             succeeded = render_event(event) and succeeded
-    return succeeded
+            if event.session_id is not None:
+                session_id = event.session_id
+            if (
+                isinstance(event, ApprovalRequested)
+                and event.subject is ApprovalSubject.PLAN
+            ):
+                pending = event
+            interrupted = interrupted or isinstance(event, RunInterrupted)
+        if pending is None:
+            return succeeded
+        if not interrupted or session_id is None:
+            raise NexusError(
+                "Plan approval was not paired with a durable interrupt.",
+                code="GRAPH_INVALID_STATE",
+            )
+        resume_input = _collect_plan_decision()
+        current_events = runtime.resume(
+            session_id,
+            resume_input=resume_input,
+        )
+
+
+def _collect_plan_decision() -> PlanApprovalResumeInput:
+    while True:
+        value = typer.prompt("Plan decision (APPROVED/DENIED)").strip().upper()
+        try:
+            decision = ApprovalDecision(value)
+            return PlanApprovalResumeInput(decision, None)
+        except ValueError:
+            typer.echo("Enter APPROVED or DENIED.", err=True)
 
 
 def _render_session_summaries(summaries: list[SessionSummary]) -> None:

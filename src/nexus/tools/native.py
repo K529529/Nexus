@@ -24,6 +24,7 @@ from nexus.errors import NexusError, PermissionDeniedError, ToolExecutionError
 from nexus.security.executables import TrustedExecutables
 from nexus.security.git_commands import diff_argv, log_argv, status_argv
 from nexus.security.workspace import WorkspaceGuard
+from nexus.tools.editing import PatchTool, WriteFileTool
 
 _MAX_FILE_BYTES = 1_048_576
 _MAX_TEXT_OUTPUT_BYTES = 1_048_576
@@ -323,6 +324,8 @@ def build_native_tools(
         SearchFilesTool(guard),
         ReadFileTool(guard),
         LexicalSearchTool(guard),
+        PatchTool(guard),
+        WriteFileTool(guard),
         ShellTool(guard, sandbox, executables),
         GitStatusTool(sandbox, executables),
         GitDiffTool(sandbox, executables),

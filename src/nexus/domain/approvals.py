@@ -41,8 +41,11 @@ class ApprovalRequest:
                 raise ValueError("A pending approval must have runtime actor and no decided_at.")
         elif self.decided_at is None:
             raise ValueError("A terminal approval must have decided_at.")
-        elif self.decision is ApprovalDecision.APPROVED and self.actor != "user":
-            raise ValueError("Only the interactive user actor may approve in Day 3.")
+        elif self.decision is ApprovalDecision.APPROVED and not (
+            self.actor == "user"
+            or self.actor == "auto_policy" and self.operation == "approve_plan"
+        ):
+            raise ValueError("Only the user or scoped Plan auto policy may approve.")
         elif self.decision is ApprovalDecision.DENIED and self.actor == "runtime":
             raise ValueError("The runtime actor cannot own a terminal denial.")
 

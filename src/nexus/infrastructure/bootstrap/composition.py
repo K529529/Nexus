@@ -11,16 +11,28 @@ from typing import Any, cast
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from nexus.application.approval_service import ApprovalService
+from nexus.application.diff_service import FinalDiffCollector
+from nexus.application.execution_ledger import RuntimeEventBuffer, ToolExecutionLedger
+from nexus.application.plan_approval_service import PlanApprovalService
+from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.runtime import NexusRuntime
 from nexus.application.session_service import SessionService
 from nexus.application.tool_runtime import RuntimeEventEmitter, ToolRuntime
+from nexus.application.validation import (
+    DeterministicValidationPlanner,
+    ToolValidationRunner,
+)
 from nexus.config.models import RuntimeConfig
+from nexus.context import BoundedContextBuilder, SelectiveRepositoryExplorer
 from nexus.domain.ports.checkpoint_provider import CheckpointProvider
+from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.tooling import ApprovalPolicy
+from nexus.domain.runtime_events import RuntimeEvent
 from nexus.infrastructure.asyncio_compat import configure_asyncio_policy
 from nexus.infrastructure.checkpoint import PostgresCheckpointProvider
 from nexus.infrastructure.database import DatabaseBootstrap
+from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
 from nexus.infrastructure.graph.langgraph_runtime import LangGraphRuntime
 from nexus.infrastructure.model_gateway.openai_compatible import OpenAICompatibleModelGateway
 from nexus.infrastructure.persistence import (
@@ -80,19 +92,55 @@ async def bootstrap_application(
         unit_of_work_factory = SqlAlchemySessionUnitOfWorkFactory(database.session_factory)
         workspace = workspace_path or Path.cwd()
         session_service = SessionService(unit_of_work_factory, workspace)
-        tool_runtime = _build_tool_runtime(
+        event_buffer = RuntimeEventBuffer()
+        ledger = ToolExecutionLedger()
+        approval_factory = SqlAlchemyApprovalUnitOfWorkFactory(database.session_factory)
+        plan_approval_service = PlanApprovalService(approval_factory)
+        combined_emitter = _combined_emitter(event_buffer, tool_event_emitter)
+        tool_runtime, executables = _build_tool_runtime(
             database,
             workspace,
             approval_policy or AutoApprovalPolicy(),
-            tool_event_emitter,
+            combined_emitter,
+            plan_approval_service=plan_approval_service,
+            ledger=ledger,
         )
-        graph_runtime = LangGraphRuntime(
+        checkpointer = cast(BaseCheckpointSaver[Any], checkpoint_provider.get_checkpointer())
+        legacy_runtime = LangGraphRuntime(
             gateway,
-            checkpointer=cast(
-                BaseCheckpointSaver[Any], checkpoint_provider.get_checkpointer()
-            ),
+            checkpointer=checkpointer,
             interrupt_before_model_response=interrupt_before_model_response,
         )
+        graph_runtime: GraphRuntime
+        if interrupt_before_model_response:
+            graph_runtime = legacy_runtime
+        else:
+            graph_runtime = Day4LangGraphRuntime(
+                explorer=SelectiveRepositoryExplorer(tool_runtime),
+                context_builder=BoundedContextBuilder(tool_runtime),
+                planner=ModelPlanner(
+                    gateway,
+                    normalize_argv=executables.normalize_argv,
+                    ledger=ledger,
+                ),
+                agent=JsonAgentDecisionAdapter(gateway, ledger=ledger),
+                tool_runtime=tool_runtime,
+                validation_planner=DeterministicValidationPlanner(),
+                validation_runner=ToolValidationRunner(
+                    tool_runtime,
+                    emit=combined_emitter,
+                ),
+                plan_approval_service=plan_approval_service,
+                diff_collector=FinalDiffCollector(tool_runtime),
+                event_buffer=event_buffer,
+                ledger=ledger,
+                approval_mode=config.approval_mode,
+                max_steps=config.max_steps,
+                max_repair_attempts=config.max_repair_attempts,
+                max_replans=config.max_replans,
+                checkpointer=checkpointer,
+                legacy_runtime=legacy_runtime,
+            )
         application = BootstrappedApplication(
             runtime=NexusRuntime(
                 graph_runtime,
@@ -101,6 +149,7 @@ async def bootstrap_application(
                     "provider": config.model_provider,
                     "model": config.model_name,
                 },
+                event_buffer=event_buffer,
             ),
             session_service=session_service,
             database=database,
@@ -124,7 +173,7 @@ async def bootstrap_tool_application(
 
     database = DatabaseBootstrap(config.database_url)
     try:
-        tool_runtime = _build_tool_runtime(
+        tool_runtime, _ = _build_tool_runtime(
             database,
             workspace_path or Path.cwd(),
             approval_policy or AutoApprovalPolicy(),
@@ -140,7 +189,10 @@ def _build_tool_runtime(
     workspace: Path,
     approval_policy: ApprovalPolicy,
     event_emitter: RuntimeEventEmitter | None,
-) -> ToolRuntime:
+    *,
+    plan_approval_service: PlanApprovalService | None = None,
+    ledger: ToolExecutionLedger | None = None,
+) -> tuple[ToolRuntime, TrustedExecutables]:
     guard = WorkspaceGuard(workspace)
     executables = TrustedExecutables.resolve(guard.root)
     command_policy = DefaultCommandPolicy(executables)
@@ -153,4 +205,19 @@ def _build_tool_runtime(
         approval_policy,
         ApprovalService(approval_factory),
         emit=event_emitter,
-    )
+        plan_approval_service=plan_approval_service,
+        normalize_argv=executables.normalize_argv,
+        ledger=ledger,
+    ), executables
+
+
+def _combined_emitter(
+    buffer: RuntimeEventBuffer,
+    external: RuntimeEventEmitter | None,
+) -> RuntimeEventEmitter:
+    async def emit(event: RuntimeEvent) -> None:
+        await buffer.emit(event)
+        if external is not None:
+            await external(event)
+
+    return emit

@@ -19,6 +19,10 @@ _ENV_FIELDS = {
     "NEXUS_MODEL_BASE_URL": "model_base_url",
     "NEXUS_MODEL_API_KEY": "model_api_key",
     "NEXUS_DATABASE_URL": "database_url",
+    "NEXUS_APPROVAL_MODE": "approval_mode",
+    "NEXUS_MAX_STEPS": "max_steps",
+    "NEXUS_MAX_REPAIR_ATTEMPTS": "max_repair_attempts",
+    "NEXUS_MAX_REPLANS": "max_replans",
 }
 
 
@@ -53,7 +57,7 @@ def load_runtime_config(
         raise ConfigurationError("Runtime configuration is invalid.") from exc
 
 
-def _environment_values(environ: Mapping[str, str]) -> dict[str, str]:
+def _environment_values(environ: Mapping[str, str]) -> dict[str, Any]:
     return {
         field: environ[variable]
         for variable, field in _ENV_FIELDS.items()
@@ -61,7 +65,7 @@ def _environment_values(environ: Mapping[str, str]) -> dict[str, str]:
     }
 
 
-def _toml_values(path: Path) -> dict[str, str]:
+def _toml_values(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
     try:
@@ -72,16 +76,27 @@ def _toml_values(path: Path) -> dict[str, str]:
 
     model = _table(document, "model", path)
     database = _table(document, "database", path)
+    runtime = _table(document, "runtime", path)
     if "api_key" in model:
         raise ConfigurationError(
             f"API keys are not supported in Nexus TOML configuration at {path}."
         )
 
-    values: dict[str, str] = {}
+    values: dict[str, Any] = {}
     _copy_optional_string(model, "provider", "model_provider", values, path)
     _copy_optional_string(model, "name", "model_name", values, path)
     _copy_optional_string(model, "base_url", "model_base_url", values, path)
     _copy_optional_string(database, "url", "database_url", values, path)
+    _copy_optional_string(runtime, "approval_mode", "approval_mode", values, path)
+    _copy_optional_integer(runtime, "max_steps", "max_steps", values, path)
+    _copy_optional_integer(
+        runtime,
+        "max_repair_attempts",
+        "max_repair_attempts",
+        values,
+        path,
+    )
+    _copy_optional_integer(runtime, "max_replans", "max_replans", values, path)
     return values
 
 
@@ -96,7 +111,7 @@ def _copy_optional_string(
     source: Mapping[str, Any],
     source_key: str,
     target_key: str,
-    target: dict[str, str],
+    target: dict[str, Any],
     path: Path,
 ) -> None:
     if source_key not in source:
@@ -106,3 +121,17 @@ def _copy_optional_string(
         raise ConfigurationError(f"{source_key} must be a string in {path}.")
     target[target_key] = value
 
+
+def _copy_optional_integer(
+    source: Mapping[str, Any],
+    source_key: str,
+    target_key: str,
+    target: dict[str, Any],
+    path: Path,
+) -> None:
+    if source_key not in source:
+        return
+    value = source[source_key]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ConfigurationError(f"{source_key} must be an integer in {path}.")
+    target[target_key] = value

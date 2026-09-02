@@ -3,6 +3,7 @@
 from typing import Protocol
 
 from nexus.domain.agent_state import AgentState
+from nexus.domain.planning import PlanApprovalResumeInput
 
 
 class GraphRuntime(Protocol):
@@ -18,7 +19,12 @@ class GraphRuntime(Protocol):
 
         ...
 
-    async def resume(self, *, thread_id: str) -> AgentState:
+    async def resume(
+        self,
+        *,
+        thread_id: str,
+        resume_input: PlanApprovalResumeInput | None = None,
+    ) -> AgentState:
         """Resume the latest persisted checkpoint for an execution thread."""
 
         ...

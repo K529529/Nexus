@@ -45,6 +45,18 @@ class ToolExecutionError(NexusError):
     default_code = "TOOL_EXECUTION_ERROR"
 
 
+class ContextError(NexusError):
+    """Repository exploration or bounded context construction failed."""
+
+    default_code = "CONTEXT_ERROR"
+
+
+class ValidationError(NexusError):
+    """Validation planning or execution could not produce truthful evidence."""
+
+    default_code = "VALIDATION_ERROR"
+
+
 class PermissionDeniedError(NexusError):
     """A centralized security policy denied an operation."""
 
@@ -53,9 +65,11 @@ class PermissionDeniedError(NexusError):
 
 __all__ = [
     "ConfigurationError",
+    "ContextError",
     "ModelError",
     "NexusError",
     "PermissionDeniedError",
     "SessionError",
     "ToolExecutionError",
+    "ValidationError",
 ]

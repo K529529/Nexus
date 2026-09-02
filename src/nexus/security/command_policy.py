@@ -10,6 +10,7 @@ from nexus.security.git_commands import is_canonical_git_argv
 
 _READ_TOOLS = {"list_files", "search_files", "read_file", "lexical_search"}
 _GIT_TOOLS = {"git_status", "git_diff", "git_log"}
+_EDIT_TOOLS = {"apply_patch", "write_file"}
 _OPERATORS = {"&&", "||", "|", ">", ">>", "<", ";"}
 
 
@@ -22,6 +23,8 @@ class DefaultCommandPolicy:
             return RiskLevel.SAFE
         if operation in _GIT_TOOLS:
             return self._classify_git(operation, arguments)
+        if operation in _EDIT_TOOLS:
+            return RiskLevel.WRITE
         if operation != "shell":
             return RiskLevel.DANGEROUS
         argv = arguments.get("argv")

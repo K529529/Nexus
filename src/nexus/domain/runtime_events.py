@@ -7,7 +7,14 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
+from nexus.domain.planning import ChangedFile, PlanKind, TerminalStatus
 from nexus.domain.tooling import ApprovalDecision, PolicyDecision, RiskLevel
+from nexus.domain.validation import (
+    ValidationCheckKind,
+    ValidationConfidence,
+    ValidationResult,
+    ValidationStatus,
+)
 
 
 class RuntimeStatus(StrEnum):
@@ -18,6 +25,11 @@ class RuntimeStatus(StrEnum):
     INTERRUPTED = "INTERRUPTED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+
+class ApprovalSubject(StrEnum):
+    TOOL = "TOOL"
+    PLAN = "PLAN"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -62,10 +74,39 @@ class TaskStarted(RuntimeEvent):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FinalResult(RuntimeEvent):
-    """The terminal successful result for a Day 1 task."""
+    """A truthful successful or unsuccessful terminal task result."""
 
     status: RuntimeStatus = field(default=RuntimeStatus.COMPLETED, init=False)
     content: str
+    terminal_status: TerminalStatus = TerminalStatus.SUCCEEDED
+    changed_files: tuple[ChangedFile, ...] = ()
+    diff: str | None = ""
+    validation_result: ValidationResult | None = None
+    includes_preexisting_changes: bool = False
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        object.__setattr__(self, "changed_files", tuple(self.changed_files))
+        object.__setattr__(
+            self,
+            "status",
+            RuntimeStatus.COMPLETED
+            if self.terminal_status is TerminalStatus.SUCCEEDED
+            else RuntimeStatus.FAILED,
+        )
+        if (
+            self.terminal_status is TerminalStatus.SUCCEEDED
+            and self.validation_result is not None
+            and self.validation_result.status is not ValidationStatus.PASS
+        ):
+            raise ValueError("Validation failure or UNKNOWN cannot produce success.")
+        if self.terminal_status is TerminalStatus.SUCCEEDED and self.changed_files:
+            if (
+                self.validation_result is None
+                or self.validation_result.status is not ValidationStatus.PASS
+                or self.diff is None
+            ):
+                raise ValueError("A changed-code success requires PASS validation and exact diff.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -88,14 +129,34 @@ class ErrorOccurred(RuntimeEvent):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ApprovalRequested(RuntimeEvent):
-    """A WRITE operation is waiting for its selected approval policy."""
+    """A Tool or Plan is waiting for its selected approval policy."""
 
     status: RuntimeStatus = field(default=RuntimeStatus.AWAITING_APPROVAL, init=False)
     approval_id: str
-    invocation_id: str
+    invocation_id: str | None
     operation: str
     risk_level: RiskLevel
     resource_or_command_summary: str
+    subject: ApprovalSubject = ApprovalSubject.TOOL
+    plan_id: str | None = None
+    plan_version: int | None = None
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.subject is ApprovalSubject.TOOL:
+            if (
+                self.invocation_id is None
+                or self.plan_id is not None
+                or self.plan_version is not None
+            ):
+                raise ValueError("A Tool approval has invalid correlation fields.")
+        elif (
+            self.invocation_id is not None
+            or self.plan_id is None
+            or self.plan_version is None
+            or self.operation != "approve_plan"
+        ):
+            raise ValueError("A Plan approval has invalid correlation fields.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -130,6 +191,70 @@ class ToolFinished(RuntimeEvent):
             raise ValueError("A successful ToolFinished cannot have an error code.")
         if not self.success and self.error_code is None:
             raise ValueError("A failed ToolFinished must have an error code.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RepositoryExplored(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    instruction_paths: tuple[str, ...]
+    manifest_paths: tuple[str, ...]
+    relevant_paths: tuple[str, ...]
+    exploration_tool_calls: int
+    truncated: bool
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ContextBuilt(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    selected_paths: tuple[str, ...]
+    retained_characters: int
+    truncated: bool
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PlanCreated(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    plan_id: str
+    plan_version: int
+    plan_kind: PlanKind
+    step_summaries: tuple[str, ...]
+    replan_reason: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ReplanOccurred(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    plan_id: str
+    previous_version: int
+    new_version: int
+    reason: str
+    replan_count: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ValidationStarted(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    check_ids: tuple[str, ...]
+    check_kinds: tuple[ValidationCheckKind, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ValidationFinished(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    validation_status: ValidationStatus
+    confidence: ValidationConfidence
+    executed_check_count: int
+    repair_count: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RepairStarted(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    plan_id: str
+    plan_version: int
+    repair_count: int
+    max_repair_attempts: int
+    failure_summary: str
 
 
 def _safe_value(value: Any) -> Any:

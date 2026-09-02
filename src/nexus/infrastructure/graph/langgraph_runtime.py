@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 
 from nexus.domain.agent_state import AgentState
 from nexus.domain.model import ModelMessage
+from nexus.domain.planning import PlanApprovalResumeInput
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.runtime_events import RuntimeStatus
 from nexus.errors import NexusError
@@ -89,8 +90,19 @@ class LangGraphRuntime:
             cast(_GraphState, result), state, status_override=status_override
         )
 
-    async def resume(self, *, thread_id: str) -> AgentState:
+    async def resume(
+        self,
+        *,
+        thread_id: str,
+        resume_input: PlanApprovalResumeInput | None = None,
+    ) -> AgentState:
         """Resume exclusively from the checkpointer-owned latest thread snapshot."""
+
+        if resume_input is not None:
+            raise NexusError(
+                "This checkpoint is not waiting for Plan approval.",
+                code="INVALID_APPROVAL_TRANSITION",
+            )
 
         try:
             result = await self._graph.ainvoke(None, config=_thread_config(thread_id))
