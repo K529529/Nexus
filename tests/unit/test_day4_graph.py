@@ -5,6 +5,8 @@ from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
 
 import pytest
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import InMemorySaver
 
 from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence
 from nexus.application.execution_ledger import RuntimeEventBuffer, ToolExecutionLedger
@@ -52,11 +54,15 @@ from nexus.domain.tooling import (
     ToolResult,
 )
 from nexus.domain.validation import (
+    ValidationCheck,
+    ValidationCheckKind,
+    ValidationCheckResult,
     ValidationConfidence,
     ValidationPlan,
     ValidationResult,
     ValidationStatus,
 )
+from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
 
 
@@ -158,6 +164,21 @@ class Decisions:
         return AgentDecision(AgentDecisionKind.TASK_READY, None, "Ready to validate.")
 
 
+class FailingDecisions:
+    def __init__(self, ledger: ToolExecutionLedger) -> None:
+        self._ledger = ledger
+
+    async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+        self._ledger.begin_model(request.plan.run_id)
+        raise ModelError("Agent model failed.", retryable=True)
+
+
+class ReadyDecisions:
+    async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+        del request
+        return AgentDecision(AgentDecisionKind.TASK_READY, None, "Ready to validate.")
+
+
 class OneActionRuntime:
     def __init__(
         self,
@@ -215,6 +236,59 @@ class PassValidationRunner:
         )
 
 
+class RepairableValidationRunner:
+    async def run(
+        self,
+        plan: ValidationPlan,
+        **kwargs: Any,
+    ) -> ValidationResult:
+        del plan
+        check_id = str(uuid4())
+        check = ValidationCheck(
+            check_id,
+            1,
+            ValidationCheckKind.TEST,
+            "shell",
+            {"argv": ["pytest", "-q"], "cwd": "."},
+            "Focused test is required.",
+            True,
+        )
+        executed = (
+            ValidationCheckResult(
+                check,
+                ValidationStatus.FAIL,
+                _tool_result(
+                    check_id,
+                    "shell",
+                    success=False,
+                    error_code="COMMAND_EXIT_NONZERO",
+                ),
+                "Focused test exited non-zero.",
+            ),
+        )
+        return ValidationResult(
+            (check,),
+            executed,
+            ValidationStatus.FAIL,
+            ValidationConfidence.HIGH,
+            True,
+            kwargs["repair_count"],
+            "Validation failed with a repairable implementation defect.",
+        )
+
+
+class FailingRepairPlanner(FixedPlanner):
+    def __init__(self, ledger: ToolExecutionLedger) -> None:
+        super().__init__()
+        self._ledger = ledger
+
+    async def create_repair_guidance(
+        self, request: RepairPlanningRequest
+    ) -> RepairGuidance:
+        self._ledger.begin_model(request.plan.run_id)
+        raise ModelError("Repair planning model failed.", retryable=True)
+
+
 class AutoPlanApprovals:
     async def create_auto_approved(self, plan: Plan) -> ApprovalRequest:
         now = datetime.now(UTC)
@@ -256,19 +330,23 @@ def _runtime(
     *,
     ledger: ToolExecutionLedger,
     event_buffer: RuntimeEventBuffer,
-    planner: FixedPlanner,
-    agent: Decisions,
+    planner: Planner,
+    agent: AgentDecisionAdapter,
     tool_runtime: OneActionRuntime,
     max_replans: int = 2,
+    validation_runner: ValidationRunner | None = None,
+    checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
         context_builder=cast(ContextBuilder, Builder()),
-        planner=cast(Planner, planner),
-        agent=cast(AgentDecisionAdapter, agent),
+        planner=planner,
+        agent=agent,
         tool_runtime=cast(ToolRuntime, tool_runtime),
         validation_planner=cast(ValidationPlanner, PassValidationPlanner()),
-        validation_runner=cast(ValidationRunner, PassValidationRunner()),
+        validation_runner=validation_runner or cast(
+            ValidationRunner, PassValidationRunner()
+        ),
         plan_approval_service=cast(PlanApprovalService, AutoPlanApprovals()),
         diff_collector=cast(FinalDiffCollector, DiffCollector()),
         event_buffer=event_buffer,
@@ -277,6 +355,7 @@ def _runtime(
         max_steps=5,
         max_repair_attempts=3,
         max_replans=max_replans,
+        checkpointer=checkpointer,
     )
 
 
@@ -345,3 +424,65 @@ async def test_plan_scope_denial_is_only_replan_trigger_and_stops_at_limit() -> 
     assert result.observations[-1].replan_reason is not None
     assert result.replan_count == 0
     assert planner.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_agent_step_and_failed_model_call_are_checkpointed_on_entry() -> None:
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=RuntimeEventBuffer(),
+        planner=cast(Planner, FixedPlanner()),
+        agent=cast(AgentDecisionAdapter, FailingDecisions(ledger)),
+        tool_runtime=OneActionRuntime(ledger),
+        checkpointer=InMemorySaver(),
+    )
+    state = AgentState(
+        "edit alpha",
+        [ModelMessage(role="user", content="edit alpha")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+    thread_id = f"nexus-run:{state.run_id}"
+
+    with pytest.raises(ModelError, match="Agent model failed"):
+        await runtime.run(state, thread_id=thread_id)
+
+    snapshot = await runtime._graph.aget_state(  # noqa: SLF001
+        {"configurable": {"thread_id": thread_id}}
+    )
+    assert snapshot.values["step_count"] == 1
+    assert snapshot.values["llm_call_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_repair_attempt_and_failed_planning_call_are_checkpointed_on_entry() -> None:
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=RuntimeEventBuffer(),
+        planner=cast(Planner, FailingRepairPlanner(ledger)),
+        agent=cast(AgentDecisionAdapter, ReadyDecisions()),
+        tool_runtime=OneActionRuntime(ledger),
+        validation_runner=cast(ValidationRunner, RepairableValidationRunner()),
+        checkpointer=InMemorySaver(),
+    )
+    state = AgentState(
+        "edit alpha",
+        [ModelMessage(role="user", content="edit alpha")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+    thread_id = f"nexus-run:{state.run_id}"
+
+    with pytest.raises(ModelError, match="Repair planning model failed"):
+        await runtime.run(state, thread_id=thread_id)
+
+    snapshot = await runtime._graph.aget_state(  # noqa: SLF001
+        {"configurable": {"thread_id": thread_id}}
+    )
+    assert snapshot.values["step_count"] == 1
+    assert snapshot.values["repair_count"] == 1
+    assert snapshot.values["llm_call_count"] == 1

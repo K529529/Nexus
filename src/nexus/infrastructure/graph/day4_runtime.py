@@ -159,6 +159,7 @@ class Day4LangGraphRuntime:
                 return replace(converted, status=RuntimeStatus.INTERRUPTED)
             return converted
         except NexusError:
+            await self._persist_failed_attempt_evidence(thread_id)
             raise
         except Exception as exc:
             raise NexusError(
@@ -206,6 +207,7 @@ class Day4LangGraphRuntime:
                 return replace(converted, status=RuntimeStatus.INTERRUPTED)
             return converted
         except NexusError:
+            await self._persist_failed_attempt_evidence(thread_id)
             raise
         except Exception as exc:
             raise NexusError(
@@ -238,7 +240,7 @@ class Day4LangGraphRuntime:
                 truncated=result.truncated,
             )
         )
-        return self._evidence_update(state.run_id, exploration=result)
+        return self._evidence_update(state, exploration=result)
 
     async def _build_context(self, state: AgentState) -> dict[str, object]:
         if state.exploration is None:
@@ -261,7 +263,7 @@ class Day4LangGraphRuntime:
                 truncated=context.truncated,
             )
         )
-        return self._evidence_update(state.run_id, context=context)
+        return self._evidence_update(state, context=context)
 
     async def _create_plan(self, state: AgentState) -> dict[str, object]:
         if state.context is None:
@@ -320,14 +322,13 @@ class Day4LangGraphRuntime:
                 _approval_event(plan, pending)
             )
         return self._evidence_update(
-            state.run_id,
+            state,
             plan=plan,
             plan_history=history,
             replan_count=replan_count,
             pending_plan_approval=pending,
             approved_plan=None,
             repair_guidance=None,
-            llm_call_count=self._ledger.model_count(state.run_id),
         )
 
     async def _approval_gate(self, state: AgentState) -> Command[Any]:
@@ -373,6 +374,7 @@ class Day4LangGraphRuntime:
             )
         if state.context is None or state.plan is None:
             raise NexusError("Agent decision context is missing.", code="GRAPH_INVALID_STATE")
+        self._ledger.begin_step(state.run_id)
         decision = await self._agent.decide(
             AgentDecisionRequest(
                 state.task,
@@ -384,10 +386,9 @@ class Day4LangGraphRuntime:
             )
         )
         update: dict[str, object] = {
-            "step_count": state.step_count + 1,
-            "llm_call_count": self._ledger.model_count(state.run_id),
             "pending_tool_action": decision.action,
         }
+        update = self._evidence_update(state, **update)
         if decision.kind is AgentDecisionKind.TOOL_ACTION:
             return Command(update=update, goto="execute_tool")
         if decision.kind is AgentDecisionKind.TASK_READY:
@@ -413,7 +414,7 @@ class Day4LangGraphRuntime:
         if result.success and result.tool_name in {"apply_patch", "write_file"}:
             changed = _record_change(changed, result)
         return self._evidence_update(
-            state.run_id,
+            state,
             latest_tool_result=result,
             changed_files=changed,
         )
@@ -438,7 +439,7 @@ class Day4LangGraphRuntime:
             reason,
         )
         update = self._evidence_update(
-            state.run_id,
+            state,
             observations=(*state.observations, observation),
             pending_tool_action=None,
         )
@@ -471,7 +472,7 @@ class Day4LangGraphRuntime:
             authorization=state.approved_plan,
             repair_count=state.repair_count,
         )
-        update = self._evidence_update(state.run_id, validation_result=result)
+        update = self._evidence_update(state, validation_result=result)
         if result.status is ValidationStatus.PASS:
             return Command(update=update, goto="finalize")
         if (
@@ -491,6 +492,7 @@ class Day4LangGraphRuntime:
     async def _repair_plan(self, state: AgentState) -> dict[str, object]:
         if state.plan is None or state.context is None or state.validation_result is None:
             raise NexusError("Repair state is incomplete.", code="GRAPH_INVALID_STATE")
+        self._ledger.begin_repair(state.run_id)
         attempt = state.repair_count + 1
         await self._events.emit(
             RepairStarted(
@@ -512,11 +514,7 @@ class Day4LangGraphRuntime:
                 attempt,
             )
         )
-        return {
-            "repair_count": attempt,
-            "repair_guidance": guidance,
-            "llm_call_count": self._ledger.model_count(state.run_id),
-        }
+        return self._evidence_update(state, repair_guidance=guidance)
 
     async def _finalize(self, state: AgentState) -> dict[str, object]:
         evidence = await self._collect_diff(state)
@@ -586,7 +584,7 @@ class Day4LangGraphRuntime:
         )
         await self._events.emit(event)
         update = self._evidence_update(
-            state.run_id,
+            state,
             status=status,
             terminal_status=terminal,
             messages=[*state.messages, ModelMessage(role="assistant", content=content)],
@@ -622,12 +620,36 @@ class Day4LangGraphRuntime:
             _approval_event(plan, pending)
         )
 
-    def _evidence_update(self, run_id: str, **values: object) -> dict[str, object]:
+    def _evidence_update(
+        self, state: AgentState, **values: object
+    ) -> dict[str, object]:
+        run_id = state.run_id
+        self._ledger.restore(
+            run_id,
+            tool_call_count=state.tool_call_count,
+            model_call_count=state.llm_call_count,
+            step_count=state.step_count,
+            repair_count=state.repair_count,
+            tool_results=state.tool_results,
+        )
         return {
-            "tool_call_count": self._ledger.count(run_id),
-            "tool_results": self._ledger.results(run_id),
             **values,
+            "step_count": self._ledger.step_count(run_id),
+            "tool_call_count": self._ledger.count(run_id),
+            "llm_call_count": self._ledger.model_count(run_id),
+            "repair_count": self._ledger.repair_count(run_id),
+            "tool_results": self._ledger.results(run_id),
         }
+
+    async def _persist_failed_attempt_evidence(self, thread_id: str | None) -> None:
+        if thread_id is None:
+            return
+        config = cast(RunnableConfig, _thread_config(thread_id))
+        snapshot = await self._graph.aget_state(config)
+        if not snapshot.values:
+            return
+        current = _to_agent_state(snapshot.values)
+        await self._graph.aupdate_state(config, self._evidence_update(current))
 
 
 def _thread_config(
