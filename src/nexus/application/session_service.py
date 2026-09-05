@@ -16,7 +16,9 @@ from nexus.domain.persistence import (
     SessionSummary,
     SessionTurn,
 )
+from nexus.domain.planning import TerminalStatus
 from nexus.domain.ports.session_unit_of_work import SessionUnitOfWork, SessionUnitOfWorkFactory
+from nexus.domain.runtime_events import FinalResult
 from nexus.errors import SessionError
 
 
@@ -178,6 +180,40 @@ class SessionService:
             assistant_content=None,
         )
 
+    async def finalize_run(
+        self,
+        run_id: str,
+        event: FinalResult,
+        *,
+        tool_call_count: int,
+        step_count: int,
+        llm_call_count: int,
+        replan_count: int,
+        repair_count: int,
+    ) -> Run:
+        """Persist one truthful Day 4 terminal result without a schema change."""
+
+        outcome = event.to_dict()["payload"]
+        outcome["metrics"] = {
+            "step_count": step_count,
+            "llm_call_count": llm_call_count,
+            "replan_count": replan_count,
+            "repair_count": repair_count,
+        }
+        return await self._transition_run(
+            run_id,
+            status=(
+                RunStatus.COMPLETED
+                if event.terminal_status is TerminalStatus.SUCCEEDED
+                else RunStatus.FAILED
+            ),
+            final_outcome=outcome,
+            finished_at=datetime.now(UTC),
+            assistant_content=event.content,
+            tool_call_count=tool_call_count,
+            changed_file_refs=[item.path for item in event.changed_files],
+        )
+
     async def _transition_run(
         self,
         run_id: str,
@@ -186,6 +222,8 @@ class SessionService:
         final_outcome: dict[str, object] | None,
         finished_at: datetime | None,
         assistant_content: str | None,
+        tool_call_count: int | None = None,
+        changed_file_refs: list[str] | None = None,
     ) -> Run:
         canonical_run_id = _canonical_uuid(run_id, "run")
         now = datetime.now(UTC)
@@ -220,6 +258,16 @@ class SessionService:
                     status=status,
                     final_outcome=final_outcome,
                     finished_at=finished_at,
+                    tool_call_count=(
+                        run.tool_call_count
+                        if tool_call_count is None
+                        else tool_call_count
+                    ),
+                    changed_file_refs=(
+                        run.changed_file_refs
+                        if changed_file_refs is None
+                        else list(changed_file_refs)
+                    ),
                 )
                 await unit_of_work.runs.update(updated)
                 session = await unit_of_work.sessions.get(run.session_id)

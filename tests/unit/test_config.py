@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from nexus.config import load_runtime_config
-from nexus.config.models import DEFAULT_DATABASE_URL
+from nexus.config.models import DEFAULT_DATABASE_URL, ApprovalMode, RuntimeConfig
 from nexus.errors import ConfigurationError
 
 
@@ -129,3 +129,48 @@ def test_api_key_in_toml_is_rejected(tmp_path: Path) -> None:
             user_config_path=tmp_path / "missing.toml",
             environ={},
         )
+
+
+def test_day4_runtime_defaults_and_repository_precedence(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    user_config = tmp_path / "user" / "config.toml"
+    repo_root.mkdir()
+    _write_config(
+        user_config,
+        "[runtime]\napproval_mode = \"auto\"\nmax_steps = 12\n"
+        "max_repair_attempts = 1\nmax_replans = 1\n",
+    )
+    _write_config(
+        repo_root / ".nexus" / "config.toml",
+        "[runtime]\nmax_steps = 7\nmax_replans = 0\n",
+    )
+
+    config = load_runtime_config(
+        repo_root=repo_root,
+        user_config_path=user_config,
+        environ={
+            "NEXUS_APPROVAL_MODE": "approval",
+            "NEXUS_MAX_STEPS": "20",
+            "NEXUS_MAX_REPAIR_ATTEMPTS": "3",
+            "NEXUS_MAX_REPLANS": "2",
+        },
+    )
+
+    assert config.approval_mode is ApprovalMode.AUTO
+    assert config.max_steps == 7
+    assert config.max_repair_attempts == 1
+    assert config.max_replans == 0
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"max_steps": 0},
+        {"max_repair_attempts": -1},
+        {"max_replans": -1},
+        {"max_steps": True},
+    ],
+)
+def test_day4_runtime_limits_reject_invalid_values(values: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        RuntimeConfig.model_validate(values)

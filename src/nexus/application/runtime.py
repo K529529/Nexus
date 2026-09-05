@@ -5,9 +5,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
+from nexus.application.execution_ledger import RuntimeEventBuffer
 from nexus.application.session_service import SessionService
 from nexus.domain.agent_state import AgentState
 from nexus.domain.model import ModelMessage
+from nexus.domain.planning import PlanApprovalResumeInput
 from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.runtime_events import (
     ErrorOccurred,
@@ -29,10 +31,12 @@ class NexusRuntime:
         *,
         session_service: SessionService | None = None,
         model_metadata: dict[str, object] | None = None,
+        event_buffer: RuntimeEventBuffer | None = None,
     ) -> None:
         self._graph_runtime = graph_runtime
         self._session_service = session_service
         self._model_metadata = model_metadata
+        self._event_buffer = event_buffer
 
     async def run(
         self,
@@ -93,17 +97,24 @@ class NexusRuntime:
                     thread_id=persisted_run.graph_thread_id,
                 )
             if result.status is RuntimeStatus.INTERRUPTED:
+                interrupted_events = self._drain(run_id)
                 if self._session_service is None:
                     raise SessionError(
                         "Interrupted execution requires session persistence.",
                         code="SESSION_PERSISTENCE_REQUIRED",
                     )
                 await self._session_service.mark_interrupted(run_id)
+                for event in interrupted_events:
+                    yield event
                 yield RunInterrupted(run_id=run_id, session_id=session_id)
                 return
-            content = self._final_content(result)
+            buffered = self._drain(run_id)
+            final = _one_final_result(buffered)
+            if final is None:
+                content = self._final_content(result)
+                final = FinalResult(run_id=run_id, session_id=session_id, content=content)
             if self._session_service is not None:
-                await self._session_service.complete_run(run_id, content)
+                await self._persist_final(run_id, result, final)
         except NexusError as exc:
             if self._session_service is not None and persisted_run is not None:
                 try:
@@ -141,9 +152,17 @@ class NexusRuntime:
             )
             return
 
-        yield FinalResult(run_id=run_id, session_id=session_id, content=content)
+        for event in buffered:
+            yield event
+        if final not in buffered:
+            yield final
 
-    async def resume(self, session_id: str) -> AsyncIterator[RuntimeEvent]:
+    async def resume(
+        self,
+        session_id: str,
+        *,
+        resume_input: PlanApprovalResumeInput | None = None,
+    ) -> AsyncIterator[RuntimeEvent]:
         """Resolve and resume the latest durable interrupted run for a session."""
 
         if self._session_service is None:
@@ -154,9 +173,25 @@ class NexusRuntime:
         run = await self._session_service.resolve_resumable_run(session_id)
         yield TaskStarted(run_id=run.run_id, session_id=run.session_id, task=run.task)
         try:
-            result = await self._graph_runtime.resume(thread_id=run.graph_thread_id)
-            content = self._final_content(result)
-            await self._session_service.complete_run(run.run_id, content)
+            result = await self._graph_runtime.resume(
+                thread_id=run.graph_thread_id,
+                resume_input=resume_input,
+            )
+            if result.status is RuntimeStatus.INTERRUPTED:
+                for event in self._drain(run.run_id):
+                    yield event
+                yield RunInterrupted(run_id=run.run_id, session_id=run.session_id)
+                return
+            buffered = self._drain(run.run_id)
+            final = _one_final_result(buffered)
+            if final is None:
+                content = self._final_content(result)
+                final = FinalResult(
+                    run_id=run.run_id,
+                    session_id=run.session_id,
+                    content=content,
+                )
+            await self._persist_final(run.run_id, result, final)
         except NexusError as exc:
             try:
                 await self._session_service.fail_run(
@@ -196,7 +231,34 @@ class NexusRuntime:
                 retryable=retryable,
             )
             return
-        yield FinalResult(run_id=run.run_id, session_id=run.session_id, content=content)
+        for event in buffered:
+            yield event
+        if final not in buffered:
+            yield final
+
+    def _drain(self, run_id: str) -> tuple[RuntimeEvent, ...]:
+        return () if self._event_buffer is None else self._event_buffer.drain(run_id)
+
+    async def _persist_final(
+        self,
+        run_id: str,
+        state: AgentState,
+        event: FinalResult,
+    ) -> None:
+        if self._session_service is None:
+            return
+        if state.terminal_status is None:
+            await self._session_service.complete_run(run_id, event.content)
+            return
+        await self._session_service.finalize_run(
+            run_id,
+            event,
+            tool_call_count=state.tool_call_count,
+            step_count=state.step_count,
+            llm_call_count=state.llm_call_count,
+            replan_count=state.replan_count,
+            repair_count=state.repair_count,
+        )
 
     @staticmethod
     def _final_content(state: AgentState) -> str:
@@ -211,3 +273,10 @@ class NexusRuntime:
                 code="EMPTY_MODEL_OUTPUT",
             )
         return content
+
+
+def _one_final_result(events: tuple[RuntimeEvent, ...]) -> FinalResult | None:
+    finals = tuple(event for event in events if isinstance(event, FinalResult))
+    if len(finals) > 1:
+        raise NexusError("The graph emitted multiple final results.", code="GRAPH_INVALID_STATE")
+    return None if not finals else finals[0]

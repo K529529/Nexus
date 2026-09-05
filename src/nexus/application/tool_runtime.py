@@ -8,7 +8,10 @@ from collections.abc import Awaitable, Callable
 from dataclasses import replace
 
 from nexus.application.approval_service import ApprovalService
+from nexus.application.execution_ledger import ToolExecutionLedger
+from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.domain.approvals import ApprovalRequest
+from nexus.domain.planning import ApprovedPlanEvidence
 from nexus.domain.ports.tooling import ApprovalPolicy, CommandPolicy, Tool
 from nexus.domain.runtime_events import (
     ApprovalRequested,
@@ -40,14 +43,27 @@ class ToolRuntime:
         approval_service: ApprovalService,
         *,
         emit: RuntimeEventEmitter | None = None,
+        plan_approval_service: PlanApprovalService | None = None,
+        normalize_argv: Callable[[list[str]], list[str]] | None = None,
+        ledger: ToolExecutionLedger | None = None,
     ) -> None:
         self._registry = registry
         self._command_policy = command_policy
         self._approval_policy = approval_policy
         self._approval_service = approval_service
+        self._plan_approval_service = plan_approval_service
+        self._normalize_argv = normalize_argv or (lambda argv: list(argv))
+        self._ledger = ledger
         self._emit = emit or _ignore_event
 
-    async def execute(self, invocation: ToolInvocation) -> ToolResult:
+    async def execute(
+        self,
+        invocation: ToolInvocation,
+        *,
+        authorization: ApprovedPlanEvidence | None = None,
+    ) -> ToolResult:
+        if self._ledger is not None:
+            self._ledger.begin(invocation)
         started = time.perf_counter()
         try:
             tool = self._registry.resolve(invocation.tool_name)
@@ -72,6 +88,8 @@ class ToolRuntime:
                 )
             )
             await self._emit(_finished_event(invocation, result))
+            if self._ledger is not None:
+                self._ledger.record(invocation, result)
             return result
 
         proposed_risk = self._command_policy.classify(
@@ -89,13 +107,91 @@ class ToolRuntime:
         )
         if proposed_risk is RiskLevel.DANGEROUS:
             result = await self._deny_dangerous(invocation)
+        elif authorization is not None and invocation.tool_name in {
+            "apply_patch",
+            "write_file",
+            "shell",
+        }:
+            result = await self._resolve_authorized_action(
+                tool,
+                invocation,
+                authorization,
+                proposed_risk,
+            )
         elif proposed_risk is RiskLevel.WRITE:
             result = await self._resolve_write(invocation)
         else:
             result = await self._execute_safe(tool, invocation, proposed_risk)
         result = replace(result, duration_ms=_duration_ms(started))
         await self._emit(_finished_event(invocation, result))
+        if self._ledger is not None:
+            self._ledger.record(invocation, result)
         return result
+
+    async def _resolve_authorized_action(
+        self,
+        tool: Tool,
+        invocation: ToolInvocation,
+        authorization: ApprovedPlanEvidence,
+        proposed_risk: RiskLevel,
+    ) -> ToolResult:
+        try:
+            if self._plan_approval_service is None:
+                raise ToolExecutionError(
+                    "Plan authorization validation is unavailable.",
+                )
+            await self._plan_approval_service.require_approved(authorization)
+            if (
+                authorization.run_id != invocation.run_id
+                or authorization.session_id != invocation.session_id
+                or not self._is_in_scope(invocation, authorization)
+            ):
+                raise ToolExecutionError(
+                    "The Tool action is outside the approved Plan scope.",
+                    code="PLAN_SCOPE_DENIED",
+                )
+        except NexusError as exc:
+            return _failure(
+                invocation,
+                risk_level=proposed_risk,
+                policy_decision=PolicyDecision.DENIED,
+                approval_decision=(
+                    ApprovalDecision.APPROVED
+                    if exc.code == "PLAN_SCOPE_DENIED"
+                    else None
+                ),
+                error=exc,
+            )
+        result = await self._execute_safe(tool, invocation, proposed_risk)
+        if result.risk_level is RiskLevel.DANGEROUS:
+            return result
+        return replace(
+            result,
+            policy_decision=PolicyDecision.ALLOWED,
+            approval_decision=ApprovalDecision.APPROVED,
+        )
+
+    def _is_in_scope(
+        self,
+        invocation: ToolInvocation,
+        authorization: ApprovedPlanEvidence,
+    ) -> bool:
+        scope = authorization.authorization_scope
+        if invocation.tool_name in {"apply_patch", "write_file"}:
+            path = invocation.arguments.get("path")
+            return isinstance(path, str) and (
+                invocation.tool_name,
+                path,
+            ) in scope.allowed_write_actions
+        if invocation.tool_name == "shell":
+            argv = invocation.arguments.get("argv")
+            cwd = invocation.arguments.get("cwd", ".")
+            if not isinstance(argv, list) or not all(isinstance(item, str) for item in argv):
+                return False
+            if not isinstance(cwd, str):
+                return False
+            return (tuple(self._normalize_argv(argv)), cwd) in scope.allowed_commands
+        return False
 
     async def _execute_safe(
         self,

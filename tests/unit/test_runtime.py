@@ -5,6 +5,7 @@ import pytest
 from nexus.application.runtime import NexusRuntime
 from nexus.domain.agent_state import AgentState
 from nexus.domain.model import ModelMessage
+from nexus.domain.planning import PlanApprovalResumeInput
 from nexus.domain.runtime_events import ErrorOccurred, FinalResult, RuntimeStatus, TaskStarted
 from nexus.errors import ModelError
 
@@ -25,7 +26,13 @@ class SuccessfulGraph:
             status=RuntimeStatus.COMPLETED,
         )
 
-    async def resume(self, *, thread_id: str) -> AgentState:
+    async def resume(
+        self,
+        *,
+        thread_id: str,
+        resume_input: PlanApprovalResumeInput | None = None,
+    ) -> AgentState:
+        del resume_input
         raise NotImplementedError
 
 
@@ -35,7 +42,13 @@ class FailingGraph:
     ) -> AgentState:
         raise ModelError("Model is temporarily unavailable.", retryable=True)
 
-    async def resume(self, *, thread_id: str) -> AgentState:
+    async def resume(
+        self,
+        *,
+        thread_id: str,
+        resume_input: PlanApprovalResumeInput | None = None,
+    ) -> AgentState:
+        del resume_input
         raise NotImplementedError
 
 

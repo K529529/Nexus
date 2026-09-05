@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import BaseModel, ConfigDict, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://nexus:nexus@localhost:5432/nexus"
 SUPPORTED_MODEL_PROVIDER = "openai_compatible"
+
+
+class ApprovalMode(StrEnum):
+    APPROVAL = "approval"
+    AUTO = "auto"
 
 
 class RuntimeConfig(BaseModel):
@@ -20,6 +26,10 @@ class RuntimeConfig(BaseModel):
     model_base_url: str | None = None
     model_api_key: SecretStr | None = None
     database_url: str = DEFAULT_DATABASE_URL
+    approval_mode: ApprovalMode = ApprovalMode.APPROVAL
+    max_steps: int = 30
+    max_repair_attempts: int = 3
+    max_replans: int = 2
 
     @field_validator("model_provider")
     @classmethod
@@ -45,6 +55,26 @@ class RuntimeConfig(BaseModel):
             raise ValueError("Day 1 database URL must use postgresql+asyncpg")
         return value
 
+    @field_validator(
+        "max_steps",
+        "max_repair_attempts",
+        "max_replans",
+        mode="before",
+    )
+    @classmethod
+    def reject_boolean_limits(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("Day 4 limits must be integers, not booleans.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_day4_limits(self) -> RuntimeConfig:
+        if self.max_steps <= 0:
+            raise ValueError("max_steps must be greater than zero.")
+        if self.max_repair_attempts < 0 or self.max_replans < 0:
+            raise ValueError("Repair and Replan limits must not be negative.")
+        return self
+
     def __repr__(self) -> str:
         api_key = "**********" if self.model_api_key is not None else "None"
         return (
@@ -53,7 +83,11 @@ class RuntimeConfig(BaseModel):
             f"model_name={self.model_name!r}, "
             f"model_base_url={self.model_base_url!r}, "
             f"model_api_key={api_key}, "
-            f"database_url={redact_database_url(self.database_url)!r}"
+            f"database_url={redact_database_url(self.database_url)!r}, "
+            f"approval_mode={self.approval_mode.value!r}, "
+            f"max_steps={self.max_steps!r}, "
+            f"max_repair_attempts={self.max_repair_attempts!r}, "
+            f"max_replans={self.max_replans!r}"
             ")"
         )
 

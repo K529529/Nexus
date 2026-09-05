@@ -5,8 +5,11 @@ from __future__ import annotations
 import typer
 
 from nexus.domain.runtime_events import (
+    ApprovalRequested,
+    ApprovalSubject,
     ErrorOccurred,
     FinalResult,
+    PlanCreated,
     RunInterrupted,
     RuntimeEvent,
     TaskStarted,
@@ -21,6 +24,17 @@ def render_event(event: RuntimeEvent) -> bool:
         return True
     if isinstance(event, FinalResult):
         typer.echo(event.content)
+        if event.diff:
+            typer.echo(event.diff)
+        return event.status.value == "COMPLETED"
+    if isinstance(event, PlanCreated):
+        typer.echo(f"Plan {event.plan_id} v{event.plan_version}")
+        for summary in event.step_summaries:
+            typer.echo(f"  {summary}")
+        return True
+    if isinstance(event, ApprovalRequested) and event.subject is ApprovalSubject.PLAN:
+        typer.echo("Plan approval required")
+        typer.echo(f"  scope digest: {event.resource_or_command_summary}")
         return True
     if isinstance(event, RunInterrupted):
         typer.echo(event.message)

@@ -52,6 +52,30 @@ class WorkspaceGuard:
     def relative_display(self, path: Path) -> str:
         return path.relative_to(self._workspace).as_posix() or "."
 
+    def resolve_for_creation(self, relative_path: str) -> Path:
+        requested = Path(relative_path)
+        if requested.is_absolute() or ".." in requested.parts:
+            raise self._denied()
+        parent_requested = requested.parent
+        try:
+            parent = (self._workspace / parent_requested).resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            if ".." in requested.parts:
+                raise self._denied() from exc
+            raise ToolExecutionError(
+                "The target parent directory does not exist.",
+                code="PARENT_DIRECTORY_MISSING",
+            ) from exc
+        if not self._contains(parent) or not parent.is_dir():
+            raise self._denied()
+        target = parent / requested.name
+        if target.exists() or target.is_symlink():
+            raise ToolExecutionError(
+                "The target file already exists.",
+                code="FILE_ALREADY_EXISTS",
+            )
+        return target
+
     def _contains(self, path: Path) -> bool:
         normalized = os.path.normcase(str(path))
         try:
