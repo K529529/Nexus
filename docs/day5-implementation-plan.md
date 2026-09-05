@@ -36,7 +36,7 @@ tables separately. `nexus index` never runs migrations silently.
 
 ```toml
 [context]
-semantic_enabled = true
+semantic_enabled = false
 max_model_input_tokens = 24000
 max_code_context_tokens = 12000
 max_retrieved_chunks = 12

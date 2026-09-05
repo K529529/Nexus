@@ -91,11 +91,18 @@ class CodingLoopGateway:
 
 @pytest.mark.postgres
 @pytest.mark.asyncio
-@pytest.mark.parametrize("semantic_enabled", [False, True])
+@pytest.mark.parametrize(
+    "semantic_enabled",
+    [
+        pytest.param(None, id="default-lexical-without-embedding-config"),
+        pytest.param(False, id="explicit-lexical"),
+        pytest.param(True, id="semantic-opt-in"),
+    ],
+)
 async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
     migrated_database_url: str,
     tmp_path: Path,
-    semantic_enabled: bool,
+    semantic_enabled: bool | None,
 ) -> None:
     git = shutil.which("git")
     if git is None:
@@ -119,20 +126,25 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         "-m",
         "fixture",
     )
-    config = RuntimeConfig(
-        database_url=migrated_database_url,
-        model_name="fixture-model",
-        semantic_enabled=semantic_enabled,
+    config = (
+        RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+        if semantic_enabled is None
+        else RuntimeConfig(
+            database_url=migrated_database_url,
+            model_name="fixture-model",
+            semantic_enabled=semantic_enabled,
+        )
     )
+    assert config.semantic_enabled is (semantic_enabled is True)
     embedding = FixtureEmbedding()
-    if semantic_enabled:
+    if semantic_enabled is True:
         await index_repository(config, workspace_path=tmp_path, embedding_gateway=embedding)
 
     async with bootstrap_application(
         config,
         model_gateway=CodingLoopGateway(),
         workspace_path=tmp_path,
-        embedding_gateway=embedding,
+        embedding_gateway=embedding if semantic_enabled is True else None,
     ) as application:
         interrupted_events = [
             event
@@ -147,7 +159,7 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         context_event = next(
             event for event in interrupted_events if isinstance(event, ContextBuilt)
         )
-        assert context_event.semantic_retrieval_used == semantic_enabled
+        assert context_event.semantic_retrieval_used == (semantic_enabled is True)
         assert context_event.selected_chunk_count > 0
         assert any(isinstance(event, ApprovalRequested) for event in interrupted_events)
 

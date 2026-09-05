@@ -164,7 +164,7 @@ def test_sd508a_code_is_evicted_before_recent_conversation() -> None:
     original = replace(base, selected_files=(code,))
     assert estimated_tokens(code.content) < 12000
     assert model_input_tokens(render(original)) > maximum
-    result = manager(maximum)._fit_model_input(original, render)
+    result = manager(maximum).fit_model_input(original, render)
     assert not result.selected_files
     assert result.recent_conversation_turns == base.recent_conversation_turns
     assert result.repository_instructions == base.repository_instructions
@@ -176,7 +176,7 @@ def test_sd508a_code_is_evicted_before_recent_conversation() -> None:
 def test_mandatory_context_overflow_fails_without_truncation() -> None:
     original = replace(context(), task="mandatory" * 1000)
     with pytest.raises(ContextError, match="authoritative") as caught:
-        manager(100)._fit_model_input(original, render)
+        manager(100).fit_model_input(original, render)
     assert caught.value.code == "CONTEXT_BUILD_FAILED"
     assert original.task == "mandatory" * 1000
 
@@ -354,7 +354,7 @@ async def test_actual_agent_prompt_uses_manager_view_without_a_second_history_sl
         working_context=context(), plan=plan, observations=observations, conversation_turns=()
     )
     adapter = JsonAgentDecisionAdapter(
-        cast(ModelGateway, gateway), prepare_input=ctx_manager._fit_model_input
+        cast(ModelGateway, gateway), prepare_input=ctx_manager.fit_model_input
     )
     await adapter.decide(AgentDecisionRequest(context().task, prepared, plan, observations))
     payload = json.loads(gateway.messages[1].content)
@@ -368,7 +368,7 @@ async def test_actual_agent_prompt_uses_manager_view_without_a_second_history_sl
 async def test_planning_budget_failure_is_context_error_before_model_invocation() -> None:
     gateway = _CaptureGateway()
     ctx_manager = manager(100)
-    planner = ModelPlanner(cast(ModelGateway, gateway), prepare_input=ctx_manager._fit_model_input)
+    planner = ModelPlanner(cast(ModelGateway, gateway), prepare_input=ctx_manager.fit_model_input)
     request = PlanningRequest(
         context().task, context(), PlanKind.INITIAL, None, None, str(uuid4()), str(uuid4())
     )
@@ -386,8 +386,8 @@ def test_code_eviction_keeps_mandatory_plan_or_fails() -> None:
         return [*render(view), ModelMessage("user", plan)]
 
     with pytest.raises(ContextError):
-        manager(200)._fit_model_input(base, render_plan)
-    fitted = manager(2000)._fit_model_input(base, render_plan)
+        manager(200).fit_model_input(base, render_plan)
+    fitted = manager(2000).fit_model_input(base, render_plan)
     assert render_plan(fitted)[-1].content == plan
 
 

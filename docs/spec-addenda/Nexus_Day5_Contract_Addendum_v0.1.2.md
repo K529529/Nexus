@@ -1157,7 +1157,7 @@ Names may follow existing RuntimeConfig naming conventions, but the semantics an
 
 ```toml
 [context]
-semantic_enabled = true
+semantic_enabled = false
 max_retrieved_chunks = 12
 max_code_context_tokens = 12000
 max_recent_observations = 8
@@ -1182,6 +1182,11 @@ When semantic retrieval/indexing is enabled:
 ```text
 embedding.dimension MUST be > 0
 ```
+
+Semantic retrieval is explicit opt-in. Existing model/database-only runtime
+configuration therefore remains lexical-only by default. `semantic_enabled=true`
+requires complete valid embedding configuration. `nexus index` requires the same
+embedding configuration regardless of the chat runtime setting.
 
 Configuration precedence remains the parent Specification contract:
 
@@ -1791,6 +1796,9 @@ RESOLVED / APPROVED BY PRODUCT OWNER / ARCHITECT
 
 Consolidation into v0.1.2 without semantic change:
 APPROVED
+
+Architecture Review correction after commit 784790f:
+APPROVED — semantic retrieval is explicit opt-in and defaults to disabled
 
 Implementation authorization:
 YES — DAY 5 ONLY

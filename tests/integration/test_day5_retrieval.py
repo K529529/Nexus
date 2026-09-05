@@ -10,7 +10,7 @@ from sqlalchemy import select
 from typer.testing import CliRunner
 
 from nexus.config.models import RuntimeConfig
-from nexus.context.chunking import LineWindowChunker, estimated_tokens
+from nexus.context.chunking import LineWindowChunker, estimated_tokens, text_hash
 from nexus.context.manager import BoundedContextManager
 from nexus.context.retrieval import (
     HybridContextProvider,
@@ -19,19 +19,31 @@ from nexus.context.retrieval import (
 )
 from nexus.domain.context import (
     ContextBudget,
+    ContextCandidate,
     ContextRequest,
     IndexCompatibilityStatus,
     RetrievalQuery,
+    RetrievalResult,
+    RetrievalSource,
 )
 from nexus.domain.exploration import ExplorationResult, RepositoryFileEvidence
 from nexus.domain.tooling import ApprovalDecision, PolicyDecision, RiskLevel, ToolResult
-from nexus.errors import ContextError
+from nexus.errors import ConfigurationError, ContextError
 from nexus.infrastructure.bootstrap.composition import bootstrap_tool_application, index_repository
 from nexus.infrastructure.database import DatabaseBootstrap
 from nexus.infrastructure.semantic import PgVectorSemanticSearchProvider
 from nexus.infrastructure.semantic_models import SemanticChunkRow, SemanticIndexRow
 from nexus.interfaces.cli.app import app
 from tests.fixtures.embedding import FixtureEmbedding
+
+
+class _StaticSemanticResult:
+    def __init__(self, candidate: ContextCandidate) -> None:
+        self._candidate = candidate
+
+    async def retrieve(self, request: ContextRequest) -> RetrievalResult:
+        del request
+        return RetrievalResult((self._candidate,), True, None)
 
 
 def exploration(paths: tuple[str, ...] = ()) -> ExplorationResult:
@@ -58,6 +70,17 @@ def exploration(paths: tuple[str, ...] = ()) -> ExplorationResult:
         (tool,),
         False,
     )
+
+
+@pytest.mark.asyncio
+async def test_index_requires_embedding_configuration_when_chat_semantic_is_disabled(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ConfigurationError):
+        await index_repository(
+            RuntimeConfig(semantic_enabled=False),
+            workspace_path=tmp_path,
+        )
 
 
 @pytest.mark.postgres
@@ -310,7 +333,7 @@ def test_index_cli_e2e_three_runs(
             service = SessionService(
                 SqlAlchemySessionUnitOfWorkFactory(db.session_factory), tmp_path
             )
-            repository_id = await service._context_repository_id()
+            repository_id = await service.context_repository_id()
             results = await PgVectorSemanticSearchProvider(db.session_factory, embedding).search(
                 RetrievalQuery(repository_id, str(tmp_path), "alpha", 20),
             )
@@ -374,6 +397,67 @@ async def test_lexical_top20_and_shared_budget_overflow_skip(
         assert result.truncated
         assert sum(estimated_tokens(c.content) for c in result.selected_files) <= 50
         assert all(c.content == "needle = 1\n" for c in result.selected_files)
+
+
+@pytest.mark.postgres
+async def test_exploration_seeds_can_exhaust_budget_before_unique_semantic_chunk(
+    migrated_database_url: str,
+    tmp_path: Path,
+) -> None:
+    seed_paths = tuple(f"seed_{index}.py" for index in range(3))
+    for index, path in enumerate(seed_paths):
+        (tmp_path / path).write_text(
+            "".join(f"seed_{index}_{line} = {line}\n" for line in range(320)),
+            encoding="utf-8",
+        )
+    semantic_content = "def uniquely_relevant_paraphrase():\n    return 'only semantic match'\n"
+    semantic_path = "semantic_unique.py"
+    (tmp_path / semantic_path).write_text(semantic_content, encoding="utf-8")
+    semantic_chunk = LineWindowChunker().chunk(
+        file_path=semantic_path,
+        language="python",
+        content=semantic_content,
+        file_hash=text_hash(semantic_content),
+    )[0]
+    semantic_candidate = ContextCandidate(
+        semantic_chunk,
+        None,
+        1,
+        0.999,
+        1 / 61,
+        (RetrievalSource.SEMANTIC,),
+    )
+    config = RuntimeConfig(database_url=migrated_database_url)
+    async with bootstrap_tool_application(
+        config,
+        workspace_path=tmp_path,
+        day5_file_filtering=True,
+    ) as application:
+        access = ToolRepositoryAccess(application.tool_runtime)
+        manager = BoundedContextManager(
+            _StaticSemanticResult(semantic_candidate),
+            access,
+            LineWindowChunker(),
+            ContextBudget(12, 12000, 8),
+            24000,
+        )
+        result = await manager.build(
+            ContextRequest(
+                "implement the paraphrased concept",
+                str(uuid4()),
+                str(tmp_path),
+                exploration(seed_paths),
+                str(uuid4()),
+                str(uuid4()),
+            )
+        )
+
+    assert len(result.selected_files) == 12
+    assert result.retrieved_candidates == (semantic_candidate,)
+    assert all(item.path in seed_paths for item in result.selected_files)
+    assert all("exploration seed" in item.discovery_reason for item in result.selected_files)
+    assert semantic_path not in {item.path for item in result.selected_files}
+    assert result.truncated
 
 
 @pytest.mark.postgres

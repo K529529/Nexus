@@ -32,7 +32,7 @@ class RuntimeConfig(BaseModel):
     max_steps: int = 30
     max_repair_attempts: int = 3
     max_replans: int = 2
-    semantic_enabled: bool = True
+    semantic_enabled: bool = False
     lexical_top_k: int = Field(default=20, ge=20, le=20)
     semantic_top_k: int = Field(default=20, ge=20, le=20)
     rrf_k: int = Field(default=60, ge=60, le=60)

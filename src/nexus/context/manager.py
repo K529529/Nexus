@@ -219,14 +219,14 @@ class BoundedContextManager:
             payload["plan"] = None if plan is None else asdict(plan)
             return [ModelMessage("user", json.dumps(payload, default=str, ensure_ascii=False))]
 
-        return self._fit_model_input(context, render)
+        return self.fit_model_input(context, render)
 
-    def _fit_model_input(
+    def fit_model_input(
         self,
         context: WorkingContext,
         render: Callable[[WorkingContext], Sequence[ModelMessage]],
     ) -> WorkingContext:
-        """Private adapter callback: fit the actual final prompt, including system/extra fields.
+        """Fit the actual final prompt, including system and adapter-specific fields.
 
         Rendering is pure; all reductions and their order remain owned here. The callback
         also covers Plan/repair prompts without changing their public provider contracts.

@@ -156,20 +156,20 @@ async def bootstrap_application(
                 explorer=SelectiveRepositoryExplorer(tool_runtime),
                 context_builder=ManagedContextBuilder(
                     context_manager,
-                    session_service._context_repository_id,
+                    session_service.context_repository_id,
                     str(workspace.resolve()),
-                    session_service._context_turns,
+                    session_service.context_turns,
                 ),
                 planner=ModelPlanner(
                     gateway,
                     normalize_argv=executables.normalize_argv,
                     ledger=ledger,
-                    prepare_input=context_manager._fit_model_input,
+                    prepare_input=context_manager.fit_model_input,
                 ),
                 agent=JsonAgentDecisionAdapter(
                     gateway,
                     ledger=ledger,
-                    prepare_input=context_manager._fit_model_input,
+                    prepare_input=context_manager.fit_model_input,
                 ),
                 tool_runtime=tool_runtime,
                 validation_planner=DeterministicValidationPlanner(),
@@ -188,7 +188,7 @@ async def bootstrap_application(
                 checkpointer=checkpointer,
                 legacy_runtime=legacy_runtime,
                 context_manager=context_manager,
-                conversation_turns=session_service._context_turns,
+                conversation_turns=session_service.context_turns,
             )
         application = BootstrappedApplication(
             runtime=NexusRuntime(
@@ -298,7 +298,7 @@ async def index_repository(
         )
         return await indexer.index(
             IndexRequest(
-                await service._context_repository_id(),
+                await service.context_repository_id(),
                 str(workspace.resolve()),
                 rebuild,
             )
