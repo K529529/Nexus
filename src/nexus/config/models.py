@@ -5,7 +5,9 @@ from __future__ import annotations
 from enum import StrEnum
 from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+
+from nexus.errors import ConfigurationError
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://nexus:nexus@localhost:5432/nexus"
 SUPPORTED_MODEL_PROVIDER = "openai_compatible"
@@ -30,6 +32,42 @@ class RuntimeConfig(BaseModel):
     max_steps: int = 30
     max_repair_attempts: int = 3
     max_replans: int = 2
+    semantic_enabled: bool = True
+    lexical_top_k: int = Field(default=20, ge=20, le=20)
+    semantic_top_k: int = Field(default=20, ge=20, le=20)
+    rrf_k: int = Field(default=60, ge=60, le=60)
+    final_candidate_count: int = Field(default=12, ge=12, le=12)
+    max_retrieved_chunks: int = Field(default=12, ge=0, le=12)
+    max_code_context_tokens: int = Field(default=12000, ge=0, le=12000)
+    max_recent_observations: int = Field(default=8, ge=0, le=8)
+    max_model_input_tokens: int = Field(default=24000, ge=1, le=24000)
+    max_file_size_bytes: int = Field(default=1048576, ge=1)
+    embedding_provider: str = "openai_compatible"
+    embedding_model: str = ""
+    embedding_dimension: int = Field(default=0, ge=0)
+    embedding_base_url: str = ""
+    embedding_api_key: SecretStr | None = None
+
+    def require_embedding(self) -> None:
+        """Validate only when a semantic/index capability is actually requested."""
+        if (
+            self.embedding_provider != "openai_compatible"
+            or not self.embedding_model.strip()
+            or self.embedding_dimension <= 0
+            or not self.embedding_base_url.startswith(("https://", "http://"))
+            or self.embedding_api_key is None
+            or not self.embedding_api_key.get_secret_value().strip()
+        ):
+            raise ConfigurationError(
+                "Configure embedding provider/model/dimension/base_url and "
+                "NEXUS_EMBEDDING_API_KEY, or disable semantic retrieval."
+            )
+
+    @model_validator(mode="after")
+    def validate_context_budget(self) -> RuntimeConfig:
+        if self.max_code_context_tokens > self.max_model_input_tokens:
+            raise ValueError("Code context budget must not exceed total model input budget.")
+        return self
 
     @field_validator("model_provider")
     @classmethod
@@ -59,12 +97,22 @@ class RuntimeConfig(BaseModel):
         "max_steps",
         "max_repair_attempts",
         "max_replans",
+        "lexical_top_k",
+        "semantic_top_k",
+        "rrf_k",
+        "final_candidate_count",
+        "max_retrieved_chunks",
+        "max_code_context_tokens",
+        "max_recent_observations",
+        "max_model_input_tokens",
+        "max_file_size_bytes",
+        "embedding_dimension",
         mode="before",
     )
     @classmethod
     def reject_boolean_limits(cls, value: object) -> object:
         if isinstance(value, bool):
-            raise ValueError("Day 4 limits must be integers, not booleans.")
+            raise ValueError("Runtime limits must be integers, not booleans.")
         return value
 
     @model_validator(mode="after")

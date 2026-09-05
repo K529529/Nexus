@@ -16,6 +16,7 @@ from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import PlanApprovalResumeInput, TerminalStatus
 from nexus.domain.runtime_events import (
     ApprovalRequested,
+    ContextBuilt,
     FinalResult,
     PlanCreated,
     RunInterrupted,
@@ -23,7 +24,9 @@ from nexus.domain.runtime_events import (
 )
 from nexus.domain.tooling import ApprovalDecision
 from nexus.infrastructure.bootstrap import bootstrap_application
+from nexus.infrastructure.bootstrap.composition import index_repository
 from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
+from tests.fixtures.embedding import FixtureEmbedding
 
 
 class CodingLoopGateway:
@@ -88,9 +91,11 @@ class CodingLoopGateway:
 
 @pytest.mark.postgres
 @pytest.mark.asyncio
+@pytest.mark.parametrize("semantic_enabled", [False, True])
 async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
     migrated_database_url: str,
     tmp_path: Path,
+    semantic_enabled: bool,
 ) -> None:
     git = shutil.which("git")
     if git is None:
@@ -117,12 +122,17 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
     config = RuntimeConfig(
         database_url=migrated_database_url,
         model_name="fixture-model",
+        semantic_enabled=semantic_enabled,
     )
+    embedding = FixtureEmbedding()
+    if semantic_enabled:
+        await index_repository(config, workspace_path=tmp_path, embedding_gateway=embedding)
 
     async with bootstrap_application(
         config,
         model_gateway=CodingLoopGateway(),
         workspace_path=tmp_path,
+        embedding_gateway=embedding,
     ) as application:
         interrupted_events = [
             event
@@ -134,6 +144,11 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         assert isinstance(interrupted, RunInterrupted)
         assert interrupted.session_id is not None
         assert any(isinstance(event, PlanCreated) for event in interrupted_events)
+        context_event = next(
+            event for event in interrupted_events if isinstance(event, ContextBuilt)
+        )
+        assert context_event.semantic_retrieval_used == semantic_enabled
+        assert context_event.selected_chunk_count > 0
         assert any(isinstance(event, ApprovalRequested) for event in interrupted_events)
 
         resumed_events = [
@@ -160,9 +175,11 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
 
 @pytest.mark.postgres
 @pytest.mark.asyncio
+@pytest.mark.parametrize("semantic_enabled", [False, True])
 async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
     migrated_database_url: str,
     tmp_path: Path,
+    semantic_enabled: bool,
 ) -> None:
     git = shutil.which("git")
     if git is None:
@@ -189,12 +206,17 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
     config = RuntimeConfig(
         database_url=migrated_database_url,
         model_name="fixture-model",
+        semantic_enabled=semantic_enabled,
     )
+    embedding = FixtureEmbedding()
+    if semantic_enabled:
+        await index_repository(config, workspace_path=tmp_path, embedding_gateway=embedding)
 
     async with bootstrap_application(
         config,
         model_gateway=CodingLoopGateway("plan"),
         workspace_path=tmp_path,
+        embedding_gateway=embedding,
     ) as application_a:
         interrupted_events = [
             event
@@ -216,6 +238,9 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         assert state_a.tool_results
         assert state_a.llm_call_count == 1
         assert state_a.step_count == 0
+        assert state_a.context is not None
+        assert state_a.context.semantic_retrieval_used == semantic_enabled
+        assert state_a.context.retrieved_candidates
         prior_tool_results = state_a.tool_results
         prior_scope = state_a.plan.authorization_scope
 
@@ -223,6 +248,7 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         config,
         model_gateway=CodingLoopGateway("execute"),
         workspace_path=tmp_path,
+        embedding_gateway=embedding,
     ) as application_b:
         resumed_events = [
             event
@@ -237,6 +263,7 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         state_b = await _checkpoint_state(application_b.runtime, run.graph_thread_id)
 
         assert state_b.approved_plan is not None
+        assert state_b.context == state_a.context
         assert state_b.approved_plan.authorization_scope == prior_scope
         assert state_b.tool_call_count > state_a.tool_call_count
         assert state_b.llm_call_count == state_a.llm_call_count + 2

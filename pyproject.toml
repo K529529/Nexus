@@ -16,6 +16,8 @@ dependencies = [
     "langchain-openai>=1.0,<2",
     "langgraph>=1.0,<2",
     "langgraph-checkpoint-postgres>=3.1,<4",
+    "pathspec>=0.12,<2",
+    "pgvector>=0.4,<1",
     "pydantic>=2.10,<3",
     "sqlalchemy[asyncio]>=2.0,<3",
     "typer>=0.16,<1",
@@ -39,6 +41,7 @@ packages = ["src/nexus"]
 addopts = "-ra"
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "postgres: requires a reachable PostgreSQL service",
 ]

@@ -22,6 +22,7 @@ from nexus.domain.runtime_events import (
 from nexus.domain.tooling import ApprovalDecision
 from nexus.errors import NexusError
 from nexus.infrastructure.bootstrap import bootstrap_application
+from nexus.infrastructure.bootstrap.composition import index_repository, list_repository_sessions
 from nexus.interfaces.cli.renderer import render_event
 
 app = typer.Typer(
@@ -94,6 +95,26 @@ def list_sessions() -> None:
     _render_session_summaries(summaries)
 
 
+@app.command("index")
+def index(
+    rebuild: Annotated[bool, typer.Option("--rebuild", help="Rebuild this repository's index.")]
+    = False,
+) -> None:
+    """Incrementally index the current repository for semantic retrieval."""
+    try:
+        config = load_runtime_config()
+        result = asyncio.run(index_repository(config, rebuild=rebuild))
+    except NexusError as exc:
+        typer.echo(f"Error [{exc.code}]: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"scanned files: {result.scanned_files}; indexed/changed files: {result.indexed_files}; "
+        f"unchanged files: {result.unchanged_files}; removed files: {result.removed_files}; "
+        f"skipped files: {result.skipped_files}; chunk count: {result.chunk_count}; "
+        f"embedding: {config.embedding_provider}/{config.embedding_model}"
+    )
+
+
 @session_app.command()
 def resume(
     session_id: Annotated[
@@ -114,8 +135,7 @@ def resume(
 
 
 async def _list_sessions(config: RuntimeConfig) -> list[SessionSummary]:
-    async with bootstrap_application(config) as application:
-        return await application.session_service.list_sessions()
+    return await list_repository_sessions(config)
 
 
 async def _run_resume(config: RuntimeConfig, session_id: str) -> bool:

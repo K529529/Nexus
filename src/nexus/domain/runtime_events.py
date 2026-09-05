@@ -209,6 +209,9 @@ class ContextBuilt(RuntimeEvent):
     selected_paths: tuple[str, ...]
     retained_characters: int
     truncated: bool
+    selected_chunk_count: int = 0
+    semantic_retrieval_used: bool = False
+    semantic_retrieval_status: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

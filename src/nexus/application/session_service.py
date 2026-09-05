@@ -147,6 +147,17 @@ class SessionService:
                 retryable=True,
             ) from exc
 
+    async def _context_repository_id(self) -> str:
+        """Resolve the business repository identity without creating a coding Run."""
+        async with self._unit_of_work_factory() as unit_of_work:
+            repository = await self._get_or_create_repository(unit_of_work, datetime.now(UTC))
+            return repository.repository_id
+
+    async def _context_turns(self, session_id: str) -> list[SessionTurn]:
+        async with self._unit_of_work_factory() as unit_of_work:
+            session = await self._get_owned_session(unit_of_work, session_id)
+            return await unit_of_work.turns.list_by_session(session.session_id)
+
     async def mark_interrupted(self, run_id: str) -> Run:
         """Record interruption only after the graph checkpoint is durable."""
 

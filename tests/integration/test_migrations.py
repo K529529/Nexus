@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 
 @pytest.mark.postgres
-def test_day3_migration_upgrade_downgrade_upgrade(
+def test_day5_migration_upgrade_downgrade_upgrade(
     postgres_database_url: str,
     monkeypatch: MonkeyPatch,
 ) -> None:
@@ -30,6 +30,8 @@ def test_day3_migration_upgrade_downgrade_upgrade(
 
     command.upgrade(configuration, "head")
     assert _business_tables(postgres_database_url) == {
+        "repository_semantic_indexes",
+        "semantic_code_chunks",
         "approvals",
         "alembic_version",
         "repositories",
@@ -38,6 +40,10 @@ def test_day3_migration_upgrade_downgrade_upgrade(
         "sessions",
     }
 
+    command.downgrade(configuration, "day03_0002")
+    assert "semantic_code_chunks" not in _business_tables(postgres_database_url)
+    assert "repository_semantic_indexes" not in _business_tables(postgres_database_url)
+    assert "approvals" in _business_tables(postgres_database_url)
     command.downgrade(configuration, "day02_0001")
     assert _business_tables(postgres_database_url) == {
         "alembic_version",
@@ -52,6 +58,8 @@ def test_day3_migration_upgrade_downgrade_upgrade(
 
     command.upgrade(configuration, "head")
     assert _business_tables(postgres_database_url) == {
+        "repository_semantic_indexes",
+        "semantic_code_chunks",
         "approvals",
         "alembic_version",
         "repositories",
