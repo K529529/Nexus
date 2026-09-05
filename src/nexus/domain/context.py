@@ -40,6 +40,7 @@ class ContextCandidate:
 @dataclass(frozen=True, slots=True)
 class ContextBudget:
     max_retrieved_chunks: int
+    max_exploration_seed_chunks: int
     max_code_context_tokens: int
     max_recent_observations: int
 

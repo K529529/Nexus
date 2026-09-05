@@ -38,12 +38,12 @@ from tests.fixtures.embedding import FixtureEmbedding
 
 
 class _StaticSemanticResult:
-    def __init__(self, candidate: ContextCandidate) -> None:
-        self._candidate = candidate
+    def __init__(self, candidates: tuple[ContextCandidate, ...]) -> None:
+        self._candidates = candidates
 
     async def retrieve(self, request: ContextRequest) -> RetrievalResult:
         del request
-        return RetrievalResult((self._candidate,), True, None)
+        return RetrievalResult(self._candidates, True, None)
 
 
 def exploration(paths: tuple[str, ...] = ()) -> ExplorationResult:
@@ -205,7 +205,12 @@ async def test_context_retrieval_budget_instructions_and_fallback(
                 HybridContextProvider(lexical, semantic),
                 access,
                 chunker,
-                ContextBudget(12, 12000, 8),
+                ContextBudget(
+                    max_retrieved_chunks=12,
+                    max_exploration_seed_chunks=6,
+                    max_code_context_tokens=12000,
+                    max_recent_observations=8,
+                ),
                 24000,
             )
             repository_id = str(uuid4()) if semantic_mode == "missing" else indexed.repository_id
@@ -389,7 +394,16 @@ async def test_lexical_top20_and_shared_budget_overflow_skip(
         with access.scope(request.run_id, request.session_id):
             assert len((await provider.retrieve(request)).candidates) == 12
         manager = BoundedContextManager(
-            provider, access, LineWindowChunker(), ContextBudget(2, 50, 8), 24000
+            provider,
+            access,
+            LineWindowChunker(),
+            ContextBudget(
+                max_retrieved_chunks=2,
+                max_exploration_seed_chunks=6,
+                max_code_context_tokens=50,
+                max_recent_observations=8,
+            ),
+            24000,
         )
         result = await manager.build(request)
         assert len(result.selected_files) == 2
@@ -400,31 +414,52 @@ async def test_lexical_top20_and_shared_budget_overflow_skip(
 
 
 @pytest.mark.postgres
-async def test_exploration_seeds_can_exhaust_budget_before_unique_semantic_chunk(
+async def test_seed_cap_admits_hybrid_candidate_and_deduplicates_shared_chunks(
     migrated_database_url: str,
     tmp_path: Path,
 ) -> None:
     seed_paths = tuple(f"seed_{index}.py" for index in range(3))
+    seed_contents: dict[str, str] = {}
     for index, path in enumerate(seed_paths):
-        (tmp_path / path).write_text(
-            "".join(f"seed_{index}_{line} = {line}\n" for line in range(320)),
-            encoding="utf-8",
+        content = "".join(f"seed_{index}_{line} = {line}\n" for line in range(320))
+        seed_contents[path] = content
+        (tmp_path / path).write_text(content, encoding="utf-8")
+    chunker = LineWindowChunker()
+    raw_seed_chunks = tuple(
+        chunk
+        for path in seed_paths
+        for chunk in chunker.chunk(
+            file_path=path,
+            language="python",
+            content=seed_contents[path],
+            file_hash=text_hash(seed_contents[path]),
         )
+        if chunk.start_line <= 400
+    )
+    assert len(raw_seed_chunks) > 6
     semantic_content = "def uniquely_relevant_paraphrase():\n    return 'only semantic match'\n"
     semantic_path = "semantic_unique.py"
     (tmp_path / semantic_path).write_text(semantic_content, encoding="utf-8")
-    semantic_chunk = LineWindowChunker().chunk(
+    semantic_chunk = chunker.chunk(
         file_path=semantic_path,
         language="python",
         content=semantic_content,
         file_hash=text_hash(semantic_content),
     )[0]
+    duplicate_candidate = ContextCandidate(
+        raw_seed_chunks[0],
+        None,
+        1,
+        1.0,
+        1 / 61,
+        (RetrievalSource.SEMANTIC,),
+    )
     semantic_candidate = ContextCandidate(
         semantic_chunk,
         None,
-        1,
+        2,
         0.999,
-        1 / 61,
+        1 / 62,
         (RetrievalSource.SEMANTIC,),
     )
     config = RuntimeConfig(database_url=migrated_database_url)
@@ -435,10 +470,15 @@ async def test_exploration_seeds_can_exhaust_budget_before_unique_semantic_chunk
     ) as application:
         access = ToolRepositoryAccess(application.tool_runtime)
         manager = BoundedContextManager(
-            _StaticSemanticResult(semantic_candidate),
+            _StaticSemanticResult((duplicate_candidate, semantic_candidate)),
             access,
-            LineWindowChunker(),
-            ContextBudget(12, 12000, 8),
+            chunker,
+            ContextBudget(
+                max_retrieved_chunks=12,
+                max_exploration_seed_chunks=6,
+                max_code_context_tokens=12000,
+                max_recent_observations=8,
+            ),
             24000,
         )
         result = await manager.build(
@@ -452,11 +492,15 @@ async def test_exploration_seeds_can_exhaust_budget_before_unique_semantic_chunk
             )
         )
 
-    assert len(result.selected_files) == 12
-    assert result.retrieved_candidates == (semantic_candidate,)
-    assert all(item.path in seed_paths for item in result.selected_files)
-    assert all("exploration seed" in item.discovery_reason for item in result.selected_files)
-    assert semantic_path not in {item.path for item in result.selected_files}
+    assert len(result.selected_files) == 7 <= 12
+    assert result.retrieved_candidates == (duplicate_candidate, semantic_candidate)
+    seeds = [
+        item for item in result.selected_files if "exploration seed" in item.discovery_reason
+    ]
+    assert len(seeds) == 6
+    assert semantic_path in {item.path for item in result.selected_files}
+    assert sum(item.path == seed_paths[0] for item in result.selected_files) == 4
+    assert sum(estimated_tokens(item.content) for item in result.selected_files) <= 12000
     assert result.truncated
 
 

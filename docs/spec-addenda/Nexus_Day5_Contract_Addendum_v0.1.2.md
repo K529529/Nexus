@@ -184,6 +184,7 @@ class ContextCandidate:
 @dataclass(frozen=True, slots=True)
 class ContextBudget:
     max_retrieved_chunks: int
+    max_exploration_seed_chunks: int
     max_code_context_tokens: int
     max_recent_observations: int
 
@@ -718,6 +719,7 @@ lexical_top_k = 20
 semantic_top_k = 20
 final_candidate_count = 12
 max_retrieved_chunks = 12
+max_exploration_seed_chunks = 6
 ```
 
 No weighted-score fusion.
@@ -734,12 +736,13 @@ Frozen defaults and absolute ceilings are:
 
 ```text
 max_retrieved_chunks = 12
+max_exploration_seed_chunks = 6
 max_code_context_tokens = 12000
 max_recent_observations = 8
 max_model_input_tokens = 24000
 ```
 
-These four limits may be configured downward only. `max_model_input_tokens` must be
+These five limits may be configured downward only. `max_model_input_tokens` must be
 positive, and `max_code_context_tokens <= max_model_input_tokens`. When provider/model
 input capacity is known, the configured total ceiling must not exceed it; otherwise the
 configured Nexus ceiling is authoritative. A future approved contract is required to
@@ -1159,6 +1162,7 @@ Names may follow existing RuntimeConfig naming conventions, but the semantics an
 [context]
 semantic_enabled = false
 max_retrieved_chunks = 12
+max_exploration_seed_chunks = 6
 max_code_context_tokens = 12000
 max_recent_observations = 8
 max_model_input_tokens = 24000
@@ -1176,6 +1180,10 @@ base_url = ""
 settings in the initial Day5 implementation. The code/chunk/observation/overall
 budget ceilings are configurable downward only. `max_file_size_bytes` configures indexing
 eligibility only.
+
+`max_exploration_seed_chunks` has default and V1 maximum `6`, with allowed range
+`0..6`. It limits accepted unique Day4 exploration seed chunks before hybrid candidates
+are appended; it does not reserve lexical or semantic quotas.
 
 When semantic retrieval/indexing is enabled:
 
@@ -1355,6 +1363,13 @@ High-confidence Day4 source-code seeds are normalized into the same `CodeChunk` 
 as retrieval candidates. Seeds and hybrid candidates are deduplicated and share one
 chunk-count/token budget; no unbudgeted duplicate code copy may enter model input.
 
+Normalize and deduplicate exploration seeds in their existing deterministic order and
+accept at most `max_exploration_seed_chunks=6` unique seed chunks. Then append hybrid
+candidates in existing deterministic RRF order, deduplicating against accepted seeds.
+Exploration seeds remain first, while the combined result remains within 12 chunks and
+12000 estimated code tokens. Lexical and semantic candidates continue to compete only
+through RRF; no separate retrieval-source quota is reserved.
+
 Context priority for source-code selection is:
 
 ```text
@@ -1440,6 +1455,9 @@ At minimum:
 ### Budget
 
 * max 12 chunks;
+* more than six unique exploration seed chunks are capped at six;
+* a unique hybrid candidate remains eligible after the exploration seed cap;
+* seed/hybrid chunk identity is deduplicated across their shared budget;
 * max 12000 estimated code tokens;
 * overflow candidate skipped;
 * `truncated=True` when budget excludes candidates;
@@ -1799,6 +1817,9 @@ APPROVED
 
 Architecture Review correction after commit 784790f:
 APPROVED — semantic retrieval is explicit opt-in and defaults to disabled
+
+Second Architecture Review correction after commit cebbe3f:
+APPROVED — exploration seeds default to and are capped at six unique chunks
 
 Implementation authorization:
 YES — DAY 5 ONLY

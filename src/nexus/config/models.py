@@ -38,6 +38,7 @@ class RuntimeConfig(BaseModel):
     rrf_k: int = Field(default=60, ge=60, le=60)
     final_candidate_count: int = Field(default=12, ge=12, le=12)
     max_retrieved_chunks: int = Field(default=12, ge=0, le=12)
+    max_exploration_seed_chunks: int = Field(default=6, ge=0, le=6)
     max_code_context_tokens: int = Field(default=12000, ge=0, le=12000)
     max_recent_observations: int = Field(default=8, ge=0, le=8)
     max_model_input_tokens: int = Field(default=24000, ge=1, le=24000)
@@ -102,6 +103,7 @@ class RuntimeConfig(BaseModel):
         "rrf_k",
         "final_candidate_count",
         "max_retrieved_chunks",
+        "max_exploration_seed_chunks",
         "max_code_context_tokens",
         "max_recent_observations",
         "max_model_input_tokens",

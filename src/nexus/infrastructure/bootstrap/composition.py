@@ -146,9 +146,10 @@ async def bootstrap_application(
                 access,
                 chunker,
                 ContextBudget(
-                    config.max_retrieved_chunks,
-                    config.max_code_context_tokens,
-                    config.max_recent_observations,
+                    max_retrieved_chunks=config.max_retrieved_chunks,
+                    max_exploration_seed_chunks=config.max_exploration_seed_chunks,
+                    max_code_context_tokens=config.max_code_context_tokens,
+                    max_recent_observations=config.max_recent_observations,
                 ),
                 config.max_model_input_tokens,
             )

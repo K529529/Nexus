@@ -95,8 +95,15 @@ class BoundedContextManager:
                     if c.start_line <= 400
                 )
             unique: dict[tuple[str, int, int, str], tuple[ContextCandidate, str]] = {}
+            seed_limit_reached = False
             for candidate in seeds:
-                unique.setdefault(identity(candidate), (candidate, "exploration seed"))
+                key = identity(candidate)
+                if key in unique:
+                    continue
+                if len(unique) >= self._budget.max_exploration_seed_chunks:
+                    seed_limit_reached = True
+                    continue
+                unique[key] = (candidate, "exploration seed")
             for candidate in retrieval.candidates:
                 unique.setdefault(identity(candidate), (candidate, "hybrid retrieval"))
             selected: list[SelectedFileContext] = []
@@ -115,7 +122,7 @@ class BoundedContextManager:
                         truncated=False,
                     )
             tokens = 0
-            truncated = request.exploration.truncated
+            truncated = request.exploration.truncated or seed_limit_reached
             for candidate, reason in unique.values():
                 chunk = candidate.chunk
                 cost = estimated_tokens(chunk.content)

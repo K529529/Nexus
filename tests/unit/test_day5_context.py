@@ -128,7 +128,12 @@ def manager(maximum: int = 24000, observations: int = 8) -> BoundedContextManage
         cast(ContextProvider, object()),
         ToolRepositoryAccess(cast(ToolRuntime, object())),
         LineWindowChunker(),
-        ContextBudget(12, min(maximum, 12000), observations),
+        ContextBudget(
+            max_retrieved_chunks=12,
+            max_exploration_seed_chunks=6,
+            max_code_context_tokens=min(maximum, 12000),
+            max_recent_observations=observations,
+        ),
         maximum,
     )
 
@@ -202,6 +207,7 @@ async def test_retention_and_compaction_leave_complete_execution_values_intact()
         ("max_model_input_tokens", 24001),
         ("max_code_context_tokens", 12001),
         ("max_retrieved_chunks", 13),
+        ("max_exploration_seed_chunks", 7),
         ("max_recent_observations", 9),
         ("rrf_k", 61),
         ("lexical_top_k", 21),
@@ -217,12 +223,29 @@ def test_frozen_configuration_limits(field: str, value: int) -> None:
 def test_downward_budget_configuration_accepts_zero_nonmandatory_context() -> None:
     cfg = RuntimeConfig(
         max_retrieved_chunks=0,
+        max_exploration_seed_chunks=0,
         max_code_context_tokens=0,
         max_recent_observations=0,
     )
     assert cfg.max_retrieved_chunks == 0
+    assert cfg.max_exploration_seed_chunks == 0
     assert cfg.max_code_context_tokens == 0
     assert cfg.max_recent_observations == 0
+
+
+def test_exploration_seed_ceiling_loads_from_context_configuration(tmp_path: Path) -> None:
+    folder = tmp_path / ".nexus"
+    folder.mkdir()
+    (folder / "config.toml").write_text(
+        "[context]\nmax_exploration_seed_chunks=5\n",
+        encoding="utf-8",
+    )
+    cfg = load_runtime_config(
+        repo_root=tmp_path,
+        user_config_path=tmp_path / "absent",
+        environ={"NEXUS_MAX_EXPLORATION_SEED_CHUNKS": "4"},
+    )
+    assert cfg.max_exploration_seed_chunks == 5
 
 
 @pytest.mark.asyncio

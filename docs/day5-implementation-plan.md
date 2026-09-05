@@ -40,6 +40,7 @@ semantic_enabled = false
 max_model_input_tokens = 24000
 max_code_context_tokens = 12000
 max_retrieved_chunks = 12
+max_exploration_seed_chunks = 6
 max_recent_observations = 8
 max_file_size_bytes = 1048576
 
@@ -83,8 +84,10 @@ or newly ignored files lose stored chunks. Failure rolls back and returns
 
 `build_context` combines deterministic lexical retrieval and compatible pgvector cosine
 retrieval using RRF `1/(60+rank)`. Raw cosine distance remains diagnostic only. Day4 seeds
-and fused candidates normalize/deduplicate into one budget of at most 12 chunks and 12000
-estimated code tokens. A stale/deleted/newly ignored chunk is rejected before model use.
+normalize/deduplicate first and are capped at six unique chunks. Fused candidates then
+follow in deterministic RRF order and deduplicate against those seeds. The combined code
+selection remains within 12 chunks and 12000 estimated tokens; lexical and semantic have
+no separate quotas. A stale/deleted/newly ignored chunk is rejected before model use.
 New source paths resolve ancestor `AGENTS.md` scope before selection.
 
 - Semantic disabled: lexical context continues normally.
@@ -115,7 +118,8 @@ silently removed. Mandatory overflow returns `CONTEXT_BUILD_FAILED` before model
 | Alembic upgrade/downgrade/re-upgrade | `test_migrations.py` |
 | three-run `nexus index` CLI lifecycle and subsequent query | `test_index_cli_e2e_three_runs` |
 | disabled/missing/incompatible/transient fallback | `test_context_retrieval_budget_instructions_and_fallback` |
-| shared seed/retrieval budget and whole-chunk overflow skip | `test_lexical_top20_and_shared_budget_overflow_skip` |
+| seed cap, seed/hybrid deduplication and hybrid admission | `test_seed_cap_admits_hybrid_candidate_and_deduplicates_shared_chunks` |
+| shared code/token budget and whole-chunk overflow skip | `test_lexical_top20_and_shared_budget_overflow_skip` |
 | total prompt accounting and mandatory-context protection | `test_day5_context.py` |
 | code-before-conversation eviction and manager ownership | `test_day5_context.py` |
 | Day4 coding loop and process reconstruction with semantic on/off | `test_day4_coding_loop.py` |

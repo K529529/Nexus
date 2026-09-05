@@ -26,8 +26,8 @@ _ENV_FIELDS = {
 }
 
 _CONTEXT_INTEGERS = (
-    "max_retrieved_chunks", "max_code_context_tokens", "max_recent_observations",
-    "max_model_input_tokens", "max_file_size_bytes",
+    "max_retrieved_chunks", "max_exploration_seed_chunks", "max_code_context_tokens",
+    "max_recent_observations", "max_model_input_tokens", "max_file_size_bytes",
 )
 _ENV_FIELDS.update({f"NEXUS_{name.upper()}": name for name in _CONTEXT_INTEGERS})
 _ENV_FIELDS.update({
