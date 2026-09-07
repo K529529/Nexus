@@ -5,7 +5,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import asdict
 from pathlib import Path
 
@@ -137,8 +137,13 @@ class ReadFileTool:
 class LexicalSearchTool:
     name = "lexical_search"
 
-    def __init__(self, guard: WorkspaceGuard) -> None:
+    def __init__(
+        self,
+        guard: WorkspaceGuard,
+        allow_path: Callable[[str], bool] | None = None,
+    ) -> None:
         self._guard = guard
+        self._allow_path = allow_path
 
     async def execute(self, invocation: ToolInvocation) -> ToolResult:
         started = time.perf_counter()
@@ -157,6 +162,7 @@ class LexicalSearchTool:
                 root,
                 pattern,
                 case_sensitive=case_sensitive,
+                allow_path=self._allow_path,
             )
             return _success(
                 invocation,
@@ -318,12 +324,14 @@ def build_native_tools(
     guard: WorkspaceGuard,
     sandbox: SandboxExecutor,
     executables: TrustedExecutables,
+    *,
+    allow_lexical_path: Callable[[str], bool] | None = None,
 ) -> list[Tool]:
     return [
         ListFilesTool(guard),
         SearchFilesTool(guard),
         ReadFileTool(guard),
-        LexicalSearchTool(guard),
+        LexicalSearchTool(guard, allow_lexical_path),
         PatchTool(guard),
         WriteFileTool(guard),
         ShellTool(guard, sandbox, executables),
@@ -399,6 +407,7 @@ def _lexical_matches(
     pattern: str,
     *,
     case_sensitive: bool,
+    allow_path: Callable[[str], bool] | None = None,
 ) -> tuple[list[JsonObject], bool]:
     if _is_git_metadata_path(guard, root):
         return [], False
@@ -410,6 +419,8 @@ def _lexical_matches(
         key=guard.relative_display,
     )
     for candidate in candidates:
+        if allow_path is not None and not allow_path(guard.relative_display(candidate)):
+            continue
         try:
             resolved = guard.resolve_existing(
                 guard.relative_display(candidate),

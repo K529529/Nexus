@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import fields, replace
 from typing import Any, cast
 from uuid import uuid4
@@ -28,6 +29,7 @@ from nexus.domain.agent_state import AgentState
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import ContextBuildRequest, ExplorationRequest
 from nexus.domain.model import ModelMessage
+from nexus.domain.persistence import SessionTurn
 from nexus.domain.planning import (
     ChangedFile,
     ChangeKind,
@@ -38,6 +40,7 @@ from nexus.domain.planning import (
     TerminalStatus,
 )
 from nexus.domain.ports.agent_decision import AgentDecisionAdapter
+from nexus.domain.ports.context import ContextManager
 from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
@@ -81,6 +84,8 @@ class Day4LangGraphRuntime:
         max_replans: int,
         checkpointer: BaseCheckpointSaver[Any] | None = None,
         legacy_runtime: GraphRuntime | None = None,
+        context_manager: ContextManager | None = None,
+        conversation_turns: Callable[[str], Awaitable[Sequence[SessionTurn]]] | None = None,
     ) -> None:
         self._explorer = explorer
         self._context_builder = context_builder
@@ -98,6 +103,8 @@ class Day4LangGraphRuntime:
         self._max_repair_attempts = max_repair_attempts
         self._max_replans = max_replans
         self._legacy_runtime = legacy_runtime
+        self._context_manager = context_manager
+        self._conversation_turns = conversation_turns
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
@@ -261,6 +268,9 @@ class Day4LangGraphRuntime:
                 selected_paths=tuple(item.path for item in context.selected_files),
                 retained_characters=sum(len(item.content) for item in context.selected_files),
                 truncated=context.truncated,
+                selected_chunk_count=len(context.selected_files),
+                semantic_retrieval_used=context.semantic_retrieval_used,
+                semantic_retrieval_status=context.semantic_retrieval_status,
             )
         )
         return self._evidence_update(state, context=context)
@@ -375,10 +385,18 @@ class Day4LangGraphRuntime:
         if state.context is None or state.plan is None:
             raise NexusError("Agent decision context is missing.", code="GRAPH_INVALID_STATE")
         self._ledger.begin_step(state.run_id)
+        context = state.context
+        if self._context_manager is not None:
+            turns = (() if self._conversation_turns is None
+                     else await self._conversation_turns(_session_id(state)))
+            context = await self._context_manager.prepare_agent_context(
+                working_context=context, plan=state.plan, observations=state.observations,
+                conversation_turns=turns,
+            )
         decision = await self._agent.decide(
             AgentDecisionRequest(
                 state.task,
-                state.context,
+                context,
                 state.plan,
                 state.observations,
                 state.validation_result,

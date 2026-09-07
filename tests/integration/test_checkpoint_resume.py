@@ -45,7 +45,7 @@ async def test_persisted_checkpoint_resumes_after_runtime_reconstruction(
     migrated_database_url: str,
     tmp_path: Path,
 ) -> None:
-    config = RuntimeConfig(database_url=migrated_database_url)
+    config = RuntimeConfig(database_url=migrated_database_url, semantic_enabled=False)
     gateway_a = MockModelGateway("must not execute before interruption")
 
     async with bootstrap_application(
@@ -108,7 +108,7 @@ async def test_resume_failure_persists_failed_and_is_not_resumable(
     migrated_database_url: str,
     tmp_path: Path,
 ) -> None:
-    config = RuntimeConfig(database_url=migrated_database_url)
+    config = RuntimeConfig(database_url=migrated_database_url, semantic_enabled=False)
     async with bootstrap_application(
         config,
         model_gateway=MockModelGateway("unused"),
@@ -173,7 +173,7 @@ def test_session_resume_cli_success_missing_and_cross_repository(
     repository_b = tmp_path / "repository-b"
     repository_a.mkdir()
     repository_b.mkdir()
-    config = RuntimeConfig(database_url=migrated_database_url)
+    config = RuntimeConfig(database_url=migrated_database_url, semantic_enabled=False)
     session_id = asyncio.run(_seed_interrupted_run(config, repository_a))
 
     async def fake_complete(
@@ -184,6 +184,7 @@ def test_session_resume_cli_success_missing_and_cross_repository(
 
     monkeypatch.setattr(OpenAICompatibleModelGateway, "complete", fake_complete)
     environment = {
+        "NEXUS_SEMANTIC_ENABLED": "false",
         "NEXUS_DATABASE_URL": migrated_database_url,
         "NEXUS_MODEL_NAME": "mock-model",
         "NEXUS_MODEL_API_KEY": "mock-secret",

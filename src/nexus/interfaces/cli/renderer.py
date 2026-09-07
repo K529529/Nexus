@@ -7,6 +7,7 @@ import typer
 from nexus.domain.runtime_events import (
     ApprovalRequested,
     ApprovalSubject,
+    ContextBuilt,
     ErrorOccurred,
     FinalResult,
     PlanCreated,
@@ -21,6 +22,13 @@ def render_event(event: RuntimeEvent) -> bool:
 
     if isinstance(event, TaskStarted):
         typer.echo("Task started")
+        return True
+    if isinstance(event, ContextBuilt) and event.semantic_retrieval_status:
+        code = event.semantic_retrieval_status
+        remediation = ("Run nexus index --rebuild." if code == "INDEX_INCOMPATIBLE"
+                       else "Run nexus index." if code == "INDEX_NOT_FOUND"
+                       else "Check embedding/database availability and retry.")
+        typer.echo(f"Context warning [{code}]: using lexical context. {remediation}", err=True)
         return True
     if isinstance(event, FinalResult):
         typer.echo(event.content)

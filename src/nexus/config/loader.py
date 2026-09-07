@@ -25,6 +25,19 @@ _ENV_FIELDS = {
     "NEXUS_MAX_REPLANS": "max_replans",
 }
 
+_CONTEXT_INTEGERS = (
+    "max_retrieved_chunks", "max_exploration_seed_chunks", "max_code_context_tokens",
+    "max_recent_observations", "max_model_input_tokens", "max_file_size_bytes",
+)
+_ENV_FIELDS.update({f"NEXUS_{name.upper()}": name for name in _CONTEXT_INTEGERS})
+_ENV_FIELDS.update({
+    "NEXUS_SEMANTIC_ENABLED": "semantic_enabled",
+    "NEXUS_EMBEDDING_MODEL": "embedding_model",
+    "NEXUS_EMBEDDING_DIMENSION": "embedding_dimension",
+    "NEXUS_EMBEDDING_BASE_URL": "embedding_base_url",
+    "NEXUS_EMBEDDING_API_KEY": "embedding_api_key",
+})
+
 
 def load_runtime_config(
     *,
@@ -77,12 +90,25 @@ def _toml_values(path: Path) -> dict[str, Any]:
     model = _table(document, "model", path)
     database = _table(document, "database", path)
     runtime = _table(document, "runtime", path)
+    context = _table(document, "context", path)
+    embedding = _table(document, "embedding", path)
+    if "api_key" in embedding:
+        raise ConfigurationError("Embedding API keys are not supported in Nexus TOML.")
     if "api_key" in model:
         raise ConfigurationError(
             f"API keys are not supported in Nexus TOML configuration at {path}."
         )
 
     values: dict[str, Any] = {}
+    for name in _CONTEXT_INTEGERS:
+        _copy_optional_integer(context, name, name, values, path)
+    if "semantic_enabled" in context:
+        if not isinstance(context["semantic_enabled"], bool):
+            raise ConfigurationError("semantic_enabled must be a TOML boolean.")
+        values["semantic_enabled"] = context["semantic_enabled"]
+    for name in ("provider", "model", "base_url"):
+        _copy_optional_string(embedding, name, f"embedding_{name}", values, path)
+    _copy_optional_integer(embedding, "dimension", "embedding_dimension", values, path)
     _copy_optional_string(model, "provider", "model_provider", values, path)
     _copy_optional_string(model, "name", "model_name", values, path)
     _copy_optional_string(model, "base_url", "model_base_url", values, path)

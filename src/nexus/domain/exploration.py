@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from nexus.domain.context import ContextCandidate
+from nexus.domain.persistence import SessionTurn
+
+if TYPE_CHECKING:
+    from nexus.domain.agent_decision import Observation
 
 from nexus.domain.tooling import ToolResult
 
@@ -59,6 +66,13 @@ class WorkingContext:
     top_level_paths: tuple[str, ...]
     selected_files: tuple[SelectedFileContext, ...]
     truncated: bool
+    retrieved_candidates: tuple[ContextCandidate, ...] = ()
+    compacted_conversation: str | None = None
+    semantic_retrieval_used: bool = False
+    semantic_retrieval_status: str | None = None
+    recent_observations: tuple[Observation, ...] = ()
+    recent_conversation_turns: tuple[SessionTurn, ...] = ()
+    compacted_observations: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

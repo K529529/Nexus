@@ -110,6 +110,8 @@ def test_defaults_and_secret_values_are_safely_rendered(tmp_path: Path) -> None:
     rendered = repr(config)
     assert config.database_url == DEFAULT_DATABASE_URL
     assert config.model_name is None
+    assert config.semantic_enabled is False
+    assert config.max_exploration_seed_chunks == 6
     assert "do-not-print" not in rendered
     assert "nexus:nexus" not in rendered
     assert "***:***@localhost" in rendered
