@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import TypeGuard
 
 from nexus.domain.tooling import JsonObject, RiskLevel
@@ -15,10 +17,17 @@ _OPERATORS = {"&&", "||", "|", ">", ">>", "<", ";"}
 
 
 class DefaultCommandPolicy:
-    def __init__(self, executables: TrustedExecutables) -> None:
+    def __init__(
+        self,
+        executables: TrustedExecutables,
+        mcp_risks: Mapping[str, RiskLevel] | None = None,
+    ) -> None:
         self._executables = executables
+        self._mcp_risks = MappingProxyType(dict(mcp_risks or {}))
 
     def classify(self, *, operation: str, arguments: JsonObject) -> RiskLevel:
+        if operation in self._mcp_risks:
+            return self._mcp_risks[operation]
         if operation in _READ_TOOLS:
             return RiskLevel.SAFE
         if operation in _GIT_TOOLS:

@@ -46,6 +46,7 @@ class ToolRuntime:
         plan_approval_service: PlanApprovalService | None = None,
         normalize_argv: Callable[[list[str]], list[str]] | None = None,
         ledger: ToolExecutionLedger | None = None,
+        unsupported_write_operations: frozenset[str] = frozenset(),
     ) -> None:
         self._registry = registry
         self._command_policy = command_policy
@@ -54,6 +55,7 @@ class ToolRuntime:
         self._plan_approval_service = plan_approval_service
         self._normalize_argv = normalize_argv or (lambda argv: list(argv))
         self._ledger = ledger
+        self._unsupported_write_operations = frozenset(unsupported_write_operations)
         self._emit = emit or _ignore_event
 
     async def execute(
@@ -107,6 +109,11 @@ class ToolRuntime:
         )
         if proposed_risk is RiskLevel.DANGEROUS:
             result = await self._deny_dangerous(invocation)
+        elif (
+            proposed_risk is RiskLevel.WRITE
+            and invocation.tool_name in self._unsupported_write_operations
+        ):
+            result = await self._deny_unsupported_mcp_write(invocation)
         elif authorization is not None and invocation.tool_name in {
             "apply_patch",
             "write_file",
@@ -352,6 +359,36 @@ class ToolRuntime:
             error=ToolExecutionError(
                 "The operation is hard-denied by the Day 3 security policy.",
                 code="PERMISSION_DENIED",
+            ),
+        )
+
+    async def _deny_unsupported_mcp_write(
+        self,
+        invocation: ToolInvocation,
+    ) -> ToolResult:
+        try:
+            decision = await self._approval_service.record_denied(
+                invocation,
+                risk_level=RiskLevel.WRITE,
+                summary=_safe_summary(invocation),
+                reason="Generic MCP WRITE authorization is unavailable in Day 6.",
+            )
+        except NexusError as exc:
+            return _failure(
+                invocation,
+                risk_level=RiskLevel.WRITE,
+                policy_decision=PolicyDecision.DENIED,
+                approval_decision=None,
+                error=exc,
+            )
+        return _failure(
+            invocation,
+            risk_level=RiskLevel.WRITE,
+            policy_decision=PolicyDecision.DENIED,
+            approval_decision=decision.decision,
+            error=ToolExecutionError(
+                "Generic MCP WRITE authorization is unavailable in Day 6.",
+                code="MCP_WRITE_NOT_AUTHORIZED",
             ),
         )
 

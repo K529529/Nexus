@@ -22,7 +22,7 @@ from nexus.application.validation import (
     DeterministicValidationPlanner,
     ToolValidationRunner,
 )
-from nexus.config.models import RuntimeConfig
+from nexus.config.models import MCPServerConfig, RuntimeConfig
 from nexus.context import SelectiveRepositoryExplorer
 from nexus.context.chunking import LineWindowChunker
 from nexus.context.integration import ManagedContextBuilder
@@ -33,20 +33,24 @@ from nexus.context.retrieval import (
     ToolRepositoryAccess,
 )
 from nexus.domain.context import ContextBudget, IndexRequest, IndexResult
+from nexus.domain.mcp import MCPToolDescriptor
 from nexus.domain.persistence import SessionSummary
 from nexus.domain.ports.checkpoint_provider import CheckpointProvider
 from nexus.domain.ports.context import EmbeddingGateway
 from nexus.domain.ports.graph_runtime import GraphRuntime
+from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.tooling import ApprovalPolicy
 from nexus.domain.runtime_events import RuntimeEvent
-from nexus.errors import ContextError
+from nexus.domain.tooling import JsonObject, RiskLevel
+from nexus.errors import ConfigurationError, ContextError
 from nexus.infrastructure.asyncio_compat import configure_asyncio_policy
 from nexus.infrastructure.checkpoint import PostgresCheckpointProvider
 from nexus.infrastructure.database import DatabaseBootstrap
 from nexus.infrastructure.embedding import OpenAICompatibleEmbeddingGateway
 from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
 from nexus.infrastructure.graph.langgraph_runtime import LangGraphRuntime
+from nexus.infrastructure.mcp import SDKMCPManager
 from nexus.infrastructure.model_gateway.openai_compatible import OpenAICompatibleModelGateway
 from nexus.infrastructure.persistence import (
     SqlAlchemyApprovalUnitOfWorkFactory,
@@ -61,7 +65,7 @@ from nexus.security import (
     TrustedExecutables,
     WorkspaceGuard,
 )
-from nexus.tools import ToolRegistry
+from nexus.tools import MCPToolAdapter, ToolRegistry
 from nexus.tools.native import build_native_tools
 
 configure_asyncio_policy()
@@ -100,6 +104,7 @@ async def bootstrap_application(
 
     database = DatabaseBootstrap(config.database_url)
     checkpoint_provider: CheckpointProvider = PostgresCheckpointProvider(config.database_url)
+    mcp_manager: MCPManager | None = None
     try:
         await checkpoint_provider.setup()
         gateway = (
@@ -113,7 +118,8 @@ async def bootstrap_application(
         approval_factory = SqlAlchemyApprovalUnitOfWorkFactory(database.session_factory)
         plan_approval_service = PlanApprovalService(approval_factory)
         combined_emitter = _combined_emitter(event_buffer, tool_event_emitter)
-        tool_runtime, executables = _build_tool_runtime(
+        tool_runtime, executables, mcp_manager, tool_metadata = await _build_tool_runtime(
+            config,
             database,
             workspace,
             approval_policy or AutoApprovalPolicy(),
@@ -166,11 +172,13 @@ async def bootstrap_application(
                     normalize_argv=executables.normalize_argv,
                     ledger=ledger,
                     prepare_input=context_manager.fit_model_input,
+                    tool_metadata=tool_metadata,
                 ),
                 agent=JsonAgentDecisionAdapter(
                     gateway,
                     ledger=ledger,
                     prepare_input=context_manager.fit_model_input,
+                    tool_metadata=tool_metadata,
                 ),
                 tool_runtime=tool_runtime,
                 validation_planner=DeterministicValidationPlanner(),
@@ -207,6 +215,8 @@ async def bootstrap_application(
         )
         yield application
     finally:
+        if mcp_manager is not None:
+            await mcp_manager.close()
         await checkpoint_provider.close()
         await database.close()
 
@@ -223,8 +233,10 @@ async def bootstrap_tool_application(
     """Build only the approved Day 3 Tool Runtime dependency graph."""
 
     database = DatabaseBootstrap(config.database_url)
+    mcp_manager: MCPManager | None = None
     try:
-        tool_runtime, _ = _build_tool_runtime(
+        tool_runtime, _, mcp_manager, _ = await _build_tool_runtime(
+            config,
             database,
             workspace := workspace_path or Path.cwd(),
             approval_policy or AutoApprovalPolicy(),
@@ -237,10 +249,13 @@ async def bootstrap_tool_application(
         )
         yield BootstrappedToolApplication(tool_runtime=tool_runtime, database=database)
     finally:
+        if mcp_manager is not None:
+            await mcp_manager.close()
         await database.close()
 
 
-def _build_tool_runtime(
+async def _build_tool_runtime(
+    config: RuntimeConfig,
     database: DatabaseBootstrap,
     workspace: Path,
     approval_policy: ApprovalPolicy,
@@ -249,30 +264,128 @@ def _build_tool_runtime(
     plan_approval_service: PlanApprovalService | None = None,
     ledger: ToolExecutionLedger | None = None,
     allow_lexical_path: Callable[[str], bool] | None = None,
-) -> tuple[ToolRuntime, TrustedExecutables]:
+) -> tuple[
+    ToolRuntime,
+    TrustedExecutables,
+    MCPManager | None,
+    tuple[JsonObject, ...],
+]:
     guard = WorkspaceGuard(workspace)
     executables = TrustedExecutables.resolve(guard.root)
-    command_policy = DefaultCommandPolicy(executables)
-    sandbox = LocalProcessSandbox(guard, command_policy, executables)
-    registry = ToolRegistry(
-        build_native_tools(
-            guard,
-            sandbox,
-            executables,
-            allow_lexical_path=allow_lexical_path,
-        )
-    )
+    manager: MCPManager | None = None
+    adapters: list[MCPToolAdapter] = []
+    mcp_risks: dict[str, RiskLevel] = {}
+    unsupported_writes: set[str] = set()
+    tool_metadata: list[JsonObject] = []
+    try:
+        if config.mcp_enabled:
+            manager = SDKMCPManager(config.mcp_servers)
+            await manager.connect()
+            descriptors = await manager.list_tools()
+            adapters, mcp_risks, unsupported_writes, tool_metadata = _adapt_mcp_tools(
+                descriptors,
+                config.mcp_servers,
+                manager,
+            )
+        command_policy = DefaultCommandPolicy(executables, mcp_risks)
+        sandbox = LocalProcessSandbox(guard, command_policy, executables)
+        tools = [
+            *build_native_tools(
+                guard,
+                sandbox,
+                executables,
+                allow_lexical_path=allow_lexical_path,
+            ),
+            *adapters,
+        ]
+        try:
+            registry = ToolRegistry(tools)
+        except ValueError as exc:
+            if not adapters:
+                raise
+            raise ConfigurationError(
+                "MCP/native Tool registration contains a duplicate name.",
+                code="MCP_TOOL_COLLISION",
+            ) from exc
+    except Exception:
+        if manager is not None:
+            await manager.close()
+        raise
     approval_factory = SqlAlchemyApprovalUnitOfWorkFactory(database.session_factory)
-    return ToolRuntime(
-        registry,
-        command_policy,
-        approval_policy,
-        ApprovalService(approval_factory),
-        emit=event_emitter,
-        plan_approval_service=plan_approval_service,
-        normalize_argv=executables.normalize_argv,
-        ledger=ledger,
-    ), executables
+    return (
+        ToolRuntime(
+            registry,
+            command_policy,
+            approval_policy,
+            ApprovalService(approval_factory),
+            emit=event_emitter,
+            plan_approval_service=plan_approval_service,
+            normalize_argv=executables.normalize_argv,
+            ledger=ledger,
+            unsupported_write_operations=frozenset(unsupported_writes),
+        ),
+        executables,
+        manager,
+        tuple(tool_metadata),
+    )
+
+
+def _mcp_risk(server: MCPServerConfig, remote_name: str) -> RiskLevel:
+    return next(
+        (
+            configured.risk_level
+            for configured in server.tool_risks
+            if configured.tool_name == remote_name
+        ),
+        RiskLevel.DANGEROUS,
+    )
+
+
+def _adapt_mcp_tools(
+    descriptors: tuple[MCPToolDescriptor, ...],
+    server_configs: tuple[MCPServerConfig, ...],
+    manager: MCPManager,
+) -> tuple[
+    list[MCPToolAdapter],
+    dict[str, RiskLevel],
+    set[str],
+    list[JsonObject],
+]:
+    servers = {server.server_id: server for server in server_configs if server.enabled}
+    adapters: list[MCPToolAdapter] = []
+    risks: dict[str, RiskLevel] = {}
+    unsupported_writes: set[str] = set()
+    metadata: list[JsonObject] = []
+    for descriptor in descriptors:
+        server = servers.get(descriptor.server_id)
+        if server is None:
+            raise ConfigurationError(
+                "MCP discovery returned an unknown server identity.",
+                code="MCP_CONFIGURATION_INVALID",
+            )
+        risk = _mcp_risk(server, descriptor.remote_name)
+        adapter = MCPToolAdapter(
+            descriptor,
+            manager,
+            risk_level=risk,
+            timeout_seconds=server.tool_timeout_seconds,
+        )
+        adapters.append(adapter)
+        risks[adapter.name] = risk
+        if risk is RiskLevel.WRITE:
+            unsupported_writes.add(adapter.name)
+        if risk is RiskLevel.SAFE:
+            metadata.append(
+                {
+                    "registry_name": descriptor.registry_name,
+                    "description": descriptor.description,
+                    "input_schema": descriptor.input_schema,
+                    "risk_level": risk.value,
+                    "source": "mcp",
+                    "server_id": descriptor.server_id,
+                }
+            )
+    return adapters, risks, unsupported_writes, metadata
 
 
 async def index_repository(

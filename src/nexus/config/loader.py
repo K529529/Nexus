@@ -92,6 +92,7 @@ def _toml_values(path: Path) -> dict[str, Any]:
     runtime = _table(document, "runtime", path)
     context = _table(document, "context", path)
     embedding = _table(document, "embedding", path)
+    mcp = _table(document, "mcp", path)
     if "api_key" in embedding:
         raise ConfigurationError("Embedding API keys are not supported in Nexus TOML.")
     if "api_key" in model:
@@ -123,6 +124,17 @@ def _toml_values(path: Path) -> dict[str, Any]:
         path,
     )
     _copy_optional_integer(runtime, "max_replans", "max_replans", values, path)
+    if "enabled" in mcp:
+        if not isinstance(mcp["enabled"], bool):
+            raise ConfigurationError("mcp.enabled must be a TOML boolean.")
+        values["mcp_enabled"] = mcp["enabled"]
+    if "servers" in mcp:
+        servers = mcp["servers"]
+        if not isinstance(servers, list) or any(
+            not isinstance(server, Mapping) for server in servers
+        ):
+            raise ConfigurationError("mcp.servers must be an array of tables.")
+        values["mcp_servers"] = [dict(server) for server in servers]
     return values
 
 
