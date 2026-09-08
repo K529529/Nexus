@@ -57,7 +57,12 @@ def load_runtime_config(
     resolved.update(_toml_values(user_path))
 
     repository = repo_root or Path.cwd()
-    resolved.update(_toml_values(repository / ".nexus" / "config.toml"))
+    resolved.update(
+        _toml_values(
+            repository / ".nexus" / "config.toml",
+            allow_mcp=False,
+        )
+    )
 
     if cli_model is not None:
         resolved["model_name"] = cli_model
@@ -78,7 +83,7 @@ def _environment_values(environ: Mapping[str, str]) -> dict[str, Any]:
     }
 
 
-def _toml_values(path: Path) -> dict[str, Any]:
+def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
     if not path.is_file():
         return {}
     try:
@@ -87,11 +92,18 @@ def _toml_values(path: Path) -> dict[str, Any]:
     except (OSError, tomllib.TOMLDecodeError) as exc:
         raise ConfigurationError(f"Could not read Nexus configuration at {path}.") from exc
 
+    if not allow_mcp and "mcp" in document:
+        raise ConfigurationError(
+            "Repository configuration must not define [mcp]; MCP process and server "
+            "configuration is allowed only in the user-level ~/.nexus/config.toml."
+        )
+
     model = _table(document, "model", path)
     database = _table(document, "database", path)
     runtime = _table(document, "runtime", path)
     context = _table(document, "context", path)
     embedding = _table(document, "embedding", path)
+    mcp = _table(document, "mcp", path)
     if "api_key" in embedding:
         raise ConfigurationError("Embedding API keys are not supported in Nexus TOML.")
     if "api_key" in model:
@@ -123,6 +135,17 @@ def _toml_values(path: Path) -> dict[str, Any]:
         path,
     )
     _copy_optional_integer(runtime, "max_replans", "max_replans", values, path)
+    if "enabled" in mcp:
+        if not isinstance(mcp["enabled"], bool):
+            raise ConfigurationError("mcp.enabled must be a TOML boolean.")
+        values["mcp_enabled"] = mcp["enabled"]
+    if "servers" in mcp:
+        servers = mcp["servers"]
+        if not isinstance(servers, list) or any(
+            not isinstance(server, Mapping) for server in servers
+        ):
+            raise ConfigurationError("mcp.servers must be an array of tables.")
+        values["mcp_servers"] = [dict(server) for server in servers]
     return values
 
 

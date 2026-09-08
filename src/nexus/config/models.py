@@ -7,6 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
+from nexus.domain.tooling import RiskLevel
 from nexus.errors import ConfigurationError
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://nexus:nexus@localhost:5432/nexus"
@@ -16,6 +17,67 @@ SUPPORTED_MODEL_PROVIDER = "openai_compatible"
 class ApprovalMode(StrEnum):
     APPROVAL = "approval"
     AUTO = "auto"
+
+
+class MCPTransport(StrEnum):
+    STDIO = "stdio"
+
+
+class MCPToolRiskConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    tool_name: str
+    risk_level: RiskLevel
+
+    @field_validator("tool_name")
+    @classmethod
+    def validate_tool_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("MCP tool_name must not be empty.")
+        return value
+
+
+class MCPServerConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    server_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
+    enabled: bool = True
+    transport: MCPTransport = MCPTransport.STDIO
+    command: str
+    args: tuple[str, ...] = ()
+    inherit_environment: bool = True
+    connect_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+    tool_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
+    max_connect_attempts: int = Field(default=2, ge=1, le=3)
+    tool_risks: tuple[MCPToolRiskConfig, ...] = ()
+
+    @field_validator("command")
+    @classmethod
+    def validate_command(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("MCP command must not be empty.")
+        return value
+
+    @field_validator("args")
+    @classmethod
+    def validate_args(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not item.strip() for item in value):
+            raise ValueError("MCP args must contain only non-empty strings.")
+        return value
+
+    @field_validator("max_connect_attempts", mode="before")
+    @classmethod
+    def reject_boolean_attempts(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("MCP max_connect_attempts must be an integer.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_unique_risks(self) -> MCPServerConfig:
+        names = [item.tool_name for item in self.tool_risks]
+        if len(names) != len(set(names)):
+            raise ValueError("MCP tool_risks contains duplicate tool_name entries.")
+        return self
 
 
 class RuntimeConfig(BaseModel):
@@ -48,6 +110,8 @@ class RuntimeConfig(BaseModel):
     embedding_dimension: int = Field(default=0, ge=0)
     embedding_base_url: str = ""
     embedding_api_key: SecretStr | None = None
+    mcp_enabled: bool = False
+    mcp_servers: tuple[MCPServerConfig, ...] = ()
 
     def require_embedding(self) -> None:
         """Validate only when a semantic/index capability is actually requested."""
@@ -125,6 +189,13 @@ class RuntimeConfig(BaseModel):
             raise ValueError("Repair and Replan limits must not be negative.")
         return self
 
+    @model_validator(mode="after")
+    def validate_unique_mcp_servers(self) -> RuntimeConfig:
+        server_ids = [server.server_id for server in self.mcp_servers]
+        if len(server_ids) != len(set(server_ids)):
+            raise ValueError("MCP server_id values must be unique.")
+        return self
+
     def __repr__(self) -> str:
         api_key = "**********" if self.model_api_key is not None else "None"
         return (
@@ -137,7 +208,9 @@ class RuntimeConfig(BaseModel):
             f"approval_mode={self.approval_mode.value!r}, "
             f"max_steps={self.max_steps!r}, "
             f"max_repair_attempts={self.max_repair_attempts!r}, "
-            f"max_replans={self.max_replans!r}"
+            f"max_replans={self.max_replans!r}, "
+            f"mcp_enabled={self.mcp_enabled!r}, "
+            f"mcp_server_count={len(self.mcp_servers)!r}"
             ")"
         )
 

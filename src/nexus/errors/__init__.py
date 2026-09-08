@@ -33,6 +33,12 @@ class ModelError(NexusError):
     default_code = "MODEL_ERROR"
 
 
+class MCPError(NexusError):
+    """An MCP connection, discovery, or call failed behind the adapter boundary."""
+
+    default_code = "MCP_ERROR"
+
+
 class SessionError(NexusError):
     """A session operation failed a Nexus business rule or persistence boundary."""
 
@@ -66,6 +72,7 @@ class PermissionDeniedError(NexusError):
 __all__ = [
     "ConfigurationError",
     "ContextError",
+    "MCPError",
     "ModelError",
     "NexusError",
     "PermissionDeniedError",

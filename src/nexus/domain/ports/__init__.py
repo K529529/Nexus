@@ -6,6 +6,7 @@ from nexus.domain.ports.approval_unit_of_work import (
 )
 from nexus.domain.ports.checkpoint_provider import CheckpointProvider
 from nexus.domain.ports.graph_runtime import GraphRuntime
+from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.repositories import (
     ApprovalRepository,
@@ -36,6 +37,7 @@ __all__ = [
     "GraphRuntime",
     "InteractiveDecisionCallback",
     "ModelGateway",
+    "MCPManager",
     "RepositoryRepository",
     "RunRepository",
     "SandboxExecutor",
