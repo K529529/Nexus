@@ -45,10 +45,11 @@ the approved contract.
 
 The Day 6 focused suite covers:
 
-- TOML parsing, source replacement/fallthrough/clear behavior, validation, and secret-safe
-  rendering;
-- disabled startup, sequential connect, retry exhaustion, partial cleanup, idempotent
-  reverse close, discovery pagination, schema rejection, and duplicate rejection;
+- user-level TOML parsing, repository `[mcp]` fail-closed behavior, validation, and
+  secret-safe rendering;
+- disabled startup, sequential connect, transient-only retry, deterministic failure
+  no-restart behavior, retry exhaustion, partial cleanup, idempotent reverse close,
+  discovery pagination, schema rejection, and duplicate rejection;
 - exact SAFE/WRITE/DANGEROUS classification with no naming heuristic;
 - SAFE-visible, WRITE-registered-hidden, and DANGEROUS/unconfigured-registered-hidden
   Planner/Agent metadata;
@@ -63,7 +64,7 @@ Quality-gate result on the same implementation:
 ```text
 ruff: passed
 mypy --strict: passed (126 source files)
-pytest --ignore=tests/local: 180 passed, 1 skipped
+pytest --ignore=tests/local: 191 passed, 1 skipped
 skip: Day 5 live embedding acceptance lacks deployment NEXUS_EMBEDDING_* values
 ```
 

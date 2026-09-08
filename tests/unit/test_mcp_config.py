@@ -30,9 +30,10 @@ def test_mcp_defaults_are_disabled_and_empty() -> None:
 
 def test_valid_stdio_toml_and_risk_mapping_parse(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
+    user = tmp_path / "user.toml"
     repo.mkdir()
     _write(
-        repo / ".nexus" / "config.toml",
+        user,
         "[mcp]\nenabled = true\n"
         + _server("everything", "cmd")
         + 'args = ["/c", "npx", "-y", "pkg"]\n'
@@ -47,7 +48,7 @@ def test_valid_stdio_toml_and_risk_mapping_parse(tmp_path: Path) -> None:
 
     config = load_runtime_config(
         repo_root=repo,
-        user_config_path=tmp_path / "missing.toml",
+        user_config_path=user,
         environ={},
     )
 
@@ -60,41 +61,49 @@ def test_valid_stdio_toml_and_risk_mapping_parse(tmp_path: Path) -> None:
     assert server.tool_risks[0].risk_level is RiskLevel.SAFE
 
 
-def test_repository_servers_replace_complete_user_tuple(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "repository_mcp",
+    [
+        "[mcp]\nenabled = false\n",
+        "[mcp]\nservers = []\n",
+        _server("repository"),
+        "mcp = { enabled = false }\n",
+    ],
+)
+def test_repository_mcp_configuration_is_rejected(
+    tmp_path: Path,
+    repository_mcp: str,
+) -> None:
     repo = tmp_path / "repo"
     user = tmp_path / "user.toml"
     repo.mkdir()
-    _write(user, "[mcp]\nenabled = true\n" + _server("user-one") + _server("user-two"))
-    _write(repo / ".nexus" / "config.toml", _server("repository"))
+    _write(user, "[mcp]\nenabled = true\n" + _server("user"))
+    _write(repo / ".nexus" / "config.toml", repository_mcp)
+
+    with pytest.raises(
+        ConfigurationError,
+        match=r"Repository configuration must not define \[mcp\]",
+    ):
+        load_runtime_config(repo_root=repo, user_config_path=user, environ={})
+
+
+def test_user_mcp_configuration_survives_repository_non_mcp_overrides(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    user = tmp_path / "user.toml"
+    repo.mkdir()
+    _write(
+        user,
+        '[model]\nname = "user-model"\n[mcp]\nenabled = true\n' + _server("user"),
+    )
+    _write(repo / ".nexus" / "config.toml", '[model]\nname = "repo-model"\n')
 
     config = load_runtime_config(repo_root=repo, user_config_path=user, environ={})
 
+    assert config.model_name == "repo-model"
     assert config.mcp_enabled is True
-    assert tuple(server.server_id for server in config.mcp_servers) == ("repository",)
-
-
-def test_repository_server_omission_falls_through_to_user(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    user = tmp_path / "user.toml"
-    repo.mkdir()
-    _write(user, "[mcp]\n" + _server("user"))
-    _write(repo / ".nexus" / "config.toml", "[mcp]\nenabled = true\n")
-
-    config = load_runtime_config(repo_root=repo, user_config_path=user, environ={})
-
     assert tuple(server.server_id for server in config.mcp_servers) == ("user",)
-
-
-def test_repository_explicit_empty_servers_clears_user_tuple(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    user = tmp_path / "user.toml"
-    repo.mkdir()
-    _write(user, "[mcp]\n" + _server("user"))
-    _write(repo / ".nexus" / "config.toml", "[mcp]\nservers = []\n")
-
-    config = load_runtime_config(repo_root=repo, user_config_path=user, environ={})
-
-    assert config.mcp_servers == ()
 
 
 def test_nexus_mcp_servers_environment_variable_is_not_bound(tmp_path: Path) -> None:
@@ -153,13 +162,14 @@ def test_duplicate_server_and_tool_risk_names_are_rejected() -> None:
 
 def test_invalid_mcp_toml_shape_maps_to_configuration_error(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
+    user = tmp_path / "user.toml"
     repo.mkdir()
-    _write(repo / ".nexus" / "config.toml", '[mcp]\nservers = "invalid"\n')
+    _write(user, '[mcp]\nservers = "invalid"\n')
 
     with pytest.raises(ConfigurationError, match="array of tables"):
         load_runtime_config(
             repo_root=repo,
-            user_config_path=tmp_path / "missing.toml",
+            user_config_path=user,
             environ={},
         )
 

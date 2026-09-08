@@ -112,17 +112,21 @@ class SDKMCPManager:
 
     async def _connect_one(self, config: MCPServerConfig) -> _Connection:
         for attempt in range(1, config.max_connect_attempts + 1):
-            client = self._client_factory(config)
+            client: _ClientLike | None = None
             try:
+                client = self._client_factory(config)
                 async with asyncio.timeout(config.connect_timeout_seconds):
                     await client.__aenter__()
                 return _Connection(config, client)
             except asyncio.CancelledError:
-                await _close_client(client)
+                if client is not None:
+                    await _close_client(client)
                 raise
             except Exception as exc:
-                await _close_client(client)
-                if attempt == config.max_connect_attempts:
+                if client is not None:
+                    await _close_client(client)
+                retryable = _is_retryable_connect_failure(exc)
+                if not retryable or attempt == config.max_connect_attempts:
                     raise MCPError(
                         f"MCP server {config.server_id!r} failed during connect.",
                         code="MCP_CONNECT_FAILED",
@@ -268,6 +272,16 @@ def _sdk_client(config: MCPServerConfig) -> _ClientLike:
         env=dict(os.environ) if config.inherit_environment else {},
     )
     return cast(_ClientLike, Client(parameters, input_required_max_rounds=0))
+
+
+def _is_retryable_connect_failure(exc: Exception) -> bool:
+    """Return whether a connect failure is an explicit transient transport signal."""
+
+    if isinstance(exc, ExceptionGroup):
+        return bool(exc.exceptions) and all(
+            _is_retryable_connect_failure(item) for item in exc.exceptions
+        )
+    return isinstance(exc, (TimeoutError, ConnectionError))
 
 
 async def _close_client(client: _ClientLike) -> None:

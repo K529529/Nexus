@@ -224,8 +224,24 @@ async def test_connect_is_idempotent_and_preserves_configuration_order() -> None
 
 
 @pytest.mark.asyncio
-async def test_retryable_connect_failure_uses_configured_total_attempts() -> None:
-    failed = FakeClient("retry", enter_error=RuntimeError("private transport detail"))
+@pytest.mark.parametrize(
+    "failure",
+    [
+        ConnectionResetError("private transport detail"),
+        TimeoutError("private timeout detail"),
+        ExceptionGroup(
+            "private grouped transport detail",
+            [ConnectionAbortedError("private connection detail")],
+        ),
+    ],
+)
+async def test_retryable_connect_failure_uses_configured_total_attempts(
+    failure: Exception,
+) -> None:
+    failed = FakeClient(
+        "retry",
+        enter_error=failure,
+    )
     successful = FakeClient("retry")
     clients = [failed, successful]
     manager = SDKMCPManager(
@@ -241,9 +257,69 @@ async def test_retryable_connect_failure_uses_configured_total_attempts() -> Non
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure",
+    [
+        RuntimeError("deterministic handshake failure"),
+        ValueError("invalid startup parameters"),
+        FileNotFoundError("missing executable"),
+        PermissionError("executable is not permitted"),
+        SDKMCPError(-32600, "protocol rejected initialization"),
+        ExceptionGroup(
+            "mixed deterministic failure",
+            [ConnectionResetError("transport"), ValueError("invalid handshake")],
+        ),
+    ],
+)
+async def test_non_retryable_connect_failure_does_not_restart(
+    failure: Exception,
+) -> None:
+    creation_order: list[str] = []
+    failed = FakeClient("deterministic", enter_error=failure)
+    unused = FakeClient("deterministic")
+    manager = SDKMCPManager(
+        (_config("deterministic", attempts=2),),
+        client_factory=_factory([failed, unused], creation_order),
+    )
+
+    with pytest.raises(MCPError) as raised:
+        await manager.connect()
+
+    assert raised.value.code == "MCP_CONNECT_FAILED"
+    assert raised.value.retryable is False
+    assert creation_order == ["deterministic"]
+    assert failed.enter_count == 1
+    assert failed.close_count == 1
+    assert unused.enter_count == 0
+
+
+@pytest.mark.asyncio
+async def test_non_retryable_client_construction_failure_is_mapped_once() -> None:
+    calls = 0
+
+    def create(config: MCPServerConfig) -> FakeClient:
+        nonlocal calls
+        del config
+        calls += 1
+        raise ValueError("invalid client construction")
+
+    manager = SDKMCPManager(
+        (_config("deterministic", attempts=3),),
+        client_factory=cast(ClientFactory, create),
+    )
+
+    with pytest.raises(MCPError) as raised:
+        await manager.connect()
+
+    assert raised.value.code == "MCP_CONNECT_FAILED"
+    assert raised.value.retryable is False
+    assert calls == 1
+
+
+@pytest.mark.asyncio
 async def test_exhausted_connect_closes_partial_connections() -> None:
     first = FakeClient("first")
-    second = FakeClient("second", enter_error=RuntimeError("boom"))
+    second = FakeClient("second", enter_error=ConnectionRefusedError("boom"))
     manager = SDKMCPManager(
         (_config("first"), _config("second")),
         client_factory=_factory([first, second]),

@@ -6,7 +6,8 @@ server.
 
 ## Supported transport and configuration
 
-Day 6 implements stdio only. Configure servers in repository or user TOML:
+Day 6 implements stdio only. Configure servers only in the user-level
+`~/.nexus/config.toml`:
 
 ```toml
 [mcp]
@@ -40,10 +41,13 @@ command = "npx"
 args = ["-y", "@modelcontextprotocol/server-everything@2026.8.31"]
 ```
 
-Repository TOML has higher priority than user TOML. `mcp_servers` is one complete field:
-the highest-priority source that supplies `mcp.servers` replaces the lower-priority
-tuple. Servers are not merged by `server_id`. `[mcp] servers = []` explicitly clears a
-lower-priority tuple. Day 6 has no MCP CLI override and no `NEXUS_MCP_SERVERS` binding.
+Repository-controlled process startup is forbidden. If repository
+`.nexus/config.toml` contains an `[mcp]` table, an inline `mcp` table, or
+`[[mcp.servers]]`, configuration loading fails closed with `ConfigurationError`; the
+repository cannot define, override, clear, or enable MCP configuration. Other repository
+configuration fields retain their existing precedence. Within the user-level TOML,
+`mcp.servers` is one complete tuple and servers are not merged by `server_id`. Day 6 has
+no MCP CLI override and no `NEXUS_MCP_SERVERS` binding.
 
 ## Naming, visibility, and risk
 
@@ -100,8 +104,12 @@ machine-level unwritable cache or stale mirror does not change the result.
 ## Failure and data-safety behavior
 
 Connection/discovery failure prevents MCP-enabled bootstrap. Calls are bounded by the
-configured timeout. Nexus never automatically replays a tool call after it may have
-reached a server. Stable public error codes include `MCP_CONNECT_FAILED`,
+configured timeout. Connect retry is limited to explicit transient transport signals,
+such as a timeout or connection failure. Deterministic failures—including missing or
+forbidden executables, invalid startup parameters, protocol/handshake rejection, and
+unclassified exceptions—map immediately to `MCP_CONNECT_FAILED` without restarting the
+server. Nexus never automatically replays a tool call after it may have reached a server.
+Stable public error codes include `MCP_CONNECT_FAILED`,
 `MCP_DISCOVERY_FAILED`, `MCP_TOOL_TIMEOUT`, `MCP_CALL_FAILED`, `MCP_INVALID_SCHEMA`,
 `MCP_INVALID_RESULT`, and `MCP_TOOL_ERROR`.
 
@@ -110,11 +118,11 @@ MCP outputs are normalized into JSON-compatible `content`, optional
 they enter a `ToolResult`; raw SDK objects and exception details do not cross the
 adapter boundary.
 
-Do not put credentials in repository TOML. When `inherit_environment = true`, the child
-may receive process/user environment values, but Nexus does not serialize them into
-tool metadata, prompts, events, configuration rendering, or logs. Server commands,
-arguments, stderr, SDK objects, and environment values are also excluded from Agent
-metadata.
+Do not put credentials in TOML. MCP configuration is user-controlled, and when
+`inherit_environment = true` its child may receive process/user environment values, but
+Nexus does not serialize them into tool metadata, prompts, events, configuration
+rendering, or logs. Server commands, arguments, stderr, SDK objects, and environment
+values are also excluded from Agent metadata.
 
 ## Current limitations
 

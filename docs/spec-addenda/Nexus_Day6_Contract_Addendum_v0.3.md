@@ -6,7 +6,7 @@
 **Baseline:** `Nexus V1 Product Requirements & 10-Day Engineering Specification v1.1.1 — Implementation Ready Frozen Baseline`
 **Applies to branch:** `feature/day06-tool-execution-safety`
 **Approval date:** 2026-09-08
-**Approved decisions incorporated:** MCP TOML/precedence; MCP WRITE fail-closed behavior; SAFE-only Agent exposure; real Agent-path acceptance
+**Approved decisions incorporated:** user-only MCP TOML; repository MCP fail-closed behavior; MCP WRITE fail-closed behavior; SAFE-only Agent exposure; real Agent-path acceptance; transient-only connection retry
 **Scope rule:** This Addendum only resolves Day 6 contract gaps. It MUST NOT redesign prior Day contracts or implement Day 7+ scope.
 
 ---
@@ -178,7 +178,7 @@ An empty enabled-server set is valid and produces no MCP tools.
 
 ### 5.3 Configuration source bindings and precedence
 
-Day 6 freezes the following repository/user TOML representation:
+Day 6 freezes the following user-level `~/.nexus/config.toml` representation:
 
 ```toml
 [mcp]
@@ -221,28 +221,26 @@ MCP source binding is intentionally narrower than the generic configuration-sour
 
 - Day 6 adds no MCP CLI override.
 - Day 6 defines no `NEXUS_MCP_SERVERS` structured environment variable.
-- MCP server definitions come only from repository/user TOML or the empty default.
+- MCP process/server definitions and `mcp_enabled` come only from user-level
+  `~/.nexus/config.toml` or the empty disabled default.
+- Repository `.nexus/config.toml` MUST NOT define, override, clear, or enable MCP
+  configuration.
+- The presence of a top-level repository `mcp` table, including `[mcp]`, an inline
+  `mcp` table, or `[[mcp.servers]]`, MUST fail closed as `ConfigurationError`; it MUST
+  NOT be ignored and MUST NOT reach Composition Root process startup.
 - MCP server credentials are not fields in this TOML contract. They continue to come
   from the inherited process/user environment or another already-approved secret source.
 
-Precedence between the supported MCP TOML sources is:
+The MCP-specific source order is therefore:
 
 ```text
-repo .nexus/config.toml > user ~/.nexus/config.toml > defaults
+user ~/.nexus/config.toml > disabled/empty defaults
 ```
 
-Precedence applies independently to `mcp_enabled` and the complete `mcp_servers`
-field. For `mcp_servers`:
-
-- if the higher-priority TOML omits `mcp.servers`, the lower-priority complete tuple
-  falls through;
-- if the higher-priority TOML contains one or more `[[mcp.servers]]` entries, that
-  complete tuple replaces the lower-priority tuple;
-- if the higher-priority TOML explicitly sets `servers = []` inside `[mcp]`, it
-  replaces the lower-priority tuple with an empty tuple;
-- servers are never merged by `server_id`;
-- `tool_risks` are part of their containing server value and are never merged across
-  configuration sources.
+Other non-MCP repository fields retain their frozen precedence over user configuration.
+Within the single allowed MCP TOML source, `mcp_servers` is one complete tuple: servers
+are never merged by `server_id`, and `tool_risks` remain part of their containing server
+value. `[mcp] servers = []` resolves to an empty tuple.
 
 A TOML document MUST NOT define both `servers = []` and
 `[[mcp.servers]]` entries.
@@ -253,9 +251,9 @@ Day 6 does not add a new secret interpolation language.
 environment according to the SDK/adapter implementation. Nexus MUST NOT serialize or log
 inherited environment values.
 
-Repository TOML MUST NOT contain credentials or secret token values. If an MCP server
-requires credentials, they must come from the process/user environment or another
-already-approved secret source; implementing OAuth/account login is out of scope.
+MCP TOML MUST NOT contain credentials or secret token values. If an MCP server requires
+credentials, they must come from the process/user environment or another already-approved
+secret source; implementing OAuth/account login is out of scope.
 
 ---
 
@@ -377,6 +375,11 @@ Equivalent method placement may be used internally, but these operations and sem
 - Connects all enabled configured servers sequentially in deterministic configuration order.
 - One server receives at most `max_connect_attempts` total attempts.
 - Retry is allowed only for retryable transport/startup failures.
+- Explicit transient timeout or connection failures are retryable while attempts remain.
+- Deterministic failures—including client construction/validation errors, invalid or
+  missing executables, permission failures, protocol/handshake errors, and unclassified
+  exceptions—MUST map immediately to `MCP_CONNECT_FAILED` and MUST NOT start another
+  attempt.
 - No exponential-backoff dependency is required; a small private async delay is implementation detail.
 - If any enabled server remains unavailable after its attempts, `connect()` raises `MCPError` and bootstrap fails closed for MCP-enabled startup.
 - Partially opened connections MUST be closed before propagating the failure.
@@ -653,7 +656,10 @@ The adapter/runtime may use a narrower subset when appropriate, but generic raw 
 
 Retryability:
 
-- initial connection transport failure: `retryable=True` while attempts remain;
+- explicit transient initial timeout/connection failure: `retryable=True` while attempts
+  remain;
+- deterministic or unclassified connect failure: `retryable=False`, immediately mapped
+  to `MCP_CONNECT_FAILED`, with no repeated process start;
 - tool timeout: `retryable=True` at infrastructure level, but Nexus MUST NOT automatically replay a remote tool call in Day 6 because idempotency is unknown;
 - schema/configuration failure: `retryable=False`;
 - MCP-declared tool error: `retryable=False` unless the protocol/server gives an explicit trustworthy retry signal supported by the SDK.
@@ -853,25 +859,27 @@ Day 6 implementation MUST include tests covering all of the following.
 ### 19.1 Config
 
 1. MCP disabled default causes zero connection attempts.
-2. valid stdio server TOML config parses.
-3. repository `mcp_servers` completely replaces the user tuple.
-4. repository omission of `mcp.servers` falls through to the user tuple.
-5. repository `servers = []` explicitly clears the user tuple.
-6. no MCP CLI override or `NEXUS_MCP_SERVERS` binding is introduced.
-7. invalid/duplicate server id is rejected.
-8. invalid timeout/attempt values are rejected.
-9. unsupported transport is rejected.
-10. config rendering/repr does not leak inherited environment secret values.
+2. valid user-level stdio server TOML config parses.
+3. any repository top-level `mcp` table fails closed as `ConfigurationError`, including
+   disabled, empty, inline, and server-defining forms.
+4. user MCP configuration remains effective when repository TOML contains only allowed
+   non-MCP overrides.
+5. no MCP CLI override or `NEXUS_MCP_SERVERS` binding is introduced.
+6. invalid/duplicate server id is rejected.
+7. invalid timeout/attempt values are rejected.
+8. unsupported transport is rejected.
+9. config rendering/repr does not leak inherited environment secret values.
 
 ### 19.2 Manager lifecycle
 
 11. connect success.
 12. deterministic multi-server connection order fixture.
-13. retryable connect failure retries up to configured total attempts.
-14. exhausted connect raises `MCPError`.
-15. partial-connect failure closes earlier sessions.
-16. close is idempotent.
-17. close attempts all resources even if one close fails.
+13. explicit transient connect failure retries up to configured total attempts.
+14. deterministic/unclassified connect or client-construction failure maps immediately
+    to `MCP_CONNECT_FAILED` without another start attempt.
+15. exhausted transient connect raises `MCPError`.
+16. partial-connect failure closes earlier sessions.
+17. close is idempotent and attempts all resources even if one close fails.
 
 ### 19.3 Discovery / naming
 
@@ -988,7 +996,7 @@ Do not move MCP SDK types into `domain`.
 
 - Nexus is an MCP client/host, not a server;
 - stdio-only V1 transport;
-- configuration example;
+- user-level configuration example and repository `[mcp]` fail-closed rule;
 - namespaced tool naming;
 - explicit risk mapping and default DANGEROUS behavior;
 - why Day 6 WRITE MCP calls are fail-closed;
@@ -1033,7 +1041,8 @@ Day 6 passes only when all of the following are true:
 
 1. MCP is disabled by default and Day 1–5 behavior regresses cleanly.
 2. The official Python MCP SDK v2 line is used behind an infrastructure adapter.
-3. Approved TOML source binding and whole-field `mcp_servers` precedence are implemented.
+3. Approved user-only MCP TOML source binding and repository `[mcp]` fail-closed rule are
+   implemented.
 4. At least one configured stdio MCP server connects through `MCPManager`.
 5. Every discovered/validated/adapted MCP tool is registered with native tools in one
    duplicate-safe `ToolRegistry`.
@@ -1125,7 +1134,8 @@ MCP TOML:
   [[mcp.servers.tool_risks]]
 
 MCP server configuration sources:
-  repo TOML > user TOML > defaults
+  user ~/.nexus/config.toml > disabled/empty defaults
+  repository .nexus/config.toml [mcp] presence fails ConfigurationError
 
 MCP CLI override:
   none
@@ -1134,7 +1144,7 @@ NEXUS_MCP_SERVERS:
   not defined
 
 mcp_servers precedence:
-  highest-priority complete field replacement; no server_id merge
+  one complete user-level field; no server_id merge
 
 Registry namespace:
   mcp.<server_id>.<remote_tool_name>
@@ -1186,6 +1196,8 @@ Tool-call automatic retry:
 
 Connection retry:
   max_connect_attempts, default 2, total max 3
+  retry only explicit transient timeout/connection failures
+  deterministic and unclassified failures do not restart
 
 MCP transport failure boundary:
   MCPError
