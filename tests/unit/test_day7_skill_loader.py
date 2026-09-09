@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import errno
 import io
 from pathlib import Path
@@ -7,9 +8,10 @@ from typing import IO
 
 import pytest
 
-from nexus.domain.skills import SkillLocation, SkillSource
+from nexus.domain.skills import SkillLocation, SkillSelectionResult, SkillSource
 from nexus.errors import ContextError
 from nexus.skills.loader import MAX_SKILL_FILE_BYTES, FileSkillLoader
+from nexus.skills.registry import DefaultSkillRegistry
 
 
 def document(
@@ -67,6 +69,56 @@ async def test_valid_metadata_then_body_load_normalizes_newlines(tmp_path: Path)
     assert metadata.location == location()
     assert "Execution Principles" in body
     assert "\r" not in body and body.endswith("\n")
+
+
+async def test_repeated_scans_and_loads_release_snapshot_state(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    write_skill(repository, document())
+    loader = FileSkillLoader(repository, tmp_path / "user")
+    registry = DefaultSkillRegistry(loader, repository, tmp_path / "user")
+    selection = SkillSelectionResult(("debug-python",), "Debugging guidance matches.")
+
+    for _ in range(25):
+        catalog = await registry.scan_metadata()
+        assert catalog
+        snapshots = loader._snapshots.get()
+        assert snapshots is not None
+        assert len(snapshots) == len(catalog)
+        selected = await registry.load_selected(selection)
+        assert selected[0].metadata.source is SkillSource.REPOSITORY
+        assert loader._snapshots.get() is None
+
+
+async def test_concurrent_scans_keep_run_snapshots_independent(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    write_skill(repository, document())
+    loader = FileSkillLoader(repository, tmp_path / "user")
+    registry = DefaultSkillRegistry(loader, repository, tmp_path / "user")
+    first_scanned = asyncio.Event()
+    second_scanned = asyncio.Event()
+
+    async def first_run() -> SkillSource:
+        await registry.scan_metadata()
+        first_scanned.set()
+        await second_scanned.wait()
+        selected = await registry.load_selected(
+            SkillSelectionResult(("debug-python",), "Debugging guidance matches.")
+        )
+        return selected[0].metadata.source
+
+    async def second_run() -> SkillSource:
+        await first_scanned.wait()
+        await registry.scan_metadata()
+        second_scanned.set()
+        selected = await registry.load_selected(
+            SkillSelectionResult(("write-tests",), "Testing guidance matches.")
+        )
+        return selected[0].metadata.source
+
+    first_source, second_source = await asyncio.gather(first_run(), second_run())
+
+    assert first_source is SkillSource.REPOSITORY
+    assert second_source is SkillSource.BUILTIN
 
 
 class _RecordingStream(io.BytesIO):

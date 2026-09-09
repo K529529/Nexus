@@ -44,6 +44,7 @@ class DefaultSkillRegistry:
         )
 
     async def scan_metadata(self) -> tuple[SkillMetadata, ...]:
+        self._reset_loader_snapshots()
         result: list[SkillMetadata] = []
         for source in (
             SkillSource.REPOSITORY,
@@ -89,16 +90,24 @@ class DefaultSkillRegistry:
         self,
         selection: SkillSelectionResult,
     ) -> tuple[SelectedSkill, ...]:
-        selected: list[SelectedSkill] = []
-        for metadata in self.resolve_selected(selection):
-            selected.append(
-                SelectedSkill(
-                    metadata,
-                    await self._loader.load_body(metadata),
-                    selection.selection_reason_summary,
+        try:
+            selected: list[SelectedSkill] = []
+            for metadata in self.resolve_selected(selection):
+                selected.append(
+                    SelectedSkill(
+                        metadata,
+                        await self._loader.load_body(metadata),
+                        selection.selection_reason_summary,
+                    )
                 )
-            )
-        return tuple(selected)
+            return tuple(selected)
+        finally:
+            self._reset_loader_snapshots()
+
+    def _reset_loader_snapshots(self) -> None:
+        reset = getattr(self._loader, "_reset_snapshots", None)
+        if callable(reset):
+            reset()
 
     def _locations(self, source: SkillSource) -> tuple[SkillLocation, ...]:
         if source is SkillSource.BUILTIN:

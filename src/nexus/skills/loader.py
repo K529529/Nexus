@@ -7,6 +7,7 @@ import hashlib
 import io
 import tomllib
 import zipfile
+from contextvars import ContextVar
 from dataclasses import dataclass
 from importlib.resources import files
 from importlib.resources.abc import Traversable
@@ -52,7 +53,9 @@ class FileSkillLoader:
             SkillSource.USER_GLOBAL: user_root,
         }
         self._builtin_package = builtin_package
-        self._snapshots: dict[int, tuple[SkillMetadata, _Snapshot]] = {}
+        self._snapshots: ContextVar[
+            dict[int, tuple[SkillMetadata, _Snapshot]] | None
+        ] = ContextVar("skill_loader_snapshots", default=None)
 
     async def load_metadata(self, location: SkillLocation) -> SkillMetadata:
         try:
@@ -79,11 +82,14 @@ class FileSkillLoader:
                 code="SKILL_METADATA_INVALID",
             ) from exc
         snapshot = _Snapshot(size, modified_ns, hashlib.sha256(front_bytes).hexdigest())
-        self._snapshots[id(metadata)] = (metadata, snapshot)
+        snapshots = dict(self._snapshots.get() or {})
+        snapshots[id(metadata)] = (metadata, snapshot)
+        self._snapshots.set(snapshots)
         return metadata
 
     async def load_body(self, metadata: SkillMetadata) -> str:
-        stored = self._snapshots.get(id(metadata))
+        snapshots = self._snapshots.get()
+        stored = None if snapshots is None else snapshots.get(id(metadata))
         if stored is None or stored[0] is not metadata:
             raise ContextError(
                 "Selected Skill metadata did not originate from the current metadata scan.",
@@ -130,9 +136,25 @@ class FileSkillLoader:
                 code="SKILL_BODY_LOAD_FAILED",
                 retryable=isinstance(exc, OSError) and _is_transient_io(exc),
             ) from exc
+        finally:
+            self._discard_snapshot(metadata)
         normalized = body.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
         _validate_body(normalized)
         return normalized
+
+    def _reset_snapshots(self) -> None:
+        self._snapshots.set(None)
+
+    def _discard_snapshot(self, metadata: SkillMetadata) -> None:
+        snapshots = self._snapshots.get()
+        if snapshots is None:
+            return
+        stored = snapshots.get(id(metadata))
+        if stored is None or stored[0] is not metadata:
+            return
+        remaining = dict(snapshots)
+        del remaining[id(metadata)]
+        self._snapshots.set(remaining or None)
 
     def _open(self, location: SkillLocation, *, selected: bool = False) -> IO[bytes]:
         if location.source is SkillSource.BUILTIN:

@@ -5,7 +5,7 @@
 **Implementation Plan:** approved after the final Phase 5 wording correction
 
 **Branch:** `feature/day07-skill-system`
-**Status:** local implementation candidate ready for user review
+**Status:** architecture/code review passed; private snapshot-lifecycle correction verified
 
 ## Acceptance mapping
 
@@ -14,6 +14,7 @@
 | domain values and public ports | domain tests plus strict Mypy |
 | exact TOML/body contract | loader valid/invalid matrix |
 | metadata-only bounded scan | recording stream proves no body `read()` during scan |
+| bounded snapshot lifecycle | repeated scans/loads release state; interleaved Runs remain independent |
 | fixed roots and containment | missing-root, in-root, escape, and platform link tests |
 | post-selection precedence | registry collision and selected-only load-call tests |
 | structured selection/no fallback | deterministic fake-gateway output matrix |
@@ -30,10 +31,10 @@
 All commands used the repository-local uv cache.
 
 ```text
-Day 7 focused unit/integration tests: 82 passed, 1 skipped
+Day 7 focused unit/integration tests: 84 passed, 1 skipped
 Day 4/5/6 targeted regression:        38 passed
-Combined targeted command:            120 passed, 1 skipped
-Complete non-local suite:             273 passed, 2 skipped
+Combined targeted command:            122 passed, 1 skipped
+Complete non-local suite:             275 passed, 2 skipped
 Ruff:                                passed
 Mypy strict:                         passed
 uv.lock check:                       passed using official PyPI index
@@ -70,5 +71,6 @@ The temporary wheel output directory was removed after verification.
 ## Review boundary
 
 No database migration, CLI command, Tool/MCP contract, graph node or edge, dependency, or
-future-Day feature was added. No commit, push, PR update, rebase, or merge has been performed.
-Product Owner Knowledge Review and any Git delivery action remain pending user direction.
+future-Day feature was added. The review correction changes only private snapshot ownership and
+lifecycle; the approved Addendum and public interfaces remain unchanged. PR #7 remains open and
+unmerged. Product Owner Knowledge Review remains pending user direction.
