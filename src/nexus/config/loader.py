@@ -23,6 +23,7 @@ _ENV_FIELDS = {
     "NEXUS_MAX_STEPS": "max_steps",
     "NEXUS_MAX_REPAIR_ATTEMPTS": "max_repair_attempts",
     "NEXUS_MAX_REPLANS": "max_replans",
+    "NEXUS_MAX_SELECTED_SKILLS": "max_selected_skills",
 }
 
 _CONTEXT_INTEGERS = (
@@ -103,6 +104,7 @@ def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
     runtime = _table(document, "runtime", path)
     context = _table(document, "context", path)
     embedding = _table(document, "embedding", path)
+    skills = _table(document, "skills", path)
     mcp = _table(document, "mcp", path)
     if "api_key" in embedding:
         raise ConfigurationError("Embedding API keys are not supported in Nexus TOML.")
@@ -121,6 +123,13 @@ def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
     for name in ("provider", "model", "base_url"):
         _copy_optional_string(embedding, name, f"embedding_{name}", values, path)
     _copy_optional_integer(embedding, "dimension", "embedding_dimension", values, path)
+    _copy_optional_integer(
+        skills,
+        "max_selected_skills",
+        "max_selected_skills",
+        values,
+        path,
+    )
     _copy_optional_string(model, "provider", "model_provider", values, path)
     _copy_optional_string(model, "name", "model_name", values, path)
     _copy_optional_string(model, "base_url", "model_base_url", values, path)

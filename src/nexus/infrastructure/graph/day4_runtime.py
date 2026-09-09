@@ -271,6 +271,14 @@ class Day4LangGraphRuntime:
                 selected_chunk_count=len(context.selected_files),
                 semantic_retrieval_used=context.semantic_retrieval_used,
                 semantic_retrieval_status=context.semantic_retrieval_status,
+                selected_skill_ids=tuple(
+                    skill.metadata.skill_id for skill in context.selected_skills
+                ),
+                skill_selection_reason_summary=(
+                    None
+                    if context.skill_selection_result is None
+                    else context.skill_selection_result.selection_reason_summary
+                ),
             )
         )
         return self._evidence_update(state, context=context)

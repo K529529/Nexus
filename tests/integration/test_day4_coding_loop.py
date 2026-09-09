@@ -69,9 +69,13 @@ class CodingLoopGateway:
             "summary": "The approved edit is ready for validation.",
             "action": None,
         }
+        no_skill: dict[str, object] = {
+            "selected_skill_ids": [],
+            "selection_reason_summary": "No builtin Skill is relevant to this fixture.",
+        }
         responses: dict[str, list[dict[str, object]]] = {
-            "all": [plan, edit, ready],
-            "plan": [plan],
+            "all": [no_skill, plan, edit, ready],
+            "plan": [no_skill, plan],
             "execute": [edit, ready],
         }
         self._responses = [json.dumps(item) for item in responses[phase]]
@@ -248,7 +252,7 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         assert state_a.plan is not None
         assert state_a.tool_call_count > 0
         assert state_a.tool_results
-        assert state_a.llm_call_count == 1
+        assert state_a.llm_call_count == 2
         assert state_a.step_count == 0
         assert state_a.context is not None
         assert state_a.context.semantic_retrieval_used == semantic_enabled

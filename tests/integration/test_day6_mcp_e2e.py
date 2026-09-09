@@ -34,6 +34,10 @@ class RealMCPGateway:
     def __init__(self) -> None:
         responses = [
             {
+                "selected_skill_ids": [],
+                "selection_reason_summary": "No builtin Skill is relevant to the MCP fixture.",
+            },
+            {
                 "rationale_summary": "Use the discovered SAFE MCP echo tool and validate.",
                 "steps": [
                     {
@@ -212,6 +216,6 @@ async def test_real_everything_server_runs_through_production_agent_path(
         and event.success
         for event in events
     ) == 1
-    assert len(gateway.messages) == 3
-    for messages in gateway.messages:
+    assert len(gateway.messages) == 4
+    for messages in gateway.messages[1:]:
         assert _REGISTRY_NAME in messages[0].content

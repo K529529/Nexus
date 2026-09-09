@@ -34,6 +34,17 @@ def context_payload(context: WorkingContext) -> dict[str, object]:
         ],
         "compacted_observations": context.compacted_observations,
         "compacted_conversation": context.compacted_conversation,
+        "selected_skills": [
+            {
+                "skill_id": item.metadata.skill_id,
+                "name": item.metadata.name,
+                "version": item.metadata.version,
+                "source": item.metadata.source.value,
+                "selected_reason": item.selected_reason,
+                "body": item.body,
+            }
+            for item in context.selected_skills
+        ],
     }
 
 
@@ -298,6 +309,17 @@ class BoundedContextManager:
                     if field == "compacted_conversation"
                     else replace(context, compacted_observations=reduced, truncated=True)
                 )
+        while len(context.selected_skills) > 1 and not fits():
+            context = replace(
+                context,
+                selected_skills=context.selected_skills[:-1],
+                truncated=True,
+            )
+        if context.selected_skills and not fits():
+            raise ContextError(
+                "The first selected Skill cannot fit with required authoritative context.",
+                code="SKILL_CONTEXT_BUDGET_EXCEEDED",
+            )
         if not fits():
             raise ContextError(
                 "Required authoritative context exceeds the configured model input budget.",

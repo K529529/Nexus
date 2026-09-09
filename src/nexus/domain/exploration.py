@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from nexus.domain.context import ContextCandidate
 from nexus.domain.persistence import SessionTurn
+from nexus.domain.skills import SelectedSkill, SkillSelectionResult
 
 if TYPE_CHECKING:
     from nexus.domain.agent_decision import Observation
@@ -73,6 +74,8 @@ class WorkingContext:
     recent_observations: tuple[Observation, ...] = ()
     recent_conversation_turns: tuple[SessionTurn, ...] = ()
     compacted_observations: str | None = None
+    selected_skills: tuple[SelectedSkill, ...] = ()
+    skill_selection_result: SkillSelectionResult | None = None
 
 
 @dataclass(frozen=True, slots=True)
