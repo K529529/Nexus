@@ -110,6 +110,7 @@ class RuntimeConfig(BaseModel):
     embedding_dimension: int = Field(default=0, ge=0)
     embedding_base_url: str = ""
     embedding_api_key: SecretStr | None = None
+    max_selected_skills: int = Field(default=2, ge=0, le=2)
     mcp_enabled: bool = False
     mcp_servers: tuple[MCPServerConfig, ...] = ()
 
@@ -173,6 +174,7 @@ class RuntimeConfig(BaseModel):
         "max_model_input_tokens",
         "max_file_size_bytes",
         "embedding_dimension",
+        "max_selected_skills",
         mode="before",
     )
     @classmethod

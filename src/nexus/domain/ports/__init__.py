@@ -8,6 +8,7 @@ from nexus.domain.ports.checkpoint_provider import CheckpointProvider
 from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
+from nexus.domain.ports.model_input_budget import ModelInputBudgetGuard
 from nexus.domain.ports.repositories import (
     ApprovalRepository,
     RepositoryRepository,
@@ -19,6 +20,7 @@ from nexus.domain.ports.session_unit_of_work import (
     SessionUnitOfWork,
     SessionUnitOfWorkFactory,
 )
+from nexus.domain.ports.skills import SkillLoader, SkillRegistry, SkillSelector
 from nexus.domain.ports.tooling import (
     ApprovalPolicy,
     CommandPolicy,
@@ -37,6 +39,7 @@ __all__ = [
     "GraphRuntime",
     "InteractiveDecisionCallback",
     "ModelGateway",
+    "ModelInputBudgetGuard",
     "MCPManager",
     "RepositoryRepository",
     "RunRepository",
@@ -45,5 +48,8 @@ __all__ = [
     "SessionTurnRepository",
     "SessionUnitOfWork",
     "SessionUnitOfWorkFactory",
+    "SkillLoader",
+    "SkillRegistry",
+    "SkillSelector",
     "Tool",
 ]

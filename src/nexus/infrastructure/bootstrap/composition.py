@@ -1,4 +1,4 @@
-"""Assemble and dispose approved concrete dependencies through Day 3."""
+"""Assemble and dispose approved concrete application dependencies."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from nexus.application.validation import (
 )
 from nexus.config.models import MCPServerConfig, RuntimeConfig
 from nexus.context import SelectiveRepositoryExplorer
+from nexus.context.budget import Day5ModelInputBudgetGuard
 from nexus.context.chunking import LineWindowChunker
 from nexus.context.integration import ManagedContextBuilder
 from nexus.context.manager import BoundedContextManager
@@ -36,7 +37,7 @@ from nexus.domain.context import ContextBudget, IndexRequest, IndexResult
 from nexus.domain.mcp import MCPToolDescriptor
 from nexus.domain.persistence import SessionSummary
 from nexus.domain.ports.checkpoint_provider import CheckpointProvider
-from nexus.domain.ports.context import EmbeddingGateway
+from nexus.domain.ports.context import ContextProvider, EmbeddingGateway
 from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
@@ -65,6 +66,7 @@ from nexus.security import (
     TrustedExecutables,
     WorkspaceGuard,
 )
+from nexus.skills import DefaultSkillRegistry, FileSkillLoader, ModelSkillSelector
 from nexus.tools import MCPToolAdapter, ToolRegistry
 from nexus.tools.native import build_native_tools
 
@@ -73,7 +75,7 @@ configure_asyncio_policy()
 
 @dataclass(frozen=True, slots=True)
 class BootstrappedApplication:
-    """Application dependencies exposed to entry-point adapters through Day 3."""
+    """Application dependencies exposed to entry-point adapters."""
 
     runtime: NexusRuntime
     session_service: SessionService
@@ -87,6 +89,59 @@ class BootstrappedToolApplication:
 
     tool_runtime: ToolRuntime
     database: DatabaseBootstrap
+
+
+@dataclass(frozen=True, slots=True)
+class _Day7ContextServices:
+    context_manager: BoundedContextManager
+    budget_guard: Day5ModelInputBudgetGuard
+    skill_registry: DefaultSkillRegistry
+    skill_selector: ModelSkillSelector
+
+
+def _build_day7_context_services(
+    *,
+    config: RuntimeConfig,
+    gateway: ModelGateway,
+    ledger: ToolExecutionLedger,
+    workspace: Path,
+    provider: ContextProvider,
+    access: ToolRepositoryAccess,
+    chunker: LineWindowChunker,
+) -> _Day7ContextServices:
+    context_manager = BoundedContextManager(
+        provider,
+        access,
+        chunker,
+        ContextBudget(
+            max_retrieved_chunks=config.max_retrieved_chunks,
+            max_exploration_seed_chunks=config.max_exploration_seed_chunks,
+            max_code_context_tokens=config.max_code_context_tokens,
+            max_recent_observations=config.max_recent_observations,
+        ),
+        config.max_model_input_tokens,
+    )
+    repository_skill_root = workspace / ".nexus" / "skills"
+    user_skill_root = Path.home() / ".nexus" / "skills"
+    skill_loader = FileSkillLoader(repository_skill_root, user_skill_root)
+    skill_registry = DefaultSkillRegistry(
+        skill_loader,
+        repository_skill_root,
+        user_skill_root,
+    )
+    budget_guard = Day5ModelInputBudgetGuard(config.max_model_input_tokens)
+    skill_selector = ModelSkillSelector(
+        gateway,
+        config.max_selected_skills,
+        ledger.begin_model,
+        budget_guard,
+    )
+    return _Day7ContextServices(
+        context_manager,
+        budget_guard,
+        skill_registry,
+        skill_selector,
+    )
 
 
 @asynccontextmanager
@@ -147,18 +202,18 @@ async def bootstrap_application(
             if config.semantic_enabled:
                 embedding = embedding_gateway or OpenAICompatibleEmbeddingGateway(config)
                 semantic = PgVectorSemanticSearchProvider(database.session_factory, embedding)
-            context_manager = BoundedContextManager(
-                HybridContextProvider(ToolLexicalSearchProvider(access, chunker), semantic),
-                access,
-                chunker,
-                ContextBudget(
-                    max_retrieved_chunks=config.max_retrieved_chunks,
-                    max_exploration_seed_chunks=config.max_exploration_seed_chunks,
-                    max_code_context_tokens=config.max_code_context_tokens,
-                    max_recent_observations=config.max_recent_observations,
+            context_services = _build_day7_context_services(
+                config=config,
+                gateway=gateway,
+                ledger=ledger,
+                workspace=workspace,
+                provider=HybridContextProvider(
+                    ToolLexicalSearchProvider(access, chunker), semantic
                 ),
-                config.max_model_input_tokens,
+                access=access,
+                chunker=chunker,
             )
+            context_manager = context_services.context_manager
             graph_runtime = Day4LangGraphRuntime(
                 explorer=SelectiveRepositoryExplorer(tool_runtime),
                 context_builder=ManagedContextBuilder(
@@ -166,6 +221,8 @@ async def bootstrap_application(
                     session_service.context_repository_id,
                     str(workspace.resolve()),
                     session_service.context_turns,
+                    context_services.skill_registry,
+                    context_services.skill_selector,
                 ),
                 planner=ModelPlanner(
                     gateway,

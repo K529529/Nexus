@@ -212,6 +212,8 @@ class ContextBuilt(RuntimeEvent):
     selected_chunk_count: int = 0
     semantic_retrieval_used: bool = False
     semantic_retrieval_status: str | None = None
+    selected_skill_ids: tuple[str, ...] = ()
+    skill_selection_reason_summary: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
