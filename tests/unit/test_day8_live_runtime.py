@@ -29,12 +29,28 @@ from nexus.domain.runtime_events import (
     ErrorOccurred,
     FinalResult,
     ObservabilityWarning,
+    RunInterrupted,
     RuntimeStatus,
     TaskStarted,
     TraceFallback,
     TraceOperation,
     TraceSink,
 )
+from nexus.errors import NexusError
+
+
+async def _wait_for_telemetry_cleanup(
+    subscriber: TelemetrySubscriber,
+    dispatcher: SafeTracerDispatcher,
+) -> None:
+    workers = tuple(
+        state.worker for state in subscriber._executions.values()  # noqa: SLF001
+    )
+    if workers:
+        await asyncio.wait_for(asyncio.gather(*workers), timeout=1.0)
+    cleanup_tasks = tuple(dispatcher._cleanup_tasks.values())  # noqa: SLF001
+    if cleanup_tasks:
+        await asyncio.wait_for(asyncio.gather(*cleanup_tasks), timeout=1.0)
 
 
 class _LiveGraph:
@@ -206,6 +222,128 @@ async def test_all_enabled_sinks_can_fail_without_changing_business_outcome(
     assert isinstance(events[-1], FinalResult)
     assert events[-1].status is RuntimeStatus.COMPLETED
     assert tracer.calls == ["start"]
+
+
+@pytest.mark.asyncio
+async def test_reused_runtime_releases_each_terminal_execution_lifecycle(
+    tmp_path: Path,
+) -> None:
+    publisher = InProcessEventPublisher()
+    bridge = LiveRuntimeEventBridge(publisher)
+    session_id = str(uuid4())
+
+    class SequentialGraph(_LiveGraph):
+        async def run(
+            self, state: AgentState, *, thread_id: str | None = None
+        ) -> AgentState:
+            if state.task == "completed":
+                return replace(
+                    state,
+                    messages=[*state.messages, ModelMessage("assistant", "done")],
+                    status=RuntimeStatus.COMPLETED,
+                    terminal_status=TerminalStatus.SUCCEEDED,
+                )
+            if state.task == "failed":
+                raise NexusError("safe failure", code="TEST_FAILURE")
+            if state.task == "interrupted":
+                return replace(state, status=RuntimeStatus.INTERRUPTED)
+            raise AssertionError(f"unexpected task: {state.task}")
+
+    class Sessions:
+        def __init__(self) -> None:
+            self.runs: dict[str, Run] = {}
+
+        async def start_run(self, **values: Any) -> Run:
+            run = Run(
+                values["run_id"],
+                session_id,
+                values["task"],
+                RunStatus.RUNNING,
+                values["model_metadata"],
+                datetime.now(UTC),
+                None,
+                0,
+                0,
+                None,
+                None,
+                f"nexus-run:{values['run_id']}",
+            )
+            self.runs[run.run_id] = run
+            return run
+
+        async def finalize_run(
+            self, run_id: str, *args: object, **kwargs: object
+        ) -> Run:
+            return self.runs[run_id]
+
+        async def fail_run(
+            self, run_id: str, *, code: str, message: str
+        ) -> Run:
+            return self.runs[run_id]
+
+        async def mark_interrupted(self, run_id: str) -> Run:
+            return self.runs[run_id]
+
+    class RecordingTracer:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, str | None]] = []
+
+        async def start_run(self, start: TraceRunStart) -> None:
+            self.calls.append((start.context.execution_id, "start", None))
+
+        async def record(self, event: TelemetryEvent) -> None:
+            self.calls.append((event.execution_id, "record", event.event_type.value))
+
+        async def finish(self, finish: TraceRunFinish) -> None:
+            self.calls.append((finish.context.execution_id, "finish", None))
+
+    async def warn(
+        code: str,
+        sink: TraceSink,
+        operation: TraceOperation,
+        fallback: TraceFallback,
+    ) -> None:
+        raise AssertionError(f"unexpected warning: {code}:{sink}:{operation}:{fallback}")
+
+    tracer = RecordingTracer()
+    dispatcher = SafeTracerDispatcher(
+        (TracerSink(TraceSink.CONSOLE, tracer),), warning_emitter=warn
+    )
+    subscriber = TelemetrySubscriber(EventEnricher(tmp_path), dispatcher)
+    publisher.subscribe(subscriber)
+    runtime = NexusRuntime(
+        SequentialGraph(bridge),
+        session_service=cast(SessionService, Sessions()),
+        event_buffer=bridge,
+        event_publisher=publisher,
+        telemetry_subscriber=subscriber,
+    )
+
+    terminal_types = []
+    execution_ids: list[str] = []
+    for task in ("completed", "failed", "interrupted"):
+        events = [event async for event in runtime.run(task, session_id)]
+        terminal_types.append(type(events[-1]))
+        await _wait_for_telemetry_cleanup(subscriber, dispatcher)
+        execution_ids.append(tracer.calls[-1][0])
+        assert subscriber._executions == {}  # noqa: SLF001
+        assert dispatcher._executions == {}  # noqa: SLF001
+        assert dispatcher._cleanup_tasks == {}  # noqa: SLF001
+
+    assert terminal_types == [FinalResult, ErrorOccurred, RunInterrupted]
+    assert len(set(execution_ids)) == 3
+    for execution_id, terminal_event in zip(
+        execution_ids,
+        ("run.finished", "error.occurred", "run.interrupted"),
+        strict=True,
+    ):
+        calls = [call[1:] for call in tracer.calls if call[0] == execution_id]
+        assert calls[0] == ("start", None)
+        assert ("record", terminal_event) in calls
+        assert calls[-1] == ("finish", None)
+
+    await subscriber.close()
+    await subscriber.close()
 
 
 @pytest.mark.asyncio

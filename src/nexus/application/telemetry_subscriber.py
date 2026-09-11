@@ -104,8 +104,9 @@ class TelemetrySubscriber:
         state.queue.put_nowait(_FinishExecution(finish))
 
     async def drain_execution(self, execution_id: str) -> None:
-        state = self._executions.pop(execution_id, None)
+        state = self._executions.get(execution_id)
         if state is None:
+            await self._dispatcher.drain_execution(execution_id)
             return
         try:
             await asyncio.wait_for(
@@ -122,8 +123,11 @@ class TelemetrySubscriber:
             )
             if state.finish is not None:
                 self._dispatcher.finish_execution(state.finish)
-        await self._dispatcher.drain_execution(execution_id)
-        self._warned_executions.discard(execution_id)
+        finally:
+            await self._dispatcher.drain_execution(execution_id)
+            if self._executions.get(execution_id) is state:
+                self._executions.pop(execution_id, None)
+            self._warned_executions.discard(execution_id)
 
     async def close(self) -> None:
         for execution_id in tuple(self._executions):
@@ -133,36 +137,49 @@ class TelemetrySubscriber:
     async def _work(
         self, execution_id: str, queue: asyncio.Queue[_IngressItem]
     ) -> None:
-        while True:
-            item = await queue.get()
-            if isinstance(item, _FinishExecution):
-                self._dispatcher.finish_execution(item.finish)
-                return
-            try:
-                telemetry = self._enricher.enrich(
-                    item.event,
-                    item.observation,
-                    tool_call_count=item.tool_call_count,
-                )
-            except Exception:
-                await self._warn_once(
-                    execution_id,
-                    item.observation,
-                    "TELEMETRY_EVENT_INVALID",
-                    TraceOperation.ENRICH,
-                )
-                continue
-            try:
-                telemetry = self._redactor.redact(telemetry)
-            except Exception:
-                await self._warn_once(
-                    execution_id,
-                    item.observation,
-                    "TRACE_REDACTION_FAILED",
-                    TraceOperation.REDACT,
-                )
-                continue
-            self._dispatcher.record(telemetry)
+        lifecycle_completed = False
+        try:
+            while True:
+                item = await queue.get()
+                if isinstance(item, _FinishExecution):
+                    self._dispatcher.finish_execution(item.finish)
+                    await self._dispatcher.drain_execution(execution_id)
+                    lifecycle_completed = True
+                    return
+                try:
+                    telemetry = self._enricher.enrich(
+                        item.event,
+                        item.observation,
+                        tool_call_count=item.tool_call_count,
+                    )
+                except Exception:
+                    await self._warn_once(
+                        execution_id,
+                        item.observation,
+                        "TELEMETRY_EVENT_INVALID",
+                        TraceOperation.ENRICH,
+                    )
+                    continue
+                try:
+                    telemetry = self._redactor.redact(telemetry)
+                except Exception:
+                    await self._warn_once(
+                        execution_id,
+                        item.observation,
+                        "TRACE_REDACTION_FAILED",
+                        TraceOperation.REDACT,
+                    )
+                    continue
+                self._dispatcher.record(telemetry)
+        finally:
+            state = self._executions.get(execution_id)
+            if (
+                lifecycle_completed
+                and state is not None
+                and state.worker is asyncio.current_task()
+            ):
+                self._executions.pop(execution_id, None)
+                self._warned_executions.discard(execution_id)
 
     async def _warn_once(
         self,

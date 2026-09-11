@@ -165,7 +165,10 @@ async def test_start_or_record_failure_disables_sink_without_normal_finish(
     dispatcher.record(event)
     await asyncio.sleep(0)
     dispatcher.finish_execution(_finish(context))
-    await dispatcher.drain_execution(context.execution_id)
+    await asyncio.wait_for(
+        dispatcher._cleanup_tasks[context.execution_id],  # noqa: SLF001
+        timeout=1.0,
+    )
     assert tracer.calls == expected
     assert warnings == [
         (
@@ -174,6 +177,8 @@ async def test_start_or_record_failure_disables_sink_without_normal_finish(
             TraceFallback.NOOP,
         )
     ]
+    assert dispatcher._executions == {}  # noqa: SLF001
+    assert dispatcher._cleanup_tasks == {}  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -197,9 +202,14 @@ async def test_finish_failure_warns_once_and_preserves_prior_records() -> None:
     dispatcher.start_execution(_start(context))
     dispatcher.record(event)
     dispatcher.finish_execution(_finish(context))
-    await dispatcher.drain_execution(context.execution_id)
+    await asyncio.wait_for(
+        dispatcher._cleanup_tasks[context.execution_id],  # noqa: SLF001
+        timeout=1.0,
+    )
     assert tracer.calls == ["start", "record:run.started", "finish"]
     assert warnings == ["TRACE_SINK_FAILED:FINISH"]
+    assert dispatcher._executions == {}  # noqa: SLF001
+    assert dispatcher._cleanup_tasks == {}  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -313,11 +323,14 @@ async def test_queue_overflow_disables_only_sink_without_backpressure() -> None:
     dispatcher.record(event)
     dispatcher.record(event)
     dispatcher.finish_execution(_finish(context))
+    cleanup = dispatcher._cleanup_tasks[context.execution_id]  # noqa: SLF001
     tracer.start_gate.set()
-    await dispatcher.drain_execution(context.execution_id)
+    await asyncio.wait_for(cleanup, timeout=1.0)
 
     assert tracer.calls == ["start"]
     assert warnings == ["TRACE_SINK_OVERFLOW"]
+    assert dispatcher._executions == {}  # noqa: SLF001
+    assert dispatcher._cleanup_tasks == {}  # noqa: SLF001
 
 
 @pytest.mark.asyncio

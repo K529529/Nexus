@@ -75,6 +75,7 @@ class SafeTracerDispatcher:
         self._queue_size = queue_size
         self._flush_timeout_seconds = flush_timeout_seconds
         self._executions: dict[str, dict[TraceSink, _SinkExecution]] = {}
+        self._cleanup_tasks: dict[str, asyncio.Task[None]] = {}
 
     def start_execution(self, start: TraceRunStart) -> None:
         execution_id = start.context.execution_id
@@ -100,21 +101,31 @@ class SafeTracerDispatcher:
             self._offer(execution_id=event.execution_id, state=state, item=_Record(event))
 
     def finish_execution(self, finish: TraceRunFinish) -> None:
-        states = self._executions.get(finish.context.execution_id)
+        execution_id = finish.context.execution_id
+        states = self._executions.get(execution_id)
         if states is None:
             return
         for state in states.values():
             if state.healthy:
                 self._offer(
-                    execution_id=finish.context.execution_id,
+                    execution_id=execution_id,
                     state=state,
                     item=_Finish(finish),
                 )
             else:
                 _discard_queued(state.queue)
                 state.queue.put_nowait(_Finish(finish))
+        self._schedule_cleanup(execution_id)
 
     async def drain_execution(self, execution_id: str) -> None:
+        task = self._cleanup_tasks.get(execution_id)
+        if task is None:
+            if execution_id not in self._executions:
+                return
+            task = self._schedule_cleanup(execution_id)
+        await asyncio.shield(task)
+
+    async def _drain_execution(self, execution_id: str) -> None:
         states = self._executions.get(execution_id)
         if not states:
             self._executions.pop(execution_id, None)
@@ -142,8 +153,26 @@ class SafeTracerDispatcher:
         self._executions.pop(execution_id, None)
 
     async def close(self) -> None:
-        for execution_id in tuple(self._executions):
+        execution_ids = tuple(self._executions.keys() | self._cleanup_tasks.keys())
+        for execution_id in execution_ids:
             await self.drain_execution(execution_id)
+
+    def _schedule_cleanup(self, execution_id: str) -> asyncio.Task[None]:
+        existing = self._cleanup_tasks.get(execution_id)
+        if existing is not None:
+            return existing
+        task = asyncio.create_task(self._run_cleanup(execution_id))
+        self._cleanup_tasks[execution_id] = task
+        return task
+
+    async def _run_cleanup(self, execution_id: str) -> None:
+        try:
+            await self._drain_execution(execution_id)
+        finally:
+            self._executions.pop(execution_id, None)
+            current = asyncio.current_task()
+            if self._cleanup_tasks.get(execution_id) is current:
+                self._cleanup_tasks.pop(execution_id, None)
 
     def _offer(
         self,
