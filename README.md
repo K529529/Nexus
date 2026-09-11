@@ -109,4 +109,5 @@ unavailable. Start the Compose service to exercise the real connection path loca
 See the [Day 1 architecture](docs/day1-architecture.md) and
 [Day 2 session guide](docs/day2-session-cli.md), the
 [Day 3 Tool Runtime and security guide](docs/day3-native-tool-runtime-security.md), plus the
+[Day 8 observability guide](docs/day8-observability-guide.md), plus the
 [architecture decisions](docs/adr/), for boundary rationale and durable resume evidence.

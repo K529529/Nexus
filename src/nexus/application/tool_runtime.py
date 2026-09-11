@@ -14,7 +14,10 @@ from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.planning import ApprovedPlanEvidence
 from nexus.domain.ports.tooling import ApprovalPolicy, CommandPolicy, Tool
 from nexus.domain.runtime_events import (
+    ApprovalActorCategory,
     ApprovalRequested,
+    ApprovalResolved,
+    ApprovalSubject,
     RuntimeEvent,
     ToolFinished,
     ToolStarted,
@@ -236,12 +239,13 @@ class ToolRuntime:
             )
         if result.risk_level is RiskLevel.DANGEROUS:
             try:
-                await self._approval_service.record_denied(
+                decision = await self._approval_service.record_denied(
                     invocation,
                     risk_level=RiskLevel.DANGEROUS,
                     summary=_safe_summary(invocation),
                     reason="Resource security validation escalated the operation risk.",
                 )
+                await self._emit(_resolved_event(invocation, decision))
             except NexusError as exc:
                 return _failure(
                     invocation,
@@ -299,6 +303,7 @@ class ToolRuntime:
             decision = await self._approval_policy.request(pending)
             _validate_approval_decision(pending, decision)
             decision = await self._approval_service.persist_decision(decision)
+            await self._emit(_resolved_event(invocation, decision))
         except asyncio.CancelledError:
             raise
         except NexusError as exc:
@@ -343,6 +348,7 @@ class ToolRuntime:
                 summary=_safe_summary(invocation),
                 reason="The operation is hard-denied by the Day 3 security policy.",
             )
+            await self._emit(_resolved_event(invocation, decision))
         except NexusError as exc:
             return _failure(
                 invocation,
@@ -373,6 +379,7 @@ class ToolRuntime:
                 summary=_safe_summary(invocation),
                 reason="Generic MCP WRITE authorization is unavailable in Day 6.",
             )
+            await self._emit(_resolved_event(invocation, decision))
         except NexusError as exc:
             return _failure(
                 invocation,
@@ -409,6 +416,26 @@ def _finished_event(invocation: ToolInvocation, result: ToolResult) -> ToolFinis
         approval_decision=result.approval_decision,
         duration_ms=result.duration_ms,
         error_code=None if result.error is None else result.error.code,
+    )
+
+
+def _resolved_event(
+    invocation: ToolInvocation, approval: ApprovalRequest
+) -> ApprovalResolved:
+    return ApprovalResolved(
+        run_id=invocation.run_id,
+        session_id=invocation.session_id,
+        approval_id=approval.approval_id,
+        subject=ApprovalSubject.TOOL,
+        invocation_id=invocation.invocation_id,
+        plan_id=None,
+        plan_version=None,
+        decision=approval.decision,
+        actor_category=(
+            ApprovalActorCategory.USER
+            if approval.actor == "user"
+            else ApprovalActorCategory.POLICY
+        ),
     )
 
 

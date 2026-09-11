@@ -69,8 +69,7 @@ async def test_selector_preserves_task_run_and_exposes_metadata_only() -> None:
         '"selection_reason_summary":"Matches the explicit task."}'
     )
     guard = Guard()
-    runs: list[str] = []
-    selector = ModelSkillSelector(gateway, 2, runs.append, guard)
+    selector = ModelSkillSelector(gateway, 2, guard)
     task = "  debug this exact task  "
     result = await selector.select(
         run_id="unchanged-run",
@@ -78,7 +77,6 @@ async def test_selector_preserves_task_run_and_exposes_metadata_only() -> None:
         available_skills=(metadata(),),
     )
     assert result.selected_skill_ids == ("debug-python",)
-    assert runs == ["unchanged-run"]
     assert len(guard.calls) == 1 and guard.calls[0][1] == "SKILL_SELECTION_BUDGET_EXCEEDED"
     payload = json.loads(gateway.messages[0][1].content)
     assert payload["task"] == task
@@ -100,29 +98,27 @@ async def test_selector_empty_and_disabled_paths_make_no_calls() -> None:
     for maximum, skills in ((0, (metadata(),)), (2, ())):
         gateway = Gateway()
         guard = Guard()
-        runs: list[str] = []
-        result = await ModelSkillSelector(gateway, maximum, runs.append, guard).select(
+        result = await ModelSkillSelector(gateway, maximum, guard).select(
             run_id="run",
             task="task",
             available_skills=skills,
         )
         assert result.selected_skill_ids == ()
-        assert gateway.messages == [] and guard.calls == [] and runs == []
+        assert gateway.messages == [] and guard.calls == []
 
 
-async def test_budget_failure_precedes_ledger_and_model() -> None:
+async def test_budget_failure_precedes_model() -> None:
     gateway = Gateway()
     error = ContextError("too large", code="SKILL_SELECTION_BUDGET_EXCEEDED")
     guard = Guard(error)
-    runs: list[str] = []
     with pytest.raises(ContextError) as caught:
-        await ModelSkillSelector(gateway, 2, runs.append, guard).select(
+        await ModelSkillSelector(gateway, 2, guard).select(
             run_id="run",
             task="task",
             available_skills=(metadata(),),
         )
     assert caught.value.code == "SKILL_SELECTION_BUDGET_EXCEEDED"
-    assert runs == [] and gateway.messages == []
+    assert gateway.messages == []
 
 
 @pytest.mark.parametrize(
@@ -143,16 +139,14 @@ async def test_budget_failure_precedes_ledger_and_model() -> None:
 )
 async def test_invalid_structured_selection_has_no_fallback(content: str) -> None:
     gateway = Gateway(content)
-    runs: list[str] = []
     with pytest.raises(ContextError) as caught:
-        await ModelSkillSelector(gateway, 2, runs.append, Guard()).select(
+        await ModelSkillSelector(gateway, 2, Guard()).select(
             run_id="run-a",
             task="task",
             available_skills=(metadata(),),
         )
     assert caught.value.code == "SKILL_SELECTION_FAILED"
     assert caught.value.retryable
-    assert runs == ["run-a"]
 
 
 async def test_valid_two_skill_order_and_no_match_are_preserved() -> None:
@@ -162,7 +156,7 @@ async def test_valid_two_skill_order_and_no_match_are_preserved() -> None:
         '{"selected_skill_ids":["write-tests","debug-python"],'
         '"selection_reason_summary":"Both Skills match in this order."}'
     )
-    result = await ModelSkillSelector(gateway, 2, lambda _: None, Guard()).select(
+    result = await ModelSkillSelector(gateway, 2, Guard()).select(
         run_id="run",
         task="task",
         available_skills=(first, second),
@@ -170,7 +164,7 @@ async def test_valid_two_skill_order_and_no_match_are_preserved() -> None:
     assert result.selected_skill_ids == ("write-tests", "debug-python")
 
     gateway.content = '{"selected_skill_ids":[],"selection_reason_summary":"No match."}'
-    no_match = await ModelSkillSelector(gateway, 2, lambda _: None, Guard()).select(
+    no_match = await ModelSkillSelector(gateway, 2, Guard()).select(
         run_id="run",
         task="task",
         available_skills=(first, second),
@@ -197,7 +191,7 @@ async def test_over_limit_and_overlong_summary_fail_without_fallback() -> None:
         ),
     ):
         with pytest.raises(ContextError) as caught:
-            await ModelSkillSelector(Gateway(content), maximum, lambda _: None, Guard()).select(
+            await ModelSkillSelector(Gateway(content), maximum, Guard()).select(
                 run_id="run",
                 task="task",
                 available_skills=skills,
@@ -205,34 +199,26 @@ async def test_over_limit_and_overlong_summary_fail_without_fallback() -> None:
         assert caught.value.code == "SKILL_SELECTION_FAILED"
 
 
-async def test_provider_failure_is_preserved_and_accounted_per_run() -> None:
-    counts: dict[str, int] = {}
-
-    def begin(run_id: str) -> None:
-        counts[run_id] = counts.get(run_id, 0) + 1
-
+async def test_provider_failure_is_preserved() -> None:
     first = Gateway('{"selected_skill_ids":[],"selection_reason_summary":"No match."}')
     second = Gateway()
     second.error = ModelError("failed")
-    selector_a = ModelSkillSelector(first, 2, begin, Guard())
-    selector_b = ModelSkillSelector(second, 2, begin, Guard())
+    selector_a = ModelSkillSelector(first, 2, Guard())
+    selector_b = ModelSkillSelector(second, 2, Guard())
     await selector_a.select(run_id="run-a", task="a", available_skills=(metadata(),))
     with pytest.raises(ModelError):
         await selector_b.select(run_id="run-b", task="b", available_skills=(metadata(),))
-    assert counts == {"run-a": 1, "run-b": 1}
 
 
-async def test_configuration_failure_is_preserved_after_accounting() -> None:
+async def test_configuration_failure_is_preserved() -> None:
     gateway = Gateway()
     gateway.error = ConfigurationError("invalid provider configuration")
-    runs: list[str] = []
     with pytest.raises(ConfigurationError):
-        await ModelSkillSelector(gateway, 2, runs.append, Guard()).select(
+        await ModelSkillSelector(gateway, 2, Guard()).select(
             run_id="run",
             task="task",
             available_skills=(metadata(),),
         )
-    assert runs == ["run"]
 
 
 def test_selector_depends_on_budget_port_not_bounded_context_manager() -> None:

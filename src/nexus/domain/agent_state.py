@@ -1,11 +1,11 @@
 """Nexus-owned graph state through Day 4."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from nexus.domain.agent_decision import Observation, ToolAction
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import ExplorationResult, WorkingContext
-from nexus.domain.model import ModelMessage
+from nexus.domain.model import ModelMessage, TokenUsageAggregate
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
     ChangedFile,
@@ -46,3 +46,4 @@ class AgentState:
     replan_count: int = 0
     repair_count: int = 0
     terminal_status: TerminalStatus | None = None
+    token_usage: TokenUsageAggregate = field(default_factory=TokenUsageAggregate)

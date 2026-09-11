@@ -14,6 +14,7 @@ from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.ports.tooling import ApprovalPolicy
 from nexus.domain.runtime_events import (
     ApprovalRequested,
+    ApprovalResolved,
     RuntimeEvent,
     ToolFinished,
     ToolStarted,
@@ -143,7 +144,10 @@ async def test_safe_mcp_call_executes_once_and_emits_one_event_pair() -> None:
     assert result.success
     assert tool.calls == 1
     assert ledger.count(invocation.run_id) == 1
-    assert [type(event) for event in events] == [ToolStarted, ToolFinished]
+    assert [type(event) for event in events] == [
+        ToolStarted,
+        ToolFinished,
+    ]
     assert approvals.denied == []
 
 
@@ -176,7 +180,11 @@ async def test_write_mcp_fails_closed_before_approval_adapter_or_server() -> Non
     assert approvals.pending_calls == 0
     assert len(approvals.denied) == 1
     assert approvals.denied[0][1] is RiskLevel.WRITE
-    assert [type(event) for event in events] == [ToolStarted, ToolFinished]
+    assert [type(event) for event in events] == [
+        ToolStarted,
+        ApprovalResolved,
+        ToolFinished,
+    ]
     assert not any(isinstance(event, ApprovalRequested) for event in events)
     finished = cast(ToolFinished, events[-1])
     assert finished.error_code == "MCP_WRITE_NOT_AUTHORIZED"

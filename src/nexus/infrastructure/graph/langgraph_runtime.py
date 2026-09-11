@@ -8,8 +8,9 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
+from nexus.application.model_call_context import bind_model_call_phase
 from nexus.domain.agent_state import AgentState
-from nexus.domain.model import ModelMessage
+from nexus.domain.model import ModelCallPhase, ModelMessage
 from nexus.domain.planning import PlanApprovalResumeInput
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.runtime_events import RuntimeStatus
@@ -35,7 +36,8 @@ class LangGraphRuntime:
         interrupt_before_model_response: bool = False,
     ) -> None:
         async def model_response(state: _GraphState) -> dict[str, object]:
-            response = await model_gateway.complete(state["messages"])
+            with bind_model_call_phase(ModelCallPhase.DIRECT_RESPONSE):
+                response = await model_gateway.complete(state["messages"])
             assistant = ModelMessage(role="assistant", content=response.content)
             return {
                 "messages": [*state["messages"], assistant],

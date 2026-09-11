@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
@@ -115,6 +116,7 @@ class ToolValidationRunner:
         repair_count: int,
     ) -> ValidationResult:
         _validate_plan(plan, authorization)
+        started = time.perf_counter()
         await self._emit(
             ValidationStarted(
                 run_id=run_id,
@@ -164,6 +166,7 @@ class ToolValidationRunner:
                 confidence=confidence,
                 executed_check_count=len(results),
                 repair_count=repair_count,
+                duration_ms=max(0, int((time.perf_counter() - started) * 1000)),
             )
         )
         return validation

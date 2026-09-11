@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from nexus.domain.model import TokenUsageAggregate
 from nexus.domain.persistence import (
     NexusSession,
     Repository,
@@ -202,15 +203,18 @@ class SessionService:
         llm_call_count: int,
         replan_count: int,
         repair_count: int,
+        token_usage: TokenUsageAggregate | None = None,
     ) -> Run:
         """Persist one truthful Day 4 terminal result without a schema change."""
 
         outcome = event.to_dict()["payload"]
+        aggregate = token_usage or TokenUsageAggregate()
         outcome["metrics"] = {
             "step_count": step_count,
             "llm_call_count": llm_call_count,
             "replan_count": replan_count,
             "repair_count": repair_count,
+            "token_usage": aggregate.to_dict(),
         }
         return await self._transition_run(
             run_id,
@@ -223,6 +227,7 @@ class SessionService:
             finished_at=datetime.now(UTC),
             assistant_content=event.content,
             tool_call_count=tool_call_count,
+            token_count=aggregate.total_tokens_reported,
             changed_file_refs=[item.path for item in event.changed_files],
         )
 
@@ -235,6 +240,7 @@ class SessionService:
         finished_at: datetime | None,
         assistant_content: str | None,
         tool_call_count: int | None = None,
+        token_count: int | None = None,
         changed_file_refs: list[str] | None = None,
     ) -> Run:
         canonical_run_id = _canonical_uuid(run_id, "run")
@@ -275,6 +281,7 @@ class SessionService:
                         if tool_call_count is None
                         else tool_call_count
                     ),
+                    token_count=(run.token_count if token_count is None else token_count),
                     changed_file_refs=(
                         run.changed_file_refs
                         if changed_file_refs is None

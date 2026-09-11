@@ -7,7 +7,9 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from nexus.domain.planning import ChangedFile, PlanKind, TerminalStatus
+from nexus.domain.agent_decision import AgentDecisionKind
+from nexus.domain.model import ModelCallPhase, TokenUsage
+from nexus.domain.planning import ChangedFile, ChangeKind, PlanKind, TerminalStatus
 from nexus.domain.tooling import ApprovalDecision, PolicyDecision, RiskLevel
 from nexus.domain.validation import (
     ValidationCheckKind,
@@ -30,6 +32,34 @@ class RuntimeStatus(StrEnum):
 class ApprovalSubject(StrEnum):
     TOOL = "TOOL"
     PLAN = "PLAN"
+
+
+class ApprovalActorCategory(StrEnum):
+    USER = "USER"
+    POLICY = "POLICY"
+
+
+class TraceSink(StrEnum):
+    CONSOLE = "CONSOLE"
+    LANGSMITH = "LANGSMITH"
+    LOGGER = "LOGGER"
+    TELEMETRY = "TELEMETRY"
+
+
+class TraceOperation(StrEnum):
+    START = "START"
+    RECORD = "RECORD"
+    FINISH = "FINISH"
+    FLUSH = "FLUSH"
+    ENRICH = "ENRICH"
+    REDACT = "REDACT"
+
+
+class TraceFallback(StrEnum):
+    CONSOLE = "CONSOLE"
+    LANGSMITH = "LANGSMITH"
+    NOOP = "NOOP"
+    NONE = "NONE"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -250,6 +280,12 @@ class ValidationFinished(RuntimeEvent):
     confidence: ValidationConfidence
     executed_check_count: int
     repair_count: int
+    duration_ms: int | None = None
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.duration_ms is not None and self.duration_ms < 0:
+            raise ValueError("ValidationFinished duration_ms must not be negative.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -262,6 +298,130 @@ class RepairStarted(RuntimeEvent):
     failure_summary: str
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ModelCallStarted(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    model_call_id: str
+    phase: ModelCallPhase
+    provider: str | None
+    model: str | None
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.model_call_id, "model_call_id")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ModelCallFinished(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    model_call_id: str
+    phase: ModelCallPhase
+    success: bool
+    duration_ms: int
+    usage: TokenUsage
+    error_code: str | None
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.model_call_id, "model_call_id")
+        if self.duration_ms < 0:
+            raise ValueError("ModelCallFinished duration_ms must not be negative.")
+        if self.success and self.error_code is not None:
+            raise ValueError("Successful model calls cannot carry an error code.")
+        if not self.success and not self.error_code:
+            raise ValueError("Failed model calls require a safe error code.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AgentStepCompleted(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    step_count: int
+    decision_kind: AgentDecisionKind
+    model_call_id: str
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.step_count < 1:
+            raise ValueError("AgentStepCompleted step_count must be positive.")
+        _validate_uuid(self.model_call_id, "model_call_id")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ApprovalResolved(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    approval_id: str
+    subject: ApprovalSubject
+    invocation_id: str | None
+    plan_id: str | None
+    plan_version: int | None
+    decision: ApprovalDecision
+    actor_category: ApprovalActorCategory
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.approval_id, "approval_id")
+        if self.decision is ApprovalDecision.PENDING:
+            raise ValueError("ApprovalResolved requires a terminal decision.")
+        if self.subject is ApprovalSubject.TOOL:
+            if (
+                self.invocation_id is None
+                or self.plan_id is not None
+                or self.plan_version is not None
+            ):
+                raise ValueError("Resolved Tool approval correlation is invalid.")
+            _validate_uuid(self.invocation_id, "invocation_id")
+        else:
+            if self.invocation_id is not None or self.plan_id is None or self.plan_version is None:
+                raise ValueError("Resolved Plan approval correlation is invalid.")
+            _validate_uuid(self.plan_id, "plan_id")
+            if self.plan_version < 1:
+                raise ValueError("Resolved Plan version must be positive.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ChangedFileRecorded(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    invocation_id: str
+    relative_path: str
+    change_kind: ChangeKind
+    changed_file_count: int
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.invocation_id, "invocation_id")
+        parts = self.relative_path.replace("\\", "/").split("/")
+        if (
+            not self.relative_path
+            or self.relative_path.startswith(("/", "\\"))
+            or ":" in self.relative_path
+            or any(part in {"", ".", ".."} for part in parts)
+            or len(self.relative_path) > 512
+        ):
+            raise ValueError("Changed-file path must be normalized and workspace-relative.")
+        if self.changed_file_count < 1:
+            raise ValueError("changed_file_count must be positive.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObservabilityWarning(RuntimeEvent):
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    code: str
+    sink: TraceSink
+    operation: TraceOperation
+    fallback: TraceFallback
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.code not in {
+            "TRACE_SINK_FAILED",
+            "TRACE_FLUSH_FAILED",
+            "TELEMETRY_EVENT_INVALID",
+            "TRACE_REDACTION_FAILED",
+            "TRACE_SINK_OVERFLOW",
+        }:
+            raise ValueError("Observability warning code is not approved.")
+
+
 def _safe_value(value: Any) -> Any:
     if isinstance(value, StrEnum):
         return value.value
@@ -272,3 +432,14 @@ def _safe_value(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_safe_value(item) for item in value]
     return value
+
+
+def _validate_uuid(value: str, field_name: str) -> None:
+    from uuid import UUID
+
+    try:
+        parsed = UUID(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a UUID string.") from exc
+    if str(parsed) != value:
+        raise ValueError(f"{field_name} must use canonical UUID text.")

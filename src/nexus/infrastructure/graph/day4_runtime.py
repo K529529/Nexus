@@ -13,6 +13,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
 from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence
+from nexus.application.event_publisher import LiveRuntimeEventBridge
 from nexus.application.execution_ledger import (
     RuntimeEventBuffer,
     ToolExecutionLedger,
@@ -46,8 +47,12 @@ from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanning
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
 from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
 from nexus.domain.runtime_events import (
+    AgentStepCompleted,
+    ApprovalActorCategory,
     ApprovalRequested,
+    ApprovalResolved,
     ApprovalSubject,
+    ChangedFileRecorded,
     ContextBuilt,
     FinalResult,
     PlanCreated,
@@ -76,7 +81,7 @@ class Day4LangGraphRuntime:
         validation_runner: ValidationRunner,
         plan_approval_service: PlanApprovalService,
         diff_collector: FinalDiffCollector,
-        event_buffer: RuntimeEventBuffer,
+        event_buffer: RuntimeEventBuffer | LiveRuntimeEventBridge,
         ledger: ToolExecutionLedger,
         approval_mode: ApprovalMode,
         max_steps: int,
@@ -86,6 +91,7 @@ class Day4LangGraphRuntime:
         legacy_runtime: GraphRuntime | None = None,
         context_manager: ContextManager | None = None,
         conversation_turns: Callable[[str], Awaitable[Sequence[SessionTurn]]] | None = None,
+        model_call_id: Callable[[], str] | None = None,
     ) -> None:
         self._explorer = explorer
         self._context_builder = context_builder
@@ -105,6 +111,7 @@ class Day4LangGraphRuntime:
         self._legacy_runtime = legacy_runtime
         self._context_manager = context_manager
         self._conversation_turns = conversation_turns
+        self._model_call_id = model_call_id
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
@@ -373,6 +380,23 @@ class Day4LangGraphRuntime:
                 state.pending_plan_approval.approval_id,
                 resume_input,
             )
+        await self._events.emit(
+            ApprovalResolved(
+                run_id=state.run_id,
+                session_id=_session_id(state),
+                approval_id=approval.approval_id,
+                subject=ApprovalSubject.PLAN,
+                invocation_id=None,
+                plan_id=plan.plan_id,
+                plan_version=plan.version,
+                decision=approval.decision,
+                actor_category=(
+                    ApprovalActorCategory.USER
+                    if approval.actor == "user"
+                    else ApprovalActorCategory.POLICY
+                ),
+            )
+        )
         activated = self._plan_approval_service.activate(plan, approval)
         update: dict[str, object] = {
             "plan": activated,
@@ -411,6 +435,16 @@ class Day4LangGraphRuntime:
                 state.repair_guidance,
             )
         )
+        if self._model_call_id is not None:
+            await self._events.emit(
+                AgentStepCompleted(
+                    run_id=state.run_id,
+                    session_id=_session_id(state),
+                    step_count=self._ledger.step_count(state.run_id),
+                    decision_kind=decision.kind,
+                    model_call_id=self._model_call_id(),
+                )
+            )
         update: dict[str, object] = {
             "pending_tool_action": decision.action,
         }
@@ -439,6 +473,19 @@ class Day4LangGraphRuntime:
         changed = state.changed_files
         if result.success and result.tool_name in {"apply_patch", "write_file"}:
             changed = _record_change(changed, result)
+            recorded = next(
+                item for item in changed if item.latest_invocation_id == result.invocation_id
+            )
+            await self._events.emit(
+                ChangedFileRecorded(
+                    run_id=state.run_id,
+                    session_id=_session_id(state),
+                    invocation_id=result.invocation_id,
+                    relative_path=recorded.path,
+                    change_kind=recorded.change_kind,
+                    changed_file_count=len(changed),
+                )
+            )
         return self._evidence_update(
             state,
             latest_tool_result=result,
@@ -657,6 +704,7 @@ class Day4LangGraphRuntime:
             step_count=state.step_count,
             repair_count=state.repair_count,
             tool_results=state.tool_results,
+            token_usage=state.token_usage,
         )
         return {
             **values,
@@ -664,6 +712,7 @@ class Day4LangGraphRuntime:
             "tool_call_count": self._ledger.count(run_id),
             "llm_call_count": self._ledger.model_count(run_id),
             "repair_count": self._ledger.repair_count(run_id),
+            "token_usage": self._ledger.token_usage(run_id),
             "tool_results": self._ledger.results(run_id),
         }
 

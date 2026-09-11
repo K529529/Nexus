@@ -113,6 +113,12 @@ class RuntimeConfig(BaseModel):
     max_selected_skills: int = Field(default=2, ge=0, le=2)
     mcp_enabled: bool = False
     mcp_servers: tuple[MCPServerConfig, ...] = ()
+    console_tracing_enabled: bool = False
+    langsmith_tracing_enabled: bool = False
+    langsmith_project: str = "nexus"
+    langsmith_endpoint: str | None = None
+    langsmith_workspace_id: str | None = None
+    langsmith_api_key: SecretStr | None = None
 
     def require_embedding(self) -> None:
         """Validate only when a semantic/index capability is actually requested."""
@@ -142,12 +148,25 @@ class RuntimeConfig(BaseModel):
             raise ValueError(f"unsupported Day 1 model provider: {value!r}")
         return value
 
-    @field_validator("model_name", "model_base_url", mode="before")
+    @field_validator(
+        "model_name",
+        "model_base_url",
+        "langsmith_endpoint",
+        "langsmith_workspace_id",
+        mode="before",
+    )
     @classmethod
     def normalize_optional_text(cls, value: object) -> object:
         if isinstance(value, str):
             normalized = value.strip()
             return normalized or None
+        return value
+
+    @field_validator("model_name")
+    @classmethod
+    def validate_model_name_length(cls, value: str | None) -> str | None:
+        if value is not None and len(value) > 256:
+            raise ValueError("Model name is too long for safe observability.")
         return value
 
     @field_validator("database_url")
@@ -198,6 +217,47 @@ class RuntimeConfig(BaseModel):
             raise ValueError("MCP server_id values must be unique.")
         return self
 
+    @field_validator("langsmith_project")
+    @classmethod
+    def validate_langsmith_project(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or len(normalized) > 256:
+            raise ValueError("LangSmith project must be a bounded non-empty identifier.")
+        return normalized
+
+    @field_validator("langsmith_workspace_id")
+    @classmethod
+    def validate_langsmith_workspace_id(cls, value: str | None) -> str | None:
+        if value is not None and len(value) > 256:
+            raise ValueError("LangSmith workspace ID is too long.")
+        return value
+
+    @field_validator("langsmith_endpoint")
+    @classmethod
+    def validate_langsmith_endpoint(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parts = urlsplit(value)
+        if (
+            parts.scheme not in {"http", "https"}
+            or not parts.hostname
+            or parts.username is not None
+            or parts.password is not None
+            or parts.query
+            or parts.fragment
+        ):
+            raise ValueError("LangSmith endpoint must be a credential-free HTTP(S) URL.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_langsmith_enablement(self) -> RuntimeConfig:
+        if self.langsmith_tracing_enabled and (
+            self.langsmith_api_key is None
+            or not self.langsmith_api_key.get_secret_value().strip()
+        ):
+            raise ValueError("Enabled LangSmith tracing requires NEXUS_LANGSMITH_API_KEY.")
+        return self
+
     def __repr__(self) -> str:
         api_key = "**********" if self.model_api_key is not None else "None"
         return (
@@ -212,7 +272,13 @@ class RuntimeConfig(BaseModel):
             f"max_repair_attempts={self.max_repair_attempts!r}, "
             f"max_replans={self.max_replans!r}, "
             f"mcp_enabled={self.mcp_enabled!r}, "
-            f"mcp_server_count={len(self.mcp_servers)!r}"
+            f"mcp_server_count={len(self.mcp_servers)!r}, "
+            f"console_tracing_enabled={self.console_tracing_enabled!r}, "
+            f"langsmith_tracing_enabled={self.langsmith_tracing_enabled!r}, "
+            f"langsmith_project={self.langsmith_project!r}, "
+            f"langsmith_endpoint={redact_endpoint(self.langsmith_endpoint)!r}, "
+            f"langsmith_workspace_id={self.langsmith_workspace_id!r}, "
+            f"langsmith_api_key={'**********' if self.langsmith_api_key else 'None'}"
             ")"
         )
 
@@ -233,3 +299,12 @@ def redact_database_url(value: str) -> str:
     port = f":{parts.port}" if parts.port is not None else ""
     redacted_netloc = f"***:***@{hostname}{port}"
     return urlunsplit((parts.scheme, redacted_netloc, parts.path, parts.query, parts.fragment))
+
+
+def redact_endpoint(value: str | None) -> str | None:
+    if value is None:
+        return None
+    parts = urlsplit(value)
+    hostname = parts.hostname or ""
+    port = f":{parts.port}" if parts.port is not None else ""
+    return urlunsplit((parts.scheme, f"{hostname}{port}", "", "", ""))

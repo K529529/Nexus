@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from nexus.domain.model import TokenUsage, TokenUsageAggregate
 from nexus.domain.runtime_events import ApprovalRequested, RuntimeEvent
 from nexus.domain.tooling import ToolInvocation, ToolResult
 
@@ -14,6 +15,9 @@ class ToolExecutionLedger:
         self._model_counts: dict[str, int] = defaultdict(int)
         self._step_counts: dict[str, int] = defaultdict(int)
         self._repair_counts: dict[str, int] = defaultdict(int)
+        self._token_usage: dict[str, TokenUsageAggregate] = defaultdict(
+            TokenUsageAggregate
+        )
         self._results: dict[str, list[ToolResult]] = defaultdict(list)
         self._restored_runs: set[str] = set()
 
@@ -26,6 +30,7 @@ class ToolExecutionLedger:
         step_count: int,
         repair_count: int,
         tool_results: tuple[ToolResult, ...],
+        token_usage: TokenUsageAggregate | None = None,
     ) -> None:
         """Merge one durable checkpoint snapshot into this process-local ledger."""
 
@@ -34,6 +39,8 @@ class ToolExecutionLedger:
             self._model_counts[run_id] += model_call_count
             self._step_counts[run_id] += step_count
             self._repair_counts[run_id] += repair_count
+            if token_usage is not None:
+                self._token_usage[run_id] = token_usage
             current_results = self._results[run_id]
             checkpoint_ids = {item.invocation_id for item in tool_results}
             self._results[run_id] = [
@@ -74,6 +81,12 @@ class ToolExecutionLedger:
 
     def model_count(self, run_id: str) -> int:
         return self._model_counts[run_id]
+
+    def record_model_usage(self, run_id: str, usage: TokenUsage) -> None:
+        self._token_usage[run_id] = self._token_usage[run_id].add(usage)
+
+    def token_usage(self, run_id: str) -> TokenUsageAggregate:
+        return self._token_usage[run_id]
 
     def begin_step(self, run_id: str) -> None:
         self._step_counts[run_id] += 1

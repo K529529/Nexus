@@ -79,6 +79,8 @@ async def test_persisted_checkpoint_resumes_after_runtime_reconstruction(
 
     assert [type(event).__name__ for event in resumed_events] == [
         "TaskStarted",
+        "ModelCallStarted",
+        "ModelCallFinished",
         "FinalResult",
     ]
     final = resumed_events[-1]
@@ -96,7 +98,12 @@ async def test_persisted_checkpoint_resumes_after_runtime_reconstruction(
             turns = await unit_of_work.turns.list_by_session(final.session_id or "")
         assert persisted is not None
         assert persisted.status is RunStatus.COMPLETED
-        assert persisted.final_outcome == {"content": "resumed from PostgreSQL"}
+        assert persisted.final_outcome is not None
+        assert persisted.final_outcome["content"] == "resumed from PostgreSQL"
+        metrics = persisted.final_outcome["metrics"]
+        assert isinstance(metrics, dict)
+        assert metrics["llm_call_count"] == 1
+        assert metrics["token_usage"]["usage_complete"] is False
         assert [turn.role for turn in turns] == ["user", "assistant"]
     finally:
         await database.close()
@@ -134,6 +141,8 @@ async def test_resume_failure_persists_failed_and_is_not_resumable(
 
         assert [type(event).__name__ for event in failed_events] == [
             "TaskStarted",
+            "ModelCallStarted",
+            "ModelCallFinished",
             "ErrorOccurred",
         ]
         failure = failed_events[-1]

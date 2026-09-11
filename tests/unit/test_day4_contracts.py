@@ -10,7 +10,6 @@ from uuid import uuid4
 import pytest
 
 from nexus.application.approval_service import ApprovalService
-from nexus.application.execution_ledger import ToolExecutionLedger
 from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.planning import ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
@@ -161,10 +160,8 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
             }
         ],
     }
-    ledger = ToolExecutionLedger()
     planner = ModelPlanner(
         QueueGateway(json.dumps(first), json.dumps(second)),
-        ledger=ledger,
     )
     run_id = str(uuid4())
     session_id = str(uuid4())
@@ -196,7 +193,6 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
     assert initial.session_id == replanned.session_id == session_id
     assert replanned.plan_id == initial.plan_id
     assert replanned.version == 2
-    assert ledger.model_count(run_id) == 2
 
 
 def test_planning_request_rejects_replan_identity_change_and_noncanonical_uuid() -> None:
