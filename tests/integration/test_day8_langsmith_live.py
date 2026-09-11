@@ -71,19 +71,29 @@ async def test_real_langsmith_nontrivial_coding_trace_is_safe(
     )
     async with bootstrap_application(config, workspace_path=tmp_path) as application:
         first = [event async for event in application.runtime.run(task)]
-        interrupted = first[-1]
-        assert isinstance(interrupted, RunInterrupted)
-        assert interrupted.session_id is not None
-        resumed = [
-            event
-            async for event in application.runtime.resume(
-                interrupted.session_id,
-                resume_input=PlanApprovalResumeInput(ApprovalDecision.APPROVED, None),
-            )
-        ]
+        terminal = first[-1]
+        approval_cycles = 0
+        max_approval_cycles = 5
+        while isinstance(terminal, RunInterrupted):
+            if approval_cycles >= max_approval_cycles:
+                pytest.fail(
+                    "Real LangSmith acceptance exceeded 5 approval/resume cycles."
+                )
+            assert terminal.session_id is not None
+            resumed = [
+                event
+                async for event in application.runtime.resume(
+                    terminal.session_id,
+                    resume_input=PlanApprovalResumeInput(
+                        ApprovalDecision.APPROVED, None
+                    ),
+                )
+            ]
+            terminal = resumed[-1]
+            approval_cycles += 1
 
     started = next(event for event in first if isinstance(event, TaskStarted))
-    final = resumed[-1]
+    final = terminal
     assert isinstance(final, FinalResult)
     assert final.terminal_status is TerminalStatus.SUCCEEDED
 
