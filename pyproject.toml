@@ -16,6 +16,7 @@ dependencies = [
     "langchain-openai>=1.0,<2",
     "langgraph>=1.0,<2",
     "langgraph-checkpoint-postgres>=3.1,<4",
+    "langsmith>=0.11.1,<0.12",
     "mcp>=2,<3",
     "pathspec>=0.12,<2",
     "pgvector>=0.4,<1",
@@ -44,6 +45,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
+    "langsmith_e2e: requires explicit external-export authorization and LangSmith configuration",
     "mcp_e2e: requires npx and the pinned real MCP reference server",
     "postgres: requires a reachable PostgreSQL service",
 ]

@@ -24,6 +24,12 @@ _ENV_FIELDS = {
     "NEXUS_MAX_REPAIR_ATTEMPTS": "max_repair_attempts",
     "NEXUS_MAX_REPLANS": "max_replans",
     "NEXUS_MAX_SELECTED_SKILLS": "max_selected_skills",
+    "NEXUS_CONSOLE_TRACING_ENABLED": "console_tracing_enabled",
+    "NEXUS_LANGSMITH_TRACING_ENABLED": "langsmith_tracing_enabled",
+    "NEXUS_LANGSMITH_PROJECT": "langsmith_project",
+    "NEXUS_LANGSMITH_ENDPOINT": "langsmith_endpoint",
+    "NEXUS_LANGSMITH_WORKSPACE_ID": "langsmith_workspace_id",
+    "NEXUS_LANGSMITH_API_KEY": "langsmith_api_key",
 }
 
 _CONTEXT_INTEGERS = (
@@ -55,13 +61,14 @@ def load_runtime_config(
     resolved.update(_environment_values(environment))
 
     user_path = user_config_path or (Path.home() / ".nexus" / "config.toml")
-    resolved.update(_toml_values(user_path))
+    resolved.update(_toml_values(user_path, allow_remote_observability=True))
 
     repository = repo_root or Path.cwd()
     resolved.update(
         _toml_values(
             repository / ".nexus" / "config.toml",
             allow_mcp=False,
+            allow_remote_observability=False,
         )
     )
 
@@ -73,7 +80,12 @@ def load_runtime_config(
     try:
         return RuntimeConfig.model_validate(resolved)
     except ValidationError as exc:
-        raise ConfigurationError("Runtime configuration is invalid.") from exc
+        code = (
+            "TRACE_CONFIGURATION_INVALID"
+            if any("langsmith" in str(error).lower() for error in exc.errors())
+            else None
+        )
+        raise ConfigurationError("Runtime configuration is invalid.", code=code) from exc
 
 
 def _environment_values(environ: Mapping[str, str]) -> dict[str, Any]:
@@ -84,7 +96,12 @@ def _environment_values(environ: Mapping[str, str]) -> dict[str, Any]:
     }
 
 
-def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
+def _toml_values(
+    path: Path,
+    *,
+    allow_mcp: bool = True,
+    allow_remote_observability: bool = True,
+) -> dict[str, Any]:
     if not path.is_file():
         return {}
     try:
@@ -98,6 +115,12 @@ def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
             "Repository configuration must not define [mcp]; MCP process and server "
             "configuration is allowed only in the user-level ~/.nexus/config.toml."
         )
+    observability = _table(document, "observability", path)
+    if not allow_remote_observability and _contains_key(document, "langsmith"):
+        raise ConfigurationError(
+            "Repository configuration must not define LangSmith observability.",
+            code="TRACE_CONFIGURATION_INVALID",
+        )
 
     model = _table(document, "model", path)
     database = _table(document, "database", path)
@@ -106,11 +129,18 @@ def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
     embedding = _table(document, "embedding", path)
     skills = _table(document, "skills", path)
     mcp = _table(document, "mcp", path)
+    console = _table(observability, "console", path)
+    langsmith = _table(observability, "langsmith", path)
     if "api_key" in embedding:
         raise ConfigurationError("Embedding API keys are not supported in Nexus TOML.")
     if "api_key" in model:
         raise ConfigurationError(
             f"API keys are not supported in Nexus TOML configuration at {path}."
+        )
+    if "api_key" in langsmith:
+        raise ConfigurationError(
+            "LangSmith API keys are accepted only from NEXUS_LANGSMITH_API_KEY.",
+            code="TRACE_CONFIGURATION_INVALID",
         )
 
     values: dict[str, Any] = {}
@@ -155,6 +185,23 @@ def _toml_values(path: Path, *, allow_mcp: bool = True) -> dict[str, Any]:
         ):
             raise ConfigurationError("mcp.servers must be an array of tables.")
         values["mcp_servers"] = [dict(server) for server in servers]
+    if "enabled" in console:
+        if not isinstance(console["enabled"], bool):
+            raise ConfigurationError("observability.console.enabled must be a TOML boolean.")
+        values["console_tracing_enabled"] = console["enabled"]
+    if "enabled" in langsmith:
+        if not isinstance(langsmith["enabled"], bool):
+            raise ConfigurationError(
+                "observability.langsmith.enabled must be a TOML boolean.",
+                code="TRACE_CONFIGURATION_INVALID",
+            )
+        values["langsmith_tracing_enabled"] = langsmith["enabled"]
+    for name, target in (
+        ("project", "langsmith_project"),
+        ("endpoint", "langsmith_endpoint"),
+        ("workspace_id", "langsmith_workspace_id"),
+    ):
+        _copy_optional_string(langsmith, name, target, values, path)
     return values
 
 
@@ -193,3 +240,14 @@ def _copy_optional_integer(
     if isinstance(value, bool) or not isinstance(value, int):
         raise ConfigurationError(f"{source_key} must be an integer in {path}.")
     target[target_key] = value
+
+
+def _contains_key(value: object, prohibited: str) -> bool:
+    if isinstance(value, Mapping):
+        return any(
+            prohibited in str(key).lower() or _contains_key(item, prohibited)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return any(_contains_key(item, prohibited) for item in value)
+    return False

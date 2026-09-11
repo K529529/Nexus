@@ -163,7 +163,6 @@ async def test_demo_skills_select_inject_and_influence_planning(
     selector = ModelSkillSelector(
         selection_gateway,
         2,
-        ledger.begin_model,
         Day5ModelInputBudgetGuard(24000),
     )
     builder = ManagedContextBuilder(
@@ -190,18 +189,16 @@ async def test_demo_skills_select_inject_and_influence_planning(
     assert marker in context.selected_skills[0].body
     expected_source = "repository" if skill_id == "debug-python" else "builtin"
     assert loader.body_calls == [(skill_id, expected_source)]
-    assert ledger.model_count(run_id) == 1
     selection_prompt = selection_gateway.messages[0][1].content
     assert "REPOSITORY OVERRIDE DEBUG WORKFLOW" not in selection_prompt
     assert "Test observable contracts" not in selection_prompt
     assert "Lead with concrete findings" not in selection_prompt
 
     planning_gateway = PlanningGateway(marker)
-    plan = await ModelPlanner(planning_gateway, ledger=ledger).create_plan(
+    plan = await ModelPlanner(planning_gateway).create_plan(
         _planning_request(task, context, run_id, session_id)
     )
     assert marker in plan.steps[0].description
-    assert ledger.model_count(run_id) == 2
     visible = planning_gateway.messages[1].content
     for other_task, (other_id, other_marker) in _EXPECTED.items():
         if other_task != task:

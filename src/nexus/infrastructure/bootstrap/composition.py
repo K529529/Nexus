@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import sys
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -9,15 +11,28 @@ from pathlib import Path
 from typing import Any, cast
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langsmith import Client
 
 from nexus.application.approval_service import ApprovalService
 from nexus.application.diff_service import FinalDiffCollector
+from nexus.application.event_publisher import (
+    InProcessEventPublisher,
+    LiveRuntimeEventBridge,
+)
+from nexus.application.execution_context import current_execution_context
 from nexus.application.execution_ledger import RuntimeEventBuffer, ToolExecutionLedger
+from nexus.application.observed_model_gateway import ObservedModelGateway
 from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.runtime import NexusRuntime
 from nexus.application.session_service import SessionService
+from nexus.application.telemetry import EventEnricher, TelemetryRedactor
+from nexus.application.telemetry_subscriber import TelemetrySubscriber
 from nexus.application.tool_runtime import RuntimeEventEmitter, ToolRuntime
+from nexus.application.tracing_dispatcher import (
+    SafeTracerDispatcher,
+    TracerSink,
+)
 from nexus.application.validation import (
     DeterministicValidationPlanner,
     ToolValidationRunner,
@@ -42,7 +57,13 @@ from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.tooling import ApprovalPolicy
-from nexus.domain.runtime_events import RuntimeEvent
+from nexus.domain.runtime_events import (
+    ObservabilityWarning,
+    RuntimeEvent,
+    TraceFallback,
+    TraceOperation,
+    TraceSink,
+)
 from nexus.domain.tooling import JsonObject, RiskLevel
 from nexus.errors import ConfigurationError, ContextError
 from nexus.infrastructure.asyncio_compat import configure_asyncio_policy
@@ -53,6 +74,12 @@ from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
 from nexus.infrastructure.graph.langgraph_runtime import LangGraphRuntime
 from nexus.infrastructure.mcp import SDKMCPManager
 from nexus.infrastructure.model_gateway.openai_compatible import OpenAICompatibleModelGateway
+from nexus.infrastructure.observability import (
+    ConsoleTracer,
+    LangSmithTracer,
+    StructuredLogger,
+)
+from nexus.infrastructure.observability.langsmith import LangSmithClient
 from nexus.infrastructure.persistence import (
     SqlAlchemyApprovalUnitOfWorkFactory,
     SqlAlchemySessionUnitOfWorkFactory,
@@ -103,7 +130,6 @@ def _build_day7_context_services(
     *,
     config: RuntimeConfig,
     gateway: ModelGateway,
-    ledger: ToolExecutionLedger,
     workspace: Path,
     provider: ContextProvider,
     access: ToolRepositoryAccess,
@@ -133,7 +159,6 @@ def _build_day7_context_services(
     skill_selector = ModelSkillSelector(
         gateway,
         config.max_selected_skills,
-        ledger.begin_model,
         budget_guard,
     )
     return _Day7ContextServices(
@@ -160,31 +185,113 @@ async def bootstrap_application(
     database = DatabaseBootstrap(config.database_url)
     checkpoint_provider: CheckpointProvider = PostgresCheckpointProvider(config.database_url)
     mcp_manager: MCPManager | None = None
+    telemetry_subscriber: TelemetrySubscriber | None = None
+    telemetry_subscription: object | None = None
+    langsmith_tracer: LangSmithTracer | None = None
     try:
         await checkpoint_provider.setup()
-        gateway = (
+        raw_gateway = (
             model_gateway if model_gateway is not None else OpenAICompatibleModelGateway(config)
         )
         unit_of_work_factory = SqlAlchemySessionUnitOfWorkFactory(database.session_factory)
         workspace = workspace_path or Path.cwd()
         session_service = SessionService(unit_of_work_factory, workspace)
-        event_buffer = RuntimeEventBuffer()
+        event_publisher = InProcessEventPublisher()
+        event_buffer = LiveRuntimeEventBridge(event_publisher)
         ledger = ToolExecutionLedger()
         approval_factory = SqlAlchemyApprovalUnitOfWorkFactory(database.session_factory)
         plan_approval_service = PlanApprovalService(approval_factory)
         combined_emitter = _combined_emitter(event_buffer, tool_event_emitter)
-        tool_runtime, executables, mcp_manager, tool_metadata = await _build_tool_runtime(
-            config,
-            database,
-            workspace,
-            approval_policy or AutoApprovalPolicy(),
-            combined_emitter,
-            plan_approval_service=plan_approval_service,
-            ledger=ledger,
-            allow_lexical_path=RepositoryFiles(
+        tool_runtime, executables, mcp_manager, tool_metadata, tool_sources = (
+            await _build_tool_runtime(
+                config,
+                database,
                 workspace,
-                config.max_file_size_bytes,
-            ).allowed,
+                approval_policy or AutoApprovalPolicy(),
+                combined_emitter,
+                plan_approval_service=plan_approval_service,
+                ledger=ledger,
+                allow_lexical_path=RepositoryFiles(
+                    workspace,
+                    config.max_file_size_bytes,
+                ).allowed,
+            )
+        )
+        sinks: list[TracerSink] = []
+        if config.console_tracing_enabled:
+            structured_logger = StructuredLogger()
+            sinks.append(
+                TracerSink(TraceSink.CONSOLE, ConsoleTracer(structured_logger))
+            )
+        if config.langsmith_tracing_enabled:
+            if config.langsmith_api_key is None:
+                raise ConfigurationError(
+                    "Enabled LangSmith tracing requires a key.",
+                    code="TRACE_CONFIGURATION_INVALID",
+                )
+            client = Client(
+                api_url=config.langsmith_endpoint,
+                api_key=config.langsmith_api_key.get_secret_value(),
+                workspace_id=config.langsmith_workspace_id,
+                hide_inputs=True,
+                hide_outputs=_safe_langsmith_mapping,
+                hide_metadata=_safe_langsmith_mapping,
+                auto_batch_tracing=True,
+            )
+            langsmith_tracer = LangSmithTracer(
+                cast(LangSmithClient, client), project=config.langsmith_project
+            )
+            sinks.append(TracerSink(TraceSink.LANGSMITH, langsmith_tracer))
+
+        async def emit_trace_warning(
+            code: str,
+            sink: TraceSink,
+            operation: TraceOperation,
+            fallback: TraceFallback,
+        ) -> None:
+            context = current_execution_context()
+            warning = ObservabilityWarning(
+                run_id=context.run_id,
+                session_id=context.session_id,
+                code=code,
+                sink=sink,
+                operation=operation,
+                fallback=fallback,
+            )
+            try:
+                await event_publisher.publish(warning)
+            except RuntimeError:
+                print(
+                    json.dumps(
+                        {
+                            "type": "ObservabilityWarning",
+                            "code": code,
+                            "sink": sink.value,
+                            "operation": operation.value,
+                            "fallback": fallback.value,
+                        },
+                        separators=(",", ":"),
+                    ),
+                    file=sys.stderr,
+                )
+
+        dispatcher = SafeTracerDispatcher(
+            tuple(sinks), warning_emitter=emit_trace_warning
+        )
+        telemetry_subscriber = TelemetrySubscriber(
+            EventEnricher(workspace, tool_sources),
+            dispatcher,
+            warning_emitter=emit_trace_warning,
+            ledger=ledger,
+            redactor=TelemetryRedactor(),
+        )
+        telemetry_subscription = event_publisher.subscribe(telemetry_subscriber)
+        gateway = ObservedModelGateway(
+            raw_gateway,
+            emit=event_publisher.publish,
+            ledger=ledger,
+            provider=config.model_provider,
+            model=config.model_name,
         )
         checkpointer = cast(BaseCheckpointSaver[Any], checkpoint_provider.get_checkpointer())
         legacy_runtime = LangGraphRuntime(
@@ -205,7 +312,6 @@ async def bootstrap_application(
             context_services = _build_day7_context_services(
                 config=config,
                 gateway=gateway,
-                ledger=ledger,
                 workspace=workspace,
                 provider=HybridContextProvider(
                     ToolLexicalSearchProvider(access, chunker), semantic
@@ -227,13 +333,11 @@ async def bootstrap_application(
                 planner=ModelPlanner(
                     gateway,
                     normalize_argv=executables.normalize_argv,
-                    ledger=ledger,
                     prepare_input=context_manager.fit_model_input,
                     tool_metadata=tool_metadata,
                 ),
                 agent=JsonAgentDecisionAdapter(
                     gateway,
-                    ledger=ledger,
                     prepare_input=context_manager.fit_model_input,
                     tool_metadata=tool_metadata,
                 ),
@@ -255,6 +359,7 @@ async def bootstrap_application(
                 legacy_runtime=legacy_runtime,
                 context_manager=context_manager,
                 conversation_turns=session_service.context_turns,
+                model_call_id=gateway.last_model_call_id,
             )
         application = BootstrappedApplication(
             runtime=NexusRuntime(
@@ -265,6 +370,9 @@ async def bootstrap_application(
                     "model": config.model_name,
                 },
                 event_buffer=event_buffer,
+                event_publisher=event_publisher,
+                telemetry_subscriber=telemetry_subscriber,
+                ledger=ledger,
             ),
             session_service=session_service,
             database=database,
@@ -272,6 +380,15 @@ async def bootstrap_application(
         )
         yield application
     finally:
+        if telemetry_subscription is not None:
+            await cast(Any, telemetry_subscription).aclose()
+        if telemetry_subscriber is not None:
+            await telemetry_subscriber.close()
+        if langsmith_tracer is not None:
+            try:
+                await langsmith_tracer.close()
+            except Exception:
+                pass
         if mcp_manager is not None:
             await mcp_manager.close()
         await checkpoint_provider.close()
@@ -292,7 +409,7 @@ async def bootstrap_tool_application(
     database = DatabaseBootstrap(config.database_url)
     mcp_manager: MCPManager | None = None
     try:
-        tool_runtime, _, mcp_manager, _ = await _build_tool_runtime(
+        tool_runtime, _, mcp_manager, _, _ = await _build_tool_runtime(
             config,
             database,
             workspace := workspace_path or Path.cwd(),
@@ -326,6 +443,7 @@ async def _build_tool_runtime(
     TrustedExecutables,
     MCPManager | None,
     tuple[JsonObject, ...],
+    dict[str, str],
 ]:
     guard = WorkspaceGuard(workspace)
     executables = TrustedExecutables.resolve(guard.root)
@@ -384,6 +502,10 @@ async def _build_tool_runtime(
         executables,
         manager,
         tuple(tool_metadata),
+        {
+            tool.name: "MCP" if isinstance(tool, MCPToolAdapter) else "NATIVE"
+            for tool in tools
+        },
     )
 
 
@@ -498,7 +620,7 @@ async def list_repository_sessions(config: RuntimeConfig) -> list[SessionSummary
 
 
 def _combined_emitter(
-    buffer: RuntimeEventBuffer,
+    buffer: RuntimeEventBuffer | LiveRuntimeEventBridge,
     external: RuntimeEventEmitter | None,
 ) -> RuntimeEventEmitter:
     async def emit(event: RuntimeEvent) -> None:
@@ -507,3 +629,9 @@ def _combined_emitter(
             await external(event)
 
     return emit
+
+
+def _safe_langsmith_mapping(value: dict[str, Any]) -> dict[str, Any]:
+    """Defense in depth: the adapter has already constructed the only safe mapping."""
+
+    return dict(value)

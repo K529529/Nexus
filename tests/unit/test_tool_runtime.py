@@ -13,6 +13,7 @@ from nexus.application.tool_runtime import ToolRuntime
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.runtime_events import (
     ApprovalRequested,
+    ApprovalResolved,
     RuntimeEvent,
     RuntimeStatus,
     ToolFinished,
@@ -185,8 +186,12 @@ async def test_resource_escape_escalates_final_risk_without_terminalizing_run() 
     assert not result.success
     assert result.risk_level is RiskLevel.DANGEROUS
     assert result.approval_decision is ApprovalDecision.DENIED
-    assert [type(event) for event in events] == [ToolStarted, ToolFinished]
-    started, finished = events
+    assert [type(event) for event in events] == [
+        ToolStarted,
+        ApprovalResolved,
+        ToolFinished,
+    ]
+    started, _, finished = events
     assert isinstance(started, ToolStarted) and started.risk_level is RiskLevel.SAFE
     assert isinstance(finished, ToolFinished)
     assert finished.risk_level is RiskLevel.DANGEROUS
@@ -216,6 +221,7 @@ async def test_write_approval_is_persisted_but_tool_is_not_executed_without_plan
     assert [type(event) for event in events] == [
         ToolStarted,
         ApprovalRequested,
+        ApprovalResolved,
         ToolFinished,
     ]
 

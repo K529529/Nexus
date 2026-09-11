@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import pytest
 
-from nexus.application.execution_ledger import ToolExecutionLedger
 from nexus.application.planning import _agent_messages, _planning_messages, _repair_messages
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.config.models import RuntimeConfig
@@ -165,11 +164,10 @@ async def test_context_refresh_preserves_selected_skill_and_selection_result() -
     assert refreshed.skill_selection_result is selection
 
 
-def test_composition_root_shares_gateway_ledger_and_model_input_ceiling(
+def test_composition_root_shares_gateway_and_model_input_ceiling(
     tmp_path: Path,
 ) -> None:
     gateway = cast(ModelGateway, object())
-    ledger = ToolExecutionLedger()
     maximum = 777
     services = _build_day7_context_services(
         config=RuntimeConfig(
@@ -177,7 +175,6 @@ def test_composition_root_shares_gateway_ledger_and_model_input_ceiling(
             max_code_context_tokens=700,
         ),
         gateway=gateway,
-        ledger=ledger,
         workspace=tmp_path,
         provider=cast(ContextProvider, object()),
         access=ToolRepositoryAccess(cast(ToolRuntime, object())),
@@ -188,8 +185,6 @@ def test_composition_root_shares_gateway_ledger_and_model_input_ceiling(
     assert services.budget_guard._maximum == maximum
     assert services.skill_selector._budget_guard is services.budget_guard
     assert services.skill_selector._model_gateway is gateway
-    services.skill_selector._begin_model("shared-run")
-    assert ledger.model_count("shared-run") == 1
 
 
 def plan(run_id: str, session_id: str) -> Plan:

@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from nexus.application.execution_ledger import ToolExecutionLedger
+from nexus.application.model_call_context import bind_model_call_phase
 from nexus.context.manager import context_payload
 from nexus.domain.agent_decision import (
     AgentDecision,
@@ -18,7 +18,7 @@ from nexus.domain.agent_decision import (
     ToolAction,
 )
 from nexus.domain.exploration import WorkingContext
-from nexus.domain.model import ModelMessage
+from nexus.domain.model import ModelCallPhase, ModelMessage
 from nexus.domain.planning import (
     Plan,
     PlanKind,
@@ -54,13 +54,11 @@ class ModelPlanner:
         model_gateway: ModelGateway,
         *,
         normalize_argv: Callable[[list[str]], list[str]] | None = None,
-        ledger: ToolExecutionLedger | None = None,
         prepare_input: _PrepareInput | None = None,
         tool_metadata: Sequence[JsonObject] = (),
     ) -> None:
         self._model_gateway = model_gateway
         self._normalize_argv = normalize_argv or (lambda argv: list(argv))
-        self._ledger = ledger
         self._prepare_input = prepare_input
         self._tool_metadata = _freeze_tool_metadata(tool_metadata)
 
@@ -76,11 +74,15 @@ class ModelPlanner:
                         ),
                     ),
                 )
-            if self._ledger is not None:
-                self._ledger.begin_model(request.run_id)
-            response = await self._model_gateway.complete(
-                _planning_messages(request, self._tool_metadata)
+            phase = (
+                ModelCallPhase.PLAN
+                if request.kind is PlanKind.INITIAL
+                else ModelCallPhase.REPLAN
             )
+            with bind_model_call_phase(phase):
+                response = await self._model_gateway.complete(
+                    _planning_messages(request, self._tool_metadata)
+                )
             payload = _json_object(response.content)
             _require_exact_keys(payload, {"rationale_summary", "steps"})
             steps = self._steps(payload.get("steps"))
@@ -145,11 +147,10 @@ class ModelPlanner:
                         ),
                     ),
                 )
-            if self._ledger is not None:
-                self._ledger.begin_model(request.plan.run_id)
-            response = await self._model_gateway.complete(
-                _repair_messages(request, self._tool_metadata)
-            )
+            with bind_model_call_phase(ModelCallPhase.REPAIR):
+                response = await self._model_gateway.complete(
+                    _repair_messages(request, self._tool_metadata)
+                )
             payload = _json_object(response.content)
             _require_exact_keys(payload, {"failure_summary", "steps"})
             steps = self._steps(payload.get("steps"))
@@ -232,18 +233,15 @@ class ModelPlanner:
             )
         return tuple(steps)
 
-
 class JsonAgentDecisionAdapter:
     def __init__(
         self,
         model_gateway: ModelGateway,
         *,
-        ledger: ToolExecutionLedger | None = None,
         prepare_input: _PrepareInput | None = None,
         tool_metadata: Sequence[JsonObject] = (),
     ) -> None:
         self._model_gateway = model_gateway
-        self._ledger = ledger
         self._prepare_input = prepare_input
         self._tool_metadata = _freeze_tool_metadata(tool_metadata)
 
@@ -259,11 +257,10 @@ class JsonAgentDecisionAdapter:
                         ),
                     ),
                 )
-            if self._ledger is not None:
-                self._ledger.begin_model(request.plan.run_id)
-            response = await self._model_gateway.complete(
-                _agent_messages(request, self._tool_metadata)
-            )
+            with bind_model_call_phase(ModelCallPhase.AGENT_STEP):
+                response = await self._model_gateway.complete(
+                    _agent_messages(request, self._tool_metadata)
+                )
             payload = _json_object(response.content)
             _require_exact_keys(payload, {"kind", "summary", "action"})
             kind = AgentDecisionKind(_required_text(payload.get("kind")))

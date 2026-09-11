@@ -5,6 +5,7 @@ from nexus.domain.ports.approval_unit_of_work import (
     ApprovalUnitOfWorkFactory,
 )
 from nexus.domain.ports.checkpoint_provider import CheckpointProvider
+from nexus.domain.ports.events import EventPublisher, EventSubscriber, EventSubscription
 from nexus.domain.ports.graph_runtime import GraphRuntime
 from nexus.domain.ports.mcp import MCPManager
 from nexus.domain.ports.model_gateway import ModelGateway
@@ -28,6 +29,7 @@ from nexus.domain.ports.tooling import (
     SandboxExecutor,
     Tool,
 )
+from nexus.domain.ports.tracer import Tracer
 
 __all__ = [
     "ApprovalPolicy",
@@ -36,6 +38,9 @@ __all__ = [
     "ApprovalUnitOfWorkFactory",
     "CheckpointProvider",
     "CommandPolicy",
+    "EventPublisher",
+    "EventSubscriber",
+    "EventSubscription",
     "GraphRuntime",
     "InteractiveDecisionCallback",
     "ModelGateway",
@@ -52,4 +57,5 @@ __all__ = [
     "SkillRegistry",
     "SkillSelector",
     "Tool",
+    "Tracer",
 ]

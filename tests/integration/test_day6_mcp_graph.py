@@ -256,8 +256,8 @@ async def test_model_driven_safe_mcp_action_traverses_execute_and_observe() -> N
     runtime = Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
         context_builder=cast(ContextBuilder, Builder()),
-        planner=ModelPlanner(gateway, ledger=ledger, tool_metadata=metadata),
-        agent=JsonAgentDecisionAdapter(gateway, ledger=ledger, tool_metadata=metadata),
+        planner=ModelPlanner(gateway, tool_metadata=metadata),
+        agent=JsonAgentDecisionAdapter(gateway, tool_metadata=metadata),
         tool_runtime=tool_runtime,
         validation_planner=cast(ValidationPlanner, PassValidationPlanner()),
         validation_runner=cast(ValidationRunner, PassValidationRunner()),

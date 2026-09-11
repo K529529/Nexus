@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
-from nexus.domain.model import ModelMessage
+from nexus.application.model_call_context import bind_model_call_phase
+from nexus.domain.model import ModelCallPhase, ModelMessage
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.model_input_budget import ModelInputBudgetGuard
 from nexus.domain.skills import SkillMetadata, SkillSelectionResult
@@ -27,12 +28,10 @@ class ModelSkillSelector:
         self,
         model_gateway: ModelGateway,
         max_selected_skills: int,
-        begin_model: Callable[[str], None],
         budget_guard: ModelInputBudgetGuard,
     ) -> None:
         self._model_gateway = model_gateway
         self._maximum = max_selected_skills
-        self._begin_model = begin_model
         self._budget_guard = budget_guard
 
     async def select(
@@ -51,9 +50,9 @@ class ModelSkillSelector:
             messages,
             error_code="SKILL_SELECTION_BUDGET_EXCEEDED",
         )
-        self._begin_model(run_id)
         try:
-            response = await self._model_gateway.complete(messages)
+            with bind_model_call_phase(ModelCallPhase.SKILL_SELECTION):
+                response = await self._model_gateway.complete(messages)
             payload = json.loads(response.content)
             if not isinstance(payload, dict) or set(payload) != {
                 "selected_skill_ids",
