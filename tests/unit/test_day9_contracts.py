@@ -1,5 +1,4 @@
 import shutil
-import sys
 from dataclasses import fields, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,6 +19,7 @@ from nexus.domain.observability import (
 )
 from nexus.domain.planning import TerminalStatus
 from nexus.domain.runtime_events import RuntimeStatus
+from nexus.evaluation.harness import _resolve_eval_executables
 from nexus.evaluation.loader import EvalSuiteLoader
 from nexus.evaluation.metrics import InMemoryEvalTraceCollector, metrics_from_finish
 from nexus.evaluation.models import EvalCase, EvalCaseReport, EvalExecutionResult
@@ -83,9 +83,9 @@ def test_loader_accepts_only_configured_trusted_absolute_executable(tmp_path: Pa
     source = Path("evals/cases/EVAL-001")
     trusted_target = tmp_path / "trusted" / "EVAL-001"
     shutil.copytree(source, trusted_target)
-    executable_name = "pytest.exe" if sys.platform == "win32" else "pytest"
-    trusted_pytest = Path(sys.executable).resolve().with_name(executable_name)
-    assert trusted_pytest.is_file()
+    configured_pytest = _resolve_eval_executables(trusted_target).pytest
+    assert configured_pytest is not None
+    trusted_pytest = Path(configured_pytest)
     trusted_case = trusted_target / "case.toml"
     trusted_case.write_text(
         trusted_case.read_text(encoding="utf-8").replace(
@@ -100,7 +100,7 @@ def test_loader_accepts_only_configured_trusted_absolute_executable(tmp_path: Pa
 
     untrusted_target = tmp_path / "untrusted" / "EVAL-001"
     shutil.copytree(source, untrusted_target)
-    untrusted_pytest = (tmp_path / "untrusted-bin" / executable_name).resolve()
+    untrusted_pytest = (tmp_path / "untrusted-bin" / trusted_pytest.name).resolve()
     untrusted_case = untrusted_target / "case.toml"
     untrusted_case.write_text(
         untrusted_case.read_text(encoding="utf-8").replace(
