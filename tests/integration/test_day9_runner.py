@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
+import pytest
+
 from nexus.application.runtime import NexusRuntime
 from nexus.domain.model import TokenUsage
 from nexus.domain.observability import (
@@ -154,7 +156,7 @@ async def test_eval006_formal_denial_can_pass_failed_runtime() -> None:
 
 
 async def test_fixture_symlink_escape_is_evaluator_error(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cases_root = Path("evals/cases")
     case = EvalSuiteLoader().load_case(cases_root / "EVAL-005" / "case.toml")
