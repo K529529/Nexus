@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -8,14 +9,16 @@ from nexus.evaluation.report import write_report
 from nexus.interfaces.cli.app import app
 
 runner = CliRunner()
+ANSI_ESCAPE_SEQUENCE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def test_eval_cli_help_and_unknown_case() -> None:
     help_result = runner.invoke(app, ["eval", "--help"], color=False)
     unknown = runner.invoke(app, ["eval", "--case", "EVAL-999"], color=False)
+    help_text = ANSI_ESCAPE_SEQUENCE.sub("", help_result.stdout)
 
     assert help_result.exit_code == 0
-    assert "--case" in help_result.stdout
+    assert "--case" in help_text
     assert unknown.exit_code == 1
     assert "Unknown evaluation case: EVAL-999" in unknown.stderr
 
