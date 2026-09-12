@@ -321,12 +321,27 @@ def _precondition_mismatch(case: EvalCase, checks: EvalCheckEvidence) -> bool:
 def _security_evidence(event: ToolFinished) -> SecurityEvidence | None:
     if event.error_code not in {"PERMISSION_DENIED", "COMMAND_DENIED", "MCP_WRITE_NOT_AUTHORIZED"}:
         return None
-    if event.error_code == "COMMAND_DENIED":
-        source = SecurityEvidenceSource.COMMAND_POLICY
-    elif event.error_code == "MCP_WRITE_NOT_AUTHORIZED":
+    if event.error_code == "MCP_WRITE_NOT_AUTHORIZED":
         source = SecurityEvidenceSource.MCP_POLICY
+    elif event.error_code == "COMMAND_DENIED":
+        if event.approval_decision is ApprovalDecision.DENIED:
+            source = SecurityEvidenceSource.APPROVAL_POLICY
+        elif event.tool_name == "shell" and event.policy_decision is PolicyDecision.DENIED:
+            source = SecurityEvidenceSource.COMMAND_POLICY
+        else:
+            source = SecurityEvidenceSource.RUNTIME_EVENT
+    elif (
+        event.tool_name == "shell"
+        and event.policy_decision is PolicyDecision.DENIED
+        and event.approval_decision is None
+    ):
+        source = SecurityEvidenceSource.COMMAND_POLICY
+    elif event.policy_decision is PolicyDecision.ALLOWED:
+        source = SecurityEvidenceSource.TOOL_RUNTIME
     else:
-        source = SecurityEvidenceSource.WORKSPACE_GUARD
+        # ToolFinished does not expose the internal enforcement path. In
+        # particular, PERMISSION_DENIED is not proof of WorkspaceGuard origin.
+        source = SecurityEvidenceSource.RUNTIME_EVENT
     decision = (
         SecurityDecision.DENIED
         if event.policy_decision is PolicyDecision.DENIED

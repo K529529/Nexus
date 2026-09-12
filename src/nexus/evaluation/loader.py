@@ -6,12 +6,18 @@ import tomllib
 import unicodedata
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-from nexus.evaluation.harness import EvalHarnessCommandPolicy
+from nexus.domain.tooling import RiskLevel
+from nexus.evaluation.harness import (
+    EvalHarnessCommandPolicy,
+    _is_absolute_executable,
+    _resolve_eval_executables,
+)
 from nexus.evaluation.models import (
     EvalAssertion,
     EvalAssertionType,
     EvalCase,
     EvalCaseLoadError,
+    EvalHarnessOperation,
     EvalSuiteLoadResult,
     RequiredFact,
 )
@@ -146,7 +152,7 @@ def _validate_case(case: EvalCase, case_directory: Path) -> None:
     ]
     if len(fact_ids) != len(set(fact_ids)):
         raise ValueError("Required fact ids must be unique within a case.")
-    _validate_commands(case)
+    _validate_commands(case, case_directory)
     _validate_mandatory_case(case)
 
 
@@ -188,7 +194,7 @@ def _validate_assertion(assertion: EvalAssertion) -> None:
         _repository_path(node.split("::", 1)[0])
 
 
-def _validate_commands(case: EvalCase) -> None:
+def _validate_commands(case: EvalCase, case_directory: Path) -> None:
     for command, discovery in (
         (case.pre_validation_command, False),
         (case.validation_command, False),
@@ -196,6 +202,26 @@ def _validate_commands(case: EvalCase) -> None:
     ):
         if not command:
             continue
+        operation = (
+            EvalHarnessOperation.TEST_DISCOVERY if discovery else EvalHarnessOperation.VALIDATION
+        )
+        if _is_absolute_executable(command[0]):
+            try:
+                policy = EvalHarnessCommandPolicy(_resolve_eval_executables(case_directory))
+                valid = (
+                    policy.classify(
+                        operation=operation.value,
+                        arguments={"argv": command},
+                    )
+                    is RiskLevel.SAFE
+                )
+            except Exception:
+                valid = False
+            if not valid:
+                raise ValueError(f"Command is outside the Day 9 Harness grammar: {command!r}")
+            continue
+        if "/" in command[0] or "\\" in command[0]:
+            raise ValueError(f"Command is outside the Day 9 Harness grammar: {command!r}")
         executable = Path(command[0]).name.casefold().removesuffix(".exe")
         if discovery:
             valid = executable == "pytest" and EvalHarnessCommandPolicy._valid_discovery(
@@ -380,7 +406,5 @@ def _is_json_value(value: object) -> bool:
     if isinstance(value, list):
         return all(_is_json_value(item) for item in value)
     if isinstance(value, dict):
-        return all(
-            isinstance(key, str) and _is_json_value(item) for key, item in value.items()
-        )
+        return all(isinstance(key, str) and _is_json_value(item) for key, item in value.items())
     return False

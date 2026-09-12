@@ -106,11 +106,13 @@ class EvalHarnessCommandPolicy:
             "mypy": self._executables.mypy,
         }
         candidate = Path(executable)
-        if candidate.is_absolute():
+        if _is_absolute_executable(executable):
             normalized = os.path.normcase(str(candidate.resolve(strict=False)))
             for name, trusted in configured.items():
                 if trusted and normalized == os.path.normcase(trusted):
                     return name
+            return None
+        if "/" in executable or "\\" in executable:
             return None
         name = candidate.name.casefold().removesuffix(".exe")
         return name if name in configured and configured[name] is not None else None
@@ -378,6 +380,14 @@ def _safe_path(value: str, *, node: bool) -> bool:
     if "\\" in file_part or file_part.startswith("-"):
         return False
     return node or "::" not in value
+
+
+def _is_absolute_executable(value: str) -> bool:
+    return (
+        Path(value).is_absolute()
+        or PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+    )
 
 
 def _contains_shell_operator(value: str) -> bool:

@@ -1,4 +1,5 @@
 import shutil
+import sys
 from dataclasses import fields, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -76,6 +77,40 @@ def test_loader_rejects_malformed_pre_post_command_relationship(tmp_path: Path) 
 
     with pytest.raises(ValueError, match="equal non-empty"):
         EvalSuiteLoader().load_case(case_file)
+
+
+def test_loader_accepts_only_configured_trusted_absolute_executable(tmp_path: Path) -> None:
+    source = Path("evals/cases/EVAL-001")
+    trusted_target = tmp_path / "trusted" / "EVAL-001"
+    shutil.copytree(source, trusted_target)
+    executable_name = "pytest.exe" if sys.platform == "win32" else "pytest"
+    trusted_pytest = Path(sys.executable).resolve().with_name(executable_name)
+    assert trusted_pytest.is_file()
+    trusted_case = trusted_target / "case.toml"
+    trusted_case.write_text(
+        trusted_case.read_text(encoding="utf-8").replace(
+            '"pytest"', f'"{trusted_pytest.as_posix()}"'
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = EvalSuiteLoader().load_case(trusted_case)
+
+    assert Path(loaded.validation_command[0]).resolve() == trusted_pytest
+
+    untrusted_target = tmp_path / "untrusted" / "EVAL-001"
+    shutil.copytree(source, untrusted_target)
+    untrusted_pytest = (tmp_path / "untrusted-bin" / executable_name).resolve()
+    untrusted_case = untrusted_target / "case.toml"
+    untrusted_case.write_text(
+        untrusted_case.read_text(encoding="utf-8").replace(
+            '"pytest"', f'"{untrusted_pytest.as_posix()}"'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="outside the Day 9 Harness grammar"):
+        EvalSuiteLoader().load_case(untrusted_case)
 
 
 def test_loader_rejects_eval004_validation_missing_expected_node(tmp_path: Path) -> None:

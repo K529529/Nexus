@@ -1,3 +1,4 @@
+import shutil
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -24,12 +25,12 @@ from nexus.domain.runtime_events import (
     TaskStarted,
     ToolFinished,
 )
-from nexus.domain.tooling import PolicyDecision, RiskLevel
+from nexus.domain.tooling import ApprovalDecision, PolicyDecision, RiskLevel
 from nexus.evaluation.fixtures import FixtureConstraintError
 from nexus.evaluation.loader import EvalSuiteLoader
 from nexus.evaluation.metrics import InMemoryEvalTraceCollector
-from nexus.evaluation.models import EvalOutcome
-from nexus.evaluation.runner import EvalRunner, RuntimeFactory
+from nexus.evaluation.models import EvalOutcome, SecurityEvidenceSource
+from nexus.evaluation.runner import EvalRunner, RuntimeFactory, _security_evidence
 
 
 class _FakeRuntime:
@@ -208,6 +209,110 @@ async def test_missing_authoritative_finish_is_infrastructure_error() -> None:
 
     assert report.outcome is EvalOutcome.INFRASTRUCTURE_ERROR
     assert report.metrics is None
+
+
+async def test_invalid_absolute_executable_stops_before_runtime_factory(
+    tmp_path: Path,
+) -> None:
+    cases_root = tmp_path / "cases"
+    shutil.copytree(Path("evals/cases"), cases_root)
+    case_file = cases_root / "EVAL-001" / "case.toml"
+    untrusted = (tmp_path / "untrusted" / "pytest").resolve().as_posix()
+    case_file.write_text(
+        case_file.read_text(encoding="utf-8").replace('"pytest"', f'"{untrusted}"'),
+        encoding="utf-8",
+    )
+    loaded = EvalSuiteLoader().load_suite(cases_root)
+    runtime_factory_called = False
+
+    @asynccontextmanager
+    async def forbidden_factory(
+        workspace: Path, collector: InMemoryEvalTraceCollector
+    ) -> AsyncIterator[NexusRuntime]:
+        nonlocal runtime_factory_called
+        del workspace, collector
+        runtime_factory_called = True
+        yield cast(NexusRuntime, object())
+
+    report = await EvalRunner(cases_root, forbidden_factory).run_suite(loaded)
+
+    assert loaded.errors
+    assert report.cases == ()
+    assert not runtime_factory_called
+
+
+@pytest.mark.parametrize(
+    (
+        "tool_name",
+        "error_code",
+        "policy_decision",
+        "approval_decision",
+        "expected_source",
+    ),
+    [
+        (
+            "apply_patch",
+            "PERMISSION_DENIED",
+            PolicyDecision.DENIED,
+            ApprovalDecision.DENIED,
+            SecurityEvidenceSource.RUNTIME_EVENT,
+        ),
+        (
+            "shell",
+            "PERMISSION_DENIED",
+            PolicyDecision.DENIED,
+            None,
+            SecurityEvidenceSource.COMMAND_POLICY,
+        ),
+        (
+            "read_file",
+            "PERMISSION_DENIED",
+            PolicyDecision.ALLOWED,
+            None,
+            SecurityEvidenceSource.TOOL_RUNTIME,
+        ),
+        (
+            "write_file",
+            "COMMAND_DENIED",
+            PolicyDecision.DENIED,
+            ApprovalDecision.DENIED,
+            SecurityEvidenceSource.APPROVAL_POLICY,
+        ),
+        (
+            "mcp_write",
+            "MCP_WRITE_NOT_AUTHORIZED",
+            PolicyDecision.DENIED,
+            ApprovalDecision.DENIED,
+            SecurityEvidenceSource.MCP_POLICY,
+        ),
+    ],
+)
+def test_security_evidence_uses_only_publicly_provable_source(
+    tool_name: str,
+    error_code: str,
+    policy_decision: PolicyDecision,
+    approval_decision: ApprovalDecision | None,
+    expected_source: SecurityEvidenceSource,
+) -> None:
+    event = ToolFinished(
+        run_id=str(uuid4()),
+        session_id=str(uuid4()),
+        invocation_id=str(uuid4()),
+        tool_name=tool_name,
+        success=False,
+        risk_level=RiskLevel.DANGEROUS,
+        policy_decision=policy_decision,
+        approval_decision=approval_decision,
+        duration_ms=1,
+        error_code=error_code,
+    )
+
+    evidence = _security_evidence(event)
+
+    assert evidence is not None
+    assert evidence.source is expected_source
+    if tool_name == "apply_patch":
+        assert evidence.source is not SecurityEvidenceSource.WORKSPACE_GUARD
 
 
 async def test_harness_commands_are_not_counted_as_runtime_tools() -> None:
