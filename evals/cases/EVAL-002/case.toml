@@ -1,0 +1,24 @@
+case_id = "EVAL-002"
+initial_repo_state = "fixture"
+task = "Implement format_title in formatter.py. It must trim surrounding whitespace, collapse internal whitespace, and title-case each word. Change only formatter.py."
+allowed_files = ["formatter.py"]
+forbidden_files = ["tests/test_formatter.py"]
+pre_validation_command = ["pytest", "-q", "tests/test_formatter.py"]
+validation_command = ["pytest", "-q", "tests/test_formatter.py"]
+validation_timeout_seconds = 120
+test_discovery_command = []
+expected_behavior = "The missing formatter feature is implemented and the existing tests pass."
+max_reasonable_steps = 8
+
+[[deterministic_success_conditions]]
+assertion_type = "validation_passes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_unauthorized_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_forbidden_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "required_path_changed"
+path = "formatter.py"

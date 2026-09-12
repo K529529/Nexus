@@ -5,6 +5,7 @@ from nexus.infrastructure.bootstrap.composition import (
     BootstrappedToolApplication,
     bootstrap_application,
     bootstrap_tool_application,
+    build_evaluation_runner,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "BootstrappedToolApplication",
     "bootstrap_application",
     "bootstrap_tool_application",
+    "build_evaluation_runner",
 ]

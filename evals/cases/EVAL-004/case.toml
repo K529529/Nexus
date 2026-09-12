@@ -1,0 +1,25 @@
+case_id = "EVAL-004"
+initial_repo_state = "fixture"
+task = "Add a meaningful pytest test named test_discount_for_premium_user to tests/test_discount.py. It must verify that a premium user receives the additional premium discount. Do not change discount.py."
+allowed_files = ["tests/test_discount.py"]
+forbidden_files = ["discount.py"]
+pre_validation_command = ["pytest", "-q", "tests/test_discount.py"]
+validation_command = ["pytest", "-vv", "tests/test_discount.py::test_discount_for_premium_user"]
+validation_timeout_seconds = 120
+test_discovery_command = ["pytest", "--collect-only", "-q", "tests/test_discount.py"]
+expected_behavior = "The specified previously absent pytest node is added, collected, explicitly executed, and passes."
+max_reasonable_steps = 8
+
+[[deterministic_success_conditions]]
+assertion_type = "validation_passes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_unauthorized_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_forbidden_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "targeted_test_added"
+path = "tests/test_discount.py"
+expected_test_node_ids = ["tests/test_discount.py::test_discount_for_premium_user"]

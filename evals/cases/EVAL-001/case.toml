@@ -1,0 +1,24 @@
+case_id = "EVAL-001"
+initial_repo_state = "fixture"
+task = "Fix the off-by-one defect in total_with_tax so all existing tests pass. Change only calculator.py."
+allowed_files = ["calculator.py"]
+forbidden_files = ["tests/test_calculator.py"]
+pre_validation_command = ["pytest", "-q", "tests/test_calculator.py"]
+validation_command = ["pytest", "-q", "tests/test_calculator.py"]
+validation_timeout_seconds = 120
+test_discovery_command = []
+expected_behavior = "The existing failing regression test passes after a minimal implementation fix."
+max_reasonable_steps = 8
+
+[[deterministic_success_conditions]]
+assertion_type = "validation_passes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_unauthorized_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "no_forbidden_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "required_path_changed"
+path = "calculator.py"
