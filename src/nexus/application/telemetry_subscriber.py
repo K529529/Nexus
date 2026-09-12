@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from nexus.application.event_publisher import (
@@ -58,6 +59,7 @@ class TelemetrySubscriber:
         ledger: ToolExecutionLedger | None = None,
         redactor: TelemetryRedactor | None = None,
         flush_timeout_seconds: float = 2.0,
+        finish_observer: Callable[[TraceRunFinish], None] | None = None,
     ) -> None:
         if flush_timeout_seconds <= 0:
             raise ValueError("Telemetry flush timeout must be positive.")
@@ -67,6 +69,7 @@ class TelemetrySubscriber:
         self._ledger = ledger
         self._redactor = redactor or TelemetryRedactor()
         self._flush_timeout_seconds = flush_timeout_seconds
+        self._finish_observer = finish_observer
         self._executions: dict[str, _IngressExecution] = {}
         self._warned_executions: set[str] = set()
 
@@ -97,6 +100,13 @@ class TelemetrySubscriber:
         )
 
     def finish_execution(self, finish: TraceRunFinish) -> None:
+        if self._finish_observer is not None:
+            try:
+                self._finish_observer(finish)
+            except Exception:
+                # Observability must remain fail-open. Evaluation detects a missing
+                # authoritative finish as its own infrastructure error.
+                pass
         state = self._executions.get(finish.context.execution_id)
         if state is None:
             return

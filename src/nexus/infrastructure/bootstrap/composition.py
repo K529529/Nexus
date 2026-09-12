@@ -37,7 +37,7 @@ from nexus.application.validation import (
     DeterministicValidationPlanner,
     ToolValidationRunner,
 )
-from nexus.config.models import MCPServerConfig, RuntimeConfig
+from nexus.config.models import ApprovalMode, MCPServerConfig, RuntimeConfig
 from nexus.context import SelectiveRepositoryExplorer
 from nexus.context.budget import Day5ModelInputBudgetGuard
 from nexus.context.chunking import LineWindowChunker
@@ -66,6 +66,8 @@ from nexus.domain.runtime_events import (
 )
 from nexus.domain.tooling import JsonObject, RiskLevel
 from nexus.errors import ConfigurationError, ContextError
+from nexus.evaluation.models import EvalTraceCollector
+from nexus.evaluation.runner import EvalRunner
 from nexus.infrastructure.asyncio_compat import configure_asyncio_policy
 from nexus.infrastructure.checkpoint import PostgresCheckpointProvider
 from nexus.infrastructure.database import DatabaseBootstrap
@@ -98,6 +100,26 @@ from nexus.tools import MCPToolAdapter, ToolRegistry
 from nexus.tools.native import build_native_tools
 
 configure_asyncio_policy()
+
+
+def build_evaluation_runner(config: RuntimeConfig, cases_root: Path) -> EvalRunner:
+    """Assemble Day 9 evaluation without exposing Harness authority to the Agent."""
+
+    evaluation_config = config.model_copy(update={"approval_mode": ApprovalMode.AUTO})
+
+    @asynccontextmanager
+    async def runtime_factory(
+        workspace: Path, collector: EvalTraceCollector
+    ) -> AsyncIterator[NexusRuntime]:
+        async with bootstrap_application(
+            evaluation_config,
+            workspace_path=workspace,
+            approval_policy=AutoApprovalPolicy(),
+            eval_trace_collector=collector,
+        ) as application:
+            yield application.runtime
+
+    return EvalRunner(cases_root, runtime_factory)
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,6 +201,7 @@ async def bootstrap_application(
     approval_policy: ApprovalPolicy | None = None,
     tool_event_emitter: RuntimeEventEmitter | None = None,
     embedding_gateway: EmbeddingGateway | None = None,
+    eval_trace_collector: EvalTraceCollector | None = None,
 ) -> AsyncIterator[BootstrappedApplication]:
     """Build the approved object graph and reliably release infrastructure resources."""
 
@@ -284,6 +307,9 @@ async def bootstrap_application(
             warning_emitter=emit_trace_warning,
             ledger=ledger,
             redactor=TelemetryRedactor(),
+            finish_observer=(
+                None if eval_trace_collector is None else eval_trace_collector.record_finish
+            ),
         )
         telemetry_subscription = event_publisher.subscribe(telemetry_subscriber)
         gateway = ObservedModelGateway(

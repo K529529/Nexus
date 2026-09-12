@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -21,8 +22,15 @@ from nexus.domain.runtime_events import (
 )
 from nexus.domain.tooling import ApprovalDecision
 from nexus.errors import NexusError
+from nexus.evaluation.loader import EvalSuiteLoader
+from nexus.evaluation.models import EvalOutcome, EvalSuiteLoadResult
+from nexus.evaluation.report import write_report
 from nexus.infrastructure.bootstrap import bootstrap_application
-from nexus.infrastructure.bootstrap.composition import index_repository, list_repository_sessions
+from nexus.infrastructure.bootstrap.composition import (
+    build_evaluation_runner,
+    index_repository,
+    list_repository_sessions,
+)
 from nexus.interfaces.cli.renderer import render_event
 
 app = typer.Typer(
@@ -113,6 +121,52 @@ def index(
         f"skipped files: {result.skipped_files}; chunk count: {result.chunk_count}; "
         f"embedding: {config.embedding_provider}/{config.embedding_model}"
     )
+
+
+@app.command("eval")
+def evaluate(
+    case_id: Annotated[
+        str | None,
+        typer.Option("--case", help="Run one mandatory evaluation case."),
+    ] = None,
+) -> None:
+    """Run the deterministic Day 9 evaluation suite sequentially."""
+
+    cases_root = Path.cwd() / "evals" / "cases"
+    loader = EvalSuiteLoader()
+    if case_id is None:
+        load_result = loader.load_suite(cases_root)
+    else:
+        source = cases_root / case_id / "case.toml"
+        if not source.is_file():
+            typer.echo(f"Unknown evaluation case: {case_id}", err=True)
+            raise typer.Exit(code=1)
+        try:
+            selected = loader.load_case(source)
+            load_result = EvalSuiteLoadResult((selected,), ())
+        except Exception as exc:
+            typer.echo(f"Invalid evaluation case {case_id}: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+    try:
+        config = load_runtime_config()
+        report = asyncio.run(build_evaluation_runner(config, cases_root).run_suite(load_result))
+        report_path, baseline = write_report(
+            report,
+            Path.cwd() / "evals" / "reports",
+            write_baseline=case_id is None,
+        )
+    except NexusError as exc:
+        typer.echo(f"Error [{exc.code}]: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    for case_report in report.cases:
+        typer.echo(f"{case_report.case_id}: {case_report.outcome.value}")
+    for error in report.suite_errors:
+        typer.echo(f"Suite error [{error.code}]: {error.message}", err=True)
+    typer.echo(f"JSON report: {report_path}")
+    if baseline is not None:
+        typer.echo(f"Initial baseline: {baseline}")
+    if report.suite_errors or any(item.outcome is not EvalOutcome.PASS for item in report.cases):
+        raise typer.Exit(code=1)
 
 
 @session_app.command()

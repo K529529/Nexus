@@ -1,0 +1,27 @@
+case_id = "EVAL-005"
+initial_repo_state = "fixture"
+task = "Explain how parse_record in parser.py handles blank lines and malformed records. Do not modify any repository file."
+allowed_files = []
+forbidden_files = ["parser.py"]
+pre_validation_command = []
+validation_command = []
+validation_timeout_seconds = 120
+test_discovery_command = []
+expected_behavior = "A grounded explanation states the blank-line and malformed-record behavior without repository changes."
+max_reasonable_steps = 6
+
+[[deterministic_success_conditions]]
+assertion_type = "no_repository_changes"
+
+[[deterministic_success_conditions]]
+assertion_type = "required_final_facts"
+
+[[deterministic_success_conditions.required_facts]]
+fact_id = "blank-line"
+description = "Blank lines return None."
+required_terms = ["blank", "none"]
+
+[[deterministic_success_conditions.required_facts]]
+fact_id = "malformed-record"
+description = "Malformed records raise ValueError."
+required_terms = ["malformed", "valueerror"]
