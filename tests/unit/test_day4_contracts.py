@@ -372,6 +372,96 @@ async def test_planner_reports_only_sanitized_parser_category(
     assert "SENSITIVE" not in str(failure.value)
 
 
+@pytest.mark.parametrize(
+    ("step", "category"),
+    [
+        (
+            {
+                "description": "edit",
+                "tool_name": "apply_patch",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "EDIT_TARGET_COUNT",
+        ),
+        (
+            {
+                "description": "edit and run",
+                "tool_name": "write_file",
+                "target_paths": ["new.py"],
+                "command_argv": ["pytest", "-q"],
+                "command_cwd": ".",
+            },
+            "COMMAND_TOOL_RELATION",
+        ),
+        (
+            {
+                "description": "cwd without command",
+                "tool_name": "shell",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": ".",
+            },
+            "COMMAND_CWD_RELATION",
+        ),
+        (
+            {
+                "description": "narrative with authority",
+                "tool_name": None,
+                "target_paths": ["alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "NARRATIVE_AUTHORITY",
+        ),
+        (
+            {
+                "description": "read with authority",
+                "tool_name": "read_file",
+                "target_paths": ["alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "NON_FROZEN_TOOL_AUTHORITY",
+        ),
+        (
+            {
+                "description": "invalid path",
+                "tool_name": "apply_patch",
+                "target_paths": ["../alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "INVALID_REPOSITORY_PATH",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_planner_reports_specific_sanitized_plan_step_category(
+    step: dict[str, object],
+    category: str,
+) -> None:
+    response = json.dumps({"rationale_summary": "bounded", "steps": [step]})
+    current_plan = _plan()
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(QueueGateway(response)).create_plan(
+            PlanningRequest(
+                "task",
+                _context(),
+                PlanKind.INITIAL,
+                None,
+                None,
+                current_plan.run_id,
+                current_plan.session_id,
+            )
+        )
+
+    assert failure.value.code == "INVALID_PLAN_OUTPUT"
+    assert str(failure.value) == f"The model returned invalid Plan. Category: {category}."
+
+
 @pytest.mark.asyncio
 async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> None:
     gateway = QueueGateway(

@@ -248,7 +248,9 @@ class ModelPlanner:
             except _StructuredOutputViolation:
                 raise
             except ValueError as exc:
-                raise _StructuredOutputViolation("STEP_SCHEMA") from exc
+                raise _StructuredOutputViolation(
+                    _plan_step_violation_category(exc)
+                ) from exc
         return tuple(steps)
 
 class JsonAgentDecisionAdapter:
@@ -346,6 +348,23 @@ def _invalid_output_message(subject: str, error: Exception) -> str:
         error.category if isinstance(error, _StructuredOutputViolation) else "SCHEMA_VALIDATION"
     )
     return f"The model returned invalid {subject}. Category: {category}."
+
+
+def _plan_step_violation_category(error: ValueError) -> str:
+    message = str(error)
+    if message == "An editing PlanStep must target exactly one path.":
+        return "EDIT_TARGET_COUNT"
+    if message == "A command PlanStep must be a shell step with a cwd.":
+        return "COMMAND_TOOL_RELATION"
+    if message == "command_cwd requires command_argv.":
+        return "COMMAND_CWD_RELATION"
+    if message == "A narrative PlanStep cannot carry Tool authority.":
+        return "NARRATIVE_AUTHORITY"
+    if message == "Only frozen Day 4 Tool actions may carry Plan authority.":
+        return "NON_FROZEN_TOOL_AUTHORITY"
+    if message == "Repository path is outside the allowed relative form.":
+        return "INVALID_REPOSITORY_PATH"
+    return "STEP_SCHEMA"
 
 
 def _planning_payload(request: PlanningRequest) -> str:
