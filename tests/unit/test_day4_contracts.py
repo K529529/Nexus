@@ -11,10 +11,10 @@ import pytest
 
 from nexus.application.approval_service import ApprovalService
 from nexus.application.plan_approval_service import PlanApprovalService
-from nexus.application.planning import ModelPlanner
+from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.application.validation import ToolValidationRunner
-from nexus.domain.agent_decision import Observation
+from nexus.domain.agent_decision import AgentDecisionRequest, Observation
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
@@ -59,9 +59,10 @@ from nexus.tools.registry import ToolRegistry
 class QueueGateway:
     def __init__(self, *responses: str) -> None:
         self.responses = list(responses)
+        self.last_messages: tuple[ModelMessage, ...] = ()
 
     async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
-        del messages
+        self.last_messages = tuple(messages)
         return ModelResponse(self.responses.pop(0))
 
     async def stream(
@@ -236,6 +237,26 @@ async def test_planner_maps_invalid_structured_output() -> None:
             )
         )
     assert failure.value.code == "INVALID_PLAN_OUTPUT"
+
+
+@pytest.mark.asyncio
+async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> None:
+    gateway = QueueGateway(
+        json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
+    )
+    plan = _plan()
+
+    await JsonAgentDecisionAdapter(gateway).decide(
+        AgentDecisionRequest("edit alpha", _context(), plan, ())
+    )
+
+    system = gateway.last_messages[0].content
+    assert "{path:string,patch:string}" in system
+    assert "--- a/<path> and +++ b/<path>" in system
+    assert "write_file only for a path that does not exist" in system
+    assert "return TASK_READY" in system
+    assert "Validation node runs the exact commands" in system
+    assert "do not repeat that edit" in system
 
 
 @pytest.mark.asyncio

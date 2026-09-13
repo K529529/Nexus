@@ -429,7 +429,17 @@ def _agent_messages(
                 "{kind:TOOL_ACTION|CONTINUE|TASK_READY,summary:string,"
                 "action:{tool_name:string,arguments:object}|null}. "
                 "Return exactly one Tool action at most. Use apply_patch for an "
-                "existing file and write_file for a new file. "
+                "existing file and write_file only for a path that does not exist. "
+                "apply_patch arguments are exactly {path:string,patch:string}; patch "
+                "must be an unfenced single-file unified diff whose first lines are "
+                "--- a/<path> and +++ b/<path>, followed by valid @@ hunk headers "
+                "and space/minus/plus-prefixed hunk lines with exact line counts. "
+                "write_file arguments are exactly {path:string,content:string}. "
+                "After the approved file changes are complete, return TASK_READY; "
+                "do not execute validation commands as Agent Tool actions because "
+                "the Validation node runs the exact commands from the approved Plan. "
+                "If an observation says an approved edit Tool succeeded, do not "
+                "repeat that edit: return TASK_READY immediately. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
