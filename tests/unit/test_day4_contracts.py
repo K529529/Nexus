@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
@@ -14,7 +15,7 @@ from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.application.validation import ToolValidationRunner
-from nexus.domain.agent_decision import AgentDecisionRequest, Observation
+from nexus.domain.agent_decision import AgentDecisionKind, AgentDecisionRequest, Observation
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
@@ -132,6 +133,31 @@ def _evidence(plan: Plan) -> ApprovedPlanEvidence:
         plan.scope_digest,
         plan.authorization_scope,
         datetime.now(UTC),
+    )
+
+
+def _multi_edit_plan() -> Plan:
+    plan = _plan()
+    steps = (
+        plan.steps[0],
+        PlanStep(
+            str(uuid4()),
+            2,
+            "Edit beta",
+            "apply_patch",
+            ("beta.py",),
+            None,
+            None,
+            PlanStepStatus.PENDING,
+        ),
+        replace(plan.steps[1], sequence=3),
+    )
+    scope = derive_authorization_scope(steps)
+    return replace(
+        plan,
+        steps=steps,
+        authorization_scope=scope,
+        scope_digest=compute_scope_digest(plan.plan_id, plan.version, scope),
     )
 
 
@@ -254,9 +280,59 @@ async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> N
     assert "{path:string,patch:string}" in system
     assert "--- a/<path> and +++ b/<path>" in system
     assert "write_file only for a path that does not exist" in system
-    assert "return TASK_READY" in system
+    assert "TASK_READY only after all file modifications" in system
     assert "Validation node runs the exact commands" in system
-    assert "do not repeat that edit" in system
+    assert "Never repeat an approved edit" in system
+
+
+@pytest.mark.asyncio
+async def test_agent_prompt_continues_a_multi_edit_plan_after_first_success() -> None:
+    gateway = QueueGateway(
+        json.dumps(
+            {
+                "kind": "TOOL_ACTION",
+                "summary": "Continue with the remaining approved edit.",
+                "action": {
+                    "tool_name": "apply_patch",
+                    "arguments": {
+                        "path": "beta.py",
+                        "patch": (
+                            "--- a/beta.py\n+++ b/beta.py\n"
+                            "@@ -1 +1 @@\n-old\n+new\n"
+                        ),
+                    },
+                },
+            }
+        )
+    )
+    plan = _multi_edit_plan()
+    first_edit = Observation(
+        str(uuid4()),
+        "apply_patch",
+        True,
+        "Updated alpha.py.",
+        None,
+        None,
+    )
+    context = replace(_context(), recent_observations=(first_edit,))
+
+    decision = await JsonAgentDecisionAdapter(gateway).decide(
+        AgentDecisionRequest("edit alpha and beta", context, plan, (first_edit,))
+    )
+
+    system = gateway.last_messages[0].content
+    payload = json.loads(gateway.last_messages[1].content)
+    assert decision.kind is AgentDecisionKind.TOOL_ACTION
+    assert decision.action is not None
+    assert decision.action.arguments["path"] == "beta.py"
+    assert len(
+        [step for step in payload["plan"]["steps"] if step["tool_name"] == "apply_patch"]
+    ) == 2
+    assert payload["observations"][0]["success"] is True
+    assert "Never repeat an approved edit" in system
+    assert "only after all file modifications" in system
+    assert "return the next Tool action" in system
+    assert "return TASK_READY immediately" not in system
 
 
 @pytest.mark.asyncio

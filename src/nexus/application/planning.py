@@ -435,11 +435,12 @@ def _agent_messages(
                 "--- a/<path> and +++ b/<path>, followed by valid @@ hunk headers "
                 "and space/minus/plus-prefixed hunk lines with exact line counts. "
                 "write_file arguments are exactly {path:string,content:string}. "
-                "After the approved file changes are complete, return TASK_READY; "
+                "Never repeat an approved edit that a successful observation shows "
+                "is complete. Return TASK_READY only after all file modifications "
+                "required by the current approved Plan are complete. If any required "
+                "approved edit remains incomplete, return the next Tool action. "
                 "do not execute validation commands as Agent Tool actions because "
                 "the Validation node runs the exact commands from the approved Plan. "
-                "If an observation says an approved edit Tool succeeded, do not "
-                "repeat that edit: return TASK_READY immediately. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
