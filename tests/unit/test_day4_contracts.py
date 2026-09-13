@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -61,9 +61,11 @@ class QueueGateway:
     def __init__(self, *responses: str) -> None:
         self.responses = list(responses)
         self.last_messages: tuple[ModelMessage, ...] = ()
+        self.messages: list[tuple[ModelMessage, ...]] = []
 
     async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
         self.last_messages = tuple(messages)
+        self.messages.append(self.last_messages)
         return ModelResponse(self.responses.pop(0))
 
     async def stream(
@@ -249,7 +251,7 @@ def test_planning_request_rejects_replan_identity_change_and_noncanonical_uuid()
 @pytest.mark.asyncio
 async def test_planner_maps_invalid_structured_output() -> None:
     plan = _plan()
-    planner = ModelPlanner(QueueGateway("not-json"))
+    planner = ModelPlanner(QueueGateway("not-json", "not-json"))
     with pytest.raises(ModelError) as failure:
         await planner.create_plan(
             PlanningRequest(
@@ -263,6 +265,69 @@ async def test_planner_maps_invalid_structured_output() -> None:
             )
         )
     assert failure.value.code == "INVALID_PLAN_OUTPUT"
+
+
+@pytest.mark.asyncio
+async def test_planner_retries_invalid_output_with_independently_fitted_messages() -> None:
+    invalid = json.dumps(
+        {
+            "rationale_summary": "SENSITIVE invalid plan",
+            "steps": [
+                {
+                    "description": "edit",
+                    "tool_name": "apply_patch",
+                    "target_paths": [],
+                    "command_argv": None,
+                    "command_cwd": None,
+                }
+            ],
+        }
+    )
+    valid = json.dumps(
+        {
+            "rationale_summary": "Bounded plan.",
+            "steps": [
+                {
+                    "description": "Edit alpha",
+                    "tool_name": "apply_patch",
+                    "target_paths": ["alpha.py"],
+                    "command_argv": None,
+                    "command_cwd": None,
+                }
+            ],
+        }
+    )
+    gateway = QueueGateway(invalid, valid)
+    fitted: list[tuple[ModelMessage, ...]] = []
+
+    def prepare(
+        context: WorkingContext,
+        render: Callable[[WorkingContext], Sequence[ModelMessage]],
+    ) -> WorkingContext:
+        fitted.append(tuple(render(context)))
+        return context
+
+    current = _plan()
+    result = await ModelPlanner(gateway, prepare_input=prepare).create_plan(
+        PlanningRequest(
+            "task",
+            _context(),
+            PlanKind.INITIAL,
+            None,
+            None,
+            current.run_id,
+            current.session_id,
+        )
+    )
+
+    assert result.steps[0].target_paths == ("alpha.py",)
+    assert len(gateway.messages) == len(fitted) == 2
+    assert len(gateway.messages[0]) == 2
+    assert len(gateway.messages[1]) == 3
+    assert gateway.messages[0][1] == gateway.messages[1][1]
+    feedback = gateway.messages[1][-1].content
+    assert "Category: EDIT_TARGET_COUNT" in feedback
+    assert "SENSITIVE" not in feedback
 
 
 @pytest.mark.asyncio
@@ -355,7 +420,7 @@ async def test_planner_reports_only_sanitized_parser_category(
     plan = _plan()
 
     with pytest.raises(ModelError) as failure:
-        await ModelPlanner(QueueGateway(response)).create_plan(
+        await ModelPlanner(QueueGateway(response, response)).create_plan(
             PlanningRequest(
                 "task",
                 _context(),
@@ -446,7 +511,7 @@ async def test_planner_reports_specific_sanitized_plan_step_category(
     current_plan = _plan()
 
     with pytest.raises(ModelError) as failure:
-        await ModelPlanner(QueueGateway(response)).create_plan(
+        await ModelPlanner(QueueGateway(response, response)).create_plan(
             PlanningRequest(
                 "task",
                 _context(),
@@ -535,7 +600,7 @@ async def test_agent_reports_only_sanitized_parser_category(
     response: str, category: str
 ) -> None:
     with pytest.raises(ModelError) as failure:
-        await JsonAgentDecisionAdapter(QueueGateway(response)).decide(
+        await JsonAgentDecisionAdapter(QueueGateway(response, response)).decide(
             AgentDecisionRequest("task", _context(), _plan(), ())
         )
 
@@ -547,6 +612,13 @@ async def test_agent_reports_only_sanitized_parser_category(
 @pytest.mark.asyncio
 async def test_agent_prompt_continues_a_multi_edit_plan_after_first_success() -> None:
     gateway = QueueGateway(
+        json.dumps(
+            {
+                "kind": "TASK_READY",
+                "summary": "SENSITIVE malformed decision",
+                "action": {"tool_name": "read_file", "arguments": {}},
+            }
+        ),
         json.dumps(
             {
                 "kind": "TOOL_ACTION",
@@ -579,15 +651,22 @@ async def test_agent_prompt_continues_a_multi_edit_plan_after_first_success() ->
         AgentDecisionRequest("edit alpha and beta", context, plan, (first_edit,))
     )
 
-    system = gateway.last_messages[0].content
-    payload = json.loads(gateway.last_messages[1].content)
+    system = gateway.messages[0][0].content
+    first_payload = gateway.messages[0][1].content
+    payload = json.loads(gateway.messages[1][1].content)
+    feedback = gateway.messages[1][-1].content
     assert decision.kind is AgentDecisionKind.TOOL_ACTION
     assert decision.action is not None
     assert decision.action.arguments["path"] == "beta.py"
+    assert gateway.messages[1][1].content == first_payload
     assert len(
         [step for step in payload["plan"]["steps"] if step["tool_name"] == "apply_patch"]
     ) == 2
     assert payload["observations"][0]["success"] is True
+    assert "Category: ACTION_RELATION" in feedback
+    assert "approved Plan and observations remain authoritative" in feedback
+    assert "Do not repeat actions recorded as successful" in feedback
+    assert "SENSITIVE" not in feedback
     assert "Never repeat an approved edit" in system
     assert "only after all file modifications" in system
     assert "return the next Tool action" in system

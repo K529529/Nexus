@@ -6,7 +6,11 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from nexus.application.model_call_context import bind_model_call_phase
+from nexus.application.structured_output import (
+    StructuredOutputViolation,
+    append_retry_feedback,
+    complete_structured,
+)
 from nexus.domain.model import ModelCallPhase, ModelMessage
 from nexus.domain.ports.model_gateway import ModelGateway
 from nexus.domain.ports.model_input_budget import ModelInputBudgetGuard
@@ -45,42 +49,73 @@ class ModelSkillSelector:
             return SkillSelectionResult((), "Skill selection is disabled by configuration.")
         if not available_skills:
             return SkillSelectionResult((), "No Skills are available for selection.")
-        messages = _selection_messages(task, available_skills, self._maximum)
+        try:
+            return await complete_structured(
+                self._model_gateway,
+                phase=ModelCallPhase.SKILL_SELECTION,
+                messages_for_attempt=lambda feedback: self._messages_for_attempt(
+                    task, available_skills, feedback
+                ),
+                parse=lambda content: self._parse_selection(content, available_skills),
+            )
+        except (ConfigurationError, ContextError, ModelError):
+            raise
+        except StructuredOutputViolation as exc:
+            raise ContextError(
+                "The model returned an invalid structured Skill selection. "
+                f"Category: {exc.category}.",
+                code="SKILL_SELECTION_FAILED",
+                retryable=True,
+            ) from exc
+
+    def _messages_for_attempt(
+        self,
+        task: str,
+        available_skills: Sequence[SkillMetadata],
+        feedback: ModelMessage | None,
+    ) -> tuple[ModelMessage, ...]:
+        messages = append_retry_feedback(
+            _selection_messages(task, available_skills, self._maximum), feedback
+        )
         self._budget_guard.ensure_fits(
             messages,
             error_code="SKILL_SELECTION_BUDGET_EXCEEDED",
         )
+        return messages
+
+    def _parse_selection(
+        self,
+        content: str,
+        available_skills: Sequence[SkillMetadata],
+    ) -> SkillSelectionResult:
         try:
-            with bind_model_call_phase(ModelCallPhase.SKILL_SELECTION):
-                response = await self._model_gateway.complete(messages)
-            payload = json.loads(response.content)
-            if not isinstance(payload, dict) or set(payload) != {
-                "selected_skill_ids",
-                "selection_reason_summary",
-            }:
-                raise ValueError("Skill selection output schema is invalid.")
-            selected = payload["selected_skill_ids"]
-            summary = payload["selection_reason_summary"]
-            if (
-                not isinstance(selected, list)
-                or not all(isinstance(value, str) for value in selected)
-                or len(selected) != len(set(selected))
-                or len(selected) > self._maximum
-                or not isinstance(summary, str)
-            ):
-                raise ValueError("Skill selection output values are invalid.")
-            available_ids = {metadata.skill_id for metadata in available_skills}
-            if not set(selected) <= available_ids:
-                raise ValueError("Skill selection contains an unknown identity.")
-            return SkillSelectionResult(tuple(selected), summary)
-        except (ConfigurationError, ContextError, ModelError):
-            raise
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-            raise ContextError(
-                "The model returned an invalid structured Skill selection.",
-                code="SKILL_SELECTION_FAILED",
-                retryable=True,
-            ) from exc
+            payload = json.loads(content)
+        except json.JSONDecodeError:
+            raise StructuredOutputViolation("JSON_DECODE") from None
+        if not isinstance(payload, dict):
+            raise StructuredOutputViolation("TOP_LEVEL_TYPE")
+        if set(payload) != {"selected_skill_ids", "selection_reason_summary"}:
+            raise StructuredOutputViolation("TOP_LEVEL_KEYS")
+        selected = payload["selected_skill_ids"]
+        summary = payload["selection_reason_summary"]
+        if not isinstance(selected, list) or not all(
+            isinstance(value, str) for value in selected
+        ):
+            raise StructuredOutputViolation("SKILL_IDS_SCHEMA")
+        if len(selected) != len(set(selected)):
+            raise StructuredOutputViolation("SKILL_DUPLICATE_IDS")
+        if len(selected) > self._maximum:
+            raise StructuredOutputViolation("SKILL_MAX_SELECTED")
+        if not isinstance(summary, str) or not summary.strip() or len(summary.strip()) > 1000:
+            raise StructuredOutputViolation("SKILL_SUMMARY_SCHEMA")
+        try:
+            result = SkillSelectionResult(tuple(selected), summary)
+        except ValueError as exc:
+            raise StructuredOutputViolation("SKILL_IDS_SCHEMA") from exc
+        available_ids = {metadata.skill_id for metadata in available_skills}
+        if not set(result.selected_skill_ids) <= available_ids:
+            raise StructuredOutputViolation("SKILL_UNKNOWN_ID")
+        return result
 
 
 def _selection_messages(

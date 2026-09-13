@@ -9,7 +9,11 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from nexus.application.model_call_context import bind_model_call_phase
+from nexus.application.structured_output import (
+    StructuredOutputViolation,
+    append_retry_feedback,
+    complete_structured,
+)
 from nexus.context.manager import context_payload
 from nexus.domain.agent_decision import (
     AgentDecision,
@@ -59,14 +63,6 @@ _AGENT_TOP_LEVEL_KEYS = {"kind", "summary", "action"}
 _ACTION_KEYS = {"tool_name", "arguments"}
 
 
-class _StructuredOutputViolation(ValueError):
-    """Safe structural category without retaining model-authored content."""
-
-    def __init__(self, category: str) -> None:
-        self.category = category
-        super().__init__(category)
-
-
 class ModelPlanner:
     def __init__(
         self,
@@ -83,68 +79,19 @@ class ModelPlanner:
 
     async def create_plan(self, request: PlanningRequest) -> Plan:
         try:
-            if self._prepare_input is not None:
-                request = replace(
-                    request,
-                    context=self._prepare_input(
-                        request.context,
-                        lambda context: _planning_messages(
-                            replace(request, context=context), self._tool_metadata
-                        ),
-                    ),
-                )
             phase = (
                 ModelCallPhase.PLAN
                 if request.kind is PlanKind.INITIAL
                 else ModelCallPhase.REPLAN
             )
-            with bind_model_call_phase(phase):
-                response = await self._model_gateway.complete(
-                    _planning_messages(request, self._tool_metadata)
-                )
-            payload = _json_object(response.content)
-            _require_exact_keys(payload, _PLAN_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
-            steps = self._steps(payload.get("steps"))
-            rationale = _required_text(payload.get("rationale_summary"))
-            if request.kind is PlanKind.INITIAL:
-                if request.reason is not None:
-                    raise ValueError("INITIAL planning request is inconsistent.")
-                plan_id = str(uuid4())
-                version = 1
-                reason = None
-            else:
-                previous_plan = request.previous_plan
-                if previous_plan is None or not (request.reason or "").strip():
-                    raise ValueError("REPLAN request is incomplete.")
-                if (
-                    request.run_id != previous_plan.run_id
-                    or request.session_id != previous_plan.session_id
-                ):
-                    raise ValueError("REPLAN cannot change Run or Session identity.")
-                plan_id = previous_plan.plan_id
-                version = previous_plan.version + 1
-                reason = request.reason
-            scope = derive_authorization_scope(steps)
-            try:
-                return Plan(
-                    plan_id,
-                    request.run_id,
-                    request.session_id,
-                    version,
-                    request.kind,
-                    PlanStatus.CREATED,
-                    ApprovalDecision.PENDING,
-                    steps,
-                    scope,
-                    rationale,
-                    reason,
-                    None,
-                    compute_scope_digest(plan_id, version, scope),
-                    datetime.now(UTC),
-                    None,
-                )
-            except ValueError as exc:
-                raise _StructuredOutputViolation("PLAN_SCHEMA") from exc
+            return await complete_structured(
+                self._model_gateway,
+                phase=phase,
+                messages_for_attempt=lambda feedback: self._plan_messages(
+                    request, feedback
+                ),
+                parse=lambda content: self._parse_plan(content, request),
+            )
         except (ModelError, ContextError):
             raise
         except Exception as exc:
@@ -154,45 +101,86 @@ class ModelPlanner:
                 retryable=True,
             ) from exc
 
+    def _plan_messages(
+        self,
+        request: PlanningRequest,
+        feedback: ModelMessage | None,
+    ) -> tuple[ModelMessage, ...]:
+        prepared = request
+        if self._prepare_input is not None:
+            prepared = replace(
+                request,
+                context=self._prepare_input(
+                    request.context,
+                    lambda context: append_retry_feedback(
+                        _planning_messages(
+                            replace(request, context=context), self._tool_metadata
+                        ),
+                        feedback,
+                    ),
+                ),
+            )
+        return append_retry_feedback(
+            _planning_messages(prepared, self._tool_metadata), feedback
+        )
+
+    def _parse_plan(self, content: str, request: PlanningRequest) -> Plan:
+        payload = _json_object(content)
+        _require_exact_keys(payload, _PLAN_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
+        steps = self._steps(payload.get("steps"))
+        rationale = _required_text(payload.get("rationale_summary"))
+        if request.kind is PlanKind.INITIAL:
+            if request.reason is not None:
+                raise ValueError("INITIAL planning request is inconsistent.")
+            plan_id = str(uuid4())
+            version = 1
+            reason = None
+        else:
+            previous_plan = request.previous_plan
+            if previous_plan is None or not (request.reason or "").strip():
+                raise ValueError("REPLAN request is incomplete.")
+            if (
+                request.run_id != previous_plan.run_id
+                or request.session_id != previous_plan.session_id
+            ):
+                raise ValueError("REPLAN cannot change Run or Session identity.")
+            plan_id = previous_plan.plan_id
+            version = previous_plan.version + 1
+            reason = request.reason
+        scope = derive_authorization_scope(steps)
+        try:
+            return Plan(
+                plan_id,
+                request.run_id,
+                request.session_id,
+                version,
+                request.kind,
+                PlanStatus.CREATED,
+                ApprovalDecision.PENDING,
+                steps,
+                scope,
+                rationale,
+                reason,
+                None,
+                compute_scope_digest(plan_id, version, scope),
+                datetime.now(UTC),
+                None,
+            )
+        except ValueError as exc:
+            raise StructuredOutputViolation("PLAN_SCHEMA") from exc
+
     async def create_repair_guidance(
         self,
         request: RepairPlanningRequest,
     ) -> RepairGuidance:
         try:
-            if self._prepare_input is not None:
-                request = replace(
-                    request,
-                    context=self._prepare_input(
-                        request.context,
-                        lambda context: _repair_messages(
-                            replace(request, context=context), self._tool_metadata
-                        ),
-                    ),
-                )
-            with bind_model_call_phase(ModelCallPhase.REPAIR):
-                response = await self._model_gateway.complete(
-                    _repair_messages(request, self._tool_metadata)
-                )
-            payload = _json_object(response.content)
-            _require_exact_keys(payload, {"failure_summary", "steps"}, "TOP_LEVEL_KEYS")
-            steps = self._steps(payload.get("steps"))
-            scope = derive_authorization_scope(steps)
-            approved = request.plan.authorization_scope
-            writes_expand = not set(scope.allowed_write_actions) <= set(
-                approved.allowed_write_actions
-            )
-            commands_expand = not set(scope.allowed_commands) <= set(approved.allowed_commands)
-            if writes_expand or commands_expand:
-                raise ModelError(
-                    "Repair guidance attempted to expand approved Plan scope.",
-                    code="REPAIR_SCOPE_EXPANSION",
-                )
-            return RepairGuidance(
-                request.plan.plan_id,
-                request.plan.version,
-                request.repair_attempt,
-                steps,
-                _required_text(payload.get("failure_summary")),
+            return await complete_structured(
+                self._model_gateway,
+                phase=ModelCallPhase.REPAIR,
+                messages_for_attempt=lambda feedback: self._repair_messages(
+                    request, feedback
+                ),
+                parse=lambda content: self._parse_repair_guidance(content, request),
             )
         except (ModelError, ContextError):
             raise
@@ -203,35 +191,90 @@ class ModelPlanner:
                 retryable=True,
             ) from exc
 
+    def _repair_messages(
+        self,
+        request: RepairPlanningRequest,
+        feedback: ModelMessage | None,
+    ) -> tuple[ModelMessage, ...]:
+        prepared = request
+        if self._prepare_input is not None:
+            prepared = replace(
+                request,
+                context=self._prepare_input(
+                    request.context,
+                    lambda context: append_retry_feedback(
+                        _repair_messages(
+                            replace(request, context=context), self._tool_metadata
+                        ),
+                        feedback,
+                    ),
+                ),
+            )
+        return append_retry_feedback(
+            _repair_messages(prepared, self._tool_metadata), feedback
+        )
+
+    def _parse_repair_guidance(
+        self,
+        content: str,
+        request: RepairPlanningRequest,
+    ) -> RepairGuidance:
+        payload = _json_object(content)
+        _require_exact_keys(payload, {"failure_summary", "steps"}, "TOP_LEVEL_KEYS")
+        steps = self._steps(payload.get("steps"))
+        scope = derive_authorization_scope(steps)
+        approved = request.plan.authorization_scope
+        writes_expand = not set(scope.allowed_write_actions) <= set(
+            approved.allowed_write_actions
+        )
+        commands_expand = not set(scope.allowed_commands) <= set(approved.allowed_commands)
+        if writes_expand or commands_expand:
+            raise ModelError(
+                "Repair guidance attempted to expand approved Plan scope.",
+                code="REPAIR_SCOPE_EXPANSION",
+            )
+        try:
+            return RepairGuidance(
+                request.plan.plan_id,
+                request.plan.version,
+                request.repair_attempt,
+                steps,
+                _required_text(payload.get("failure_summary")),
+            )
+        except StructuredOutputViolation:
+            raise
+        except ValueError as exc:
+            raise StructuredOutputViolation("PLAN_SCHEMA") from exc
+
     def _steps(self, value: object) -> tuple[PlanStep, ...]:
         if not isinstance(value, list) or not value:
-            raise _StructuredOutputViolation("STEPS_SCHEMA")
+            raise StructuredOutputViolation("STEPS_SCHEMA")
         steps: list[PlanStep] = []
         for sequence, item in enumerate(value, start=1):
             if not isinstance(item, dict):
-                raise _StructuredOutputViolation("STEP_SCHEMA")
+                raise StructuredOutputViolation("STEP_SCHEMA")
             _require_exact_keys(item, _PLAN_STEP_KEYS, "STEP_KEYS")
             tool_name = item.get("tool_name")
             if tool_name is not None and not isinstance(tool_name, str):
-                raise _StructuredOutputViolation("STEP_SCHEMA")
+                raise StructuredOutputViolation("STEP_SCHEMA")
             raw_paths = item.get("target_paths", [])
             if not isinstance(raw_paths, list) or not all(
                 isinstance(path, str) for path in raw_paths
             ):
-                raise _StructuredOutputViolation("STEP_SCHEMA")
+                raise StructuredOutputViolation("STEP_SCHEMA")
             raw_argv = item.get("command_argv")
             if raw_argv is not None and (
                 not isinstance(raw_argv, list)
                 or not raw_argv
                 or not all(isinstance(part, str) and part for part in raw_argv)
             ):
-                raise _StructuredOutputViolation("STEP_SCHEMA")
+                raise StructuredOutputViolation("STEP_SCHEMA")
             argv = None if raw_argv is None else tuple(self._normalize_argv(raw_argv))
             cwd = item.get("command_cwd")
             if argv is not None and cwd is None:
                 cwd = "."
             if cwd is not None and not isinstance(cwd, str):
-                raise _StructuredOutputViolation("STEP_SCHEMA")
+                raise StructuredOutputViolation("STEP_SCHEMA")
             try:
                 steps.append(
                     PlanStep(
@@ -245,10 +288,10 @@ class ModelPlanner:
                         PlanStepStatus.PENDING,
                     )
                 )
-            except _StructuredOutputViolation:
+            except StructuredOutputViolation:
                 raise
             except ValueError as exc:
-                raise _StructuredOutputViolation(
+                raise StructuredOutputViolation(
                     _plan_step_violation_category(exc)
                 ) from exc
         return tuple(steps)
@@ -267,51 +310,14 @@ class JsonAgentDecisionAdapter:
 
     async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
         try:
-            if self._prepare_input is not None:
-                request = replace(
-                    request,
-                    context=self._prepare_input(
-                        request.context,
-                        lambda context: _agent_messages(
-                            replace(request, context=context), self._tool_metadata
-                        ),
-                    ),
-                )
-            with bind_model_call_phase(ModelCallPhase.AGENT_STEP):
-                response = await self._model_gateway.complete(
-                    _agent_messages(request, self._tool_metadata)
-                )
-            payload = _json_object(response.content)
-            _require_exact_keys(payload, _AGENT_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
-            try:
-                kind = AgentDecisionKind(_required_text(payload.get("kind")))
-            except _StructuredOutputViolation:
-                raise
-            except ValueError as exc:
-                raise _StructuredOutputViolation("KIND_ENUM") from exc
-            action_value = payload.get("action")
-            action: ToolAction | None = None
-            if action_value is not None:
-                if not isinstance(action_value, dict) or set(action_value) != _ACTION_KEYS:
-                    raise _StructuredOutputViolation("ACTION_SCHEMA")
-                arguments = action_value.get("arguments")
-                if not isinstance(arguments, dict):
-                    raise _StructuredOutputViolation("ACTION_SCHEMA")
-                try:
-                    action = ToolAction(
-                        _required_text(action_value.get("tool_name")),
-                        dict(arguments),
-                    )
-                except (TypeError, ValueError) as exc:
-                    raise _StructuredOutputViolation("ACTION_SCHEMA") from exc
-            if (kind is AgentDecisionKind.TOOL_ACTION) != (action is not None):
-                raise _StructuredOutputViolation("ACTION_RELATION")
-            try:
-                return AgentDecision(kind, action, _required_text(payload.get("summary")))
-            except _StructuredOutputViolation:
-                raise
-            except ValueError as exc:
-                raise _StructuredOutputViolation("ACTION_RELATION") from exc
+            return await complete_structured(
+                self._model_gateway,
+                phase=ModelCallPhase.AGENT_STEP,
+                messages_for_attempt=lambda feedback: self._decision_messages(
+                    request, feedback
+                ),
+                parse=self._parse_decision,
+            )
         except (ModelError, ContextError):
             raise
         except Exception as exc:
@@ -321,31 +327,88 @@ class JsonAgentDecisionAdapter:
                 retryable=True,
             ) from exc
 
+    def _decision_messages(
+        self,
+        request: AgentDecisionRequest,
+        feedback: ModelMessage | None,
+    ) -> tuple[ModelMessage, ...]:
+        prepared = request
+        if self._prepare_input is not None:
+            prepared = replace(
+                request,
+                context=self._prepare_input(
+                    request.context,
+                    lambda context: append_retry_feedback(
+                        _agent_messages(
+                            replace(request, context=context), self._tool_metadata
+                        ),
+                        feedback,
+                    ),
+                ),
+            )
+        return append_retry_feedback(
+            _agent_messages(prepared, self._tool_metadata), feedback
+        )
+
+    @staticmethod
+    def _parse_decision(content: str) -> AgentDecision:
+        payload = _json_object(content)
+        _require_exact_keys(payload, _AGENT_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
+        try:
+            kind = AgentDecisionKind(_required_text(payload.get("kind")))
+        except StructuredOutputViolation:
+            raise
+        except ValueError as exc:
+            raise StructuredOutputViolation("KIND_ENUM") from exc
+        action_value = payload.get("action")
+        action: ToolAction | None = None
+        if action_value is not None:
+            if not isinstance(action_value, dict) or set(action_value) != _ACTION_KEYS:
+                raise StructuredOutputViolation("ACTION_SCHEMA")
+            arguments = action_value.get("arguments")
+            if not isinstance(arguments, dict):
+                raise StructuredOutputViolation("ACTION_SCHEMA")
+            try:
+                action = ToolAction(
+                    _required_text(action_value.get("tool_name")),
+                    dict(arguments),
+                )
+            except (TypeError, ValueError) as exc:
+                raise StructuredOutputViolation("ACTION_SCHEMA") from exc
+        if (kind is AgentDecisionKind.TOOL_ACTION) != (action is not None):
+            raise StructuredOutputViolation("ACTION_RELATION")
+        try:
+            return AgentDecision(kind, action, _required_text(payload.get("summary")))
+        except StructuredOutputViolation:
+            raise
+        except ValueError as exc:
+            raise StructuredOutputViolation("ACTION_RELATION") from exc
+
 
 def _json_object(content: str) -> dict[str, Any]:
     try:
         value = json.loads(content)
-    except json.JSONDecodeError as exc:
-        raise _StructuredOutputViolation("JSON_DECODE") from exc
+    except json.JSONDecodeError:
+        raise StructuredOutputViolation("JSON_DECODE") from None
     if not isinstance(value, dict):
-        raise _StructuredOutputViolation("TOP_LEVEL_TYPE")
+        raise StructuredOutputViolation("TOP_LEVEL_TYPE")
     return value
 
 
 def _required_text(value: object) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise _StructuredOutputViolation("REQUIRED_FIELD")
+        raise StructuredOutputViolation("REQUIRED_FIELD")
     return value.strip()
 
 
 def _require_exact_keys(value: dict[str, Any], expected: set[str], category: str) -> None:
     if set(value) != expected:
-        raise _StructuredOutputViolation(category)
+        raise StructuredOutputViolation(category)
 
 
 def _invalid_output_message(subject: str, error: Exception) -> str:
     category = (
-        error.category if isinstance(error, _StructuredOutputViolation) else "SCHEMA_VALIDATION"
+        error.category if isinstance(error, StructuredOutputViolation) else "SCHEMA_VALIDATION"
     )
     return f"The model returned invalid {subject}. Category: {category}."
 

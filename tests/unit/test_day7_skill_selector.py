@@ -31,6 +31,16 @@ class Gateway:
             yield ModelChunk("")
 
 
+class QueueGateway(Gateway):
+    def __init__(self, *responses: str) -> None:
+        super().__init__()
+        self.responses = list(responses)
+
+    async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
+        self.messages.append(messages)
+        return ModelResponse(self.responses.pop(0))
+
+
 class Guard:
     def __init__(self, error: ContextError | None = None) -> None:
         self.calls: list[tuple[Sequence[ModelMessage], str]] = []
@@ -122,22 +132,40 @@ async def test_budget_failure_precedes_model() -> None:
 
 
 @pytest.mark.parametrize(
-    "content",
+    ("content", "category"),
     (
-        "not json",
-        "[]",
-        '{}',
-        '{"selected_skill_ids":[],"selection_reason_summary":"none","extra":1}',
-        '{"selected_skill_ids":["missing"],"selection_reason_summary":"unknown"}',
-        '{"selected_skill_ids":["debug-python","debug-python"],'
-        '"selection_reason_summary":"duplicate"}',
-        '{"selected_skill_ids":"debug-python","selection_reason_summary":"wrong type"}',
-        '{"selected_skill_ids":[1],"selection_reason_summary":"wrong item type"}',
-        '{"selected_skill_ids":[],"selection_reason_summary":1}',
-        '{"selected_skill_ids":[],"selection_reason_summary":""}',
+        ("not json", "JSON_DECODE"),
+        ("[]", "TOP_LEVEL_TYPE"),
+        ('{}', "TOP_LEVEL_KEYS"),
+        (
+            '{"selected_skill_ids":[],"selection_reason_summary":"none","extra":1}',
+            "TOP_LEVEL_KEYS",
+        ),
+        (
+            '{"selected_skill_ids":["missing"],"selection_reason_summary":"unknown"}',
+            "SKILL_UNKNOWN_ID",
+        ),
+        (
+            '{"selected_skill_ids":["debug-python","debug-python"],'
+            '"selection_reason_summary":"duplicate"}',
+            "SKILL_DUPLICATE_IDS",
+        ),
+        (
+            '{"selected_skill_ids":"debug-python","selection_reason_summary":"wrong type"}',
+            "SKILL_IDS_SCHEMA",
+        ),
+        (
+            '{"selected_skill_ids":[1],"selection_reason_summary":"wrong item type"}',
+            "SKILL_IDS_SCHEMA",
+        ),
+        ('{"selected_skill_ids":[],"selection_reason_summary":1}', "SKILL_SUMMARY_SCHEMA"),
+        ('{"selected_skill_ids":[],"selection_reason_summary":""}', "SKILL_SUMMARY_SCHEMA"),
     ),
 )
-async def test_invalid_structured_selection_has_no_fallback(content: str) -> None:
+async def test_invalid_structured_selection_stops_after_one_retry(
+    content: str,
+    category: str,
+) -> None:
     gateway = Gateway(content)
     with pytest.raises(ContextError) as caught:
         await ModelSkillSelector(gateway, 2, Guard()).select(
@@ -147,6 +175,52 @@ async def test_invalid_structured_selection_has_no_fallback(content: str) -> Non
         )
     assert caught.value.code == "SKILL_SELECTION_FAILED"
     assert caught.value.retryable
+    assert f"Category: {category}" in str(caught.value)
+
+
+async def test_invalid_selection_retries_once_and_returns_valid_replacement() -> None:
+    gateway = QueueGateway(
+        "SENSITIVE invalid selection",
+        '{"selected_skill_ids":["debug-python"],'
+        '"selection_reason_summary":"Matches the task."}',
+    )
+
+    result = await ModelSkillSelector(gateway, 2, Guard()).select(
+        run_id="run",
+        task="task",
+        available_skills=(metadata(),),
+    )
+
+    assert result.selected_skill_ids == ("debug-python",)
+    assert len(gateway.messages) == 2
+    feedback = gateway.messages[1][-1].content
+    assert "Category: JSON_DECODE" in feedback
+    assert "SENSITIVE" not in feedback
+
+
+async def test_retry_budget_failure_prevents_second_model_call() -> None:
+    gateway = Gateway("invalid")
+
+    class RetryGuard(Guard):
+        def ensure_fits(
+            self,
+            messages: Sequence[ModelMessage],
+            *,
+            error_code: str,
+        ) -> None:
+            super().ensure_fits(messages, error_code=error_code)
+            if len(self.calls) == 2:
+                raise ContextError("too large", code=error_code)
+
+    with pytest.raises(ContextError) as caught:
+        await ModelSkillSelector(gateway, 2, RetryGuard()).select(
+            run_id="run",
+            task="task",
+            available_skills=(metadata(),),
+        )
+
+    assert caught.value.code == "SKILL_SELECTION_BUDGET_EXCEEDED"
+    assert len(gateway.messages) == 1
 
 
 async def test_valid_two_skill_order_and_no_match_are_preserved() -> None:

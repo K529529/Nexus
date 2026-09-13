@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
@@ -11,6 +13,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence
 from nexus.application.execution_ledger import RuntimeEventBuffer, ToolExecutionLedger
 from nexus.application.plan_approval_service import PlanApprovalService
+from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.config.models import ApprovalMode
 from nexus.domain.agent_decision import (
@@ -27,7 +30,7 @@ from nexus.domain.exploration import (
     ExplorationResult,
     WorkingContext,
 )
-from nexus.domain.model import ModelMessage
+from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
     Plan,
@@ -44,7 +47,7 @@ from nexus.domain.ports.agent_decision import AgentDecisionAdapter
 from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
 from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
-from nexus.domain.runtime_events import FinalResult, RuntimeStatus
+from nexus.domain.runtime_events import FinalResult, RepairStarted, RuntimeStatus
 from nexus.domain.tooling import (
     ApprovalDecision,
     PolicyDecision,
@@ -179,6 +182,27 @@ class ReadyDecisions:
         return AgentDecision(AgentDecisionKind.TASK_READY, None, "Ready to validate.")
 
 
+class QueueAgentGateway:
+    def __init__(self, ledger: ToolExecutionLedger, *responses: str) -> None:
+        self._ledger = ledger
+        self._responses = list(responses)
+        self._run_id: str | None = None
+
+    async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
+        del messages
+        assert self._run_id is not None
+        self._ledger.begin_model(self._run_id)
+        return ModelResponse(self._responses.pop(0))
+
+    async def stream(self, messages: Sequence[ModelMessage]) -> AsyncIterator[ModelChunk]:
+        del messages
+        if False:
+            yield ModelChunk("")
+
+    def bind_run(self, run_id: str) -> None:
+        self._run_id = run_id
+
+
 class OneActionRuntime:
     def __init__(
         self,
@@ -289,6 +313,64 @@ class FailingRepairPlanner(FixedPlanner):
         raise ModelError("Repair planning model failed.", retryable=True)
 
 
+class RetryRepairPlanner(FixedPlanner):
+    def __init__(self, ledger: ToolExecutionLedger) -> None:
+        super().__init__()
+        self.gateway = QueueAgentGateway(
+            ledger,
+            json.dumps(
+                {
+                    "failure_summary": "Invalid target count.",
+                    "steps": [
+                        {
+                            "description": "Edit alpha",
+                            "tool_name": "apply_patch",
+                            "target_paths": [],
+                            "command_argv": None,
+                            "command_cwd": None,
+                        }
+                    ],
+                }
+            ),
+            json.dumps(
+                {
+                    "failure_summary": "Use the approved edit.",
+                    "steps": [
+                        {
+                            "description": "Edit alpha",
+                            "tool_name": "apply_patch",
+                            "target_paths": ["alpha.py"],
+                            "command_argv": None,
+                            "command_cwd": None,
+                        }
+                    ],
+                }
+            ),
+        )
+        self.model_planner = ModelPlanner(self.gateway)
+
+    async def create_repair_guidance(
+        self, request: RepairPlanningRequest
+    ) -> RepairGuidance:
+        self.gateway.bind_run(request.plan.run_id)
+        return await self.model_planner.create_repair_guidance(request)
+
+
+class RepairThenPassValidationRunner:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def run(
+        self,
+        plan: ValidationPlan,
+        **kwargs: Any,
+    ) -> ValidationResult:
+        self.calls += 1
+        if self.calls == 1:
+            return await RepairableValidationRunner().run(plan, **kwargs)
+        return await PassValidationRunner().run(plan, **kwargs)
+
+
 class AutoPlanApprovals:
     async def create_auto_approved(self, plan: Plan) -> ApprovalRequest:
         now = datetime.now(UTC)
@@ -396,6 +478,57 @@ async def test_day4_graph_runs_approved_edit_observe_validate_and_finalize() -> 
 
 
 @pytest.mark.asyncio
+async def test_agent_structured_retry_executes_no_tool_before_valid_decision() -> None:
+    ledger = ToolExecutionLedger()
+    gateway = QueueAgentGateway(
+        ledger,
+        json.dumps(
+            {
+                "kind": "TASK_READY",
+                "summary": "Malformed action relation.",
+                "action": {"tool_name": "apply_patch", "arguments": {}},
+            }
+        ),
+        json.dumps(
+            {
+                "kind": "TOOL_ACTION",
+                "summary": "Apply the approved edit.",
+                "action": {
+                    "tool_name": "apply_patch",
+                    "arguments": {"path": "alpha.py", "patch": "bounded"},
+                },
+            }
+        ),
+        json.dumps(
+            {"kind": "TASK_READY", "summary": "Ready.", "action": None}
+        ),
+    )
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=RuntimeEventBuffer(),
+        planner=FixedPlanner(),
+        agent=JsonAgentDecisionAdapter(gateway),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "edit alpha",
+        [ModelMessage(role="user", content="edit alpha")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+    gateway.bind_run(state.run_id)
+
+    result = await runtime.run(state)
+
+    assert result.terminal_status is TerminalStatus.SUCCEEDED
+    assert result.step_count == 2
+    assert result.llm_call_count == 3
+    assert result.tool_call_count == 1
+    assert len(result.observations) == 1
+
+
+@pytest.mark.asyncio
 async def test_plan_scope_denial_is_only_replan_trigger_and_stops_at_limit() -> None:
     ledger = ToolExecutionLedger()
     events = RuntimeEventBuffer()
@@ -486,3 +619,35 @@ async def test_repair_attempt_and_failed_planning_call_are_checkpointed_on_entry
     assert snapshot.values["step_count"] == 1
     assert snapshot.values["repair_count"] == 1
     assert snapshot.values["llm_call_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_repair_structured_retry_does_not_consume_validation_repair_budget() -> None:
+    ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
+    validation = RepairThenPassValidationRunner()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=events,
+        planner=RetryRepairPlanner(ledger),
+        agent=cast(AgentDecisionAdapter, ReadyDecisions()),
+        tool_runtime=OneActionRuntime(ledger),
+        validation_runner=cast(ValidationRunner, validation),
+    )
+    state = AgentState(
+        "edit alpha",
+        [ModelMessage(role="user", content="edit alpha")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+
+    result = await runtime.run(state)
+    emitted = events.drain(state.run_id)
+
+    assert result.terminal_status is TerminalStatus.SUCCEEDED
+    assert result.step_count == 2
+    assert result.llm_call_count == 2
+    assert result.repair_count == 1
+    assert result.tool_call_count == 0
+    assert len([event for event in emitted if isinstance(event, RepairStarted)]) == 1
