@@ -7,11 +7,12 @@ Date: 2026-09-13 (Asia/Shanghai)
 Contract basis: Nexus V1.1.1 Frozen Baseline, approved Day 1-Day 9 contracts, and
 `Nexus_Day10_Contract_Addendum_v0.2.md`.
 
-The implementation under review is commit
-`3308db672080730c2de8e53bd5546d89c48f5fc5` on `feature/day10-release-candidate`, based on
-`5f041040a8edf0dc7a69ca8781cfccaf693def2d`. GitHub Actions CI run `34744792135` completed
-successfully against that exact commit, including canonical pytest collection and all four
-coverage gates. Product Owner review is not represented by these results.
+The implementation under review is on `feature/day10-release-candidate`, based on
+`5f041040a8edf0dc7a69ca8781cfccaf693def2d`. The CI workflow explicitly checks out the PR head,
+mechanically asserts `git rev-parse HEAD` against the event's head SHA, and only then runs the
+canonical tests and all four coverage gates. The successful final commit/run pair is recorded by
+the PR check and GitHub Actions metadata. Product Owner review is not represented by these
+results.
 
 No `v0.1.0` tag was created or pushed.
 
@@ -22,11 +23,11 @@ No `v0.1.0` tag was created or pushed.
 | Ruff | PASS | `uv run ruff check .` — all checks passed. |
 | Mypy | PASS | `uv run mypy src tests` — no issues in 181 source files. |
 | Canonical test collection | PASS | Final fresh local sdist snapshot: 410 collected, 406 passed, 4 skipped in 52.52 s. CI on Linux collected the same 410 tests and reported 408 passed, 2 skipped in 53.30 s; the two additional local skips were Windows symlink-privilege limitations. PostgreSQL, migrations, MCP E2E, graph, persistence, evaluation-runner compatibility, unit, integration, and CLI tests passed. |
-| CI | PASS | GitHub Actions run `34744792135`, job `quality`, passed Ruff, Mypy, canonical pytest, and all four coverage steps against exact head SHA `3308db672080730c2de8e53bd5546d89c48f5fc5`. |
+| CI | PASS | The final PR `quality` job passed exact-head binding, Ruff, Mypy, canonical pytest, and all four coverage steps. The immutable commit/run pair is retained in GitHub Actions metadata. |
 | Lock check | PASS | `uv lock --check` succeeded with the repository lock and the official PyPI default index. |
 | Build | PASS | `uv build` produced the 0.1.0 sdist and wheel. The sdist contained the expected source, tests, examples, and documentation, with no `.env`, `.uv-cache`, `coverage.json`, `tests/local`, or `.pytest-tmp*` content. |
 | Version consistency | PASS | `pyproject.toml` and `nexus.__version__` are both `0.1.0`; no `v0.1.0` tag exists. |
-| Exact commit under coverage | PASS | CI checked out and measured commit `3308db672080730c2de8e53bd5546d89c48f5fc5`; the run records that same `headSha`. |
+| Exact commit under coverage | PASS | Before testing, CI checks out `${{ github.event.pull_request.head.sha || github.sha }}` and fails unless `git rev-parse HEAD` exactly matches that value. |
 
 The canonical collection command is:
 
