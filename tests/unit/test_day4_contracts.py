@@ -266,6 +266,113 @@ async def test_planner_maps_invalid_structured_output() -> None:
 
 
 @pytest.mark.asyncio
+async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> None:
+    response = {
+        "rationale_summary": "Inspect and validate.",
+        "steps": [
+            {
+                "description": "Inspect alpha",
+                "tool_name": "read_file",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            }
+        ],
+    }
+    gateway = QueueGateway(json.dumps(response))
+    plan = _plan()
+
+    await ModelPlanner(gateway).create_plan(
+        PlanningRequest(
+            "explain alpha",
+            _context(),
+            PlanKind.INITIAL,
+            None,
+            None,
+            plan.run_id,
+            plan.session_id,
+        )
+    )
+
+    system = gateway.last_messages[0].content
+    assert "exactly the keys rationale_summary and steps" in system
+    assert "steps is a required non-empty array" in system
+    assert "Every step has exactly the keys" in system
+    assert "Read-only and repository-explanation tasks still require" in system
+    assert "Security tasks still require a legal non-authorizing narrative PlanStep" in system
+    assert "pytest ..., uv run pytest ..." in system
+    assert "Never use python -m pytest" in system
+    assert "Do not use a markdown fence" in system
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "category"),
+    [
+        ("SENSITIVE-not-json", "JSON_DECODE"),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "bounded",
+                    "steps": [],
+                    "SENSITIVE_EXTRA": True,
+                }
+            ),
+            "TOP_LEVEL_KEYS",
+        ),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "bounded",
+                    "steps": [{"description": "SENSITIVE"}],
+                }
+            ),
+            "STEP_KEYS",
+        ),
+        (json.dumps({"rationale_summary": "bounded", "steps": []}), "STEPS_SCHEMA"),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "",
+                    "steps": [
+                        {
+                            "description": "inspect",
+                            "tool_name": None,
+                            "target_paths": [],
+                            "command_argv": None,
+                            "command_cwd": None,
+                        }
+                    ],
+                }
+            ),
+            "REQUIRED_FIELD",
+        ),
+    ],
+)
+async def test_planner_reports_only_sanitized_parser_category(
+    response: str, category: str
+) -> None:
+    plan = _plan()
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(QueueGateway(response)).create_plan(
+            PlanningRequest(
+                "task",
+                _context(),
+                PlanKind.INITIAL,
+                None,
+                None,
+                plan.run_id,
+                plan.session_id,
+            )
+        )
+
+    assert failure.value.code == "INVALID_PLAN_OUTPUT"
+    assert f"Category: {category}" in str(failure.value)
+    assert "SENSITIVE" not in str(failure.value)
+
+
+@pytest.mark.asyncio
 async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> None:
     gateway = QueueGateway(
         json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
@@ -283,6 +390,68 @@ async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> N
     assert "TASK_READY only after all file modifications" in system
     assert "Validation node runs the exact commands" in system
     assert "Never repeat an approved edit" in system
+    assert "exactly the keys kind, summary, and action" in system
+    assert "For CONTINUE or TASK_READY, action must be null" in system
+    assert "Do not use a markdown fence" in system
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "category"),
+    [
+        ("SENSITIVE-not-json", "JSON_DECODE"),
+        (
+            json.dumps(
+                {
+                    "kind": "TASK_READY",
+                    "summary": "ready",
+                    "action": None,
+                    "SENSITIVE_EXTRA": True,
+                }
+            ),
+            "TOP_LEVEL_KEYS",
+        ),
+        (
+            json.dumps({"kind": "SENSITIVE_KIND", "summary": "ready", "action": None}),
+            "KIND_ENUM",
+        ),
+        (
+            json.dumps(
+                {
+                    "kind": "TOOL_ACTION",
+                    "summary": "act",
+                    "action": {"tool_name": "read_file"},
+                }
+            ),
+            "ACTION_SCHEMA",
+        ),
+        (
+            json.dumps(
+                {
+                    "kind": "TASK_READY",
+                    "summary": "ready",
+                    "action": {"tool_name": "read_file", "arguments": {}},
+                }
+            ),
+            "ACTION_RELATION",
+        ),
+        (
+            json.dumps({"kind": "TASK_READY", "summary": "", "action": None}),
+            "REQUIRED_FIELD",
+        ),
+    ],
+)
+async def test_agent_reports_only_sanitized_parser_category(
+    response: str, category: str
+) -> None:
+    with pytest.raises(ModelError) as failure:
+        await JsonAgentDecisionAdapter(QueueGateway(response)).decide(
+            AgentDecisionRequest("task", _context(), _plan(), ())
+        )
+
+    assert failure.value.code == "INVALID_AGENT_DECISION"
+    assert f"Category: {category}" in str(failure.value)
+    assert "SENSITIVE" not in str(failure.value)
 
 
 @pytest.mark.asyncio

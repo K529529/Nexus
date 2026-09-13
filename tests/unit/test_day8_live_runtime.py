@@ -9,6 +9,7 @@ import pytest
 
 from nexus.application.event_publisher import InProcessEventPublisher, LiveRuntimeEventBridge
 from nexus.application.execution_context import current_execution_context
+from nexus.application.execution_ledger import ToolExecutionLedger
 from nexus.application.runtime import NexusRuntime
 from nexus.application.session_service import SessionService
 from nexus.application.telemetry import EventEnricher
@@ -142,6 +143,58 @@ async def test_runtime_has_exactly_one_success_terminal_event() -> None:
 
     assert [type(event) for event in events] == [TaskStarted, FinalResult]
     assert sum(isinstance(event, FinalResult) for event in events) == 1
+
+
+@pytest.mark.asyncio
+async def test_failure_finish_recovers_actual_counts_from_execution_ledger() -> None:
+    publisher = InProcessEventPublisher()
+    bridge = LiveRuntimeEventBridge(publisher)
+    ledger = ToolExecutionLedger()
+
+    class FailingGraph(_LiveGraph):
+        async def run(
+            self, state: AgentState, *, thread_id: str | None = None
+        ) -> AgentState:
+            ledger.restore(
+                state.run_id,
+                tool_call_count=4,
+                model_call_count=3,
+                step_count=2,
+                repair_count=1,
+                tool_results=(),
+            )
+            raise NexusError("Safe structured failure.", code="INVALID_AGENT_DECISION")
+
+    class Telemetry:
+        def __init__(self) -> None:
+            self.finishes: list[TraceRunFinish] = []
+
+        def start_execution(self, start: TraceRunStart) -> None:
+            del start
+
+        def finish_execution(self, finish: TraceRunFinish) -> None:
+            self.finishes.append(finish)
+
+    telemetry = Telemetry()
+    runtime = NexusRuntime(
+        FailingGraph(bridge),
+        event_buffer=bridge,
+        event_publisher=publisher,
+        telemetry_subscriber=cast(TelemetrySubscriber, telemetry),
+        ledger=ledger,
+    )
+
+    events = [event async for event in runtime.run("safe task")]
+
+    assert [type(event) for event in events] == [TaskStarted, ErrorOccurred]
+    terminal = cast(ErrorOccurred, events[-1])
+    assert terminal.code == "INVALID_AGENT_DECISION"
+    assert len(telemetry.finishes) == 1
+    finish = telemetry.finishes[0]
+    assert finish.step_count == 2
+    assert finish.llm_call_count == 3
+    assert finish.tool_call_count == 4
+    assert finish.repair_count == 1
 
 
 @pytest.mark.asyncio
