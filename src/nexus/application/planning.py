@@ -514,9 +514,21 @@ def _planning_messages(
                 "target_paths is an array of strings; command_argv is a non-empty array of "
                 "non-empty strings or null; command_cwd is a string or null. Read-only and "
                 "repository-explanation tasks still require at least one read or narrative step. "
+                "Each apply_patch or write_file PlanStep must target exactly one file: its "
+                "target_paths must contain exactly one repository-relative path. If multiple "
+                "files must be modified, create multiple separate PlanStep objects, one editing "
+                "PlanStep per file. Valid multi-file shape: one apply_patch step targeting "
+                '["src/a.py"], then a separate apply_patch step targeting '
+                '["tests/test_a.py"]. Invalid shape: one apply_patch step targeting '
+                '["src/a.py","tests/test_a.py"]. An empty target_paths array is also invalid '
+                "for apply_patch or write_file. "
                 "Security tasks still require a legal non-authorizing narrative PlanStep; the "
-                "Agent may then propose the requested operation for the existing authorization "
-                "boundary to accept or deny. "
+                "Agent must then propose the requested operation for the existing authorization "
+                "boundary to accept or deny. The Plan must not add authority for that operation, "
+                "but its rationale and narrative step must direct the Agent to submit the "
+                "unchanged requested Tool action to ToolRuntime for an authoritative decision. "
+                "Do not tell the Agent to preemptively refuse, silently skip, or claim completion "
+                "before ToolRuntime records that decision. "
                 "Use apply_patch for existing files, write_file for new files, "
                 "and shell only for exact validation commands. Prefix validation "
                 "descriptions with TEST:, BUILD:, LINT:, TYPE_CHECK:, "
@@ -524,13 +536,21 @@ def _planning_messages(
                 "REPOSITORY_COMMAND:. Validation argv must use only policy-supported forms: "
                 "pytest ..., uv run pytest ..., mypy ..., uv run mypy ..., ruff check ..., or "
                 "uv run ruff check ..., plus uv build when a build check is required. Never use "
-                "python -m pytest. Do not include patch/file bodies. Valid example: "
-                '{"rationale_summary":"Inspect and validate the requested change.","steps":['
+                "python -m pytest. Do not include patch/file bodies. Valid editing example: "
+                '{"rationale_summary":"Edit one file and validate the change.","steps":['
                 '{"description":"Inspect the target file","tool_name":"read_file",'
                 '"target_paths":[],"command_argv":null,"command_cwd":null},'
+                '{"description":"Apply the approved change to one file",'
+                '"tool_name":"apply_patch","target_paths":["src/a.py"],'
+                '"command_argv":null,"command_cwd":null},'
                 '{"description":"TEST: run targeted tests","tool_name":"shell",'
                 '"target_paths":[],"command_argv":["pytest","-q","tests/test_target.py"],'
-                '"command_cwd":"."}]}. '
+                '"command_cwd":"."}]}. Valid security-boundary Plan example: '
+                '{"rationale_summary":"Route the requested operation to ToolRuntime for an '
+                'authoritative decision without granting it Plan authority.","steps":['
+                '{"description":"Submit the unchanged requested write_file action to '
+                'ToolRuntime exactly once for an allow-or-deny decision","tool_name":null,'
+                '"target_paths":[],"command_argv":null,"command_cwd":null}]}. '
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
@@ -548,6 +568,14 @@ def _repair_messages(
             content=(
                 _CONTEXT_AUTHORITY + "Return only JSON repair guidance with schema "
                 "{failure_summary:string,steps:[PlanStep-like objects]}. "
+                "Each apply_patch or write_file PlanStep must target exactly one file: its "
+                "target_paths must contain exactly one repository-relative path. If multiple "
+                "files must be modified, use multiple separate PlanStep objects, one editing "
+                "PlanStep per file. Never use an empty target_paths array or combine multiple "
+                "target paths in one editing step. Valid editing step: "
+                '{"description":"Apply the approved change to one file",'
+                '"tool_name":"apply_patch","target_paths":["src/a.py"],'
+                '"command_argv":null,"command_cwd":null}. '
                 "Use only Tool/path and exact validation command actions already "
                 "present in the approved Plan. Patch bodies are chosen later. "
                 + _tool_metadata_instruction(tool_metadata)
@@ -577,17 +605,42 @@ def _agent_messages(
                 '"action":null}. Valid Tool example: '
                 '{"kind":"TOOL_ACTION","summary":"Inspect the approved target.","action":'
                 '{"tool_name":"read_file","arguments":{"path":"target.py"}}}. '
+                "Valid authorization-boundary example when an out-of-scope write_file request "
+                "has no prior formal-denial observation: "
+                '{"kind":"TOOL_ACTION","summary":"Submit the unchanged request for an '
+                'authoritative policy decision.","action":{"tool_name":"write_file",'
+                '"arguments":{"path":"../external.txt","content":"requested content"}}}. '
+                "This example requests a ToolRuntime decision; it does not grant authority. "
                 "Return exactly one Tool action at most. Use apply_patch for an "
                 "existing file and write_file only for a path that does not exist. "
                 "apply_patch arguments are exactly {path:string,patch:string}; patch "
                 "must be an unfenced single-file unified diff whose first lines are "
                 "--- a/<path> and +++ b/<path>, followed by valid @@ hunk headers "
-                "and space/minus/plus-prefixed hunk lines with exact line counts. "
+                "and space/minus/plus-prefixed hunk lines with exact line counts. In every "
+                "hunk, old_count equals context lines plus removed (-) lines, and new_count "
+                "equals context lines plus added (+) lines; the hunk header counts include "
+                "context lines. Valid count example: "
+                "@@ -1,2 +1,2 @@\n context\n-old value\n+new value. "
+                "If an apply_patch observation reports a sanitized patch-format failure, "
+                "correct that exact defect and do not repeat an identical rejected patch. "
                 "write_file arguments are exactly {path:string,content:string}. "
                 "Never repeat an approved edit that a successful observation shows "
                 "is complete. Return TASK_READY only after all file modifications "
                 "required by the current approved Plan are complete. If any required "
                 "approved edit remains incomplete, return the next Tool action. "
+                "For read-only or repository-explanation tasks, TASK_READY.summary must "
+                "contain the complete grounded, user-facing answer to the user's task. Do "
+                "not merely state that inspection is complete; base the answer only on "
+                "repository, context, and Tool evidence. If the user's requested Tool action "
+                "is intentionally not authorized by the approved Plan, do not claim success "
+                "and do not silently skip it. If no observation yet records a formal denial for "
+                "that requested action, the next decision must be TOOL_ACTION with the requested "
+                "Tool and arguments. Submit it exactly once so ToolRuntime can make the "
+                "authoritative allow-or-deny decision; emitting TOOL_ACTION is only a request "
+                "for that decision and does not authorize or perform the operation by itself. "
+                "Never alter the action to bypass policy. If an observation records "
+                "PLAN_SCOPE_DENIED, PERMISSION_DENIED, or COMMAND_DENIED, do not repeat the "
+                "denied action. "
                 "do not execute validation commands as Agent Tool actions because "
                 "the Validation node runs the exact commands from the approved Plan. "
                 + _tool_metadata_instruction(tool_metadata)

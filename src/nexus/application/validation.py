@@ -81,7 +81,13 @@ class DeterministicValidationPlanner:
                     True,
                 )
             )
-        if changed_files:
+        read_only = (
+            not changed_files
+            and not plan.authorization_scope.allowed_write_actions
+            and not plan.authorization_scope.allowed_commands
+            and not candidates
+        )
+        if changed_files or read_only:
             checks.append(
                 ValidationCheck(
                     str(uuid4()),
@@ -114,6 +120,7 @@ class ToolValidationRunner:
         session_id: str,
         authorization: ApprovedPlanEvidence,
         repair_count: int,
+        changed: bool,
     ) -> ValidationResult:
         _validate_plan(plan, authorization)
         started = time.perf_counter()
@@ -142,10 +149,7 @@ class ToolValidationRunner:
 
         status = _aggregate_status(
             tuple(results),
-            changed=any(
-                check.kind is ValidationCheckKind.DIFF_INSPECTION
-                for check in plan.checks
-            ),
+            changed=changed,
         )
         confidence = _confidence(status, tuple(results))
         repairable = aggregate_repairable(status, tuple(results))

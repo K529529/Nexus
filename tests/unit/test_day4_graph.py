@@ -66,7 +66,10 @@ from nexus.domain.validation import (
     ValidationStatus,
 )
 from nexus.errors import ModelError
-from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
+from nexus.infrastructure.graph.day4_runtime import (
+    Day4LangGraphRuntime,
+    _observation_summary,
+)
 
 
 def _tool_result(
@@ -75,6 +78,7 @@ def _tool_result(
     *,
     success: bool,
     error_code: str | None = None,
+    error_message: str = "safe failure",
     output: dict[str, object] | None = None,
 ) -> ToolResult:
     return ToolResult(
@@ -82,12 +86,46 @@ def _tool_result(
         tool_name,
         success,
         output,
-        None if error_code is None else ToolError(error_code, "safe failure", False),
+        None if error_code is None else ToolError(error_code, error_message, False),
         RiskLevel.WRITE if tool_name == "apply_patch" else RiskLevel.SAFE,
         PolicyDecision.ALLOWED if error_code is None else PolicyDecision.DENIED,
         ApprovalDecision.APPROVED,
         1,
     )
+
+
+def test_patch_observation_exposes_only_allowlisted_safe_failure_detail() -> None:
+    count_mismatch = _tool_result(
+        str(uuid4()),
+        "apply_patch",
+        success=False,
+        error_code="INVALID_PATCH",
+        error_message="Patch hunk counts do not match.",
+    )
+    unknown_message = _tool_result(
+        str(uuid4()),
+        "apply_patch",
+        success=False,
+        error_code="INVALID_PATCH",
+        error_message="model-authored or dynamic detail",
+    )
+    action = ToolAction(
+        "apply_patch",
+        {
+            "path": "alpha.py",
+            "patch": (
+                "--- a/alpha.py\n+++ b/alpha.py\n@@ -1,2 +1,1 @@\n first\n-old\n+new"
+            ),
+        },
+    )
+
+    assert _observation_summary(count_mismatch, action) == (
+        "apply_patch failed with INVALID_PATCH: unified-diff hunk header counts do not "
+        "match the hunk body; the hunk declares old_count=2 and new_count=1, but its "
+        "body contains old_count=2 and new_count=2; regenerate the full patch with "
+        "header counts equal to the body counts."
+    )
+    assert _observation_summary(unknown_message) == "apply_patch failed with INVALID_PATCH."
 
 
 class Explorer:
@@ -180,6 +218,52 @@ class ReadyDecisions:
     async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
         del request
         return AgentDecision(AgentDecisionKind.TASK_READY, None, "Ready to validate.")
+
+
+class GroundedReadOnlyDecisions:
+    async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+        del request
+        return AgentDecision(
+            AgentDecisionKind.TASK_READY,
+            None,
+            "Blank records return None; malformed records raise ValueError.",
+        )
+
+
+class ReadOnlyPlanner(FixedPlanner):
+    async def create_plan(self, request: PlanningRequest) -> Plan:
+        self.calls += 1
+        plan_id = str(uuid4())
+        steps = (
+            PlanStep(
+                str(uuid4()),
+                1,
+                "Explain the selected repository behavior",
+                None,
+                (),
+                None,
+                None,
+                PlanStepStatus.PENDING,
+            ),
+        )
+        scope = derive_authorization_scope(steps)
+        return Plan(
+            plan_id,
+            request.run_id,
+            request.session_id,
+            1,
+            request.kind,
+            PlanStatus.CREATED,
+            ApprovalDecision.PENDING,
+            steps,
+            scope,
+            "Grounded read-only explanation.",
+            None,
+            None,
+            compute_scope_digest(plan_id, 1, scope),
+            datetime.now(UTC),
+            None,
+        )
 
 
 class QueueAgentGateway:
@@ -475,6 +559,35 @@ async def test_day4_graph_runs_approved_edit_observe_validate_and_finalize() -> 
     assert result.tool_call_count == 1
     assert planner.calls == 1
     assert isinstance(emitted[-1], FinalResult)
+
+
+@pytest.mark.asyncio
+async def test_read_only_task_ready_summary_reaches_final_result() -> None:
+    ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=events,
+        planner=ReadOnlyPlanner(),
+        agent=GroundedReadOnlyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "explain record parsing",
+        [ModelMessage(role="user", content="explain record parsing")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+
+    result = await runtime.run(state)
+    final = events.drain(state.run_id)[-1]
+
+    assert result.terminal_status is TerminalStatus.SUCCEEDED
+    assert isinstance(final, FinalResult)
+    assert final.content == (
+        "Blank records return None; malformed records raise ValueError."
+    )
 
 
 @pytest.mark.asyncio

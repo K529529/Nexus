@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import fields, replace
 from typing import Any, cast
@@ -25,6 +26,7 @@ from nexus.domain.agent_decision import (
     AgentDecisionKind,
     AgentDecisionRequest,
     Observation,
+    ToolAction,
 )
 from nexus.domain.agent_state import AgentState
 from nexus.domain.approvals import ApprovalRequest
@@ -64,6 +66,49 @@ from nexus.domain.runtime_events import (
 from nexus.domain.tooling import ApprovalDecision, RiskLevel, ToolInvocation, ToolResult
 from nexus.domain.validation import ValidationStatus
 from nexus.errors import NexusError
+
+_SAFE_PATCH_FAILURE_DETAILS = {
+    ("INVALID_PATCH", "The patch exceeds the Day 4 size limit."): "patch exceeds size limit",
+    ("INVALID_PATCH", "The patched file exceeds the Day 4 size limit."): (
+        "patched file exceeds size limit"
+    ),
+    ("INVALID_PATCH", "The patch target is not supported UTF-8 text."): (
+        "target is not supported UTF-8 text"
+    ),
+    ("INVALID_PATCH", "The patch target is not valid UTF-8 text."): (
+        "target is not valid UTF-8 text"
+    ),
+    ("INVALID_PATCH", "The patch has no valid hunk."): "patch has no valid hunk",
+    ("INVALID_PATCH", "Patch headers do not match the target."): (
+        "patch headers do not match the target path"
+    ),
+    ("INVALID_PATCH", "Multi-file patches are not allowed."): (
+        "patch must contain only one file"
+    ),
+    ("INVALID_PATCH", "The patch contains invalid hunk syntax."): (
+        "unified-diff hunk syntax is invalid"
+    ),
+    ("INVALID_PATCH", "Invalid no-newline marker."): "no-newline marker is invalid",
+    ("INVALID_PATCH", "Patch hunk body is invalid."): "unified-diff hunk body is invalid",
+    ("INVALID_PATCH", "Patch hunk counts do not match."): (
+        "unified-diff hunk header counts do not match the hunk body"
+    ),
+    ("INVALID_PATCH", "The patch has no hunk."): "patch has no hunk",
+    ("INVALID_PATCH", "The patch is invalid."): "patch is invalid",
+    ("PATCH_CONFLICT", "Patch hunk position is invalid."): "hunk position is invalid",
+    ("PATCH_CONFLICT", "No-newline marker conflicts with source."): (
+        "no-newline marker conflicts with current source"
+    ),
+    ("PATCH_CONFLICT", "Patch context does not match."): (
+        "patch context does not match current source"
+    ),
+    ("PATCH_NO_CHANGES", "The patch does not change file content."): (
+        "patch does not change file content"
+    ),
+}
+_PATCH_HUNK_HEADER = re.compile(
+    r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?: .*)?$"
+)
 
 
 class Day4LangGraphRuntime:
@@ -448,6 +493,11 @@ class Day4LangGraphRuntime:
         update: dict[str, object] = {
             "pending_tool_action": decision.action,
         }
+        if decision.kind is AgentDecisionKind.TASK_READY:
+            update["messages"] = [
+                *state.messages,
+                ModelMessage(role="assistant", content=decision.summary),
+            ]
         update = self._evidence_update(state, **update)
         if decision.kind is AgentDecisionKind.TOOL_ACTION:
             return Command(update=update, goto="execute_tool")
@@ -507,7 +557,7 @@ class Day4LangGraphRuntime:
             result.invocation_id,
             result.tool_name,
             result.success,
-            _observation_summary(result),
+            _observation_summary(result, action),
             code,
             reason,
         )
@@ -544,6 +594,7 @@ class Day4LangGraphRuntime:
             session_id=_session_id(state),
             authorization=state.approved_plan,
             repair_count=state.repair_count,
+            changed=bool(state.changed_files),
         )
         update = self._evidence_update(state, validation_result=result)
         if result.status is ValidationStatus.PASS:
@@ -596,11 +647,12 @@ class Day4LangGraphRuntime:
             if evidence.error_code is None
             else TerminalStatus.FAILED
         )
-        content = (
-            "Task completed with approved changes and validation evidence."
-            if terminal is TerminalStatus.SUCCEEDED
-            else "Task failed because an exact final diff was unavailable (DIFF_UNAVAILABLE)."
-        )
+        if terminal is TerminalStatus.SUCCEEDED and _is_read_only_completion(state):
+            content = _latest_assistant_content(state)
+        elif terminal is TerminalStatus.SUCCEEDED:
+            content = "Task completed with approved changes and validation evidence."
+        else:
+            content = "Task failed because an exact final diff was unavailable (DIFF_UNAVAILABLE)."
         return await self._emit_final(
             state,
             terminal,
@@ -833,7 +885,7 @@ def _record_change(
     )
 
 
-def _observation_summary(result: ToolResult) -> str:
+def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
     if result.success:
         if result.tool_name == "read_file" and result.output is not None:
             path = result.output.get("path")
@@ -842,4 +894,73 @@ def _observation_summary(result: ToolResult) -> str:
                 return f"read_file {path}:\n{content[:4000]}"
         return f"{result.tool_name} completed successfully."[:512]
     code = "UNKNOWN" if result.error is None else result.error.code
+    if result.tool_name == "apply_patch" and result.error is not None:
+        detail = _SAFE_PATCH_FAILURE_DETAILS.get((code, result.error.message))
+        if detail is not None:
+            if result.error.message == "Patch hunk counts do not match.":
+                count_detail = _patch_count_detail(action)
+                if count_detail is not None:
+                    detail = f"{detail}; {count_detail}"
+            return f"apply_patch failed with {code}: {detail}."[:512]
     return f"{result.tool_name} failed with {code}."[:512]
+
+
+def _patch_count_detail(action: ToolAction | None) -> str | None:
+    if action is None or action.tool_name != "apply_patch":
+        return None
+    patch = action.arguments.get("patch")
+    if not isinstance(patch, str):
+        return None
+    lines = patch.replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    for index, line in enumerate(lines):
+        match = _PATCH_HUNK_HEADER.match(line)
+        if match is None:
+            continue
+        declared_old = int(match.group(2) or "1")
+        declared_new = int(match.group(4) or "1")
+        body: list[str] = []
+        for candidate in lines[index + 1 :]:
+            if candidate.startswith("@@ "):
+                break
+            body.append(candidate)
+        actual_old = sum(
+            1
+            for candidate in body
+            if candidate != "\\ No newline at end of file"
+            and candidate.startswith((" ", "-"))
+        )
+        actual_new = sum(
+            1
+            for candidate in body
+            if candidate != "\\ No newline at end of file"
+            and candidate.startswith((" ", "+"))
+        )
+        if (declared_old, declared_new) != (actual_old, actual_new):
+            return (
+                f"the hunk declares old_count={declared_old} and "
+                f"new_count={declared_new}, but its body contains "
+                f"old_count={actual_old} and new_count={actual_new}; regenerate the full patch "
+                "with header counts equal to the body counts"
+            )
+    return None
+
+
+def _is_read_only_completion(state: AgentState) -> bool:
+    plan = state.plan
+    return bool(
+        plan is not None
+        and not state.changed_files
+        and not plan.authorization_scope.allowed_write_actions
+        and not plan.authorization_scope.allowed_commands
+    )
+
+
+def _latest_assistant_content(state: AgentState) -> str:
+    if state.messages and state.messages[-1].role == "assistant":
+        content = state.messages[-1].content.strip()
+        if content:
+            return content
+    raise NexusError(
+        "Read-only completion is missing the grounded Agent answer.",
+        code="GRAPH_INVALID_STATE",
+    )
