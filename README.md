@@ -1,5 +1,7 @@
 # Nexus
 
+English | [简体中文](README.zh-CN.md)
+
 Nexus is a transparent, async-first coding-agent runtime with a CLI adapter, durable PostgreSQL
 sessions/checkpoints, policy-governed native and MCP tools, bounded repository context, validated
 code editing, repository/user Skills, safe structured telemetry, and a deterministic evaluation

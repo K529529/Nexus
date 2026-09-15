@@ -1,6 +1,6 @@
 # Day 10 release evidence
 
-Status: **PASS — automated release-candidate evidence closed; Product Owner Knowledge Review is NOT RUN**
+Status: **PASS — Nexus v0.1.0 Release Candidate final acceptance complete**
 
 Date: 2026-09-14 (Asia/Shanghai)
 
@@ -15,6 +15,11 @@ gates. Evidence closure after that commit changes documentation only; production
 contracts, EVAL cases, the tracked baseline, and release criteria are unchanged.
 
 No merge was performed and no `v0.1.0` tag was created or pushed.
+
+Day 10 Product Owner Knowledge Review is complete and **PASS**. Automated / Technical Release
+Gates are **PASS**, the Product Owner Gate is **PASS**, and the Nexus v0.1.0 Release Candidate has
+completed final acceptance. Merge to `main` remains **NOT RUN**, and the `v0.1.0` tag remains
+**NOT CREATED / NOT PUSHED**; neither action is authorized in this documentation-only task.
 
 ## Build, quality, and coverage
 
@@ -188,11 +193,11 @@ The real-repository smoke was not repeated during the bounded canonical rerun.
 | EVAL-001 through EVAL-006 | PASS — 6/6 |
 | Release documentation/evidence bundle | PASS |
 | No V1-excluded feature introduced | PASS |
-| Product Owner Knowledge Review | NOT RUN |
+| Product Owner Knowledge Review | PASS |
 | Merge to `main` | NOT RUN — intentionally left for review |
 | Final `v0.1.0` tag | NOT RUN — intentionally deferred until Product Owner acceptance and merge |
 
-The implementation satisfies the automated and technical conditions for the
-**Nexus v0.1.0 Release Candidate**. Final Day 10 acceptance remains pending the Product Owner
-Knowledge Review. The PR must remain open, and neither merge nor tag creation is authorized by this
-evidence closure.
+Automated / Technical Release Gates and the Product Owner Gate are **PASS**. The
+**Nexus v0.1.0 Release Candidate** has completed final Day 10 acceptance. Merge to `main` remains
+**NOT RUN**, and the `v0.1.0` tag remains **NOT CREATED / NOT PUSHED**. Neither merge nor tag
+creation is authorized by this documentation-only closure.
