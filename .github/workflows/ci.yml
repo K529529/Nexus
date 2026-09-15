@@ -32,6 +32,16 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Bind gates to exact commit
+        shell: bash
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          echo "Coverage commit: $actual"
 
       - name: Install uv and Python
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -48,6 +58,33 @@ jobs:
       - name: Mypy
         run: uv run mypy src tests
 
-      - name: Pytest
-        run: uv run pytest
+      - name: Pytest with canonical coverage collection
+        run: >-
+          uv run pytest
+          --cov=nexus
+          --cov-report=term-missing
+          --cov-report=json:coverage.json
 
+      - name: Overall coverage gate
+        run: uv run coverage report --precision=2 --fail-under=70
+
+      - name: Runtime coverage gate
+        run: >-
+          uv run coverage report
+          --include="src/nexus/application/runtime.py"
+          --precision=2
+          --fail-under=80
+
+      - name: Permission and security coverage gate
+        run: >-
+          uv run coverage report
+          --include="src/nexus/security/*"
+          --precision=2
+          --fail-under=80
+
+      - name: Validation coverage gate
+        run: >-
+          uv run coverage report
+          --include="src/nexus/application/validation.py"
+          --precision=2
+          --fail-under=80

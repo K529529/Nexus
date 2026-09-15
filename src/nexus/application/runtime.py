@@ -536,8 +536,14 @@ class NexusRuntime:
         if state is not None and state.validation_result is not None:
             validation = TraceValidationStatus(state.validation_result.status.value)
         llm_call_count = 0 if state is None else state.llm_call_count
+        step_count = 0 if state is None else state.step_count
+        tool_call_count = 0 if state is None else state.tool_call_count
+        repair_count = 0 if state is None else state.repair_count
         if self._ledger is not None:
-            llm_call_count = self._ledger.model_count(context.run_id)
+            llm_call_count = max(llm_call_count, self._ledger.model_count(context.run_id))
+            step_count = max(step_count, self._ledger.step_count(context.run_id))
+            tool_call_count = max(tool_call_count, self._ledger.count(context.run_id))
+            repair_count = max(repair_count, self._ledger.repair_count(context.run_id))
         return TraceRunFinish(
             context=context,
             finished_at=datetime.now(UTC),
@@ -545,11 +551,11 @@ class NexusRuntime:
             runtime_status=terminal.status,
             terminal_status=terminal_status,
             duration_ms=max(0, int((time.perf_counter() - started) * 1000)),
-            step_count=0 if state is None else state.step_count,
+            step_count=step_count,
             llm_call_count=llm_call_count,
-            tool_call_count=0 if state is None else state.tool_call_count,
+            tool_call_count=tool_call_count,
             replan_count=0 if state is None else state.replan_count,
-            repair_count=0 if state is None else state.repair_count,
+            repair_count=repair_count,
             token_usage=aggregate.to_usage(),
             changed_file_count=0 if state is None else len(state.changed_files),
             validation_status=validation,

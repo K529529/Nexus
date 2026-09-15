@@ -28,4 +28,5 @@ class ValidationRunner(Protocol):
         session_id: str,
         authorization: ApprovedPlanEvidence,
         repair_count: int,
+        changed: bool,
     ) -> ValidationResult: ...

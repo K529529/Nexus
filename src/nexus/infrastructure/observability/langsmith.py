@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -41,16 +42,26 @@ class LangSmithTracer:
         self._project = project
         self._flush_timeout_seconds = flush_timeout_seconds
         self._root_events: dict[str, list[dict[str, object]]] = {}
+        self._dotted_orders: dict[str, dict[str, str]] = {}
+        self._parent_ids: dict[str, dict[str, str]] = {}
 
     async def start_run(self, start: TraceRunStart) -> None:
         context = start.context
+        root_id = UUID(context.execution_id)
+        root_dotted_order = _dotted_segment(context.started_at, root_id)
         self._root_events[context.execution_id] = []
+        self._dotted_orders[context.execution_id] = {
+            context.execution_id: root_dotted_order
+        }
+        self._parent_ids[context.execution_id] = {}
         await asyncio.to_thread(
             self._client.create_run,
             "nexus.run",
             {},
             "chain",
-            id=UUID(context.execution_id),
+            id=root_id,
+            trace_id=root_id,
+            dotted_order=root_dotted_order,
             project_name=self._project,
             start_time=context.started_at,
             outputs={},
@@ -89,6 +100,7 @@ class LangSmithTracer:
             self._client.update_run,
             UUID(event.execution_id),
             events=list(root_events),
+            **self._run_reference(event.execution_id, event.execution_id),
         )
 
     async def finish(self, finish: TraceRunFinish) -> None:
@@ -121,9 +133,12 @@ class LangSmithTracer:
             end_time=finish.finished_at,
             outputs=output,
             error=finish.error_code,
+            **self._run_reference(context.execution_id, context.execution_id),
         )
         await asyncio.to_thread(self._client.flush, self._flush_timeout_seconds)
         self._root_events.pop(context.execution_id, None)
+        self._dotted_orders.pop(context.execution_id, None)
+        self._parent_ids.pop(context.execution_id, None)
 
     async def close(self) -> None:
         await asyncio.to_thread(self._client.flush, self._flush_timeout_seconds)
@@ -133,16 +148,25 @@ class LangSmithTracer:
         if event.span_id is None:
             return
         run_type, name = _span_identity(event)
+        span_id = UUID(event.span_id)
+        parent_id = event.parent_span_id or event.execution_id
+        orders = self._dotted_orders.setdefault(event.execution_id, {})
+        parent_dotted_order = orders.get(parent_id)
+        if parent_dotted_order is None:
+            return
+        dotted_order = f"{parent_dotted_order}.{_dotted_segment(event.timestamp, span_id)}"
+        orders[event.span_id] = dotted_order
+        self._parent_ids.setdefault(event.execution_id, {})[event.span_id] = parent_id
         await asyncio.to_thread(
             self._client.create_run,
             name,
             {},
             run_type,
-            id=UUID(event.span_id),
+            id=span_id,
             trace_id=UUID(event.execution_id),
-            parent_run_id=(
-                None if event.parent_span_id is None else UUID(event.parent_span_id)
-            ),
+            # Use the SDK's documented batched wire form.
+            parent_run_id=str(parent_id),
+            dotted_order=dotted_order,
             project_name=self._project,
             start_time=event.timestamp,
             outputs={},
@@ -161,7 +185,23 @@ class LangSmithTracer:
             end_time=event.timestamp,
             outputs=payload,
             error=error_code if isinstance(error_code, str) else None,
+            **self._run_reference(event.execution_id, event.span_id),
         )
+
+    def _run_reference(self, execution_id: str, span_id: str) -> dict[str, object]:
+        dotted_order = self._dotted_orders.get(execution_id, {}).get(span_id)
+        if dotted_order is None:
+            return {}
+        reference: dict[str, object] = {
+            "trace_id": UUID(execution_id),
+            "dotted_order": dotted_order,
+        }
+        parent_id = self._parent_ids.get(execution_id, {}).get(span_id)
+        if parent_id is not None:
+            # A separate batched update is validated independently from create,
+            # so it must retain the child relationship as well.
+            reference["parent_run_id"] = parent_id
+        return reference
 
 
 _SPAN_START_TYPES: frozenset[TelemetryEventType] = frozenset(
@@ -188,3 +228,9 @@ def _span_identity(event: TelemetryEvent) -> tuple[str, str]:
         safe_name = tool_name if isinstance(tool_name, str) else "unknown"
         return "tool", f"nexus.tool.{safe_name}"
     return "chain", "nexus.validation"
+
+
+def _dotted_segment(timestamp: datetime, run_id: UUID) -> str:
+    """Build the provider hierarchy segment without importing LangSmith internals."""
+
+    return timestamp.strftime("%Y%m%dT%H%M%S%fZ") + str(run_id)

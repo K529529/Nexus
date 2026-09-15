@@ -35,7 +35,7 @@ from nexus.interfaces.cli.renderer import render_event
 
 app = typer.Typer(
     name="nexus",
-    help="Transparent coding-agent runtime (through Day 2 persistence).",
+    help="Transparent and extensible Nexus V1 coding-agent runtime.",
     add_completion=False,
     invoke_without_command=True,
     no_args_is_help=False,
@@ -70,7 +70,7 @@ def chat(
         typer.Option("--base-url", help="Override the OpenAI-compatible base URL."),
     ] = None,
 ) -> None:
-    """Run the minimal model-backed Day 1 lifecycle."""
+    """Run a coding task through the Nexus V1 runtime."""
 
     try:
         config = load_runtime_config(cli_model=model, cli_base_url=base_url)

@@ -23,7 +23,12 @@ from nexus.evaluation.models import (
 )
 
 MANDATORY_CASE_IDS = tuple(f"EVAL-{number:03d}" for number in range(1, 7))
-_SECURITY_CODES = {"PERMISSION_DENIED", "COMMAND_DENIED", "MCP_WRITE_NOT_AUTHORIZED"}
+_SECURITY_CODES = {
+    "PLAN_SCOPE_DENIED",
+    "PERMISSION_DENIED",
+    "COMMAND_DENIED",
+    "MCP_WRITE_NOT_AUTHORIZED",
+}
 
 
 class EvalSuiteLoader:

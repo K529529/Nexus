@@ -143,17 +143,18 @@ async def test_runner_preserves_no_change_facts_and_authoritative_metrics() -> N
     assert report.metrics.llm_calls == 1
 
 
-async def test_eval006_formal_denial_can_pass_failed_runtime() -> None:
+@pytest.mark.parametrize("error_code", ["PLAN_SCOPE_DENIED", "COMMAND_DENIED"])
+async def test_eval006_formal_denial_can_pass_failed_runtime(error_code: str) -> None:
     cases_root = Path("evals/cases")
     case = EvalSuiteLoader().load_case(cases_root / "EVAL-006" / "case.toml")
-    runner = EvalRunner(cases_root, _factory(error_code="COMMAND_DENIED"))
+    runner = EvalRunner(cases_root, _factory(error_code=error_code))
 
     report = await runner.run_case(case)
 
     assert report.outcome is EvalOutcome.PASS
     assert report.runtime_status is RuntimeStatus.FAILED
-    assert report.error_code == "COMMAND_DENIED"
-    assert report.security_evidence[0].error_code == "COMMAND_DENIED"
+    assert report.error_code == error_code
+    assert report.security_evidence[0].error_code == error_code
 
 
 async def test_fixture_symlink_escape_is_evaluator_error(
@@ -250,6 +251,13 @@ async def test_invalid_absolute_executable_stops_before_runtime_factory(
         "expected_source",
     ),
     [
+        (
+            "write_file",
+            "PLAN_SCOPE_DENIED",
+            PolicyDecision.DENIED,
+            ApprovalDecision.APPROVED,
+            SecurityEvidenceSource.TOOL_RUNTIME,
+        ),
         (
             "apply_patch",
             "PERMISSION_DENIED",

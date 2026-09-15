@@ -7,8 +7,10 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
+from nexus.application.model_call_context import current_model_call_phase
 from nexus.config.models import SUPPORTED_MODEL_PROVIDER, RuntimeConfig
 from nexus.domain.model import (
+    ModelCallPhase,
     ModelChunk,
     ModelMessage,
     ModelResponse,
@@ -27,7 +29,10 @@ class OpenAICompatibleModelGateway:
 
     async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
         try:
-            response = await self._get_client().ainvoke(self._convert_messages(messages))
+            response = await self._get_client().ainvoke(
+                self._convert_messages(messages),
+                **self._structured_output_options(),
+            )
             content = _normalize_content(response.content)
         except ConfigurationError:
             raise
@@ -84,6 +89,21 @@ class OpenAICompatibleModelGateway:
             raise ModelError("The configured model could not be initialized.") from exc
         return self._client
 
+    def _structured_output_options(self) -> dict[str, Any]:
+        if not _is_qwen_3_7_plus(self._config.model_name):
+            return {}
+        try:
+            phase = current_model_call_phase()
+        except RuntimeError:
+            return {}
+        response_format = _response_format_for_phase(phase)
+        if response_format is None:
+            return {}
+        return {
+            "response_format": response_format,
+            "extra_body": {"enable_thinking": False},
+        }
+
     @staticmethod
     def _convert_messages(messages: Sequence[ModelMessage]) -> list[tuple[str, str]]:
         return [(message.role, message.content) for message in messages]
@@ -137,3 +157,189 @@ def _normalize_usage(value: object) -> TokenUsage | None:
         UsageAvailability.REPORTED if known == 3 else UsageAvailability.PARTIAL
     )
     return TokenUsage(normalized[0], normalized[1], normalized[2], availability)
+
+
+def _is_qwen_3_7_plus(model_name: str | None) -> bool:
+    return model_name == "qwen3.7-plus" or (
+        model_name is not None and model_name.startswith("qwen3.7-plus-")
+    )
+
+
+def _response_format_for_phase(phase: ModelCallPhase) -> dict[str, Any] | None:
+    if phase in {ModelCallPhase.PLAN, ModelCallPhase.REPLAN}:
+        return _json_schema_response_format("nexus_plan", _plan_schema())
+    if phase is ModelCallPhase.REPAIR:
+        return _json_schema_response_format("nexus_repair", _repair_schema())
+    if phase is ModelCallPhase.AGENT_STEP:
+        return _json_schema_response_format("nexus_agent_decision", _agent_schema())
+    if phase is ModelCallPhase.SKILL_SELECTION:
+        return _json_schema_response_format("nexus_skill_selection", _skill_selection_schema())
+    return None
+
+
+def _json_schema_response_format(name: str, schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": name,
+            "strict": True,
+            "schema": schema,
+        },
+    }
+
+
+def _plan_step_schema() -> dict[str, Any]:
+    return {
+        "oneOf": [
+            _plan_step_variant_schema(
+                tool_name={
+                    "type": "string",
+                    "enum": ["apply_patch", "write_file"],
+                },
+                target_paths={
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 1,
+                    "maxItems": 1,
+                },
+                command_argv={"type": "null"},
+                command_cwd={"type": "null"},
+            ),
+            _plan_step_variant_schema(
+                tool_name={"type": "string", "enum": ["shell"]},
+                target_paths={
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 0,
+                },
+                command_argv={
+                    "type": "array",
+                    "items": {"type": "string", "minLength": 1},
+                    "minItems": 1,
+                },
+                command_cwd={"type": "string", "minLength": 1},
+            ),
+            _plan_step_variant_schema(
+                tool_name={
+                    "type": ["string", "null"],
+                    "not": {"enum": ["apply_patch", "write_file", "shell"]},
+                },
+                target_paths={
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 0,
+                },
+                command_argv={"type": "null"},
+                command_cwd={"type": "null"},
+            ),
+        ]
+    }
+
+
+def _plan_step_variant_schema(
+    *,
+    tool_name: dict[str, Any],
+    target_paths: dict[str, Any],
+    command_argv: dict[str, Any],
+    command_cwd: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "description": {"type": "string", "minLength": 1},
+            "tool_name": tool_name,
+            "target_paths": target_paths,
+            "command_argv": command_argv,
+            "command_cwd": command_cwd,
+        },
+        "required": [
+            "description",
+            "tool_name",
+            "target_paths",
+            "command_argv",
+            "command_cwd",
+        ],
+    }
+
+
+def _plan_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "rationale_summary": {"type": "string", "minLength": 1},
+            "steps": {
+                "type": "array",
+                "items": _plan_step_schema(),
+                "minItems": 1,
+            },
+        },
+        "required": ["rationale_summary", "steps"],
+    }
+
+
+def _repair_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "failure_summary": {"type": "string", "minLength": 1},
+            "steps": {
+                "type": "array",
+                "items": _plan_step_schema(),
+                "minItems": 1,
+            },
+        },
+        "required": ["failure_summary", "steps"],
+    }
+
+
+def _agent_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "kind": {
+                "type": "string",
+                "enum": ["TOOL_ACTION", "CONTINUE", "TASK_READY"],
+            },
+            "summary": {"type": "string", "minLength": 1},
+            "action": {
+                "type": ["object", "null"],
+                "additionalProperties": False,
+                "properties": {
+                    "tool_name": {"type": "string", "minLength": 1},
+                    "arguments": {
+                        "type": "object",
+                        "additionalProperties": True,
+                    },
+                },
+                "required": ["tool_name", "arguments"],
+            },
+        },
+        "required": ["kind", "summary", "action"],
+    }
+
+
+def _skill_selection_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "selected_skill_ids": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "pattern": r"^[a-z][a-z0-9-]{0,63}$",
+                },
+                "maxItems": 2,
+            },
+            "selection_reason_summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+            },
+        },
+        "required": ["selected_skill_ids", "selection_reason_summary"],
+    }

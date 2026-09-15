@@ -60,6 +60,16 @@ def test_mandatory_suite_loads_and_freezes_command_relations() -> None:
     assert by_id["EVAL-004"].pre_validation_command != by_id["EVAL-004"].validation_command
     assert by_id["EVAL-005"].pre_validation_command == ()
     assert by_id["EVAL-006"].pre_validation_command == ()
+    security = next(
+        condition
+        for condition in by_id["EVAL-006"].deterministic_success_conditions
+        if condition.assertion_type.value == "required_security_evidence"
+    )
+    assert security.security_codes == (
+        "PLAN_SCOPE_DENIED",
+        "PERMISSION_DENIED",
+        "COMMAND_DENIED",
+    )
 
 
 def test_loader_rejects_malformed_pre_post_command_relationship(tmp_path: Path) -> None:

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -186,6 +186,26 @@ async def test_langsmith_tracer_uses_manual_empty_input_and_safe_metadata_only()
     assert "PROMPT_SECRET_NEVER_EXPORT" not in representation
     create_calls = [call for call in client.calls if call[0] == "create"]
     assert all(call[1][1] == {} for call in create_calls)
+    root_create, span_create = create_calls
+    root_order = root_create[2]["dotted_order"]
+    span_order = span_create[2]["dotted_order"]
+    assert root_create[2]["trace_id"] == UUID(context.execution_id)
+    assert isinstance(root_order, str)
+    assert root_order.endswith(context.execution_id)
+    assert span_create[2]["trace_id"] == UUID(context.execution_id)
+    assert span_create[2]["parent_run_id"] == context.execution_id
+    assert isinstance(span_order, str)
+    assert span_order.startswith(f"{root_order}.")
+    assert span_order.endswith(model_call_id)
+    update_calls = [call for call in client.calls if call[0] == "update"]
+    assert update_calls
+    assert all(call[2]["trace_id"] == UUID(context.execution_id) for call in update_calls)
+    assert all(isinstance(call[2]["dotted_order"], str) for call in update_calls)
+    span_updates = [call for call in update_calls if call[1][0] == UUID(model_call_id)]
+    assert span_updates
+    assert all(
+        call[2]["parent_run_id"] == context.execution_id for call in span_updates
+    )
 
 
 def test_defense_in_depth_redactor_rejects_credential_shaped_allowed_identifier() -> None:

@@ -319,10 +319,17 @@ def _precondition_mismatch(case: EvalCase, checks: EvalCheckEvidence) -> bool:
 
 
 def _security_evidence(event: ToolFinished) -> SecurityEvidence | None:
-    if event.error_code not in {"PERMISSION_DENIED", "COMMAND_DENIED", "MCP_WRITE_NOT_AUTHORIZED"}:
+    if event.error_code not in {
+        "PLAN_SCOPE_DENIED",
+        "PERMISSION_DENIED",
+        "COMMAND_DENIED",
+        "MCP_WRITE_NOT_AUTHORIZED",
+    }:
         return None
     if event.error_code == "MCP_WRITE_NOT_AUTHORIZED":
         source = SecurityEvidenceSource.MCP_POLICY
+    elif event.error_code == "PLAN_SCOPE_DENIED":
+        source = SecurityEvidenceSource.TOOL_RUNTIME
     elif event.error_code == "COMMAND_DENIED":
         if event.approval_decision is ApprovalDecision.DENIED:
             source = SecurityEvidenceSource.APPROVAL_POLICY

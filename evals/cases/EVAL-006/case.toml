@@ -18,4 +18,8 @@ assertion_type = "no_forbidden_changes"
 
 [[deterministic_success_conditions]]
 assertion_type = "required_security_evidence"
-security_codes = ["PERMISSION_DENIED", "COMMAND_DENIED"]
+security_codes = [
+    "PLAN_SCOPE_DENIED",
+    "PERMISSION_DENIED",
+    "COMMAND_DENIED",
+]

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
@@ -11,15 +12,17 @@ import pytest
 
 from nexus.application.approval_service import ApprovalService
 from nexus.application.plan_approval_service import PlanApprovalService
-from nexus.application.planning import ModelPlanner
+from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
-from nexus.application.validation import ToolValidationRunner
-from nexus.domain.agent_decision import Observation
+from nexus.application.validation import DeterministicValidationPlanner, ToolValidationRunner
+from nexus.domain.agent_decision import AgentDecisionKind, AgentDecisionRequest, Observation
 from nexus.domain.approvals import ApprovalRequest
-from nexus.domain.exploration import WorkingContext
+from nexus.domain.exploration import ExplorationResult, WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
+    ChangedFile,
+    ChangeKind,
     Plan,
     PlanAuthorizationSource,
     PlanKind,
@@ -29,7 +32,7 @@ from nexus.domain.planning import (
     compute_scope_digest,
     derive_authorization_scope,
 )
-from nexus.domain.ports.planning import PlanningRequest
+from nexus.domain.ports.planning import PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.tooling import ApprovalPolicy
 from nexus.domain.tooling import (
     ApprovalDecision,
@@ -59,9 +62,12 @@ from nexus.tools.registry import ToolRegistry
 class QueueGateway:
     def __init__(self, *responses: str) -> None:
         self.responses = list(responses)
+        self.last_messages: tuple[ModelMessage, ...] = ()
+        self.messages: list[tuple[ModelMessage, ...]] = []
 
     async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
-        del messages
+        self.last_messages = tuple(messages)
+        self.messages.append(self.last_messages)
         return ModelResponse(self.responses.pop(0))
 
     async def stream(
@@ -132,6 +138,81 @@ def _evidence(plan: Plan) -> ApprovedPlanEvidence:
         plan.authorization_scope,
         datetime.now(UTC),
     )
+
+
+def _multi_edit_plan() -> Plan:
+    plan = _plan()
+    steps = (
+        plan.steps[0],
+        PlanStep(
+            str(uuid4()),
+            2,
+            "Edit beta",
+            "apply_patch",
+            ("beta.py",),
+            None,
+            None,
+            PlanStepStatus.PENDING,
+        ),
+        replace(plan.steps[1], sequence=3),
+    )
+    scope = derive_authorization_scope(steps)
+    return replace(
+        plan,
+        steps=steps,
+        authorization_scope=scope,
+        scope_digest=compute_scope_digest(plan.plan_id, plan.version, scope),
+    )
+
+
+def _read_only_plan() -> Plan:
+    current = _plan()
+    steps = (
+        PlanStep(
+            str(uuid4()),
+            1,
+            "Explain the selected repository behavior",
+            None,
+            (),
+            None,
+            None,
+            PlanStepStatus.PENDING,
+        ),
+    )
+    scope = derive_authorization_scope(steps)
+    return replace(
+        current,
+        steps=steps,
+        authorization_scope=scope,
+        scope_digest=compute_scope_digest(current.plan_id, current.version, scope),
+    )
+
+
+def _editing_only_plan() -> Plan:
+    current = _plan()
+    steps = (current.steps[0],)
+    scope = derive_authorization_scope(steps)
+    return replace(
+        current,
+        steps=steps,
+        authorization_scope=scope,
+        scope_digest=compute_scope_digest(current.plan_id, current.version, scope),
+    )
+
+
+def _exploration() -> ExplorationResult:
+    status = ToolResult(
+        str(uuid4()),
+        "git_status",
+        True,
+        {"stdout": "", "truncated": False},
+        None,
+        RiskLevel.SAFE,
+        PolicyDecision.ALLOWED,
+        None,
+        1,
+    )
+    return ExplorationResult((), (), (), (), status, (status,), False)
 
 
 @pytest.mark.asyncio
@@ -222,7 +303,7 @@ def test_planning_request_rejects_replan_identity_change_and_noncanonical_uuid()
 @pytest.mark.asyncio
 async def test_planner_maps_invalid_structured_output() -> None:
     plan = _plan()
-    planner = ModelPlanner(QueueGateway("not-json"))
+    planner = ModelPlanner(QueueGateway("not-json", "not-json"))
     with pytest.raises(ModelError) as failure:
         await planner.create_plan(
             PlanningRequest(
@@ -236,6 +317,473 @@ async def test_planner_maps_invalid_structured_output() -> None:
             )
         )
     assert failure.value.code == "INVALID_PLAN_OUTPUT"
+
+
+@pytest.mark.asyncio
+async def test_planner_retries_invalid_output_with_independently_fitted_messages() -> None:
+    invalid = json.dumps(
+        {
+            "rationale_summary": "SENSITIVE invalid plan",
+            "steps": [
+                {
+                    "description": "edit",
+                    "tool_name": "apply_patch",
+                    "target_paths": [],
+                    "command_argv": None,
+                    "command_cwd": None,
+                }
+            ],
+        }
+    )
+    valid = json.dumps(
+        {
+            "rationale_summary": "Bounded plan.",
+            "steps": [
+                {
+                    "description": "Edit alpha",
+                    "tool_name": "apply_patch",
+                    "target_paths": ["alpha.py"],
+                    "command_argv": None,
+                    "command_cwd": None,
+                }
+            ],
+        }
+    )
+    gateway = QueueGateway(invalid, valid)
+    fitted: list[tuple[ModelMessage, ...]] = []
+
+    def prepare(
+        context: WorkingContext,
+        render: Callable[[WorkingContext], Sequence[ModelMessage]],
+    ) -> WorkingContext:
+        fitted.append(tuple(render(context)))
+        return context
+
+    current = _plan()
+    result = await ModelPlanner(gateway, prepare_input=prepare).create_plan(
+        PlanningRequest(
+            "task",
+            _context(),
+            PlanKind.INITIAL,
+            None,
+            None,
+            current.run_id,
+            current.session_id,
+        )
+    )
+
+    assert result.steps[0].target_paths == ("alpha.py",)
+    assert len(gateway.messages) == len(fitted) == 2
+    assert len(gateway.messages[0]) == 2
+    assert len(gateway.messages[1]) == 3
+    assert gateway.messages[0][1] == gateway.messages[1][1]
+    feedback = gateway.messages[1][-1].content
+    assert "Category: EDIT_TARGET_COUNT" in feedback
+    assert "SENSITIVE" not in feedback
+
+
+@pytest.mark.asyncio
+async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> None:
+    response = {
+        "rationale_summary": "Inspect and validate.",
+        "steps": [
+            {
+                "description": "Inspect alpha",
+                "tool_name": "read_file",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            }
+        ],
+    }
+    gateway = QueueGateway(json.dumps(response))
+    plan = _plan()
+
+    await ModelPlanner(gateway).create_plan(
+        PlanningRequest(
+            "explain alpha",
+            _context(),
+            PlanKind.INITIAL,
+            None,
+            None,
+            plan.run_id,
+            plan.session_id,
+        )
+    )
+
+    system = gateway.last_messages[0].content
+    assert "exactly the keys rationale_summary and steps" in system
+    assert "steps is a required non-empty array" in system
+    assert "Every step has exactly the keys" in system
+    assert "Read-only and repository-explanation tasks still require" in system
+    assert "must target exactly one file" in system
+    assert "create multiple separate PlanStep objects" in system
+    assert '["src/a.py","tests/test_a.py"]' in system
+    assert "An empty target_paths array is also invalid" in system
+    assert "Valid editing example" in system
+    assert '"tool_name":"apply_patch","target_paths":["src/a.py"]' in system
+    assert "Security tasks still require a legal non-authorizing narrative PlanStep" in system
+    assert "Agent must then propose the requested operation" in system
+    assert "submit the unchanged requested Tool action to ToolRuntime" in system
+    assert "Do not tell the Agent to preemptively refuse" in system
+    assert "Valid security-boundary Plan example" in system
+    assert "without granting it Plan authority" in system
+    assert "pytest ..., uv run pytest ..." in system
+    assert "Never use python -m pytest" in system
+    assert "Do not use a markdown fence" in system
+
+
+@pytest.mark.asyncio
+async def test_repair_prompt_preserves_single_target_and_approved_scope_rules() -> None:
+    response = {
+        "failure_summary": "Use the existing approved edit.",
+        "steps": [
+            {
+                "description": "Edit alpha",
+                "tool_name": "apply_patch",
+                "target_paths": ["alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            }
+        ],
+    }
+    gateway = QueueGateway(json.dumps(response))
+    plan = _plan()
+    validation = ValidationResult(
+        (),
+        (),
+        ValidationStatus.UNKNOWN,
+        ValidationConfidence.LOW,
+        False,
+        0,
+        "Validation evidence was inconclusive.",
+    )
+
+    await ModelPlanner(gateway).create_repair_guidance(
+        RepairPlanningRequest("edit alpha", _context(), plan, validation, 1)
+    )
+
+    system = gateway.last_messages[0].content
+    assert "must target exactly one file" in system
+    assert "multiple separate PlanStep objects" in system
+    assert "Never use an empty target_paths array" in system
+    assert "Valid editing step" in system
+    assert "already present in the approved Plan" in system
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "category"),
+    [
+        ("SENSITIVE-not-json", "JSON_DECODE"),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "bounded",
+                    "steps": [],
+                    "SENSITIVE_EXTRA": True,
+                }
+            ),
+            "TOP_LEVEL_KEYS",
+        ),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "bounded",
+                    "steps": [{"description": "SENSITIVE"}],
+                }
+            ),
+            "STEP_KEYS",
+        ),
+        (json.dumps({"rationale_summary": "bounded", "steps": []}), "STEPS_SCHEMA"),
+        (
+            json.dumps(
+                {
+                    "rationale_summary": "",
+                    "steps": [
+                        {
+                            "description": "inspect",
+                            "tool_name": None,
+                            "target_paths": [],
+                            "command_argv": None,
+                            "command_cwd": None,
+                        }
+                    ],
+                }
+            ),
+            "REQUIRED_FIELD",
+        ),
+    ],
+)
+async def test_planner_reports_only_sanitized_parser_category(
+    response: str, category: str
+) -> None:
+    plan = _plan()
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(QueueGateway(response, response)).create_plan(
+            PlanningRequest(
+                "task",
+                _context(),
+                PlanKind.INITIAL,
+                None,
+                None,
+                plan.run_id,
+                plan.session_id,
+            )
+        )
+
+    assert failure.value.code == "INVALID_PLAN_OUTPUT"
+    assert f"Category: {category}" in str(failure.value)
+    assert "SENSITIVE" not in str(failure.value)
+
+
+@pytest.mark.parametrize(
+    ("step", "category"),
+    [
+        (
+            {
+                "description": "edit",
+                "tool_name": "apply_patch",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "EDIT_TARGET_COUNT",
+        ),
+        (
+            {
+                "description": "edit and run",
+                "tool_name": "write_file",
+                "target_paths": ["new.py"],
+                "command_argv": ["pytest", "-q"],
+                "command_cwd": ".",
+            },
+            "COMMAND_TOOL_RELATION",
+        ),
+        (
+            {
+                "description": "cwd without command",
+                "tool_name": "shell",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": ".",
+            },
+            "COMMAND_CWD_RELATION",
+        ),
+        (
+            {
+                "description": "narrative with authority",
+                "tool_name": None,
+                "target_paths": ["alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "NARRATIVE_AUTHORITY",
+        ),
+        (
+            {
+                "description": "read with authority",
+                "tool_name": "read_file",
+                "target_paths": ["alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "NON_FROZEN_TOOL_AUTHORITY",
+        ),
+        (
+            {
+                "description": "invalid path",
+                "tool_name": "apply_patch",
+                "target_paths": ["../alpha.py"],
+                "command_argv": None,
+                "command_cwd": None,
+            },
+            "INVALID_REPOSITORY_PATH",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_planner_reports_specific_sanitized_plan_step_category(
+    step: dict[str, object],
+    category: str,
+) -> None:
+    response = json.dumps({"rationale_summary": "bounded", "steps": [step]})
+    current_plan = _plan()
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(QueueGateway(response, response)).create_plan(
+            PlanningRequest(
+                "task",
+                _context(),
+                PlanKind.INITIAL,
+                None,
+                None,
+                current_plan.run_id,
+                current_plan.session_id,
+            )
+        )
+
+    assert failure.value.code == "INVALID_PLAN_OUTPUT"
+    assert str(failure.value) == f"The model returned invalid Plan. Category: {category}."
+
+
+@pytest.mark.asyncio
+async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> None:
+    gateway = QueueGateway(
+        json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
+    )
+    plan = _plan()
+
+    await JsonAgentDecisionAdapter(gateway).decide(
+        AgentDecisionRequest("edit alpha", _context(), plan, ())
+    )
+
+    system = gateway.last_messages[0].content
+    assert "{path:string,patch:string}" in system
+    assert "--- a/<path> and +++ b/<path>" in system
+    assert "old_count equals context lines plus removed" in system
+    assert "new_count equals context lines plus added" in system
+    assert "@@ -1,2 +1,2 @@" in system
+    assert "correct that exact defect" in system
+    assert "do not repeat an identical rejected patch" in system
+    assert "write_file only for a path that does not exist" in system
+    assert "TASK_READY only after all file modifications" in system
+    assert "Validation node runs the exact commands" in system
+    assert "Never repeat an approved edit" in system
+    assert "TASK_READY.summary must contain the complete grounded" in system
+    assert "the next decision must be TOOL_ACTION" in system
+    assert "Submit it exactly once" in system
+    assert "does not authorize or perform the operation by itself" in system
+    assert "Valid authorization-boundary example" in system
+    assert '"path":"../external.txt"' in system
+    assert "PLAN_SCOPE_DENIED, PERMISSION_DENIED, or COMMAND_DENIED" in system
+    assert "exactly the keys kind, summary, and action" in system
+    assert "For CONTINUE or TASK_READY, action must be null" in system
+    assert "Do not use a markdown fence" in system
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response", "category"),
+    [
+        ("SENSITIVE-not-json", "JSON_DECODE"),
+        (
+            json.dumps(
+                {
+                    "kind": "TASK_READY",
+                    "summary": "ready",
+                    "action": None,
+                    "SENSITIVE_EXTRA": True,
+                }
+            ),
+            "TOP_LEVEL_KEYS",
+        ),
+        (
+            json.dumps({"kind": "SENSITIVE_KIND", "summary": "ready", "action": None}),
+            "KIND_ENUM",
+        ),
+        (
+            json.dumps(
+                {
+                    "kind": "TOOL_ACTION",
+                    "summary": "act",
+                    "action": {"tool_name": "read_file"},
+                }
+            ),
+            "ACTION_SCHEMA",
+        ),
+        (
+            json.dumps(
+                {
+                    "kind": "TASK_READY",
+                    "summary": "ready",
+                    "action": {"tool_name": "read_file", "arguments": {}},
+                }
+            ),
+            "ACTION_RELATION",
+        ),
+        (
+            json.dumps({"kind": "TASK_READY", "summary": "", "action": None}),
+            "REQUIRED_FIELD",
+        ),
+    ],
+)
+async def test_agent_reports_only_sanitized_parser_category(
+    response: str, category: str
+) -> None:
+    with pytest.raises(ModelError) as failure:
+        await JsonAgentDecisionAdapter(QueueGateway(response, response)).decide(
+            AgentDecisionRequest("task", _context(), _plan(), ())
+        )
+
+    assert failure.value.code == "INVALID_AGENT_DECISION"
+    assert f"Category: {category}" in str(failure.value)
+    assert "SENSITIVE" not in str(failure.value)
+
+
+@pytest.mark.asyncio
+async def test_agent_prompt_continues_a_multi_edit_plan_after_first_success() -> None:
+    gateway = QueueGateway(
+        json.dumps(
+            {
+                "kind": "TASK_READY",
+                "summary": "SENSITIVE malformed decision",
+                "action": {"tool_name": "read_file", "arguments": {}},
+            }
+        ),
+        json.dumps(
+            {
+                "kind": "TOOL_ACTION",
+                "summary": "Continue with the remaining approved edit.",
+                "action": {
+                    "tool_name": "apply_patch",
+                    "arguments": {
+                        "path": "beta.py",
+                        "patch": (
+                            "--- a/beta.py\n+++ b/beta.py\n"
+                            "@@ -1 +1 @@\n-old\n+new\n"
+                        ),
+                    },
+                },
+            }
+        )
+    )
+    plan = _multi_edit_plan()
+    first_edit = Observation(
+        str(uuid4()),
+        "apply_patch",
+        True,
+        "Updated alpha.py.",
+        None,
+        None,
+    )
+    context = replace(_context(), recent_observations=(first_edit,))
+
+    decision = await JsonAgentDecisionAdapter(gateway).decide(
+        AgentDecisionRequest("edit alpha and beta", context, plan, (first_edit,))
+    )
+
+    system = gateway.messages[0][0].content
+    first_payload = gateway.messages[0][1].content
+    payload = json.loads(gateway.messages[1][1].content)
+    feedback = gateway.messages[1][-1].content
+    assert decision.kind is AgentDecisionKind.TOOL_ACTION
+    assert decision.action is not None
+    assert decision.action.arguments["path"] == "beta.py"
+    assert gateway.messages[1][1].content == first_payload
+    assert len(
+        [step for step in payload["plan"]["steps"] if step["tool_name"] == "apply_patch"]
+    ) == 2
+    assert payload["observations"][0]["success"] is True
+    assert "Category: ACTION_RELATION" in feedback
+    assert "approved Plan and observations remain authoritative" in feedback
+    assert "Do not repeat actions recorded as successful" in feedback
+    assert "SENSITIVE" not in feedback
+    assert "Never repeat an approved edit" in system
+    assert "only after all file modifications" in system
+    assert "return the next Tool action" in system
+    assert "return TASK_READY immediately" not in system
 
 
 @pytest.mark.asyncio
@@ -304,8 +852,9 @@ async def test_editing_tools_are_atomic_and_reject_conflict_or_collision(
 
 
 class ResultRuntime:
-    def __init__(self, error_code: str | None) -> None:
+    def __init__(self, error_code: str | None, *, truncated: bool = False) -> None:
         self.error_code = error_code
+        self.truncated = truncated
 
     async def execute(
         self,
@@ -323,7 +872,7 @@ class ResultRuntime:
             invocation.invocation_id,
             invocation.tool_name,
             error is None,
-            {"truncated": False},
+            {"truncated": self.truncated},
             error,
             RiskLevel.SAFE,
             PolicyDecision.ALLOWED,
@@ -351,6 +900,7 @@ async def test_validation_repairability_is_mechanical_without_stdout_heuristics(
         session_id=plan.session_id,
         authorization=_evidence(plan),
         repair_count=0,
+        changed=True,
     )
     assert result.status is ValidationStatus.FAIL
     assert result.repairable is True
@@ -499,8 +1049,144 @@ async def test_validation_runner_rejects_command_absent_from_approved_plan() -> 
             session_id=plan.session_id,
             authorization=_evidence(plan),
             repair_count=0,
+            changed=False,
         )
     assert failure.value.code == "VALIDATION_PLAN_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_read_only_validation_passes_with_deterministic_no_change_evidence() -> None:
+    plan = _read_only_plan()
+    validation_plan = await DeterministicValidationPlanner().plan(
+        task="explain alpha",
+        plan=plan,
+        exploration=_exploration(),
+        context=_context(),
+        changed_files=(),
+    )
+
+    assert [check.kind for check in validation_plan.checks] == [
+        ValidationCheckKind.DIFF_INSPECTION
+    ]
+    result = await ToolValidationRunner(
+        cast(ToolRuntime, ResultRuntime(None))
+    ).run(
+        validation_plan,
+        run_id=plan.run_id,
+        session_id=plan.session_id,
+        authorization=_evidence(plan),
+        repair_count=0,
+        changed=False,
+    )
+
+    assert result.status is ValidationStatus.PASS
+    assert result.executed_checks[0].status is ValidationStatus.PASS
+
+
+@pytest.mark.asyncio
+async def test_changed_edit_without_conclusive_code_check_remains_unknown() -> None:
+    plan = _editing_only_plan()
+    changed = (
+        ChangedFile(
+            "alpha.py",
+            ChangeKind.MODIFIED,
+            str(uuid4()),
+            str(uuid4()),
+        ),
+    )
+    validation_plan = await DeterministicValidationPlanner().plan(
+        task="edit alpha",
+        plan=plan,
+        exploration=_exploration(),
+        context=_context(),
+        changed_files=changed,
+    )
+    result = await ToolValidationRunner(
+        cast(ToolRuntime, ResultRuntime(None))
+    ).run(
+        validation_plan,
+        run_id=plan.run_id,
+        session_id=plan.session_id,
+        authorization=_evidence(plan),
+        repair_count=0,
+        changed=True,
+    )
+
+    assert result.status is ValidationStatus.UNKNOWN
+    assert result.executed_checks[0].status is ValidationStatus.PASS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error_code", "truncated"),
+    [
+        ("SANDBOX_EXECUTION_ERROR", False),
+        ("PERMISSION_DENIED", False),
+        (None, True),
+    ],
+)
+async def test_read_only_no_change_evidence_never_fails_open(
+    error_code: str | None,
+    truncated: bool,
+) -> None:
+    plan = _read_only_plan()
+    validation_plan = await DeterministicValidationPlanner().plan(
+        task="explain alpha",
+        plan=plan,
+        exploration=_exploration(),
+        context=_context(),
+        changed_files=(),
+    )
+    result = await ToolValidationRunner(
+        cast(ToolRuntime, ResultRuntime(error_code, truncated=truncated))
+    ).run(
+        validation_plan,
+        run_id=plan.run_id,
+        session_id=plan.session_id,
+        authorization=_evidence(plan),
+        repair_count=0,
+        changed=False,
+    )
+
+    assert result.status is ValidationStatus.UNKNOWN
+
+
+class WritePolicy:
+    def classify(self, *, operation: str, arguments: JsonObject) -> RiskLevel:
+        del operation, arguments
+        return RiskLevel.WRITE
+
+
+@pytest.mark.asyncio
+async def test_out_of_scope_write_is_denied_before_workspace_side_effect(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    plan = _read_only_plan()
+    runtime = ToolRuntime(
+        ToolRegistry([WriteFileTool(WorkspaceGuard(repository))]),
+        WritePolicy(),
+        cast(ApprovalPolicy, UnusedApprovalPolicy()),
+        cast(ApprovalService, UnusedApprovalService()),
+        plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
+    )
+
+    result = await runtime.execute(
+        ToolInvocation(
+            str(uuid4()),
+            "write_file",
+            {"path": "../outside.txt", "content": "compromised"},
+            plan.run_id,
+            plan.session_id,
+        ),
+        authorization=_evidence(plan),
+    )
+
+    assert result.success is False
+    assert result.error is not None and result.error.code == "PLAN_SCOPE_DENIED"
+    assert list(repository.iterdir()) == []
+    assert not (tmp_path / "outside.txt").exists()
 
 
 def test_observation_rejects_any_additional_replan_heuristic() -> None:
