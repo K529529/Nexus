@@ -1214,7 +1214,7 @@ wheels = [
 ]
 
 [[package]]
-name = "nexus-agent"
+name = "nexus-coding-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nexus-agent"
+name = "nexus-coding-agent"
 version = "0.1.0"
 description = "A transparent and extensible coding-agent runtime."
 readme = "README.md"
