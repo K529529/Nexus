@@ -176,8 +176,26 @@ def _apply_unified_patch(path: str, source: str, patch: str) -> str:
         old_count = int(match.group(2) or "1")
         new_count = int(match.group(4) or "1")
         hunk_source_index = 0 if old_start == 0 else old_start - 1
-        if hunk_source_index < source_index or hunk_source_index > len(source_lines):
-            raise ToolExecutionError("Patch hunk position is invalid.", code="PATCH_CONFLICT")
+        old_pattern = _hunk_old_pattern(patch_lines, patch_index + 1)
+        invalid_position = hunk_source_index < source_index or hunk_source_index > len(source_lines)
+        if invalid_position or not _matches_hunk_source(
+            source_lines, hunk_source_index, old_pattern
+        ):
+            if not old_pattern:
+                raise ToolExecutionError("Patch hunk position is invalid.", code="PATCH_CONFLICT")
+            matches = [
+                index
+                for index in range(source_index, len(source_lines) - len(old_pattern) + 1)
+                if _matches_hunk_source(source_lines, index, old_pattern)
+            ]
+            if len(matches) != 1:
+                message = (
+                    "Patch hunk position is invalid."
+                    if invalid_position
+                    else "Patch context does not match."
+                )
+                raise ToolExecutionError(message, code="PATCH_CONFLICT")
+            hunk_source_index = matches[0]
         output.extend(source_lines[source_index:hunk_source_index])
         source_index = hunk_source_index
         patch_index += 1
@@ -225,6 +243,40 @@ def _apply_unified_patch(path: str, source: str, patch: str) -> str:
         raise ToolExecutionError("The patch has no hunk.", code="INVALID_PATCH")
     output.extend(source_lines[source_index:])
     return "".join(line.text + line.ending for line in output)
+
+
+def _hunk_old_pattern(patch_lines: list[str], start: int) -> list[tuple[str, bool]]:
+    pattern: list[tuple[str, bool]] = []
+    previous_prefix: str | None = None
+    for line in patch_lines[start:]:
+        if line.startswith("@@ "):
+            break
+        if line == "\\ No newline at end of file":
+            if previous_prefix not in {" ", "+", "-"}:
+                raise ToolExecutionError("Invalid no-newline marker.", code="INVALID_PATCH")
+            if previous_prefix in {" ", "-"}:
+                text, _ = pattern[-1]
+                pattern[-1] = (text, True)
+            previous_prefix = None
+            continue
+        if not line or line[0] not in {" ", "+", "-"}:
+            raise ToolExecutionError("Patch hunk body is invalid.", code="INVALID_PATCH")
+        previous_prefix = line[0]
+        if previous_prefix in {" ", "-"}:
+            pattern.append((line[1:], False))
+    return pattern
+
+
+def _matches_hunk_source(
+    source_lines: list[_Line], start: int, pattern: list[tuple[str, bool]]
+) -> bool:
+    if start < 0 or start + len(pattern) > len(source_lines):
+        return False
+    return all(
+        source_lines[start + offset].text == text
+        and (not no_newline or not source_lines[start + offset].ending)
+        for offset, (text, no_newline) in enumerate(pattern)
+    )
 
 
 def _split_source(content: str) -> list[_Line]:
