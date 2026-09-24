@@ -10,6 +10,7 @@ import time
 
 import typer
 
+from nexus.domain.model import ModelCallPhase
 from nexus.domain.runtime_events import (
     AgentStepCompleted,
     ApprovalRequested,
@@ -56,6 +57,7 @@ class ProgressRenderer:
     def __init__(self, *, resuming: bool = False) -> None:
         self._status = "Starting"
         self._status_since = time.monotonic()
+        self._agent_since: float | None = None
         self._last_phase: ExecutionPhase | None = None
         self._task_announced = False
         self._resuming = resuming
@@ -100,12 +102,20 @@ class ProgressRenderer:
         if permanent:
             self._clear_line()
         previous_status = self._status
+        previous_agent_since = self._agent_since
         if isinstance(event, PhaseStarted):
+            if event.phase is ExecutionPhase.AGENT:
+                if self._agent_since is None:
+                    self._agent_since = time.monotonic()
+            else:
+                self._agent_since = None
             self._set_status(_PHASE_MESSAGES[event.phase])
             if event.phase is not self._last_phase and event.phase is not ExecutionPhase.CONTEXT:
                 typer.echo(self._status)
             self._last_phase = event.phase
         elif isinstance(event, ModelCallStarted):
+            if event.phase is ModelCallPhase.AGENT_STEP and self._agent_since is None:
+                self._agent_since = time.monotonic()
             self._set_status("Thinking")
         elif isinstance(event, ToolStarted):
             self._set_status(
@@ -114,8 +124,10 @@ class ProgressRenderer:
                 else "Reading relevant files"
             )
         elif isinstance(event, ValidationStarted):
+            self._agent_since = None
             self._set_status("Validating")
         elif isinstance(event, TaskStarted):
+            self._agent_since = None
             if self._task_announced:
                 self._set_status("Working")
             else:
@@ -128,7 +140,11 @@ class ProgressRenderer:
         if isinstance(event, (FinalResult, ErrorOccurred)):
             self._running = False
             self._heartbeat_stop.set()
-        elif permanent or self._status != previous_status:
+        elif (
+            permanent
+            or self._status != previous_status
+            or self._agent_since != previous_agent_since
+        ):
             self._draw_line()
         return result
 
@@ -155,7 +171,7 @@ class ProgressRenderer:
             with self._output_lock:
                 if not self._running:
                     return
-                elapsed = int(time.monotonic() - self._status_since)
+                elapsed = self._elapsed_seconds()
                 if sys.stdout.isatty():
                     if elapsed != self._displayed_elapsed:
                         self._draw_line(elapsed)
@@ -166,11 +182,15 @@ class ProgressRenderer:
     def _draw_line(self, elapsed: int | None = None) -> None:
         if not self._running or not sys.stdout.isatty():
             return
-        seconds = int(time.monotonic() - self._status_since) if elapsed is None else elapsed
+        seconds = self._elapsed_seconds() if elapsed is None else elapsed
         sys.stdout.write(f"\r{self._status}... {seconds}s\x1b[K")
         sys.stdout.flush()
         self._live_line = True
         self._displayed_elapsed = seconds
+
+    def _elapsed_seconds(self) -> int:
+        since = self._status_since if self._agent_since is None else self._agent_since
+        return int(time.monotonic() - since)
 
     def _clear_line(self) -> None:
         if self._live_line:

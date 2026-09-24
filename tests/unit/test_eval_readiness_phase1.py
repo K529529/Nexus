@@ -18,12 +18,14 @@ from pytest import CaptureFixture, MonkeyPatch
 from nexus.application.event_publisher import PublishedObservation
 from nexus.application.planning import ModelPlanner
 from nexus.application.telemetry import EventEnricher
+from nexus.domain.agent_decision import AgentDecisionKind
 from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelCallPhase, ModelChunk, ModelMessage, ModelResponse, TokenUsage
 from nexus.domain.observability import RunExecutionContext
 from nexus.domain.planning import PlanKind
 from nexus.domain.ports.planning import PlanningRequest
 from nexus.domain.runtime_events import (
+    AgentStepCompleted,
     ApprovalRequested,
     ApprovalSubject,
     ContextBuilt,
@@ -33,6 +35,7 @@ from nexus.domain.runtime_events import (
     ModelCallFinished,
     ModelCallStarted,
     PhaseFinished,
+    PhaseStarted,
     PlanCreated,
     RunInterrupted,
     TaskStarted,
@@ -368,6 +371,71 @@ async def test_status_transitions_redraw_without_waiting_for_heartbeat(
 
 
 @pytest.mark.asyncio
+async def test_agent_thinking_elapsed_does_not_restart_for_each_step(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+    renderer = ProgressRenderer()
+
+    def elapsed(label: str) -> int:
+        live = output.getvalue().rsplit("\r", 1)[-1]
+        assert live.startswith(f"{label}... ")
+        return int(live.split("... ", 1)[1].split("s", 1)[0])
+
+    renderer.start()
+    try:
+        renderer.render(PhaseStarted(
+            run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+        ))
+        renderer.render(ModelCallStarted(
+            run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+            phase=ModelCallPhase.AGENT_STEP, provider=None, model=None,
+        ))
+        assert renderer._agent_since is not None
+        renderer._agent_since = time.monotonic() - 12
+        agent_since = renderer._agent_since
+
+        for step_count, tool_name, label in (
+            (1, "read_file", "Reading relevant files"),
+            (2, "apply_patch", "Editing files"),
+        ):
+            renderer.render(AgentStepCompleted(
+                run_id=run_id, session_id=None, step_count=step_count,
+                decision_kind=AgentDecisionKind.TOOL_ACTION,
+                model_call_id=str(uuid4()),
+            ))
+            renderer.render(ToolStarted(
+                run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+                tool_name=tool_name, risk_level=RiskLevel.SAFE,
+            ))
+            assert elapsed(label) >= 12
+            renderer.render(PhaseStarted(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+            ))
+            renderer.render(ModelCallStarted(
+                run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+                phase=ModelCallPhase.SKILL_SELECTION, provider=None, model=None,
+            ))
+            assert elapsed("Thinking") >= 12
+            renderer.render(ModelCallStarted(
+                run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+                phase=ModelCallPhase.AGENT_STEP, provider=None, model=None,
+            ))
+            assert elapsed("Thinking") >= 12
+            assert renderer._agent_since == agent_since
+
+        renderer.render(PhaseStarted(
+            run_id=run_id, session_id=None, phase=ExecutionPhase.VALIDATION,
+        ))
+        assert renderer._agent_since is None
+        assert elapsed("Validating") <= 1
+    finally:
+        await renderer.stop()
+
+
+@pytest.mark.asyncio
 async def test_non_tty_hidden_status_changes_do_not_spam_output(
     capsys: CaptureFixture[str],
 ) -> None:
@@ -553,3 +621,157 @@ def test_profile_aggregates_deterministically_and_handles_failure_interrupt() ->
         RunInterrupted(run_id=run_id, session_id=None, timestamp=started + timedelta(seconds=1))
     )
     assert "Total               1000 ms" in interrupted.lines()
+
+
+def test_profile_attributes_agent_tools_and_keeps_existing_summary() -> None:
+    run_id = str(uuid4())
+    started = datetime(2026, 1, 1, tzinfo=UTC)
+    profile = ExecutionProfile()
+    profile.observe(TaskStarted(
+        run_id=run_id, session_id=None, task="private user prompt",
+        timestamp=started,
+    ))
+
+    def tool(name: str, *, agent: bool, success: bool = True) -> None:
+        invocation_id = str(uuid4())
+        if agent:
+            profile.observe(PhaseStarted(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+            ))
+        profile.observe(ToolStarted(
+            run_id=run_id, session_id=None, invocation_id=invocation_id,
+            tool_name=name, risk_level=RiskLevel.SAFE,
+        ))
+        profile.observe(ToolFinished(
+            run_id=run_id, session_id=None, invocation_id=invocation_id,
+            tool_name=name, success=success, risk_level=RiskLevel.SAFE,
+            policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+            duration_ms=17, error_code=None if success else "TOOL_FAILED",
+        ))
+        if agent:
+            profile.observe(PhaseFinished(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+                duration_ms=20, success=True,
+            ))
+
+    tool("search_files", agent=False)  # Repository or Context work.
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+    ))
+    tool("lexical_search", agent=False)  # Agent context preparation precedes the decision.
+    for step_count, kind in enumerate((
+        AgentDecisionKind.TOOL_ACTION,
+        AgentDecisionKind.CONTINUE,
+        AgentDecisionKind.TOOL_ACTION,
+        AgentDecisionKind.TASK_READY,
+    ), start=1):
+        profile.observe(AgentStepCompleted(
+            run_id=run_id, session_id=None, step_count=step_count,
+            decision_kind=kind, model_call_id=str(uuid4()),
+        ))
+        if step_count == 1:
+            profile.observe(PhaseFinished(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+                duration_ms=5, success=True,
+            ))
+            tool("read_file", agent=True)
+        elif step_count == 3:
+            profile.observe(PhaseFinished(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+                duration_ms=5, success=True,
+            ))
+            tool("apply_patch", agent=True, success=False)
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.VALIDATION,
+    ))
+    tool("shell", agent=False)
+    profile.observe(FinalResult(
+        run_id=run_id, session_id=None, content="private model result",
+        timestamp=started + timedelta(seconds=1),
+    ))
+
+    lines = profile.lines()
+    assert "Total               1000 ms" in lines
+    assert "Tool calls          5" in lines
+    assert "Agent steps         4" in lines
+    assert "TOOL_ACTION         2" in lines
+    assert "CONTINUE            1" in lines
+    assert "TASK_READY          1" in lines
+    assert "read_file           1" in lines
+    assert "apply_patch         1" in lines
+    assert "search_files        1" not in lines[lines.index("Agent tools"):]
+    assert "lexical_search      1" not in lines[lines.index("Agent tools"):]
+    assert "shell               1" not in lines[lines.index("Agent tools"):]
+    assert any("1  TOOL_ACTION read_file PASS 17 ms" in line for line in lines)
+    assert any("3  TOOL_ACTION apply_patch FAIL 17 ms" in line for line in lines)
+    assert lines == profile.lines()
+    assert "private user prompt" not in "\n".join(lines)
+    assert "private model result" not in "\n".join(lines)
+
+
+def test_profile_agent_timeline_is_bounded_and_redacts_unsafe_tool_names() -> None:
+    run_id = str(uuid4())
+    profile = ExecutionProfile()
+    for step_count in range(1, 36):
+        kind = (
+            AgentDecisionKind.TOOL_ACTION
+            if step_count in (1, 35) else AgentDecisionKind.CONTINUE
+        )
+        profile.observe(AgentStepCompleted(
+            run_id=run_id, session_id=None, step_count=step_count,
+            decision_kind=kind, model_call_id=str(uuid4()),
+        ))
+        if step_count == 1:
+            profile.observe(PhaseStarted(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+            ))
+            tool_name = "read_file /private/file --token=secret-argv"
+            invocation_id = str(uuid4())
+            profile.observe(ToolStarted(
+                run_id=run_id, session_id=None, invocation_id=invocation_id,
+                tool_name=tool_name, risk_level=RiskLevel.SAFE,
+            ))
+            profile.observe(ToolFinished(
+                run_id=run_id, session_id=None, invocation_id=invocation_id,
+                tool_name=tool_name, success=False, risk_level=RiskLevel.SAFE,
+                policy_decision=PolicyDecision.DENIED, approval_decision=None,
+                duration_ms=9, error_code="TOOL_FAILED",
+            ))
+            profile.observe(PhaseFinished(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+                duration_ms=10, success=True,
+            ))
+        elif step_count == 35:
+            profile.observe(PhaseStarted(
+                run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+            ))
+            invocation_id = str(uuid4())
+            profile.observe(ToolStarted(
+                run_id=run_id, session_id=None, invocation_id=invocation_id,
+                tool_name="read_file", risk_level=RiskLevel.SAFE,
+            ))
+            profile.observe(ToolFinished(
+                run_id=run_id, session_id=None, invocation_id=invocation_id,
+                tool_name="read_file", success=True, risk_level=RiskLevel.SAFE,
+                policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+                duration_ms=4, error_code=None,
+            ))
+    profile.observe(ErrorOccurred(
+        run_id=run_id, session_id=None, code="MODEL_ERROR",
+        message="private raw model output", retryable=False,
+    ))
+
+    lines = profile.lines()
+    timeline = lines[lines.index("Agent loop") + 1:]
+    assert len(timeline) == 31
+    assert timeline[-1] == "  ... 5 more steps"
+    assert "TOOL_ACTION         2" in lines
+    assert "CONTINUE            33" in lines
+    assert "<redacted tool>     1" in lines
+    assert "read_file           1" in lines
+    assert any("<redacted tool> FAIL 9 ms" in line for line in timeline)
+    rendered = "\n".join(lines)
+    assert "/private/file" not in rendered
+    assert "secret-argv" not in rendered
+    assert "private raw model output" not in rendered
+    assert lines == profile.lines()
