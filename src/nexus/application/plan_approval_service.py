@@ -174,11 +174,13 @@ class PlanApprovalService:
             raise ToolExecutionError(
                 "Only a CREATED Plan may enter approval.",
                 code="INVALID_PLAN_OUTPUT",
+                failure_category="PLAN_CONSTRUCTION",
             )
         if plan.authorization_scope != derive_authorization_scope(plan.steps):
             raise ToolExecutionError(
                 "Plan authorization exceeds visible Plan steps.",
                 code="INVALID_PLAN_OUTPUT",
+                failure_category="PLAN_CONSTRUCTION",
             )
 
     @staticmethod

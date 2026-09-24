@@ -135,6 +135,7 @@ class EvalRunner:
             runtime_status: RuntimeStatus | None = None
             terminal_status = None
             error_code: str | None = None
+            failure_category: str | None = None
             final_summary: str | None = None
             security: list[SecurityEvidence] = []
             infrastructure_error: str | None = None
@@ -152,6 +153,7 @@ class EvalRunner:
                         elif isinstance(event, ErrorOccurred):
                             runtime_status = event.status
                             error_code = event.code
+                            failure_category = event.failure_category
                         elif isinstance(event, RunInterrupted):
                             runtime_status = event.status
                         elif isinstance(event, ToolFinished):
@@ -203,6 +205,8 @@ class EvalRunner:
             if finish is not None:
                 runtime_status = finish.runtime_status
                 terminal_status = finish.terminal_status
+                if finish.error_code != error_code:
+                    failure_category = None
                 error_code = finish.error_code
             execution = EvalExecutionResult(
                 case_id=case.case_id,
@@ -217,6 +221,7 @@ class EvalRunner:
                 metrics=None if finish is None else metrics_from_finish(finish),
                 security_evidence=tuple(security),
                 infrastructure_error=infrastructure_error,
+                failure_category=failure_category,
             )
             result = await self._evaluator.evaluate(case, execution)
             return _case_report(case, execution, result)
@@ -382,6 +387,7 @@ def _case_report(
         runtime_status=execution.runtime_status,
         terminal_status=execution.terminal_status,
         error_code=execution.error_code,
+        failure_category=execution.failure_category,
         deterministic_result=result,
         metrics=execution.metrics,
         repository=execution.repository,

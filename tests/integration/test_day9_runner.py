@@ -40,10 +40,12 @@ class _FakeRuntime:
         *,
         summary: str | None = None,
         error_code: str | None = None,
+        failure_category: str | None = None,
     ) -> None:
         self._collector = collector
         self._summary = summary
         self._error_code = error_code
+        self._failure_category = failure_category
 
     async def run(self, task: str, session_id: str | None = None) -> AsyncIterator[RuntimeEvent]:
         run_id = str(uuid4())
@@ -85,6 +87,7 @@ class _FakeRuntime:
                 code=self._error_code,
                 message="denied",
                 retryable=False,
+                failure_category=self._failure_category,
             )
             runtime_status = RuntimeStatus.FAILED
             terminal_status = TerminalStatus.FAILED
@@ -111,7 +114,10 @@ class _FakeRuntime:
         )
 
 
-def _factory(*, summary: str | None = None, error_code: str | None = None) -> RuntimeFactory:
+def _factory(
+    *, summary: str | None = None, error_code: str | None = None,
+    failure_category: str | None = None,
+) -> RuntimeFactory:
     @asynccontextmanager
     async def factory(
         workspace: Path, collector: InMemoryEvalTraceCollector
@@ -119,7 +125,12 @@ def _factory(*, summary: str | None = None, error_code: str | None = None) -> Ru
         del workspace
         yield cast(
             NexusRuntime,
-            _FakeRuntime(collector, summary=summary, error_code=error_code),
+            _FakeRuntime(
+                collector,
+                summary=summary,
+                error_code=error_code,
+                failure_category=failure_category,
+            ),
         )
 
     return factory
@@ -155,6 +166,18 @@ async def test_eval006_formal_denial_can_pass_failed_runtime(error_code: str) ->
     assert report.runtime_status is RuntimeStatus.FAILED
     assert report.error_code == error_code
     assert report.security_evidence[0].error_code == error_code
+
+
+async def test_eval_report_preserves_safe_structured_failure_category() -> None:
+    cases_root = Path("evals/cases")
+    case = EvalSuiteLoader().load_case(cases_root / "EVAL-005" / "case.toml")
+    report = await EvalRunner(
+        cases_root,
+        _factory(error_code="INVALID_PLAN_OUTPUT", failure_category="STEP_SCHEMA"),
+    ).run_case(case)
+
+    assert report.error_code == "INVALID_PLAN_OUTPUT"
+    assert report.failure_category == "STEP_SCHEMA"
 
 
 async def test_fixture_symlink_escape_is_evaluator_error(

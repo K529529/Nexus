@@ -31,7 +31,8 @@ from nexus.infrastructure.bootstrap.composition import (
     index_repository,
     list_repository_sessions,
 )
-from nexus.interfaces.cli.renderer import render_event
+from nexus.interfaces.cli.profile import ExecutionProfile
+from nexus.interfaces.cli.renderer import ProgressRenderer
 
 app = typer.Typer(
     name="nexus",
@@ -69,24 +70,35 @@ def chat(
         str | None,
         typer.Option("--base-url", help="Override the OpenAI-compatible base URL."),
     ] = None,
+    profile: Annotated[
+        bool,
+        typer.Option("--profile", help="Print a safe execution timing summary."),
+    ] = False,
 ) -> None:
     """Run a coding task through the Nexus V1 runtime."""
 
+    execution_profile = ExecutionProfile() if profile else None
     try:
         config = load_runtime_config(cli_model=model, cli_base_url=base_url)
-        succeeded = asyncio.run(_run_chat(config, task))
+        succeeded = asyncio.run(_run_chat(config, task, execution_profile))
     except NexusError as exc:
         typer.echo(f"Error [{exc.code}]: {exc}", err=True)
         raise typer.Exit(code=1) from exc
+    finally:
+        if execution_profile is not None:
+            execution_profile.render()
     if not succeeded:
         raise typer.Exit(code=1)
 
 
-async def _run_chat(config: RuntimeConfig, task: str) -> bool:
+async def _run_chat(
+    config: RuntimeConfig, task: str, profile: ExecutionProfile | None = None
+) -> bool:
     async with bootstrap_application(config) as application:
         return await _consume_with_plan_approval(
             application.runtime.run(task),
             application.runtime,
+            profile=profile,
         )
 
 
@@ -206,35 +218,45 @@ async def _consume_with_plan_approval(
     runtime: NexusRuntime,
     *,
     requested_session_id: str | None = None,
+    profile: ExecutionProfile | None = None,
 ) -> bool:
     succeeded = True
     current_events = events
     session_id = requested_session_id
-    while True:
-        pending: ApprovalRequested | None = None
-        interrupted = False
-        async for event in current_events:
-            succeeded = render_event(event) and succeeded
-            if event.session_id is not None:
-                session_id = event.session_id
-            if (
-                isinstance(event, ApprovalRequested)
-                and event.subject is ApprovalSubject.PLAN
-            ):
-                pending = event
-            interrupted = interrupted or isinstance(event, RunInterrupted)
-        if pending is None:
-            return succeeded
-        if not interrupted or session_id is None:
-            raise NexusError(
-                "Plan approval was not paired with a durable interrupt.",
-                code="GRAPH_INVALID_STATE",
+    progress = ProgressRenderer()
+    progress.start()
+    try:
+        while True:
+            pending: ApprovalRequested | None = None
+            interrupted = False
+            async for event in current_events:
+                if profile is not None:
+                    profile.observe(event)
+                succeeded = progress.render(event) and succeeded
+                if event.session_id is not None:
+                    session_id = event.session_id
+                if (
+                    isinstance(event, ApprovalRequested)
+                    and event.subject is ApprovalSubject.PLAN
+                ):
+                    pending = event
+                interrupted = interrupted or isinstance(event, RunInterrupted)
+            if pending is None:
+                return succeeded
+            if not interrupted or session_id is None:
+                raise NexusError(
+                    "Plan approval was not paired with a durable interrupt.",
+                    code="GRAPH_INVALID_STATE",
+                )
+            await progress.stop()
+            resume_input = _collect_plan_decision()
+            current_events = runtime.resume(
+                session_id,
+                resume_input=resume_input,
             )
-        resume_input = _collect_plan_decision()
-        current_events = runtime.resume(
-            session_id,
-            resume_input=resume_input,
-        )
+            progress.start()
+    finally:
+        await progress.stop()
 
 
 def _collect_plan_decision() -> PlanApprovalResumeInput:

@@ -17,6 +17,7 @@ from nexus.domain.validation import (
     ValidationResult,
     ValidationStatus,
 )
+from nexus.errors import SAFE_FAILURE_CATEGORIES
 
 
 class RuntimeStatus(StrEnum):
@@ -32,6 +33,16 @@ class RuntimeStatus(StrEnum):
 class ApprovalSubject(StrEnum):
     TOOL = "TOOL"
     PLAN = "PLAN"
+
+
+class ExecutionPhase(StrEnum):
+    REPOSITORY = "REPOSITORY"
+    CONTEXT = "CONTEXT"
+    PLANNING = "PLANNING"
+    AGENT = "AGENT"
+    VALIDATION = "VALIDATION"
+    REPLAN = "REPLAN"
+    REPAIR = "REPAIR"
 
 
 class ApprovalActorCategory(StrEnum):
@@ -103,6 +114,29 @@ class TaskStarted(RuntimeEvent):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class PhaseStarted(RuntimeEvent):
+    """A graph node entered a user-relevant phase."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    phase: ExecutionPhase
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PhaseFinished(RuntimeEvent):
+    """Elapsed node time, including unsuccessful attempts."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    phase: ExecutionPhase
+    duration_ms: int
+    success: bool
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.duration_ms < 0:
+            raise ValueError("Phase duration must not be negative.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FinalResult(RuntimeEvent):
     """A truthful successful or unsuccessful terminal task result."""
 
@@ -155,6 +189,15 @@ class ErrorOccurred(RuntimeEvent):
     code: str
     message: str
     retryable: bool
+    failure_category: str | None = None
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if (
+            self.failure_category is not None
+            and self.failure_category not in SAFE_FAILURE_CATEGORIES
+        ):
+            raise ValueError("Unknown safe failure category.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

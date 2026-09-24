@@ -54,6 +54,8 @@ class RuntimePhase(StrEnum):
 
 class TelemetryEventType(StrEnum):
     RUN_STARTED = "run.started"
+    PHASE_STARTED = "phase.started"
+    PHASE_FINISHED = "phase.finished"
     REPOSITORY_EXPLORED = "repository.explored"
     CONTEXT_BUILT = "context.built"
     PLAN_CREATED = "plan.created"
@@ -78,6 +80,8 @@ class TelemetryEventType(StrEnum):
 EVENT_PHASES: Mapping[TelemetryEventType, RuntimePhase] = MappingProxyType(
     {
         TelemetryEventType.RUN_STARTED: RuntimePhase.RUN,
+        TelemetryEventType.PHASE_STARTED: RuntimePhase.RUN,
+        TelemetryEventType.PHASE_FINISHED: RuntimePhase.RUN,
         TelemetryEventType.RUN_INTERRUPTED: RuntimePhase.RUN,
         TelemetryEventType.RUN_FINISHED: RuntimePhase.RUN,
         TelemetryEventType.REPOSITORY_EXPLORED: RuntimePhase.REPOSITORY,

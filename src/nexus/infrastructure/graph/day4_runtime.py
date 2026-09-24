@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import fields, replace
 from typing import Any, cast
@@ -56,7 +57,10 @@ from nexus.domain.runtime_events import (
     ApprovalSubject,
     ChangedFileRecorded,
     ContextBuilt,
+    ExecutionPhase,
     FinalResult,
+    PhaseFinished,
+    PhaseStarted,
     PlanCreated,
     RepairStarted,
     ReplanOccurred,
@@ -160,9 +164,16 @@ class Day4LangGraphRuntime:
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
-        builder.add_node("explore_repository", self._explore_repository)
-        builder.add_node("build_context", self._build_context)
-        builder.add_node("create_plan", self._create_plan)
+        builder.add_node(
+            "explore_repository",
+            self._profile_node(ExecutionPhase.REPOSITORY, self._explore_repository),
+        )
+        builder.add_node(
+            "build_context", self._profile_node(ExecutionPhase.CONTEXT, self._build_context)
+        )
+        builder.add_node(
+            "create_plan", self._profile_node(ExecutionPhase.PLANNING, self._create_plan)
+        )
         builder.add_node(
             "approval_gate",
             self._approval_gate,
@@ -170,21 +181,25 @@ class Day4LangGraphRuntime:
         )
         builder.add_node(
             "agent_step",
-            self._agent_step,
+            self._profile_node(ExecutionPhase.AGENT, self._agent_step),
             destinations=("agent_step", "execute_tool", "validate", "finalize_failed"),
         )
-        builder.add_node("execute_tool", self._execute_tool)
+        builder.add_node(
+            "execute_tool", self._profile_node(ExecutionPhase.AGENT, self._execute_tool)
+        )
         builder.add_node(
             "observe",
-            self._observe,
+            self._profile_node(ExecutionPhase.AGENT, self._observe),
             destinations=("agent_step", "create_plan", "finalize_failed"),
         )
         builder.add_node(
             "validate",
-            self._validate,
+            self._profile_node(ExecutionPhase.VALIDATION, self._validate),
             destinations=("finalize", "repair_plan", "finalize_failed"),
         )
-        builder.add_node("repair_plan", self._repair_plan)
+        builder.add_node(
+            "repair_plan", self._profile_node(ExecutionPhase.REPAIR, self._repair_plan)
+        )
         builder.add_node("finalize", self._finalize)
         builder.add_node("finalize_failed", self._finalize_failed)
         builder.add_edge(START, "initialize_run")
@@ -197,6 +212,49 @@ class Day4LangGraphRuntime:
         builder.add_edge("finalize", END)
         builder.add_edge("finalize_failed", END)
         self._graph = builder.compile(checkpointer=checkpointer)
+
+    def _profile_node(
+        self,
+        phase: ExecutionPhase,
+        node: Callable[[AgentState], Awaitable[Any]],
+    ) -> Any:
+        async def observed(state: AgentState) -> Any:
+            actual_phase = (
+                ExecutionPhase.REPLAN
+                if phase is ExecutionPhase.PLANNING and state.plan is not None
+                else phase
+            )
+            try:
+                await self._events.emit(
+                    PhaseStarted(
+                        run_id=state.run_id,
+                        session_id=state.session_id,
+                        phase=actual_phase,
+                    )
+                )
+            except Exception:
+                pass  # Profiling must not change graph execution.
+            started = time.perf_counter()
+            success = False
+            try:
+                result = await node(state)
+                success = True
+                return result
+            finally:
+                try:
+                    await self._events.emit(
+                        PhaseFinished(
+                            run_id=state.run_id,
+                            session_id=state.session_id,
+                            phase=actual_phase,
+                            duration_ms=max(0, int((time.perf_counter() - started) * 1000)),
+                            success=success,
+                        )
+                    )
+                except Exception:
+                    pass  # Instrumentation cannot mask a node result or failure.
+
+        return observed
 
     async def run(
         self,

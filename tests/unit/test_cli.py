@@ -33,6 +33,7 @@ def test_explicit_and_chat_help() -> None:
     assert "TASK" in chat_help_text
     assert "--model" in chat_help_text
     assert "--base-url" in chat_help_text
+    assert "--profile" in chat_help_text
     assert "--api-key" not in chat_help_text
 
 
@@ -62,3 +63,37 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert "Task started" in result.stdout
     assert "Short greeting." in result.stdout
+    assert "Execution Profile" not in result.stdout
+
+
+def test_chat_profile_is_printed_after_failure(monkeypatch: MonkeyPatch) -> None:
+    config = RuntimeConfig(model_name="mock-model", model_api_key=SecretStr("mock-secret"))
+
+    class FailingRuntime:
+        async def run(self, task: str) -> AsyncIterator[RuntimeEvent]:
+            yield TaskStarted(run_id="test-run", session_id=None, task=task)
+            from nexus.domain.runtime_events import ErrorOccurred
+
+            yield ErrorOccurred(
+                run_id="test-run",
+                session_id=None,
+                code="INVALID_PLAN_OUTPUT",
+                message="The model returned an invalid Plan.",
+                retryable=True,
+                failure_category="STEP_SCHEMA",
+            )
+
+    @asynccontextmanager
+    async def fake_bootstrap(resolved: RuntimeConfig) -> AsyncIterator[SimpleNamespace]:
+        assert resolved == config
+        yield SimpleNamespace(runtime=FailingRuntime())
+
+    monkeypatch.setattr(cli_module, "load_runtime_config", lambda **_: config)
+    monkeypatch.setattr(cli_module, "bootstrap_application", fake_bootstrap)
+
+    result = runner.invoke(app, ["chat", "Work", "--profile"])
+
+    assert result.exit_code == 1
+    assert "Execution Profile" in result.stdout
+    assert "Failure category    STEP_SCHEMA" in result.stdout
+    assert "Error [INVALID_PLAN_OUTPUT]" in result.stderr

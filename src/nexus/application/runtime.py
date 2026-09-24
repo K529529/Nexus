@@ -158,6 +158,7 @@ class NexusRuntime:
                 code=exc.code,
                 message=str(exc),
                 retryable=exc.retryable,
+                failure_category=exc.failure_category,
             )
             return
         except Exception:
@@ -239,6 +240,7 @@ class NexusRuntime:
                 code=exc.code,
                 message=str(exc),
                 retryable=exc.retryable,
+                failure_category=exc.failure_category,
             )
             return
         except Exception:
@@ -503,6 +505,7 @@ class NexusRuntime:
                 code=error.code,
                 message=str(error),
                 retryable=error.retryable,
+                failure_category=error.failure_category,
             ),
             None,
         )

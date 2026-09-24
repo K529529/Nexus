@@ -99,6 +99,7 @@ class ModelPlanner:
                 _invalid_output_message("Plan", exc),
                 code="INVALID_PLAN_OUTPUT",
                 retryable=True,
+                failure_category=_failure_category(exc),
             ) from exc
 
     def _plan_messages(
@@ -189,6 +190,7 @@ class ModelPlanner:
                 _invalid_output_message("Repair guidance", exc),
                 code="INVALID_PLAN_OUTPUT",
                 retryable=True,
+                failure_category=_failure_category(exc),
             ) from exc
 
     def _repair_messages(
@@ -325,6 +327,7 @@ class JsonAgentDecisionAdapter:
                 _invalid_output_message("Agent decision", exc),
                 code="INVALID_AGENT_DECISION",
                 retryable=True,
+                failure_category=_failure_category(exc),
             ) from exc
 
     def _decision_messages(
@@ -407,10 +410,11 @@ def _require_exact_keys(value: dict[str, Any], expected: set[str], category: str
 
 
 def _invalid_output_message(subject: str, error: Exception) -> str:
-    category = (
-        error.category if isinstance(error, StructuredOutputViolation) else "SCHEMA_VALIDATION"
-    )
-    return f"The model returned invalid {subject}. Category: {category}."
+    return f"The model returned invalid {subject}. Category: {_failure_category(error)}."
+
+
+def _failure_category(error: Exception) -> str:
+    return error.category if isinstance(error, StructuredOutputViolation) else "UNEXPECTED"
 
 
 def _plan_step_violation_category(error: ValueError) -> str:

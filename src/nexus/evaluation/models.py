@@ -281,6 +281,7 @@ class EvalExecutionResult:
     metrics: EvalMetrics | None
     security_evidence: tuple[SecurityEvidence, ...]
     infrastructure_error: str | None
+    failure_category: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -339,6 +340,7 @@ class EvalCaseReport:
     security_evidence: tuple[SecurityEvidence, ...]
     efficiency_warning: bool
     evidence: tuple[str, ...]
+    failure_category: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

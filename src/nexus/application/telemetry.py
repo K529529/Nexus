@@ -28,6 +28,8 @@ from nexus.domain.runtime_events import (
     ModelCallFinished,
     ModelCallStarted,
     ObservabilityWarning,
+    PhaseFinished,
+    PhaseStarted,
     PlanCreated,
     RepairStarted,
     ReplanOccurred,
@@ -94,6 +96,18 @@ class EventEnricher:
                 TelemetryEventType.RUN_STARTED,
                 {"task_character_count": len(event.task)},
                 ("task",),
+            )
+        if isinstance(event, PhaseStarted):
+            return TelemetryEventType.PHASE_STARTED, {"phase": event.phase.value}, ()
+        if isinstance(event, PhaseFinished):
+            return (
+                TelemetryEventType.PHASE_FINISHED,
+                {
+                    "phase": event.phase.value,
+                    "duration_ms": event.duration_ms,
+                    "success": event.success,
+                },
+                (),
             )
         if isinstance(event, RepositoryExplored):
             return (
@@ -304,9 +318,15 @@ class EventEnricher:
                 ("content", "diff", "validation_evidence"),
             )
         if isinstance(event, ErrorOccurred):
+            payload: dict[str, object] = {
+                "error_code": event.code,
+                "retryable": event.retryable,
+            }
+            if event.failure_category is not None:
+                payload["failure_category"] = event.failure_category
             return (
                 TelemetryEventType.ERROR_OCCURRED,
-                {"error_code": event.code, "retryable": event.retryable},
+                payload,
                 ("error_message",),
             )
         if isinstance(event, ObservabilityWarning):

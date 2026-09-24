@@ -113,6 +113,18 @@ Focused subsystem guides are available for [MCP](docs/mcp-guide.md),
 [Skills](docs/skill-guide.md), [observability](docs/day8-observability-guide.md), and
 [architecture decisions](docs/adr/).
 
+For a developer timing summary, add `--profile` to `nexus chat`:
+
+```bash
+nexus chat "Explain the event rendering path" --profile
+```
+
+The default terminal view shows concise progress and a periodic heartbeat during slow work.
+The profile prints total and graph-phase time, call counts, and up to eight slow model/Tool
+operations after success, failure, or interruption. Phase time is marked `unobserved` when
+the corresponding boundary was not reached. Model and Tool event detail remains available
+through telemetry; the profile never includes prompts, file contents, or raw model output.
+
 ## Development from source
 
 For contributors or local development:
