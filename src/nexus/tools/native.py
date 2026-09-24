@@ -31,6 +31,26 @@ _MAX_TEXT_OUTPUT_BYTES = 1_048_576
 _MAX_PATH_RESULTS = 200
 _MAX_LEXICAL_RESULTS = 200
 _MAX_READ_LINES = 400
+_EXCLUDED_SCAN_DIRECTORIES = frozenset(
+    {
+        ".git",
+        "node_modules",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "dist",
+        "build",
+        "target",
+        "coverage",
+        "htmlcov",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".uv-cache",
+        ".pytest-tmp",
+        ".tmp-docker-config",
+    }
+)
 
 
 class ListFilesTool:
@@ -355,7 +375,7 @@ def _list_paths(
     *,
     recursive: bool,
 ) -> tuple[list[str], bool]:
-    if _is_git_metadata_path(guard, root):
+    if _is_excluded_scan_path(guard, root):
         return [], False
     results = sorted(
         guard.relative_display(file_path)
@@ -369,7 +389,7 @@ def _search_paths(
     root: Path,
     pattern: str,
 ) -> tuple[list[str], bool]:
-    if _is_git_metadata_path(guard, root):
+    if _is_excluded_scan_path(guard, root):
         return [], False
     matches = sorted(
         relative
@@ -391,7 +411,8 @@ def _iter_files(root: Path, *, recursive: bool) -> Iterator[Path]:
         directories[:] = sorted(
             name
             for name in directories
-            if name != ".git" and not _is_link_or_junction(current_path / name)
+            if not _is_excluded_scan_directory(name)
+            and not _is_link_or_junction(current_path / name)
         )
         for name in sorted(files):
             candidate = current_path / name
@@ -409,7 +430,7 @@ def _lexical_matches(
     case_sensitive: bool,
     allow_path: Callable[[str], bool] | None = None,
 ) -> tuple[list[JsonObject], bool]:
-    if _is_git_metadata_path(guard, root):
+    if _is_excluded_scan_path(guard, root):
         return [], False
     needle = pattern if case_sensitive else pattern.casefold()
     matches: list[JsonObject] = []
@@ -646,8 +667,15 @@ def _is_link_or_junction(path: Path) -> bool:
     return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
 
 
-def _is_git_metadata_path(guard: WorkspaceGuard, path: Path) -> bool:
-    return ".git" in guard.relative_display(path).split("/")
+def _is_excluded_scan_directory(name: str) -> bool:
+    return name in _EXCLUDED_SCAN_DIRECTORIES or name.startswith(".pytest-tmp-")
+
+
+def _is_excluded_scan_path(guard: WorkspaceGuard, path: Path) -> bool:
+    return any(
+        _is_excluded_scan_directory(part)
+        for part in guard.relative_display(path).split("/")
+    )
 
 
 def _duration_ms(started: float) -> int:
