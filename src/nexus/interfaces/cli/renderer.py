@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import ast
-import asyncio
 import shlex
 import sys
+import threading
 import time
 
 import typer
@@ -59,23 +59,47 @@ class ProgressRenderer:
         self._last_phase: ExecutionPhase | None = None
         self._task_announced = False
         self._resuming = resuming
-        self._heartbeat: asyncio.Task[None] | None = None
+        self._heartbeat: threading.Thread | None = None
+        self._heartbeat_stop = threading.Event()
+        self._output_lock = threading.RLock()
         self._live_line = False
+        self._displayed_elapsed: int | None = None
+        self._running = False
 
     def start(self) -> None:
-        if self._heartbeat is None:
-            self._heartbeat = asyncio.create_task(self._pulse())
+        with self._output_lock:
+            if self._heartbeat is not None:
+                return
+            self._heartbeat_stop = threading.Event()
+            self._running = True
+            self._heartbeat = threading.Thread(
+                target=self._pulse,
+                args=(self._heartbeat_stop,),
+                daemon=True,
+            )
+            self._draw_line()
+            self._heartbeat.start()
 
     async def stop(self) -> None:
-        task = self._heartbeat
-        self._heartbeat = None
-        if task is not None:
-            task.cancel()
-            await asyncio.gather(task, return_exceptions=True)
-        self._clear_line()
+        with self._output_lock:
+            self._running = False
+            heartbeat = self._heartbeat
+            self._heartbeat = None
+            self._heartbeat_stop.set()
+        if heartbeat is not None:
+            heartbeat.join()
+        with self._output_lock:
+            self._clear_line()
 
     def render(self, event: RuntimeEvent) -> bool:
-        self._clear_line()
+        with self._output_lock:
+            return self._render_locked(event)
+
+    def _render_locked(self, event: RuntimeEvent) -> bool:
+        permanent = self._prints_output(event)
+        if permanent:
+            self._clear_line()
+        previous_status = self._status
         if isinstance(event, PhaseStarted):
             self._set_status(_PHASE_MESSAGES[event.phase])
             if event.phase is not self._last_phase and event.phase is not ExecutionPhase.CONTEXT:
@@ -100,31 +124,60 @@ class ProgressRenderer:
                 self._task_announced = True
                 if not self._resuming:
                     self._last_phase = ExecutionPhase.REPOSITORY
-        return render_event(event)
+        result = render_event(event)
+        if isinstance(event, (FinalResult, ErrorOccurred)):
+            self._running = False
+            self._heartbeat_stop.set()
+        elif permanent or self._status != previous_status:
+            self._draw_line()
+        return result
+
+    def _prints_output(self, event: RuntimeEvent) -> bool:
+        if isinstance(event, TaskStarted):
+            return not self._task_announced
+        if isinstance(event, PhaseStarted):
+            return event.phase is not self._last_phase and event.phase is not ExecutionPhase.CONTEXT
+        if isinstance(event, ApprovalResolved):
+            return event.subject is ApprovalSubject.PLAN
+        return isinstance(
+            event,
+            (ContextBuilt, FinalResult, PlanCreated, ValidationFinished, ErrorOccurred),
+        )
 
     def _set_status(self, status: str) -> None:
         if status != self._status:
             self._status = status
             self._status_since = time.monotonic()
 
-    async def _pulse(self) -> None:
+    def _pulse(self, stop: threading.Event) -> None:
         next_log = time.monotonic() + 15
-        while True:
-            await asyncio.sleep(1)
-            elapsed = int(time.monotonic() - self._status_since)
-            if sys.stdout.isatty():
-                sys.stdout.write(f"\r{self._status}... {elapsed}s\x1b[K")
-                sys.stdout.flush()
-                self._live_line = True
-            elif time.monotonic() >= next_log:
-                typer.echo(f"{self._status}... {elapsed}s")
-                next_log = time.monotonic() + 15
+        while not stop.wait(0.2):
+            with self._output_lock:
+                if not self._running:
+                    return
+                elapsed = int(time.monotonic() - self._status_since)
+                if sys.stdout.isatty():
+                    if elapsed != self._displayed_elapsed:
+                        self._draw_line(elapsed)
+                elif time.monotonic() >= next_log:
+                    typer.echo(f"{self._status}... {elapsed}s")
+                    next_log = time.monotonic() + 15
+
+    def _draw_line(self, elapsed: int | None = None) -> None:
+        if not self._running or not sys.stdout.isatty():
+            return
+        seconds = int(time.monotonic() - self._status_since) if elapsed is None else elapsed
+        sys.stdout.write(f"\r{self._status}... {seconds}s\x1b[K")
+        sys.stdout.flush()
+        self._live_line = True
+        self._displayed_elapsed = seconds
 
     def _clear_line(self) -> None:
         if self._live_line:
             sys.stdout.write("\r\x1b[K")
             sys.stdout.flush()
             self._live_line = False
+            self._displayed_elapsed = None
 
 
 def render_event(event: RuntimeEvent) -> bool:

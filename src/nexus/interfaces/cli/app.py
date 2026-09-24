@@ -243,6 +243,7 @@ async def _consume_with_plan_approval(
                 interrupted = interrupted or isinstance(event, RunInterrupted)
             if pending is None:
                 if interrupted:
+                    await progress.stop()
                     typer.echo("Paused")
                 return succeeded
             if not interrupted or session_id is None:

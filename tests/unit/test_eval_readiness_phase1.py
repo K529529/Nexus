@@ -6,6 +6,7 @@ import asyncio
 import io
 import json
 import sys
+import time
 from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -23,18 +24,24 @@ from nexus.domain.observability import RunExecutionContext
 from nexus.domain.planning import PlanKind
 from nexus.domain.ports.planning import PlanningRequest
 from nexus.domain.runtime_events import (
+    ApprovalRequested,
+    ApprovalSubject,
+    ContextBuilt,
     ErrorOccurred,
     ExecutionPhase,
     FinalResult,
     ModelCallFinished,
     ModelCallStarted,
     PhaseFinished,
+    PlanCreated,
     RunInterrupted,
     TaskStarted,
     ToolFinished,
     ToolStarted,
+    ValidationStarted,
 )
 from nexus.domain.tooling import PolicyDecision, RiskLevel
+from nexus.domain.validation import ValidationCheckKind
 from nexus.errors import ModelError
 from nexus.interfaces.cli.profile import ExecutionProfile
 from nexus.interfaces.cli.renderer import ProgressRenderer, render_event
@@ -56,6 +63,11 @@ class OneShotGateway:
         del messages
         if False:
             yield ModelChunk("")
+
+
+class TtyBuffer(io.StringIO):
+    def isatty(self) -> bool:
+        return True
 
 
 def _request() -> PlanningRequest:
@@ -239,10 +251,6 @@ def test_default_renderer_hides_low_level_events_but_keeps_terminal_output(
 async def test_progress_heartbeat_updates_during_a_slow_model_call(
     monkeypatch: MonkeyPatch,
 ) -> None:
-    class TtyBuffer(io.StringIO):
-        def isatty(self) -> bool:
-            return True
-
     output = TtyBuffer()
     monkeypatch.setattr(sys, "stdout", output)
     renderer = ProgressRenderer()
@@ -261,6 +269,198 @@ async def test_progress_heartbeat_updates_during_a_slow_model_call(
     await renderer.stop()
     assert "Thinking... 1s" in output.getvalue()
     assert renderer._heartbeat is None
+
+
+@pytest.mark.asyncio
+async def test_progress_elapsed_updates_while_file_work_blocks_event_loop(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    renderer = ProgressRenderer()
+    renderer.start()
+    try:
+        renderer.render(
+            ToolStarted(
+                run_id=str(uuid4()), session_id=None,
+                invocation_id=str(uuid4()), tool_name="read_file",
+                risk_level=RiskLevel.SAFE,
+            )
+        )
+        time.sleep(1.5)  # noqa: ASYNC251 - reproduce synchronous Tool work
+        assert "Reading relevant files... 1s" in output.getvalue()
+        assert renderer._live_line
+    finally:
+        await renderer.stop()
+
+
+@pytest.mark.asyncio
+async def test_hidden_events_keep_live_status_visible(monkeypatch: MonkeyPatch) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+    call_id = str(uuid4())
+    renderer = ProgressRenderer()
+    renderer.start()
+    renderer.render(
+        ModelCallStarted(
+            run_id=run_id, session_id=None, model_call_id=call_id,
+            phase=ModelCallPhase.PLAN, provider=None, model=None,
+        )
+    )
+    before = output.getvalue()
+    renderer.render(
+        ModelCallFinished(
+            run_id=run_id, session_id=None, model_call_id=call_id,
+            phase=ModelCallPhase.PLAN, success=True, duration_ms=10,
+            usage=TokenUsage.unavailable(), error_code=None,
+        )
+    )
+    renderer.render(
+        ToolFinished(
+            run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+            tool_name="read_file", success=True, risk_level=RiskLevel.SAFE,
+            policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+            duration_ms=10, error_code=None,
+        )
+    )
+    assert output.getvalue() == before
+    assert before.endswith("s\x1b[K")
+    assert renderer._live_line
+    await renderer.stop()
+
+
+@pytest.mark.asyncio
+async def test_status_transitions_redraw_without_waiting_for_heartbeat(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+    renderer = ProgressRenderer()
+    renderer.start()
+    events = (
+        ModelCallStarted(
+            run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+            phase=ModelCallPhase.PLAN, provider=None, model=None,
+        ),
+        ToolStarted(
+            run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+            tool_name="read_file", risk_level=RiskLevel.SAFE,
+        ),
+        ToolStarted(
+            run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+            tool_name="apply_patch", risk_level=RiskLevel.WRITE,
+        ),
+        ValidationStarted(
+            run_id=run_id, session_id=None, check_ids=("check-1",),
+            check_kinds=(ValidationCheckKind.TEST,),
+        ),
+    )
+    for event, label in zip(
+        events, ("Thinking", "Reading relevant files", "Editing files", "Validating"),
+        strict=True,
+    ):
+        renderer.render(event)
+        assert output.getvalue().endswith(f"\r{label}... 0s\x1b[K")
+    assert "\r\x1b[K" not in output.getvalue()
+    await renderer.stop()
+
+
+@pytest.mark.asyncio
+async def test_non_tty_hidden_status_changes_do_not_spam_output(
+    capsys: CaptureFixture[str],
+) -> None:
+    run_id = str(uuid4())
+    renderer = ProgressRenderer()
+    renderer.start()
+    renderer.render(
+        ModelCallStarted(
+            run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+            phase=ModelCallPhase.PLAN, provider=None, model=None,
+        )
+    )
+    renderer.render(
+        ToolStarted(
+            run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+            tool_name="read_file", risk_level=RiskLevel.SAFE,
+        )
+    )
+    assert capsys.readouterr().out == ""
+    await renderer.stop()
+
+
+@pytest.mark.asyncio
+async def test_permanent_output_replaces_live_line_cleanly(monkeypatch: MonkeyPatch) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+    renderer = ProgressRenderer()
+    renderer.start()
+    renderer.render(
+        ContextBuilt(
+            run_id=run_id, session_id=None, selected_paths=(),
+            retained_characters=0, truncated=False,
+        )
+    )
+    assert "\r\x1b[KContext ready\n\rStarting..." in output.getvalue()
+    renderer.render(
+        PlanCreated(
+            run_id=run_id, session_id=None, plan_id=str(uuid4()), plan_version=1,
+            plan_kind=PlanKind.INITIAL, step_summaries=("1. Inspect", "2. Report"),
+            replan_reason=None,
+        )
+    )
+    assert "\r\x1b[K  1. Inspect\n  2. Report\n\rStarting..." in output.getvalue()
+    await renderer.stop()
+
+
+@pytest.mark.asyncio
+async def test_completion_failure_and_approval_clear_live_line(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+
+    for terminal in (
+        FinalResult(run_id=run_id, session_id=None, content="done"),
+        ErrorOccurred(
+            run_id=run_id, session_id=None, code="MODEL_ERROR",
+            message="safe failure", retryable=False,
+        ),
+    ):
+        output.seek(0)
+        output.truncate(0)
+        renderer = ProgressRenderer()
+        renderer.start()
+        renderer.render(terminal)
+        snapshot = output.getvalue()
+        assert not renderer._live_line
+        assert not renderer._running
+        await asyncio.sleep(1.1)
+        assert output.getvalue() == snapshot
+        await renderer.stop()
+
+    output.seek(0)
+    output.truncate(0)
+    renderer = ProgressRenderer()
+    renderer.start()
+    renderer.render(
+        ApprovalRequested(
+            run_id=run_id, session_id=None, approval_id=str(uuid4()),
+            invocation_id=None, operation="approve_plan", risk_level=RiskLevel.WRITE,
+            resource_or_command_summary="scope", subject=ApprovalSubject.PLAN,
+            plan_id=str(uuid4()), plan_version=1,
+        )
+    )
+    assert renderer._live_line
+    await renderer.stop()
+    snapshot = output.getvalue()
+    assert snapshot.endswith("\r\x1b[K")
+    assert not renderer._live_line
+    await asyncio.sleep(1.1)
+    assert output.getvalue() == snapshot
 
 
 def test_profile_aggregates_deterministically_and_handles_failure_interrupt() -> None:

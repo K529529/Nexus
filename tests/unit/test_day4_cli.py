@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import sys
 from collections.abc import AsyncIterator
 from typing import cast
 from uuid import uuid4
@@ -185,3 +187,24 @@ def test_plan_decline_maps_to_denied_without_enum_prompt(monkeypatch: MonkeyPatc
     decision = _collect_plan_decision()
     assert prompts == ["Approve this plan?"]
     assert decision.decision is ApprovalDecision.DENIED
+
+
+@pytest.mark.asyncio
+async def test_pause_message_follows_cleared_live_line(monkeypatch: MonkeyPatch) -> None:
+    class TtyBuffer(io.StringIO):
+        def isatty(self) -> bool:
+            return True
+
+    output = TtyBuffer()
+    monkeypatch.setattr(sys, "stdout", output)
+    run_id = str(uuid4())
+    session_id = str(uuid4())
+
+    async def paused() -> AsyncIterator[RuntimeEvent]:
+        yield TaskStarted(run_id=run_id, session_id=session_id, task="pause")
+        yield RunInterrupted(run_id=run_id, session_id=session_id)
+
+    runtime = ApprovalRuntime(run_id, session_id, str(uuid4()), str(uuid4()))
+    assert await _consume_with_plan_approval(paused(), cast(NexusRuntime, runtime))
+    assert "\r\x1b[KPaused\n" in output.getvalue()
+    assert output.getvalue().endswith("Paused\n")
