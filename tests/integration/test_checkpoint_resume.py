@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from langgraph.checkpoint.serde import jsonplus
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from nexus.config.models import RuntimeConfig
+from nexus.domain.agent_state import AgentState
+from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.persistence import RunStatus
-from nexus.domain.runtime_events import ErrorOccurred, FinalResult, RunInterrupted
+from nexus.domain.runtime_events import ErrorOccurred, FinalResult, RunInterrupted, RuntimeStatus
+from nexus.domain.skills import SelectedSkill, SkillLocation, SkillMetadata, SkillSource
 from nexus.errors import ModelError, SessionError
 from nexus.infrastructure.bootstrap import bootstrap_application
+from nexus.infrastructure.checkpoint.postgres import _checkpoint_serializer
 from nexus.infrastructure.database import DatabaseBootstrap
 from nexus.infrastructure.model_gateway.openai_compatible import OpenAICompatibleModelGateway
 from nexus.infrastructure.persistence import SqlAlchemySessionUnitOfWorkFactory
@@ -39,12 +46,49 @@ class FailingModelGateway(MockModelGateway):
         raise ModelError("Resume model failed.", retryable=True)
 
 
+def test_checkpoint_serializer_reads_previous_msgpack_without_unregistered_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    location = SkillLocation(SkillSource.BUILTIN, "example/SKILL.md")
+    metadata = SkillMetadata(
+        "example", "Example", "Example description", "Example use", SkillSource.BUILTIN,
+        0, "1.0.0", location,
+    )
+    state = AgentState(
+        task="example",
+        messages=[ModelMessage("user", "example")],
+        run_id=str(uuid4()),
+        session_id=None,
+        status=RuntimeStatus.STARTED,
+        context=WorkingContext(
+            "example", (), (), ("example.py",), (), False,
+            selected_skills=(SelectedSkill(metadata, "Example body\n", "Example reason"),),
+        ),
+    )
+    previous = JsonPlusSerializer(allowed_msgpack_modules=True)
+    configured = _checkpoint_serializer()
+    stored = previous.dumps_typed(state)
+    assert stored[0] == "msgpack"
+    assert configured.dumps_typed(state) == stored
+    with caplog.at_level(logging.WARNING, logger="langgraph.checkpoint.serde.jsonplus"):
+        restored = configured.loads_typed(stored)
+    assert isinstance(restored, AgentState)
+    assert isinstance(restored.context, WorkingContext)
+    assert restored.context.selected_skills[0].metadata == metadata
+    assert restored.context.selected_skills[0].body == "Example body\n"
+    assert restored.messages[0] == ModelMessage("user", "example")
+    assert "Deserializing unregistered type" not in caplog.text
+
+
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_persisted_checkpoint_resumes_after_runtime_reconstruction(
     migrated_database_url: str,
     tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(jsonplus, "_warned_unregistered_types", set())
     config = RuntimeConfig(database_url=migrated_database_url, semantic_enabled=False)
     gateway_a = MockModelGateway("must not execute before interruption")
 
@@ -89,6 +133,8 @@ async def test_persisted_checkpoint_resumes_after_runtime_reconstruction(
     assert gateway_b.requests == [
         [ModelMessage(role="user", content="persist then resume")]
     ]
+    assert "Deserializing unregistered type" not in caplog.text
+    assert "Blocked deserialization" not in caplog.text
 
     database = DatabaseBootstrap(migrated_database_url)
     factory = SqlAlchemySessionUnitOfWorkFactory(database.session_factory)
@@ -222,7 +268,8 @@ def test_session_resume_cli_success_missing_and_cross_repository(
 
     resumed = runner.invoke(app, ["session", "resume", session_id], env=environment)
     assert resumed.exit_code == 0
-    assert "Task started" in resumed.stdout
+    assert "Working" in resumed.stdout
+    assert "Task started" not in resumed.stdout
     assert "CLI resumed result" in resumed.stdout
 
     completed = runner.invoke(app, ["session", "resume", session_id], env=environment)

@@ -5,9 +5,63 @@ from __future__ import annotations
 from contextlib import AbstractAsyncContextManager
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from sqlalchemy.engine import make_url
 
 from nexus.errors import NexusError
+
+# Exact Nexus types persisted in the V1 graph state and its nested values.
+# This changes deserialization policy, not the checkpoint wire format.
+_CHECKPOINT_TYPES: tuple[tuple[str, str], ...] = (
+    ("nexus.domain.agent_decision", "Observation"),
+    ("nexus.domain.agent_decision", "ToolAction"),
+    ("nexus.domain.agent_state", "AgentState"),
+    ("nexus.domain.approvals", "ApprovalRequest"),
+    ("nexus.domain.context", "CodeChunk"),
+    ("nexus.domain.context", "ContextCandidate"),
+    ("nexus.domain.context", "RetrievalSource"),
+    ("nexus.domain.exploration", "ExplorationResult"),
+    ("nexus.domain.exploration", "RepositoryFileEvidence"),
+    ("nexus.domain.exploration", "RepositoryInstruction"),
+    ("nexus.domain.exploration", "SelectedFileContext"),
+    ("nexus.domain.exploration", "WorkingContext"),
+    ("nexus.domain.model", "ModelMessage"),
+    ("nexus.domain.model", "TokenUsageAggregate"),
+    ("nexus.domain.persistence", "SessionTurn"),
+    ("nexus.domain.planning", "ApprovedPlanEvidence"),
+    ("nexus.domain.planning", "AuthorizationScope"),
+    ("nexus.domain.planning", "ChangeKind"),
+    ("nexus.domain.planning", "ChangedFile"),
+    ("nexus.domain.planning", "Plan"),
+    ("nexus.domain.planning", "PlanAuthorizationSource"),
+    ("nexus.domain.planning", "PlanKind"),
+    ("nexus.domain.planning", "PlanStatus"),
+    ("nexus.domain.planning", "PlanStep"),
+    ("nexus.domain.planning", "PlanStepStatus"),
+    ("nexus.domain.planning", "RepairGuidance"),
+    ("nexus.domain.planning", "TerminalStatus"),
+    ("nexus.domain.runtime_events", "RuntimeStatus"),
+    ("nexus.domain.skills", "SelectedSkill"),
+    ("nexus.domain.skills", "SkillLocation"),
+    ("nexus.domain.skills", "SkillMetadata"),
+    ("nexus.domain.skills", "SkillSelectionResult"),
+    ("nexus.domain.skills", "SkillSource"),
+    ("nexus.domain.tooling", "ApprovalDecision"),
+    ("nexus.domain.tooling", "PolicyDecision"),
+    ("nexus.domain.tooling", "RiskLevel"),
+    ("nexus.domain.tooling", "ToolError"),
+    ("nexus.domain.tooling", "ToolResult"),
+    ("nexus.domain.validation", "ValidationCheck"),
+    ("nexus.domain.validation", "ValidationCheckKind"),
+    ("nexus.domain.validation", "ValidationCheckResult"),
+    ("nexus.domain.validation", "ValidationConfidence"),
+    ("nexus.domain.validation", "ValidationResult"),
+    ("nexus.domain.validation", "ValidationStatus"),
+)
+
+
+def _checkpoint_serializer() -> JsonPlusSerializer:
+    return JsonPlusSerializer(allowed_msgpack_modules=_CHECKPOINT_TYPES)
 
 
 class PostgresCheckpointProvider:
@@ -21,7 +75,9 @@ class PostgresCheckpointProvider:
     async def setup(self) -> None:
         if self._checkpointer is not None:
             return
-        context = AsyncPostgresSaver.from_conn_string(self._connection_string)
+        context = AsyncPostgresSaver.from_conn_string(
+            self._connection_string, serde=_checkpoint_serializer()
+        )
         self._context = context
         try:
             checkpointer = await context.__aenter__()

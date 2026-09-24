@@ -222,7 +222,7 @@ def test_default_renderer_hides_low_level_events_but_keeps_terminal_output(
     assert render_event(TaskStarted(run_id=run_id, session_id=None, task="explain"))
     assert render_event(FinalResult(run_id=run_id, session_id=None, content="answer"))
     output = capsys.readouterr().out
-    assert "Task started" in output
+    assert "Task started" not in output
     assert "answer" in output
     error = ErrorOccurred(
         run_id=run_id,

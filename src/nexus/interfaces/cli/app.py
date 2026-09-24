@@ -223,7 +223,7 @@ async def _consume_with_plan_approval(
     succeeded = True
     current_events = events
     session_id = requested_session_id
-    progress = ProgressRenderer()
+    progress = ProgressRenderer(resuming=requested_session_id is not None)
     progress.start()
     try:
         while True:
@@ -242,6 +242,8 @@ async def _consume_with_plan_approval(
                     pending = event
                 interrupted = interrupted or isinstance(event, RunInterrupted)
             if pending is None:
+                if interrupted:
+                    typer.echo("Paused")
                 return succeeded
             if not interrupted or session_id is None:
                 raise NexusError(
@@ -260,13 +262,11 @@ async def _consume_with_plan_approval(
 
 
 def _collect_plan_decision() -> PlanApprovalResumeInput:
-    while True:
-        value = typer.prompt("Plan decision (APPROVED/DENIED)").strip().upper()
-        try:
-            decision = ApprovalDecision(value)
-            return PlanApprovalResumeInput(decision, None)
-        except ValueError:
-            typer.echo("Enter APPROVED or DENIED.", err=True)
+    approved = typer.confirm("Approve this plan?", default=True)
+    return PlanApprovalResumeInput(
+        ApprovalDecision.APPROVED if approved else ApprovalDecision.DENIED,
+        None,
+    )
 
 
 def _render_session_summaries(summaries: list[SessionSummary]) -> None:

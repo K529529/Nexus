@@ -61,7 +61,8 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
     result = runner.invoke(app, ["chat", "Reply with a short greeting."])
 
     assert result.exit_code == 0
-    assert "Task started" in result.stdout
+    assert "Analyzing repository" in result.stdout
+    assert "Task started" not in result.stdout
     assert "Short greeting." in result.stdout
     assert "Execution Profile" not in result.stdout
 
