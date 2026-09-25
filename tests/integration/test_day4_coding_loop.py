@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
 from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 from typing import cast
@@ -29,6 +31,12 @@ from nexus.infrastructure.graph.day4_runtime import Day4LangGraphRuntime
 from tests.fixtures.embedding import FixtureEmbedding
 
 
+@pytest.fixture(autouse=True)
+def prefer_current_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use the same pytest installation for the approved validation command."""
+    monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"])
+
+
 class CodingLoopGateway:
     def __init__(self, phase: str = "all") -> None:
         plan: dict[str, object] = {
@@ -36,7 +44,7 @@ class CodingLoopGateway:
             "steps": [
                 {
                     "description": "Update alpha value",
-                    "tool_name": "apply_patch",
+                    "tool_name": "edit_file",
                     "target_paths": ["alpha.py"],
                     "command_argv": None,
                     "command_cwd": None,
@@ -54,13 +62,11 @@ class CodingLoopGateway:
             "kind": "TOOL_ACTION",
             "summary": "Apply the approved alpha change.",
             "action": {
-                "tool_name": "apply_patch",
+                "tool_name": "edit_file",
                 "arguments": {
                     "path": "alpha.py",
-                    "patch": (
-                        "--- a/alpha.py\n+++ b/alpha.py\n"
-                        "@@ -1 +1 @@\n-VALUE = 1\n+VALUE = 2\n"
-                    ),
+                    "old_str": "VALUE = 1",
+                    "new_str": "VALUE = 2",
                 },
             },
         }
@@ -178,11 +184,11 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
             )
         ]
 
-    assert (tmp_path / "alpha.py").read_text(encoding="utf-8") == "VALUE = 2\n"
     assert any(isinstance(event, ValidationFinished) for event in resumed_events)
     final = resumed_events[-1]
     assert isinstance(final, FinalResult)
     assert final.terminal_status is TerminalStatus.SUCCEEDED
+    assert (tmp_path / "alpha.py").read_text(encoding="utf-8") == "VALUE = 2\n"
     assert final.validation_result is not None
     assert final.validation_result.status.value == "PASS"
     assert final.diff is not None and "+VALUE = 2" in final.diff

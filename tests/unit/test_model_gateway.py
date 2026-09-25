@@ -61,10 +61,7 @@ async def test_complete_normalizes_provider_response(
 
 @pytest.mark.asyncio
 async def test_stream_normalizes_provider_chunks(gateway: OpenAICompatibleModelGateway) -> None:
-    chunks = [
-        chunk
-        async for chunk in gateway.stream([ModelMessage(role="user", content="hello")])
-    ]
+    chunks = [chunk async for chunk in gateway.stream([ModelMessage(role="user", content="hello")])]
     assert [chunk.content for chunk in chunks] == ["Normal", "ized"]
     assert chunks[0].usage is None
     assert chunks[1].usage is not None and chunks[1].usage.total_tokens == 5
@@ -72,9 +69,7 @@ async def test_stream_normalizes_provider_chunks(gateway: OpenAICompatibleModelG
 
 @pytest.mark.asyncio
 async def test_malformed_usage_degrades_without_failing_model_response() -> None:
-    config = RuntimeConfig(
-        model_name="test-model", model_api_key=SecretStr("test-secret")
-    )
+    config = RuntimeConfig(model_name="test-model", model_api_key=SecretStr("test-secret"))
     gateway = OpenAICompatibleModelGateway(config)
     gateway._client = cast(ChatOpenAI, MalformedUsageChatClient())
 
@@ -172,7 +167,7 @@ async def test_qwen_fixed_schemas_are_closed_and_agent_arguments_remain_open() -
     assert variants[1]["properties"]["target_paths"]["maxItems"] == 0
     assert variants[1]["properties"]["command_argv"]["minItems"] == 1
     assert variants[2]["properties"]["tool_name"]["not"] == {
-        "enum": ["apply_patch", "write_file", "shell"]
+        "enum": ["edit_file", "write_file", "apply_patch", "shell"]
     }
     assert variants[2]["properties"]["target_paths"]["maxItems"] == 0
 

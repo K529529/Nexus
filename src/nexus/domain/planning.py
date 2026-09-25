@@ -86,11 +86,11 @@ class PlanStep:
             _validate_repository_path(self.command_cwd, allow_root=True)
         elif self.command_cwd is not None:
             raise ValueError("command_cwd requires command_argv.")
-        if self.tool_name in {"apply_patch", "write_file"} and len(paths) != 1:
+        if self.tool_name in {"edit_file", "apply_patch", "write_file"} and len(paths) != 1:
             raise ValueError("An editing PlanStep must target exactly one path.")
         if self.tool_name is None and (paths or argv is not None):
             raise ValueError("A narrative PlanStep cannot carry Tool authority.")
-        if self.tool_name not in {None, "apply_patch", "write_file", "shell"} and (
+        if self.tool_name not in {None, "edit_file", "apply_patch", "write_file", "shell"} and (
             paths or argv is not None
         ):
             raise ValueError("Only frozen Day 4 Tool actions may carry Plan authority.")
@@ -109,7 +109,7 @@ class AuthorizationScope:
         if commands != tuple(sorted(set(commands))):
             raise ValueError("allowed_commands must be sorted and unique.")
         for tool, path in writes:
-            if tool not in {"apply_patch", "write_file"}:
+            if tool not in {"edit_file", "apply_patch", "write_file"}:
                 raise ValueError("AuthorizationScope contains an invalid WRITE Tool.")
             _validate_repository_path(path)
         for argv, cwd in commands:
@@ -267,7 +267,7 @@ def derive_authorization_scope(steps: tuple[PlanStep, ...]) -> AuthorizationScop
     writes = {
         (step.tool_name, step.target_paths[0])
         for step in steps
-        if step.tool_name in {"apply_patch", "write_file"}
+        if step.tool_name in {"edit_file", "apply_patch", "write_file"}
     }
     commands = {
         (step.command_argv, step.command_cwd)

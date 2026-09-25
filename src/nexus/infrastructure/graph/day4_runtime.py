@@ -579,7 +579,7 @@ class Day4LangGraphRuntime:
             authorization=authorization,
         )
         changed = state.changed_files
-        if result.success and result.tool_name in {"apply_patch", "write_file"}:
+        if result.success and result.tool_name in {"edit_file", "apply_patch", "write_file"}:
             changed = _record_change(changed, result)
             recorded = next(
                 item for item in changed if item.latest_invocation_id == result.invocation_id
@@ -891,7 +891,7 @@ def _step_summaries(plan: Plan) -> tuple[str, ...]:
     values: list[str] = []
     for step in plan.steps:
         summary = f"{step.sequence}. {step.description}"
-        if step.tool_name in {"apply_patch", "write_file"}:
+        if step.tool_name in {"edit_file", "apply_patch", "write_file"}:
             summary += f" | WRITE {step.tool_name} {step.target_paths[0]}"
         if step.command_argv is not None:
             summary += f" | VALIDATE argv={list(step.command_argv)!r} cwd={step.command_cwd}"
@@ -952,6 +952,29 @@ def _observation_summary(result: ToolResult, action: ToolAction | None = None) -
                 return f"read_file {path}:\n{content[:4000]}"
         return f"{result.tool_name} completed successfully."[:512]
     code = "UNKNOWN" if result.error is None else result.error.code
+    if result.tool_name == "edit_file":
+        details = {
+            "EDIT_TARGET_NOT_FOUND": (
+                "the exact old_str was not found in the current file; "
+                "read the latest file content before retrying"
+            ),
+            "EDIT_TARGET_AMBIGUOUS": (
+                "old_str matched multiple locations; provide a larger unique exact context"
+            ),
+            "EDIT_NO_CHANGES": "the replacement would not change the file",
+        }
+        detail = details.get(code)
+        if (
+            code == "EDIT_TARGET_NOT_FOUND"
+            and result.error is not None
+            and result.error.message == "The exact edit target differs only in line endings."
+        ):
+            detail = (
+                "text matches only after line-ending normalization; use the exact CRLF/LF "
+                "sequence or a unique old_str without newline characters"
+            )
+        if detail is not None:
+            return f"edit_file failed with {code}: {detail}."[:512]
     if result.tool_name == "apply_patch" and result.error is not None:
         detail = _SAFE_PATCH_FAILURE_DETAILS.get((code, result.error.message))
         if detail is not None:

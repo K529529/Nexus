@@ -188,13 +188,14 @@ def _json_schema_response_format(name: str, schema: dict[str, Any]) -> dict[str,
     }
 
 
-def _plan_step_schema() -> dict[str, Any]:
+def _plan_step_schema(*, allow_legacy_patch: bool = False) -> dict[str, Any]:
     return {
         "oneOf": [
             _plan_step_variant_schema(
                 tool_name={
                     "type": "string",
-                    "enum": ["apply_patch", "write_file"],
+                    "enum": ["edit_file", "write_file"]
+                    + (["apply_patch"] if allow_legacy_patch else []),
                 },
                 target_paths={
                     "type": "array",
@@ -222,7 +223,7 @@ def _plan_step_schema() -> dict[str, Any]:
             _plan_step_variant_schema(
                 tool_name={
                     "type": ["string", "null"],
-                    "not": {"enum": ["apply_patch", "write_file", "shell"]},
+                    "not": {"enum": ["edit_file", "write_file", "apply_patch", "shell"]},
                 },
                 target_paths={
                     "type": "array",
@@ -287,7 +288,7 @@ def _repair_schema() -> dict[str, Any]:
             "failure_summary": {"type": "string", "minLength": 1},
             "steps": {
                 "type": "array",
-                "items": _plan_step_schema(),
+                "items": _plan_step_schema(allow_legacy_patch=True),
                 "minItems": 1,
             },
         },

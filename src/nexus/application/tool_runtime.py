@@ -118,6 +118,7 @@ class ToolRuntime:
         ):
             result = await self._deny_unsupported_mcp_write(invocation)
         elif authorization is not None and invocation.tool_name in {
+            "edit_file",
             "apply_patch",
             "write_file",
             "shell",
@@ -187,7 +188,7 @@ class ToolRuntime:
         authorization: ApprovedPlanEvidence,
     ) -> bool:
         scope = authorization.authorization_scope
-        if invocation.tool_name in {"apply_patch", "write_file"}:
+        if invocation.tool_name in {"edit_file", "apply_patch", "write_file"}:
             path = invocation.arguments.get("path")
             return isinstance(path, str) and (
                 invocation.tool_name,

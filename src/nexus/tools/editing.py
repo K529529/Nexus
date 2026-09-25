@@ -77,6 +77,101 @@ class PatchTool:
             )
 
 
+class EditFileTool:
+    name = "edit_file"
+
+    def __init__(self, guard: WorkspaceGuard) -> None:
+        self._guard = guard
+
+    async def execute(self, invocation: ToolInvocation) -> ToolResult:
+        started = time.perf_counter()
+        try:
+            arguments = invocation.arguments
+            if set(arguments) != {"path", "old_str", "new_str"}:
+                raise ToolExecutionError("Invalid edit arguments.", code="INVALID_TOOL_ARGUMENTS")
+            path = arguments["path"]
+            old_str = arguments["old_str"]
+            new_str = arguments["new_str"]
+            if (
+                not isinstance(path, str)
+                or not path
+                or not isinstance(old_str, str)
+                or not old_str
+                or not isinstance(new_str, str)
+            ):
+                raise ToolExecutionError("Invalid edit arguments.", code="INVALID_TOOL_ARGUMENTS")
+            try:
+                if (
+                    len(old_str.encode("utf-8")) > _MAX_BYTES
+                    or len(new_str.encode("utf-8")) > _MAX_BYTES
+                ):
+                    raise ToolExecutionError(
+                        "Invalid edit arguments.", code="INVALID_TOOL_ARGUMENTS"
+                    )
+            except UnicodeEncodeError as exc:
+                raise ToolExecutionError(
+                    "Invalid edit arguments.", code="INVALID_TOOL_ARGUMENTS"
+                ) from exc
+            try:
+                target = self._guard.resolve_existing(path, require_file=True)
+            except NexusError as exc:
+                if exc.code == "TOOL_EXECUTION_ERROR":
+                    raise ToolExecutionError(
+                        "The edit target does not exist.", code="FILE_NOT_FOUND"
+                    ) from exc
+                raise
+            before = _read_bounded(target, error_code="UNSUPPORTED_FILE")
+            first = before.find(old_str)
+            if first < 0:
+                line_endings_only = (
+                    "\n" in old_str or "\r" in old_str
+                ) and old_str.replace("\r\n", "\n").replace("\r", "\n") in before.replace(
+                    "\r\n", "\n"
+                ).replace("\r", "\n")
+                raise ToolExecutionError(
+                    "The exact edit target differs only in line endings."
+                    if line_endings_only
+                    else "The exact edit target was not found.",
+                    code="EDIT_TARGET_NOT_FOUND",
+                )
+            if before.find(old_str, first + 1) >= 0:
+                raise ToolExecutionError(
+                    "The exact edit target is ambiguous.", code="EDIT_TARGET_AMBIGUOUS"
+                )
+            if old_str == new_str:
+                raise ToolExecutionError(
+                    "The edit does not change file content.", code="EDIT_NO_CHANGES"
+                )
+            after = before[:first] + new_str + before[first + len(old_str) :]
+            encoded = after.encode("utf-8")
+            if len(encoded) > _MAX_BYTES:
+                raise ToolExecutionError(
+                    "The edited file exceeds the size limit.", code="UNSUPPORTED_FILE"
+                )
+            _atomic_replace(target, encoded)
+            original = before.encode("utf-8")
+            return _success(
+                invocation,
+                {
+                    "path": self._guard.relative_display(target),
+                    "change_kind": "MODIFIED",
+                    "bytes_before": len(original),
+                    "bytes_after": len(encoded),
+                    "sha256_before": _sha256(original),
+                    "sha256_after": _sha256(encoded),
+                },
+                started,
+            )
+        except NexusError as exc:
+            return _failure(invocation, exc, started)
+        except (OSError, TypeError, UnicodeError, ValueError):
+            return _failure(
+                invocation,
+                ToolExecutionError("The edit could not be completed.", code="TOOL_EXECUTION_ERROR"),
+                started,
+            )
+
+
 class WriteFileTool:
     name = "write_file"
 
@@ -133,17 +228,15 @@ def _two_string_arguments(
     return path, body
 
 
-def _read_bounded(path: Path) -> str:
+def _read_bounded(path: Path, *, error_code: str = "INVALID_PATCH") -> str:
     data = path.read_bytes()
     if len(data) > _MAX_BYTES or b"\x00" in data:
-        raise ToolExecutionError(
-            "The patch target is not supported UTF-8 text.", code="INVALID_PATCH"
-        )
+        raise ToolExecutionError("The patch target is not supported UTF-8 text.", code=error_code)
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ToolExecutionError(
-            "The patch target is not valid UTF-8 text.", code="INVALID_PATCH"
+            "The patch target is not valid UTF-8 text.", code=error_code
         ) from exc
 
 

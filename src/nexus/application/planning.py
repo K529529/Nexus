@@ -223,7 +223,13 @@ class ModelPlanner:
     ) -> RepairGuidance:
         payload = _json_object(content)
         _require_exact_keys(payload, {"failure_summary", "steps"}, "TOP_LEVEL_KEYS")
-        steps = self._steps(payload.get("steps"))
+        steps = self._steps(
+            payload.get("steps"),
+            allow_legacy_patch=any(
+                tool == "apply_patch"
+                for tool, _ in request.plan.authorization_scope.allowed_write_actions
+            ),
+        )
         scope = derive_authorization_scope(steps)
         approved = request.plan.authorization_scope
         writes_expand = not set(scope.allowed_write_actions) <= set(
@@ -248,7 +254,7 @@ class ModelPlanner:
         except ValueError as exc:
             raise StructuredOutputViolation("PLAN_SCHEMA") from exc
 
-    def _steps(self, value: object) -> tuple[PlanStep, ...]:
+    def _steps(self, value: object, *, allow_legacy_patch: bool = False) -> tuple[PlanStep, ...]:
         if not isinstance(value, list) or not value:
             raise StructuredOutputViolation("STEPS_SCHEMA")
         steps: list[PlanStep] = []
@@ -258,6 +264,8 @@ class ModelPlanner:
             _require_exact_keys(item, _PLAN_STEP_KEYS, "STEP_KEYS")
             tool_name = item.get("tool_name")
             if tool_name is not None and not isinstance(tool_name, str):
+                raise StructuredOutputViolation("STEP_SCHEMA")
+            if tool_name == "apply_patch" and not allow_legacy_patch:
                 raise StructuredOutputViolation("STEP_SCHEMA")
             raw_paths = item.get("target_paths", [])
             if not isinstance(raw_paths, list) or not all(
@@ -298,6 +306,7 @@ class ModelPlanner:
                 ) from exc
         return tuple(steps)
 
+
 class JsonAgentDecisionAdapter:
     def __init__(
         self,
@@ -318,7 +327,7 @@ class JsonAgentDecisionAdapter:
                 messages_for_attempt=lambda feedback: self._decision_messages(
                     request, feedback
                 ),
-                parse=self._parse_decision,
+                parse=lambda content: self._parse_decision(content, request),
             )
         except (ModelError, ContextError):
             raise
@@ -354,7 +363,7 @@ class JsonAgentDecisionAdapter:
         )
 
     @staticmethod
-    def _parse_decision(content: str) -> AgentDecision:
+    def _parse_decision(content: str, request: AgentDecisionRequest | None = None) -> AgentDecision:
         payload = _json_object(content)
         _require_exact_keys(payload, _AGENT_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
         try:
@@ -376,6 +385,21 @@ class JsonAgentDecisionAdapter:
                     _required_text(action_value.get("tool_name")),
                     dict(arguments),
                 )
+                if action.tool_name == "apply_patch" and (
+                    request is None
+                    or not any(
+                        tool == "apply_patch"
+                        for tool, _ in request.plan.authorization_scope.allowed_write_actions
+                    )
+                ):
+                    raise StructuredOutputViolation("ACTION_SCHEMA")
+                if action.tool_name == "edit_file" and (
+                    set(action.arguments) != {"path", "old_str", "new_str"}
+                    or any(not isinstance(action.arguments[key], str) for key in action.arguments)
+                    or not action.arguments["path"]
+                    or not action.arguments["old_str"]
+                ):
+                    raise StructuredOutputViolation("ACTION_SCHEMA")
             except (TypeError, ValueError) as exc:
                 raise StructuredOutputViolation("ACTION_SCHEMA") from exc
         if (kind is AgentDecisionKind.TOOL_ACTION) != (action is not None):
@@ -518,14 +542,14 @@ def _planning_messages(
                 "target_paths is an array of strings; command_argv is a non-empty array of "
                 "non-empty strings or null; command_cwd is a string or null. Read-only and "
                 "repository-explanation tasks still require at least one read or narrative step. "
-                "Each apply_patch or write_file PlanStep must target exactly one file: its "
+                "Each edit_file or write_file PlanStep must target exactly one file: its "
                 "target_paths must contain exactly one repository-relative path. If multiple "
                 "files must be modified, create multiple separate PlanStep objects, one editing "
-                "PlanStep per file. Valid multi-file shape: one apply_patch step targeting "
-                '["src/a.py"], then a separate apply_patch step targeting '
-                '["tests/test_a.py"]. Invalid shape: one apply_patch step targeting '
+                "PlanStep per file. Valid multi-file shape: one edit_file step targeting "
+                '["src/a.py"], then a separate edit_file step targeting '
+                '["tests/test_a.py"]. Invalid shape: one edit_file step targeting '
                 '["src/a.py","tests/test_a.py"]. An empty target_paths array is also invalid '
-                "for apply_patch or write_file. "
+                "for edit_file or write_file. "
                 "Security tasks still require a legal non-authorizing narrative PlanStep; the "
                 "Agent must then propose the requested operation for the existing authorization "
                 "boundary to accept or deny. The Plan must not add authority for that operation, "
@@ -533,7 +557,7 @@ def _planning_messages(
                 "unchanged requested Tool action to ToolRuntime for an authoritative decision. "
                 "Do not tell the Agent to preemptively refuse, silently skip, or claim completion "
                 "before ToolRuntime records that decision. "
-                "Use apply_patch for existing files, write_file for new files, "
+                "Use edit_file for existing files, write_file for new files, "
                 "and shell only for exact validation commands. Prefix validation "
                 "descriptions with TEST:, BUILD:, LINT:, TYPE_CHECK:, "
                 "GENERATED_TARGETED_TEST:, BASIC_EXECUTION:, or "
@@ -545,7 +569,7 @@ def _planning_messages(
                 '{"description":"Inspect the target file","tool_name":"read_file",'
                 '"target_paths":[],"command_argv":null,"command_cwd":null},'
                 '{"description":"Apply the approved change to one file",'
-                '"tool_name":"apply_patch","target_paths":["src/a.py"],'
+                '"tool_name":"edit_file","target_paths":["src/a.py"],'
                 '"command_argv":null,"command_cwd":null},'
                 '{"description":"TEST: run targeted tests","tool_name":"shell",'
                 '"target_paths":[],"command_argv":["pytest","-q","tests/test_target.py"],'
@@ -572,16 +596,18 @@ def _repair_messages(
             content=(
                 _CONTEXT_AUTHORITY + "Return only JSON repair guidance with schema "
                 "{failure_summary:string,steps:[PlanStep-like objects]}. "
-                "Each apply_patch or write_file PlanStep must target exactly one file: its "
+                "Each approved editing PlanStep must target exactly one file: its "
                 "target_paths must contain exactly one repository-relative path. If multiple "
                 "files must be modified, use multiple separate PlanStep objects, one editing "
                 "PlanStep per file. Never use an empty target_paths array or combine multiple "
                 "target paths in one editing step. Valid editing step: "
                 '{"description":"Apply the approved change to one file",'
-                '"tool_name":"apply_patch","target_paths":["src/a.py"],'
+                '"tool_name":"'
+                + _approved_edit_name(request.plan)
+                + '","target_paths":["src/a.py"],'
                 '"command_argv":null,"command_cwd":null}. '
                 "Use only Tool/path and exact validation command actions already "
-                "present in the approved Plan. Patch bodies are chosen later. "
+                "present in the approved Plan. Edit content is chosen later. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
@@ -615,19 +641,9 @@ def _agent_messages(
                 'authoritative policy decision.","action":{"tool_name":"write_file",'
                 '"arguments":{"path":"../external.txt","content":"requested content"}}}. '
                 "This example requests a ToolRuntime decision; it does not grant authority. "
-                "Return exactly one Tool action at most. Use apply_patch for an "
-                "existing file and write_file only for a path that does not exist. "
-                "apply_patch arguments are exactly {path:string,patch:string}; patch "
-                "must be an unfenced single-file unified diff whose first lines are "
-                "--- a/<path> and +++ b/<path>, followed by valid @@ hunk headers "
-                "and space/minus/plus-prefixed hunk lines with exact line counts. In every "
-                "hunk, old_count equals context lines plus removed (-) lines, and new_count "
-                "equals context lines plus added (+) lines; the hunk header counts include "
-                "context lines. Valid count example: "
-                "@@ -1,2 +1,2 @@\n context\n-old value\n+new value. "
-                "If an apply_patch observation reports a sanitized patch-format failure, "
-                "correct that exact defect and do not repeat an identical rejected patch. "
-                "write_file arguments are exactly {path:string,content:string}. "
+                "Return exactly one Tool action at most. "
+                + _agent_edit_instruction(request.plan)
+                + "write_file arguments are exactly {path:string,content:string}. "
                 "Never repeat an approved edit that a successful observation shows "
                 "is complete. Return TASK_READY only after all file modifications "
                 "required by the current approved Plan are complete. If any required "
@@ -652,6 +668,33 @@ def _agent_messages(
         ),
         ModelMessage(role="user", content=_agent_payload(request)),
     ]
+
+
+def _approved_edit_name(plan: Plan) -> str:
+    return (
+        "apply_patch"
+        if any(tool == "apply_patch" for tool, _ in plan.authorization_scope.allowed_write_actions)
+        else "edit_file"
+    )
+
+
+def _agent_edit_instruction(plan: Plan) -> str:
+    if _approved_edit_name(plan) == "apply_patch":
+        return (
+            "For this previously approved Plan only, use apply_patch for existing files. "
+            "Its arguments are exactly {path:string,patch:string}, with a single-file "
+            "unified diff. Use write_file only for a path that does not exist. "
+        )
+    return (
+        "Use edit_file for an existing file and write_file only for a path that does not exist. "
+        "edit_file arguments are exactly {path:string,old_str:string,new_str:string}; "
+        "old_str must be non-empty and match exactly once in the current file. "
+        "Prefer a unique old_str without newline characters. If old_str spans lines, "
+        "preserve the file's exact line endings: use \\r\\n for CRLF and \\n for LF. "
+        "Do not generate unified diffs or hunk headers. If EDIT_TARGET_NOT_FOUND, "
+        "read the latest file before retrying; if EDIT_TARGET_AMBIGUOUS, include "
+        "larger unique exact context in old_str. "
+    )
 
 
 def _freeze_tool_metadata(values: Sequence[JsonObject]) -> tuple[JsonObject, ...]:

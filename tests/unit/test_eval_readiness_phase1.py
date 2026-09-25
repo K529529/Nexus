@@ -99,7 +99,7 @@ def _request() -> PlanningRequest:
                     "steps": [
                         {
                             "description": "edit",
-                            "tool_name": "apply_patch",
+                            "tool_name": "edit_file",
                             "target_paths": ["alpha.py", "beta.py"],
                             "command_argv": None,
                             "command_cwd": None,
@@ -680,7 +680,7 @@ def test_profile_attributes_agent_tools_and_keeps_existing_summary() -> None:
                 run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
                 duration_ms=5, success=True,
             ))
-            tool("apply_patch", agent=True, success=False)
+            tool("edit_file", agent=True, success=False)
     profile.observe(PhaseStarted(
         run_id=run_id, session_id=None, phase=ExecutionPhase.VALIDATION,
     ))
@@ -698,12 +698,12 @@ def test_profile_attributes_agent_tools_and_keeps_existing_summary() -> None:
     assert "CONTINUE            1" in lines
     assert "TASK_READY          1" in lines
     assert "read_file           1" in lines
-    assert "apply_patch         1" in lines
+    assert "edit_file           1" in lines
     assert "search_files        1" not in lines[lines.index("Agent tools"):]
     assert "lexical_search      1" not in lines[lines.index("Agent tools"):]
     assert "shell               1" not in lines[lines.index("Agent tools"):]
     assert any("1  TOOL_ACTION read_file PASS 17 ms" in line for line in lines)
-    assert any("3  TOOL_ACTION apply_patch FAIL 17 ms" in line for line in lines)
+    assert any("3  TOOL_ACTION edit_file FAIL 17 ms" in line for line in lines)
     assert lines == profile.lines()
     assert "private user prompt" not in "\n".join(lines)
     assert "private model result" not in "\n".join(lines)

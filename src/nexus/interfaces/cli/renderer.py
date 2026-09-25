@@ -120,7 +120,7 @@ class ProgressRenderer:
         elif isinstance(event, ToolStarted):
             self._set_status(
                 "Editing files"
-                if event.tool_name in {"apply_patch", "write_file"}
+                if event.tool_name in {"edit_file", "apply_patch", "write_file"}
                 else "Reading relevant files"
             )
         elif isinstance(event, ValidationStarted):
