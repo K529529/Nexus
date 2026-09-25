@@ -41,6 +41,7 @@ _PHASE_LABELS = (
 _MAX_AGENT_TIMELINE = 30
 _MAX_AGENT_TOOL_NAMES = 20
 _SAFE_TOOL_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]{0,63}\Z")
+_SAFE_ERROR_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
 
 
 @dataclass(slots=True)
@@ -49,6 +50,7 @@ class _AgentStep:
     kind: AgentDecisionKind
     tool_name: str | None = None
     success: bool | None = None
+    error_code: str | None = None
     duration_ms: int | None = None
 
 
@@ -131,6 +133,9 @@ class ExecutionProfile:
             if active is not None and (event.run_id, event.invocation_id) == active[:2]:
                 if active[2] is not None:
                     active[2].success = event.success
+                    active[2].error_code = (
+                        None if event.success else _safe_error_code(event.error_code)
+                    )
                     active[2].duration_ms = event.duration_ms
                 self._active_agent_tool = None
         elif isinstance(event, AgentStepCompleted):
@@ -233,6 +238,10 @@ def _safe_tool_name(name: str) -> str:
     return name if _SAFE_TOOL_NAME.fullmatch(name) else "<redacted tool>"
 
 
+def _safe_error_code(code: str | None) -> str:
+    return code if code is not None and _SAFE_ERROR_CODE.fullmatch(code) else "<redacted error>"
+
+
 def _agent_step_line(step: _AgentStep) -> str:
     line = f"  {step.step_count:<2} {step.kind.value:<11}"
     if step.kind is not AgentDecisionKind.TOOL_ACTION:
@@ -242,4 +251,5 @@ def _agent_step_line(step: _AgentStep) -> str:
     if step.success is None:
         return f"{line} {step.tool_name} incomplete"
     outcome = "PASS" if step.success else "FAIL"
-    return f"{line} {step.tool_name} {outcome} {step.duration_ms} ms"
+    code = f" {step.error_code or '<redacted error>'}" if not step.success else ""
+    return f"{line} {step.tool_name} {outcome}{code} {step.duration_ms} ms"

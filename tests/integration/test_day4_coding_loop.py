@@ -80,9 +80,9 @@ class CodingLoopGateway:
             "selection_reason_summary": "No builtin Skill is relevant to this fixture.",
         }
         responses: dict[str, list[dict[str, object]]] = {
-            "all": [no_skill, plan, edit, ready],
+            "all": [no_skill, plan, edit, edit, ready],
             "plan": [no_skill, plan],
-            "execute": [edit, ready],
+            "execute": [edit, edit, ready],
         }
         self._responses = [json.dumps(item) for item in responses[phase]]
 
@@ -288,8 +288,11 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         assert state_b.context == state_a.context
         assert state_b.approved_plan.authorization_scope == prior_scope
         assert state_b.tool_call_count > state_a.tool_call_count
-        assert state_b.llm_call_count == state_a.llm_call_count + 2
-        assert state_b.step_count == state_a.step_count + 2
+        assert state_b.llm_call_count == state_a.llm_call_count + 3
+        assert state_b.step_count == state_a.step_count + 3
+        assert [(item.tool_name, item.success) for item in state_b.observations] == [
+            ("read_file", True), ("edit_file", True)
+        ]
         assert state_b.replan_count == state_a.replan_count
         assert state_b.repair_count == state_a.repair_count
         assert state_b.tool_results[: len(prior_tool_results)] == prior_tool_results

@@ -703,7 +703,7 @@ def test_profile_attributes_agent_tools_and_keeps_existing_summary() -> None:
     assert "lexical_search      1" not in lines[lines.index("Agent tools"):]
     assert "shell               1" not in lines[lines.index("Agent tools"):]
     assert any("1  TOOL_ACTION read_file PASS 17 ms" in line for line in lines)
-    assert any("3  TOOL_ACTION edit_file FAIL 17 ms" in line for line in lines)
+    assert any("3  TOOL_ACTION edit_file FAIL TOOL_FAILED 17 ms" in line for line in lines)
     assert lines == profile.lines()
     assert "private user prompt" not in "\n".join(lines)
     assert "private model result" not in "\n".join(lines)
@@ -769,9 +769,45 @@ def test_profile_agent_timeline_is_bounded_and_redacts_unsafe_tool_names() -> No
     assert "CONTINUE            33" in lines
     assert "<redacted tool>     1" in lines
     assert "read_file           1" in lines
-    assert any("<redacted tool> FAIL 9 ms" in line for line in timeline)
+    assert any("<redacted tool> FAIL TOOL_FAILED 9 ms" in line for line in timeline)
     rendered = "\n".join(lines)
     assert "/private/file" not in rendered
     assert "secret-argv" not in rendered
     assert "private raw model output" not in rendered
+    assert lines == profile.lines()
+
+
+def test_profile_shows_safe_tool_failure_code_without_payload() -> None:
+    run_id = str(uuid4())
+    profile = ExecutionProfile()
+    for step, error_code in enumerate(
+        ("EDIT_TARGET_NOT_FOUND", "private /path --secret=payload"), start=1
+    ):
+        profile.observe(AgentStepCompleted(
+            run_id=run_id, session_id=None, step_count=step,
+            decision_kind=AgentDecisionKind.TOOL_ACTION, model_call_id=str(uuid4()),
+        ))
+        profile.observe(PhaseStarted(
+            run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+        ))
+        invocation_id = str(uuid4())
+        profile.observe(ToolStarted(
+            run_id=run_id, session_id=None, invocation_id=invocation_id,
+            tool_name="edit_file", risk_level=RiskLevel.WRITE,
+        ))
+        profile.observe(ToolFinished(
+            run_id=run_id, session_id=None, invocation_id=invocation_id,
+            tool_name="edit_file", success=False, risk_level=RiskLevel.WRITE,
+            policy_decision=PolicyDecision.DENIED, approval_decision=None,
+            duration_ms=5, error_code=error_code,
+        ))
+        profile.observe(PhaseFinished(
+            run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+            duration_ms=6, success=True,
+        ))
+    lines = profile.lines()
+    assert any("edit_file FAIL EDIT_TARGET_NOT_FOUND 5 ms" in line for line in lines)
+    assert any("edit_file FAIL <redacted error> 5 ms" in line for line in lines)
+    assert "private" not in "\n".join(lines)
+    assert "/path" not in "\n".join(lines)
     assert lines == profile.lines()

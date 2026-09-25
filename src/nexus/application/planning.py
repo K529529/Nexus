@@ -645,7 +645,9 @@ def _agent_messages(
                 + _agent_edit_instruction(request.plan)
                 + "write_file arguments are exactly {path:string,content:string}. "
                 "Never repeat an approved edit that a successful observation shows "
-                "is complete. Return TASK_READY only after all file modifications "
+                "is complete. After an edit succeeds, return TASK_READY if no other "
+                "approved file change is needed; the Validation node runs Plan tests. "
+                "Return TASK_READY only after all file modifications "
                 "required by the current approved Plan are complete. If any required "
                 "approved edit remains incomplete, return the next Tool action. "
                 "For read-only or repository-explanation tasks, TASK_READY.summary must "
@@ -661,8 +663,11 @@ def _agent_messages(
                 "Never alter the action to bypass policy. If an observation records "
                 "PLAN_SCOPE_DENIED, PERMISSION_DENIED, or COMMAND_DENIED, do not repeat the "
                 "denied action. "
-                "do not execute validation commands as Agent Tool actions because "
+                "Do not execute validation commands as Agent Tool actions because "
                 "the Validation node runs the exact commands from the approved Plan. "
+                "If a shell action is genuinely required for another reason, its Tool "
+                "arguments are argv and optional cwd/timeout_seconds; Plan fields "
+                "command_argv and command_cwd are not Tool argument names. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
@@ -689,6 +694,10 @@ def _agent_edit_instruction(plan: Plan) -> str:
         "Use edit_file for an existing file and write_file only for a path that does not exist. "
         "edit_file arguments are exactly {path:string,old_str:string,new_str:string}; "
         "old_str must be non-empty and match exactly once in the current file. "
+        "Before each edit_file action, use a successful read_file of the same path "
+        "and construct old_str from that current file content. After "
+        "EDIT_TARGET_NOT_FOUND or EDIT_TARGET_AMBIGUOUS, read the target again "
+        "before another edit; never guess from stale Context. "
         "Prefer a unique old_str without newline characters. If old_str spans lines, "
         "preserve the file's exact line endings: use \\r\\n for CRLF and \\n for LF. "
         "Do not generate unified diffs or hunk headers. If EDIT_TARGET_NOT_FOUND, "

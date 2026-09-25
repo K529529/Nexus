@@ -24,6 +24,7 @@ from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.config.models import ApprovalMode
 from nexus.domain.agent_decision import (
+    AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
     Observation,
@@ -538,6 +539,7 @@ class Day4LangGraphRuntime:
                 state.repair_guidance,
             )
         )
+        decision = _require_current_edit_evidence(state, decision)
         if self._model_call_id is not None:
             await self._events.emit(
                 AgentStepCompleted(
@@ -943,8 +945,54 @@ def _record_change(
     )
 
 
+def _require_current_edit_evidence(
+    state: AgentState, decision: AgentDecision
+) -> AgentDecision:
+    action = decision.action
+    if action is None or action.tool_name != "edit_file" or state.plan is None:
+        return decision
+    path = action.arguments.get("path")
+    old_str = action.arguments.get("old_str")
+    if not isinstance(path, str) or not isinstance(old_str, str):
+        return decision
+    # Out-of-scope requests still reach ToolRuntime for its authoritative denial.
+    if ("edit_file", path) not in state.plan.authorization_scope.allowed_write_actions:
+        return decision
+    if _has_current_edit_evidence(state, path, old_str):
+        return decision
+    return AgentDecision(
+        AgentDecisionKind.TOOL_ACTION,
+        ToolAction("read_file", {"path": path}),
+        "Read the current target file before exact replacement.",
+    )
+
+
+def _has_current_edit_evidence(state: AgentState, path: str, old_str: str) -> bool:
+    # An edit attempt, successful or not, invalidates prior read evidence. This
+    # conservative boundary needs no new checkpoint fields or Tool arguments.
+    last_edit = max(
+        (index for index, item in enumerate(state.observations) if item.tool_name == "edit_file"),
+        default=-1,
+    )
+    results = {item.invocation_id: item for item in state.tool_results}
+    for observation in reversed(state.observations[last_edit + 1 :]):
+        if observation.tool_name != "read_file" or not observation.success:
+            continue
+        result = results.get(observation.invocation_id)
+        if result is None or not result.success or result.output is None:
+            continue
+        if result.output.get("path") != path:
+            continue
+        content = result.output.get("content")
+        if isinstance(content, str) and old_str in content[:4000]:
+            return True
+    return False
+
+
 def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
     if result.success:
+        if result.tool_name == "edit_file":
+            return "edit_file completed successfully; this exact replacement is complete."
         if result.tool_name == "read_file" and result.output is not None:
             path = result.output.get("path")
             content = result.output.get("content")

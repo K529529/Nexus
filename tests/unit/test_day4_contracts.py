@@ -17,7 +17,14 @@ from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.application.validation import DeterministicValidationPlanner, ToolValidationRunner
-from nexus.domain.agent_decision import AgentDecisionKind, AgentDecisionRequest, Observation
+from nexus.domain.agent_decision import (
+    AgentDecision,
+    AgentDecisionKind,
+    AgentDecisionRequest,
+    Observation,
+    ToolAction,
+)
+from nexus.domain.agent_state import AgentState
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import ExplorationResult, WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
@@ -31,11 +38,13 @@ from nexus.domain.planning import (
     PlanStatus,
     PlanStep,
     PlanStepStatus,
+    RepairGuidance,
     compute_scope_digest,
     derive_authorization_scope,
 )
 from nexus.domain.ports.planning import PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.tooling import ApprovalPolicy
+from nexus.domain.runtime_events import RuntimeStatus
 from nexus.domain.tooling import (
     ApprovalDecision,
     JsonObject,
@@ -57,7 +66,11 @@ from nexus.domain.validation import (
 )
 from nexus.errors import ModelError, ValidationError
 from nexus.infrastructure.checkpoint.postgres import _checkpoint_serializer
-from nexus.infrastructure.graph.day4_runtime import _observation_summary, _record_change
+from nexus.infrastructure.graph.day4_runtime import (
+    _observation_summary,
+    _record_change,
+    _require_current_edit_evidence,
+)
 from nexus.security.command_policy import DefaultCommandPolicy
 from nexus.security.executables import TrustedExecutables
 from nexus.security.workspace import WorkspaceGuard
@@ -1160,6 +1173,113 @@ async def test_edit_file_approval_is_tool_and_path_and_validation_is_unchanged(
     summary = _observation_summary(failed)
     assert "SENSITIVE_OLD" not in summary and "SENSITIVE_NEW" not in summary
     assert _record_change(changed, allowed) == changed
+
+
+def _read_observation(path: str, content: str) -> tuple[Observation, ToolResult]:
+    invocation_id = str(uuid4())
+    return (
+        Observation(invocation_id, "read_file", True, "current file evidence", None, None),
+        ToolResult(
+            invocation_id, "read_file", True,
+            {"path": path, "content": content}, None,
+            RiskLevel.SAFE, PolicyDecision.ALLOWED, None, 1,
+        ),
+    )
+
+
+def _edit_decision(path: str = "alpha.py", old_str: str = "old") -> AgentDecision:
+    return AgentDecision(
+        AgentDecisionKind.TOOL_ACTION,
+        ToolAction("edit_file", {"path": path, "old_str": old_str, "new_str": "new"}),
+        "Edit the approved file.",
+    )
+
+
+def _edit_guard_state(plan: Plan) -> AgentState:
+    return AgentState(
+        "edit alpha", [ModelMessage("user", "edit alpha")],
+        plan.run_id, plan.session_id, RuntimeStatus.STARTED, plan=plan,
+    )
+
+
+def test_agent_edit_requires_current_same_path_read_after_failure() -> None:
+    plan = _edit_file_plan()
+    state = _edit_guard_state(plan)
+    edit = _edit_decision()
+    required = _require_current_edit_evidence(state, edit)
+    assert required.action == ToolAction("read_file", {"path": "alpha.py"})
+
+    wrong_read, wrong_result = _read_observation("beta.py", "old")
+    state = replace(state, observations=(wrong_read,), tool_results=(wrong_result,))
+    assert _require_current_edit_evidence(state, edit).action == required.action
+
+    target_read, target_result = _read_observation("alpha.py", "old\r\n")
+    state = replace(
+        state, observations=(*state.observations, target_read),
+        tool_results=(*state.tool_results, target_result),
+    )
+    assert _require_current_edit_evidence(state, edit) is edit
+
+    failed = Observation(
+        str(uuid4()), "edit_file", False,
+        "edit_file failed with EDIT_TARGET_NOT_FOUND.", "EDIT_TARGET_NOT_FOUND", None,
+    )
+    state = replace(state, observations=(*state.observations, failed))
+    assert _require_current_edit_evidence(state, edit).action == required.action
+
+    refreshed, refreshed_result = _read_observation("alpha.py", "old\r\n")
+    state = replace(
+        state, observations=(*state.observations, refreshed),
+        tool_results=(*state.tool_results, refreshed_result),
+    )
+    assert _require_current_edit_evidence(state, edit) is edit
+
+    ambiguous = replace(failed, invocation_id=str(uuid4()), error_code="EDIT_TARGET_AMBIGUOUS")
+    state = replace(state, observations=(*state.observations, ambiguous))
+    assert _require_current_edit_evidence(state, edit).action == required.action
+
+
+def test_agent_edit_success_requires_new_evidence_and_allows_repair() -> None:
+    plan = _edit_file_plan()
+    read, result = _read_observation("alpha.py", "old\n")
+    state = replace(
+        _edit_guard_state(plan), observations=(read,), tool_results=(result,),
+    )
+    edit = _edit_decision()
+    assert _require_current_edit_evidence(state, edit) is edit
+
+    success = Observation(str(uuid4()), "edit_file", True, "edit completed", None, None)
+    state = replace(state, observations=(*state.observations, success))
+    assert _require_current_edit_evidence(state, edit).action == ToolAction(
+        "read_file", {"path": "alpha.py"}
+    )
+
+    refreshed, refreshed_result = _read_observation("alpha.py", "new\n")
+    state = replace(
+        state,
+        observations=(*state.observations, refreshed),
+        tool_results=(*state.tool_results, refreshed_result),
+        validation_result=ValidationResult(
+            (), (), ValidationStatus.FAIL, ValidationConfidence.LOW,
+            False, 1, "A further approved edit is required.",
+        ),
+        repair_guidance=RepairGuidance(
+            plan.plan_id, plan.version, 1, plan.steps,
+            "A further approved edit is required.",
+        ),
+    )
+    assert _require_current_edit_evidence(state, edit).action == ToolAction(
+        "read_file", {"path": "alpha.py"}
+    )
+    repair_edit = _edit_decision(old_str="new")
+    assert _require_current_edit_evidence(state, repair_edit) is repair_edit
+
+
+def test_agent_edit_guard_preserves_formal_scope_denial() -> None:
+    plan = _edit_file_plan()
+    state = _edit_guard_state(plan)
+    out_of_scope = _edit_decision(path="beta.py")
+    assert _require_current_edit_evidence(state, out_of_scope) is out_of_scope
 
 
 class ResultRuntime:
