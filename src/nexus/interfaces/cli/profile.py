@@ -48,6 +48,7 @@ _SAFE_ERROR_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
 class _AgentStep:
     step_count: int
     kind: AgentDecisionKind
+    guard_reason: str | None = None
     tool_name: str | None = None
     success: bool | None = None
     error_code: str | None = None
@@ -143,7 +144,9 @@ class ExecutionProfile:
             self._agent_decisions[event.decision_kind] += 1
             step = None
             if len(self._agent_timeline) < _MAX_AGENT_TIMELINE:
-                step = _AgentStep(event.step_count, event.decision_kind)
+                step = _AgentStep(
+                    event.step_count, event.decision_kind, event.guard_reason
+                )
                 self._agent_timeline.append(step)
             self._pending_agent_action = (
                 (event.run_id, step)
@@ -244,12 +247,13 @@ def _safe_error_code(code: str | None) -> str:
 
 def _agent_step_line(step: _AgentStep) -> str:
     line = f"  {step.step_count:<2} {step.kind.value:<11}"
+    guard = f" [guard: {step.guard_reason}]" if step.guard_reason else ""
     if step.kind is not AgentDecisionKind.TOOL_ACTION:
-        return line.rstrip()
+        return line.rstrip() + guard
     if step.tool_name is None:
-        return f"{line} unobserved"
+        return f"{line} unobserved{guard}"
     if step.success is None:
-        return f"{line} {step.tool_name} incomplete"
+        return f"{line} {step.tool_name} incomplete{guard}"
     outcome = "PASS" if step.success else "FAIL"
     code = f" {step.error_code or '<redacted error>'}" if not step.success else ""
-    return f"{line} {step.tool_name} {outcome}{code} {step.duration_ms} ms"
+    return f"{line} {step.tool_name} {outcome}{code} {step.duration_ms} ms{guard}"

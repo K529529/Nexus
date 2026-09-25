@@ -381,12 +381,15 @@ class AgentStepCompleted(RuntimeEvent):
     step_count: int
     decision_kind: AgentDecisionKind
     model_call_id: str
+    guard_reason: str | None = None
 
     def __post_init__(self) -> None:
         RuntimeEvent.__post_init__(self)
         if self.step_count < 1:
             raise ValueError("AgentStepCompleted step_count must be positive.")
         _validate_uuid(self.model_call_id, "model_call_id")
+        if self.guard_reason not in {None, "edit_requires_read", "edit_already_complete"}:
+            raise ValueError("AgentStepCompleted guard_reason is invalid.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

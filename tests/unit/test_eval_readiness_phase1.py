@@ -811,3 +811,32 @@ def test_profile_shows_safe_tool_failure_code_without_payload() -> None:
     assert "private" not in "\n".join(lines)
     assert "/path" not in "\n".join(lines)
     assert lines == profile.lines()
+
+
+def test_profile_marks_guard_intervention_without_tool_arguments() -> None:
+    run_id = str(uuid4())
+    invocation_id = str(uuid4())
+    profile = ExecutionProfile()
+    profile.observe(AgentStepCompleted(
+        run_id=run_id, session_id=None, step_count=1,
+        decision_kind=AgentDecisionKind.TOOL_ACTION,
+        model_call_id=str(uuid4()), guard_reason="edit_requires_read",
+    ))
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+    ))
+    profile.observe(ToolStarted(
+        run_id=run_id, session_id=None, invocation_id=invocation_id,
+        tool_name="read_file", risk_level=RiskLevel.SAFE,
+    ))
+    profile.observe(ToolFinished(
+        run_id=run_id, session_id=None, invocation_id=invocation_id,
+        tool_name="read_file", success=True, risk_level=RiskLevel.SAFE,
+        policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+        duration_ms=2, error_code=None,
+    ))
+    rendered = "\n".join(profile.lines())
+    assert "read_file PASS 2 ms [guard: edit_requires_read]" in rendered
+    assert "old_str" not in rendered
+    assert "new_str" not in rendered
+    assert "calculator.py" not in rendered

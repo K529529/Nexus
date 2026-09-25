@@ -69,11 +69,23 @@ class Observation:
     evidence_summary: str
     error_code: str | None
     replan_reason: str | None
+    target_path: str | None = None
+    repair_attempt: int = 0
 
     def __post_init__(self) -> None:
         _validate_uuid(self.invocation_id, "invocation_id")
         if not self.tool_name or not self.evidence_summary.strip():
             raise ValueError("Observation Tool identity and evidence must not be empty.")
+        if self.target_path is not None and (
+            not isinstance(self.target_path, str) or not self.target_path
+        ):
+            raise ValueError("Observation target_path must be a non-empty string.")
+        if (
+            not isinstance(self.repair_attempt, int)
+            or isinstance(self.repair_attempt, bool)
+            or self.repair_attempt < 0
+        ):
+            raise ValueError("Observation repair_attempt must not be negative.")
         if self.error_code == "PLAN_SCOPE_DENIED":
             if not (self.replan_reason or "").strip():
                 raise ValueError("PLAN_SCOPE_DENIED requires a material Replan reason.")

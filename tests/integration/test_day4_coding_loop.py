@@ -17,6 +17,7 @@ from nexus.domain.agent_state import AgentState
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import PlanApprovalResumeInput, TerminalStatus
 from nexus.domain.runtime_events import (
+    AgentStepCompleted,
     ApprovalRequested,
     ContextBuilt,
     FinalResult,
@@ -185,6 +186,11 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         ]
 
     assert any(isinstance(event, ValidationFinished) for event in resumed_events)
+    assert any(
+        isinstance(event, AgentStepCompleted)
+        and event.guard_reason == "edit_requires_read"
+        for event in resumed_events
+    )
     final = resumed_events[-1]
     assert isinstance(final, FinalResult)
     assert final.terminal_status is TerminalStatus.SUCCEEDED
@@ -293,6 +299,8 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         assert [(item.tool_name, item.success) for item in state_b.observations] == [
             ("read_file", True), ("edit_file", True)
         ]
+        assert state_b.observations[0].target_path == "alpha.py"
+        assert state_b.observations[1].target_path == "alpha.py"
         assert state_b.replan_count == state_a.replan_count
         assert state_b.repair_count == state_a.repair_count
         assert state_b.tool_results[: len(prior_tool_results)] == prior_tool_results

@@ -529,7 +529,7 @@ class Day4LangGraphRuntime:
                 working_context=context, plan=state.plan, observations=state.observations,
                 conversation_turns=turns,
             )
-        decision = await self._agent.decide(
+        proposed = await self._agent.decide(
             AgentDecisionRequest(
                 state.task,
                 context,
@@ -539,7 +539,14 @@ class Day4LangGraphRuntime:
                 state.repair_guidance,
             )
         )
-        decision = _require_current_edit_evidence(state, decision)
+        decision = _require_current_edit_evidence(state, proposed)
+        guard_reason = None
+        if decision is not proposed:
+            guard_reason = (
+                "edit_requires_read"
+                if decision.action is not None
+                else "edit_already_complete"
+            )
         if self._model_call_id is not None:
             await self._events.emit(
                 AgentStepCompleted(
@@ -548,6 +555,7 @@ class Day4LangGraphRuntime:
                     step_count=self._ledger.step_count(state.run_id),
                     decision_kind=decision.kind,
                     model_call_id=self._model_call_id(),
+                    guard_reason=guard_reason,
                 )
             )
         update: dict[str, object] = {
@@ -620,6 +628,8 @@ class Day4LangGraphRuntime:
             _observation_summary(result, action),
             code,
             reason,
+            _observation_target_path(result, action),
+            state.repair_count,
         )
         update = self._evidence_update(
             state,
@@ -952,13 +962,24 @@ def _require_current_edit_evidence(
     if action is None or action.tool_name != "edit_file" or state.plan is None:
         return decision
     path = action.arguments.get("path")
-    old_str = action.arguments.get("old_str")
-    if not isinstance(path, str) or not isinstance(old_str, str):
+    if not isinstance(path, str):
         return decision
     # Out-of-scope requests still reach ToolRuntime for its authoritative denial.
     if ("edit_file", path) not in state.plan.authorization_scope.allowed_write_actions:
         return decision
-    if _has_current_edit_evidence(state, path, old_str):
+    if _completed_edit_without_repair(state, path):
+        if _all_approved_writes_complete(state):
+            return AgentDecision(
+                AgentDecisionKind.TASK_READY,
+                None,
+                "The approved file changes are complete and ready for validation.",
+            )
+        return AgentDecision(
+            AgentDecisionKind.CONTINUE,
+            None,
+            "The proposed file change is already complete; continue with remaining work.",
+        )
+    if _has_fresh_read_evidence(state, path):
         return decision
     return AgentDecision(
         AgentDecisionKind.TOOL_ACTION,
@@ -967,26 +988,71 @@ def _require_current_edit_evidence(
     )
 
 
-def _has_current_edit_evidence(state: AgentState, path: str, old_str: str) -> bool:
-    # An edit attempt, successful or not, invalidates prior read evidence. This
-    # conservative boundary needs no new checkpoint fields or Tool arguments.
-    last_edit = max(
-        (index for index, item in enumerate(state.observations) if item.tool_name == "edit_file"),
-        default=-1,
-    )
+def _observation_target_path(result: ToolResult, action: ToolAction) -> str | None:
+    if result.tool_name not in {"read_file", "edit_file"}:
+        return None
+    output_path = None if result.output is None else result.output.get("path")
+    if isinstance(output_path, str) and output_path:
+        return output_path
+    path = action.arguments.get("path")
+    return path if isinstance(path, str) and path else None
+
+
+def _observation_path(
+    observation: Observation, results: dict[str, ToolResult]
+) -> str | None:
+    if observation.target_path is not None:
+        return observation.target_path
+    result = results.get(observation.invocation_id)
+    path = None if result is None or result.output is None else result.output.get("path")
+    return path if isinstance(path, str) else None
+
+
+def _has_fresh_read_evidence(state: AgentState, path: str) -> bool:
     results = {item.invocation_id: item for item in state.tool_results}
-    for observation in reversed(state.observations[last_edit + 1 :]):
-        if observation.tool_name != "read_file" or not observation.success:
+    latest_read = -1
+    latest_successful_edit = -1
+    for index, observation in enumerate(state.observations):
+        if _observation_path(observation, results) != path:
             continue
-        result = results.get(observation.invocation_id)
-        if result is None or not result.success or result.output is None:
-            continue
-        if result.output.get("path") != path:
-            continue
-        content = result.output.get("content")
-        if isinstance(content, str) and old_str in content[:4000]:
-            return True
-    return False
+        if observation.tool_name == "read_file" and observation.success:
+            latest_read = index
+        elif observation.tool_name == "edit_file" and observation.success:
+            latest_successful_edit = index
+    if latest_read <= latest_successful_edit:
+        return False
+    failures = sum(
+        1
+        for observation in state.observations[latest_read + 1 :]
+        if observation.tool_name == "edit_file"
+        and observation.error_code == "EDIT_TARGET_NOT_FOUND"
+        and _observation_path(observation, results) in {path, None}
+    )
+    return failures < 2
+
+
+def _completed_edit_without_repair(state: AgentState, path: str) -> bool:
+    results = {item.invocation_id: item for item in state.tool_results}
+    return any(
+        item.tool_name == "edit_file"
+        and item.success
+        and item.repair_attempt >= state.repair_count
+        and _observation_path(item, results) == path
+        for item in state.observations
+    )
+
+
+def _all_approved_writes_complete(state: AgentState) -> bool:
+    if state.plan is None:
+        return False
+    results = {item.invocation_id: item for item in state.tool_results}
+    completed = {
+        (item.tool_name, path)
+        for item in state.observations
+        if item.success and (path := _observation_path(item, results)) is not None
+        and item.tool_name in {"edit_file", "apply_patch", "write_file"}
+    }
+    return set(state.plan.authorization_scope.allowed_write_actions) <= completed
 
 
 def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
@@ -1004,7 +1070,8 @@ def _observation_summary(result: ToolResult, action: ToolAction | None = None) -
         details = {
             "EDIT_TARGET_NOT_FOUND": (
                 "the exact old_str was not found in the current file; "
-                "read the latest file content before retrying"
+                "use the current read evidence for one corrected edit; "
+                "after another exact-target failure, read the file again"
             ),
             "EDIT_TARGET_AMBIGUOUS": (
                 "old_str matched multiple locations; provide a larger unique exact context"
@@ -1019,7 +1086,8 @@ def _observation_summary(result: ToolResult, action: ToolAction | None = None) -
         ):
             detail = (
                 "text matches only after line-ending normalization; use the exact CRLF/LF "
-                "sequence or a unique old_str without newline characters"
+                "sequence or a unique old_str without newline characters; "
+                "one correction from the current read is allowed"
             )
         if detail is not None:
             return f"edit_file failed with {code}: {detail}."[:512]

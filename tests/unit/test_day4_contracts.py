@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 from collections.abc import AsyncIterator, Callable, Sequence
@@ -1202,10 +1203,10 @@ def _edit_guard_state(plan: Plan) -> AgentState:
     )
 
 
-def test_agent_edit_requires_current_same_path_read_after_failure() -> None:
+def test_agent_edit_requires_fresh_read_but_does_not_match_old_str() -> None:
     plan = _edit_file_plan()
     state = _edit_guard_state(plan)
-    edit = _edit_decision()
+    edit = _edit_decision(old_str="guessed text absent from the file")
     required = _require_current_edit_evidence(state, edit)
     assert required.action == ToolAction("read_file", {"path": "alpha.py"})
 
@@ -1218,13 +1219,19 @@ def test_agent_edit_requires_current_same_path_read_after_failure() -> None:
         state, observations=(*state.observations, target_read),
         tool_results=(*state.tool_results, target_result),
     )
+    # Membership is exclusively EditFileTool's responsibility.
     assert _require_current_edit_evidence(state, edit) is edit
 
     failed = Observation(
         str(uuid4()), "edit_file", False,
         "edit_file failed with EDIT_TARGET_NOT_FOUND.", "EDIT_TARGET_NOT_FOUND", None,
+        "alpha.py",
     )
     state = replace(state, observations=(*state.observations, failed))
+    assert _require_current_edit_evidence(state, edit) is edit
+
+    second_failure = replace(failed, invocation_id=str(uuid4()))
+    state = replace(state, observations=(*state.observations, second_failure))
     assert _require_current_edit_evidence(state, edit).action == required.action
 
     refreshed, refreshed_result = _read_observation("alpha.py", "old\r\n")
@@ -1236,10 +1243,31 @@ def test_agent_edit_requires_current_same_path_read_after_failure() -> None:
 
     ambiguous = replace(failed, invocation_id=str(uuid4()), error_code="EDIT_TARGET_AMBIGUOUS")
     state = replace(state, observations=(*state.observations, ambiguous))
-    assert _require_current_edit_evidence(state, edit).action == required.action
+    assert _require_current_edit_evidence(state, edit) is edit
 
 
-def test_agent_edit_success_requires_new_evidence_and_allows_repair() -> None:
+@pytest.mark.asyncio
+async def test_bad_old_str_reaches_edit_file_tool_after_read(tmp_path: Path) -> None:
+    target = tmp_path / "alpha.py"
+    target.write_bytes(b"old\r\n")
+    plan = _edit_file_plan()
+    read, result = _read_observation("alpha.py", "old\r\n")
+    state = replace(_edit_guard_state(plan), observations=(read,), tool_results=(result,))
+    decision = _edit_decision(old_str="wrong\n")
+    assert _require_current_edit_evidence(state, decision) is decision
+    assert decision.action is not None
+    attempted = await EditFileTool(WorkspaceGuard(tmp_path)).execute(
+        ToolInvocation(
+            str(uuid4()), "edit_file", decision.action.arguments,
+            plan.run_id, plan.session_id,
+        )
+    )
+    assert attempted.error is not None
+    assert attempted.error.code == "EDIT_TARGET_NOT_FOUND"
+    assert target.read_bytes() == b"old\r\n"
+
+
+def test_agent_edit_success_converges_and_allows_later_repair() -> None:
     plan = _edit_file_plan()
     read, result = _read_observation("alpha.py", "old\n")
     state = replace(
@@ -1248,17 +1276,18 @@ def test_agent_edit_success_requires_new_evidence_and_allows_repair() -> None:
     edit = _edit_decision()
     assert _require_current_edit_evidence(state, edit) is edit
 
-    success = Observation(str(uuid4()), "edit_file", True, "edit completed", None, None)
-    state = replace(state, observations=(*state.observations, success))
-    assert _require_current_edit_evidence(state, edit).action == ToolAction(
-        "read_file", {"path": "alpha.py"}
+    success = Observation(
+        str(uuid4()), "edit_file", True, "edit completed", None, None, "alpha.py"
     )
+    state = replace(state, observations=(*state.observations, success))
+    assert _require_current_edit_evidence(state, edit).kind is AgentDecisionKind.TASK_READY
 
     refreshed, refreshed_result = _read_observation("alpha.py", "new\n")
     state = replace(
         state,
         observations=(*state.observations, refreshed),
         tool_results=(*state.tool_results, refreshed_result),
+        repair_count=1,
         validation_result=ValidationResult(
             (), (), ValidationStatus.FAIL, ValidationConfidence.LOW,
             False, 1, "A further approved edit is required.",
@@ -1268,11 +1297,28 @@ def test_agent_edit_success_requires_new_evidence_and_allows_repair() -> None:
             "A further approved edit is required.",
         ),
     )
-    assert _require_current_edit_evidence(state, edit).action == ToolAction(
-        "read_file", {"path": "alpha.py"}
-    )
     repair_edit = _edit_decision(old_str="new")
     assert _require_current_edit_evidence(state, repair_edit) is repair_edit
+
+    repaired = replace(success, invocation_id=str(uuid4()), repair_attempt=1)
+    state = replace(state, observations=(*state.observations, repaired))
+    assert _require_current_edit_evidence(state, repair_edit).kind is AgentDecisionKind.TASK_READY
+
+
+def test_old_checkpoint_observation_defaults_new_guard_metadata() -> None:
+    old_checkpoint = (
+        "x9MCk7tuZXh1cy5kb21haW4uYWdlbnRfZGVjaXNpb26rT2JzZXJ2YXRpb26G"
+        "rWludm9jYXRpb25faWTZJDAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwM"
+        "al0b29sX25hbWWpZWRpdF9maWxlp3N1Y2Nlc3PCsGV2aWRlbmNlX3N1bW1hcnm2ZXhh"
+        "Y3QgdGFyZ2V0IG5vdCBmb3VuZKplcnJvcl9jb2RltUVESVRfVEFSR0VUX05PVF9GT1VOR"
+        "K1yZXBsYW5fcmVhc29uwA=="
+    )
+    restored = _checkpoint_serializer().loads_typed(
+        ("msgpack", base64.b64decode(old_checkpoint))
+    )
+    assert isinstance(restored, Observation)
+    assert restored.target_path is None
+    assert restored.repair_attempt == 0
 
 
 def test_agent_edit_guard_preserves_formal_scope_denial() -> None:

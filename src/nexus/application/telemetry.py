@@ -178,13 +178,16 @@ class EventEnricher:
                 (),
             )
         if isinstance(event, AgentStepCompleted):
+            agent_payload: dict[str, object] = {
+                "step_count": event.step_count,
+                "decision_kind": event.decision_kind.value,
+                "model_call_id": event.model_call_id,
+            }
+            if event.guard_reason is not None:
+                agent_payload["guard_reason"] = event.guard_reason
             return (
                 TelemetryEventType.AGENT_STEP_COMPLETED,
-                {
-                    "step_count": event.step_count,
-                    "decision_kind": event.decision_kind.value,
-                    "model_call_id": event.model_call_id,
-                },
+                agent_payload,
                 (),
             )
         if isinstance(event, ModelCallStarted):

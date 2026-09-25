@@ -695,14 +695,14 @@ def _agent_edit_instruction(plan: Plan) -> str:
         "edit_file arguments are exactly {path:string,old_str:string,new_str:string}; "
         "old_str must be non-empty and match exactly once in the current file. "
         "Before each edit_file action, use a successful read_file of the same path "
-        "and construct old_str from that current file content. After "
-        "EDIT_TARGET_NOT_FOUND or EDIT_TARGET_AMBIGUOUS, read the target again "
-        "before another edit; never guess from stale Context. "
+        "and construct old_str from that current file content. After a first "
+        "EDIT_TARGET_NOT_FOUND, use that read to correct old_str once; after a "
+        "second failure, read the target again. For EDIT_TARGET_AMBIGUOUS, "
+        "choose larger unique context from the current read. Never guess from "
+        "stale Context. "
         "Prefer a unique old_str without newline characters. If old_str spans lines, "
         "preserve the file's exact line endings: use \\r\\n for CRLF and \\n for LF. "
-        "Do not generate unified diffs or hunk headers. If EDIT_TARGET_NOT_FOUND, "
-        "read the latest file before retrying; if EDIT_TARGET_AMBIGUOUS, include "
-        "larger unique exact context in old_str. "
+        "Do not generate unified diffs or hunk headers. "
     )
 
 
