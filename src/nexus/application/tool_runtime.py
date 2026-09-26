@@ -10,6 +10,7 @@ from dataclasses import replace
 from nexus.application.approval_service import ApprovalService
 from nexus.application.execution_ledger import ToolExecutionLedger
 from nexus.application.plan_approval_service import PlanApprovalService
+from nexus.application.tool_target_summary import target_summary
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.planning import ApprovedPlanEvidence
 from nexus.domain.ports.tooling import ApprovalPolicy, CommandPolicy, Tool
@@ -108,6 +109,9 @@ class ToolRuntime:
                 invocation_id=invocation.invocation_id,
                 tool_name=invocation.tool_name,
                 risk_level=proposed_risk,
+                target_summary=target_summary(
+                    invocation.tool_name, invocation.arguments
+                ),
             )
         )
         if proposed_risk is RiskLevel.DANGEROUS:

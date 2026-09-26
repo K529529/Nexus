@@ -10,6 +10,7 @@ from datetime import datetime
 
 import typer
 
+from nexus.application.tool_target_summary import safe_target_summary
 from nexus.domain.agent_decision import AgentDecisionKind
 from nexus.domain.model import ModelCallPhase
 from nexus.domain.runtime_events import (
@@ -49,7 +50,9 @@ class _AgentStep:
     step_count: int
     kind: AgentDecisionKind
     guard_reason: str | None = None
+    decision_summary: str | None = None
     tool_name: str | None = None
+    target_summary: str | None = None
     success: bool | None = None
     error_code: str | None = None
     duration_ms: int | None = None
@@ -124,6 +127,9 @@ class ExecutionProfile:
                 step = self._pending_agent_action[1]
                 if step is not None:
                     step.tool_name = name
+                    step.target_summary = safe_target_summary(
+                        event.tool_name, event.target_summary
+                    )
                 self._active_agent_tool = (event.run_id, event.invocation_id, step)
                 self._pending_agent_action = None
         elif isinstance(event, ModelCallFinished):
@@ -145,7 +151,10 @@ class ExecutionProfile:
             step = None
             if len(self._agent_timeline) < _MAX_AGENT_TIMELINE:
                 step = _AgentStep(
-                    event.step_count, event.decision_kind, event.guard_reason
+                    event.step_count,
+                    event.decision_kind,
+                    guard_reason=event.guard_reason,
+                    decision_summary=event.decision_summary,
                 )
                 self._agent_timeline.append(step)
             self._pending_agent_action = (
@@ -227,7 +236,10 @@ class ExecutionProfile:
             if not self._agent_tools and not self._other_agent_tools:
                 result.append("(none)")
             result.extend(["", "Agent loop"])
-            result.extend(_agent_step_line(step) for step in self._agent_timeline)
+            for step in self._agent_timeline:
+                result.append(_agent_step_line(step))
+                if step.decision_summary is not None:
+                    result.append(f"     decision: {step.decision_summary}")
             omitted = sum(self._agent_decisions.values()) - len(self._agent_timeline)
             if omitted:
                 result.append(f"  ... {omitted} more steps")
@@ -252,8 +264,9 @@ def _agent_step_line(step: _AgentStep) -> str:
         return line.rstrip() + guard
     if step.tool_name is None:
         return f"{line} unobserved{guard}"
+    target = f" {step.target_summary}" if step.target_summary else ""
     if step.success is None:
-        return f"{line} {step.tool_name} incomplete{guard}"
+        return f"{line} {step.tool_name}{target} incomplete{guard}"
     outcome = "PASS" if step.success else "FAIL"
     code = f" {step.error_code or '<redacted error>'}" if not step.success else ""
-    return f"{line} {step.tool_name} {outcome}{code} {step.duration_ms} ms{guard}"
+    return f"{line} {step.tool_name}{target} {outcome}{code} {step.duration_ms} ms{guard}"

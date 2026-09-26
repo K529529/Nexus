@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
@@ -35,6 +35,7 @@ from nexus.domain.planning import (
     ApprovedPlanEvidence,
     Plan,
     PlanAuthorizationSource,
+    PlanKind,
     PlanStatus,
     PlanStep,
     PlanStepStatus,
@@ -47,7 +48,12 @@ from nexus.domain.ports.agent_decision import AgentDecisionAdapter
 from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
 from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
-from nexus.domain.runtime_events import FinalResult, RepairStarted, RuntimeStatus
+from nexus.domain.runtime_events import (
+    AgentStepCompleted,
+    FinalResult,
+    RepairStarted,
+    RuntimeStatus,
+)
 from nexus.domain.tooling import (
     ApprovalDecision,
     PolicyDecision,
@@ -502,6 +508,7 @@ def _runtime(
     max_replans: int = 2,
     validation_runner: ValidationRunner | None = None,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
+    model_call_id: Callable[[], str] | None = None,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
@@ -522,7 +529,65 @@ def _runtime(
         max_repair_attempts=3,
         max_replans=max_replans,
         checkpointer=checkpointer,
+        model_call_id=model_call_id,
     )
+
+
+@pytest.mark.asyncio
+async def test_agent_step_records_final_guard_decision_summary() -> None:
+    class ProposeEdit:
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            del request
+            return AgentDecision(
+                AgentDecisionKind.TOOL_ACTION,
+                ToolAction(
+                    "edit_file",
+                    {"path": "alpha.py", "old_str": "old", "new_str": "new"},
+                ),
+                "Apply the exact edit now.",
+            )
+
+    run_id, session_id = str(uuid4()), str(uuid4())
+    step = PlanStep(
+        str(uuid4()), 1, "Edit alpha", "edit_file", ("alpha.py",),
+        None, None, PlanStepStatus.PENDING,
+    )
+    scope = derive_authorization_scope((step,))
+    plan_id = str(uuid4())
+    plan = Plan(
+        plan_id, run_id, session_id, 1, PlanKind.INITIAL,
+        PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
+        "Approved edit.", None, None,
+        compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+    )
+    context = WorkingContext("edit alpha", (), (), ("alpha.py",), (), False)
+    state = AgentState(
+        "edit alpha", [ModelMessage("user", "edit alpha")],
+        run_id, session_id, RuntimeStatus.STARTED, context=context, plan=plan,
+    )
+    ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=events,
+        planner=FixedPlanner(),
+        agent=ProposeEdit(),
+        tool_runtime=OneActionRuntime(ledger),
+        model_call_id=lambda: str(uuid4()),
+    )
+
+    await runtime._agent_step(state)  # noqa: SLF001
+    completed = [
+        event for event in events.drain(run_id)
+        if isinstance(event, AgentStepCompleted)
+    ]
+    assert len(completed) == 1
+    assert completed[0].decision_kind is AgentDecisionKind.TOOL_ACTION
+    assert completed[0].guard_reason == "edit_requires_read"
+    assert completed[0].decision_summary == (
+        "Read the current target file before exact replacement."
+    )
+    assert completed[0].decision_summary != "Apply the exact edit now."
 
 
 @pytest.mark.asyncio

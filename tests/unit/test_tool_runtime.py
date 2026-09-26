@@ -10,6 +10,7 @@ import pytest
 
 from nexus.application.approval_service import ApprovalService
 from nexus.application.tool_runtime import ToolRuntime
+from nexus.application.tool_target_summary import safe_target_summary
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.runtime_events import (
     ApprovalRequested,
@@ -68,6 +69,24 @@ class RecordingTool:
             PolicyDecision.DENIED if dangerous else PolicyDecision.ALLOWED,
             None,
             1,
+        )
+
+
+class _NativeShapedTool:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    async def execute(self, invocation: ToolInvocation) -> ToolResult:
+        return ToolResult(
+            invocation.invocation_id,
+            self.name,
+            True,
+            {"ok": True},
+            None,
+            RiskLevel.SAFE,
+            PolicyDecision.ALLOWED,
+            None,
+            0,
         )
 
 
@@ -246,10 +265,83 @@ async def test_unknown_tool_emits_start_finish_pair_with_tool_not_found() -> Non
     started, finished = events
     assert isinstance(started, ToolStarted)
     assert started.risk_level is RiskLevel.DANGEROUS
+    assert started.target_summary is None
     assert isinstance(finished, ToolFinished)
     assert finished.error_code == "TOOL_NOT_FOUND"
     assert finished.risk_level is RiskLevel.DANGEROUS
     assert approvals.records == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("name", "arguments", "expected"),
+    [
+        ("read_file", {"path": "src/nexus/agent.py"},
+         "path=src/nexus/agent.py start_line=1 max_lines=400"),
+        ("read_file", {"path": "src/nexus/agent.py", "start_line": 401,
+                       "max_lines": 25},
+         "path=src/nexus/agent.py start_line=401 max_lines=25"),
+        ("read_file", {"path": "src/weird (v2).py"},
+         "path=src/weird (v2).py start_line=1 max_lines=400"),
+        ("shell", {"argv": ["C:\\tools\\uv.exe", "run", "--token=PRIVATE", "pytest"]},
+         "executable=uv.exe argv_count=4"),
+        ("apply_patch", {"path": "src/nexus/agent.py", "patch": "PRIVATE_PATCH"},
+         "path=src/nexus/agent.py"),
+        ("write_file", {"path": "src/nexus/new.py", "content": "PRIVATE_CONTENT"},
+         "path=src/nexus/new.py"),
+        ("edit_file", {"path": "src/nexus/agent.py", "old_str": "PRIVATE_OLD",
+                       "new_str": "PRIVATE_NEW"},
+         "path=src/nexus/agent.py"),
+    ],
+)
+async def test_tool_started_has_bounded_structural_target_only(
+    name: str, arguments: JsonObject, expected: str
+) -> None:
+    events: list[RuntimeEvent] = []
+    runtime = ToolRuntime(
+        ToolRegistry([_NativeShapedTool(name)]),
+        FixedPolicy(RiskLevel.SAFE),
+        InteractiveApprovalPolicy(_approve),
+        cast(ApprovalService, FakeApprovalService()),
+        emit=_collector(events),
+    )
+    invocation = ToolInvocation(str(uuid4()), name, arguments, str(uuid4()), str(uuid4()))
+
+    assert (await runtime.execute(invocation)).success
+    started = events[0]
+    assert isinstance(started, ToolStarted)
+    assert started.target_summary == expected
+    assert safe_target_summary(name, started.target_summary) == expected
+    assert "target_summary" not in started.to_dict()["payload"]
+    assert len(expected) <= 180
+    assert "PRIVATE" not in expected
+
+
+@pytest.mark.asyncio
+async def test_target_summary_omits_unsafe_paths_and_invalid_page_values() -> None:
+    events: list[RuntimeEvent] = []
+    runtime = ToolRuntime(
+        ToolRegistry([_NativeShapedTool("read_file")]),
+        FixedPolicy(RiskLevel.SAFE),
+        InteractiveApprovalPolicy(_approve),
+        cast(ApprovalService, FakeApprovalService()),
+        emit=_collector(events),
+    )
+    for arguments in (
+        {"path": "../private.txt"},
+        {"path": "C:\\private.txt"},
+        {"path": "src/file.py\nPRIVATE"},
+        {"path": "a" * 121},
+        {"path": "src/file.py", "start_line": 0},
+    ):
+        invocation = ToolInvocation(
+            str(uuid4()), "read_file", arguments, str(uuid4()), str(uuid4())
+        )
+        await runtime.execute(invocation)
+    starts = [event for event in events if isinstance(event, ToolStarted)]
+    assert [event.target_summary for event in starts] == [
+        None, None, None, None, "path=src/file.py"
+    ]
 
 
 def test_tool_result_has_structured_serializable_fields() -> None:

@@ -720,6 +720,7 @@ def test_profile_agent_timeline_is_bounded_and_redacts_unsafe_tool_names() -> No
         profile.observe(AgentStepCompleted(
             run_id=run_id, session_id=None, step_count=step_count,
             decision_kind=kind, model_call_id=str(uuid4()),
+            decision_summary=f"step {step_count} summary",
         ))
         if step_count == 1:
             profile.observe(PhaseStarted(
@@ -763,7 +764,8 @@ def test_profile_agent_timeline_is_bounded_and_redacts_unsafe_tool_names() -> No
 
     lines = profile.lines()
     timeline = lines[lines.index("Agent loop") + 1:]
-    assert len(timeline) == 31
+    assert len(timeline) == 61
+    assert sum("decision:" in line for line in timeline) == 30
     assert timeline[-1] == "  ... 5 more steps"
     assert "TOOL_ACTION         2" in lines
     assert "CONTINUE            33" in lines
@@ -774,6 +776,7 @@ def test_profile_agent_timeline_is_bounded_and_redacts_unsafe_tool_names() -> No
     assert "/private/file" not in rendered
     assert "secret-argv" not in rendered
     assert "private raw model output" not in rendered
+    assert "step 35 summary" not in rendered
     assert lines == profile.lines()
 
 
@@ -840,3 +843,131 @@ def test_profile_marks_guard_intervention_without_tool_arguments() -> None:
     assert "old_str" not in rendered
     assert "new_str" not in rendered
     assert "calculator.py" not in rendered
+
+
+def test_profile_correlates_safe_target_with_agent_step_only() -> None:
+    run_id = str(uuid4())
+    profile = ExecutionProfile()
+    other_id = str(uuid4())
+    profile.observe(ToolStarted(
+        run_id=run_id, session_id=None, invocation_id=other_id,
+        tool_name="read_file", risk_level=RiskLevel.SAFE,
+        target_summary="path=outside/agent.py start_line=1 max_lines=400",
+    ))
+    profile.observe(AgentStepCompleted(
+        run_id=run_id, session_id=None, step_count=1,
+        decision_kind=AgentDecisionKind.TOOL_ACTION, model_call_id=str(uuid4()),
+        decision_summary="Inspect the physical implementation before editing.",
+    ))
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+    ))
+    invocation_id = str(uuid4())
+    profile.observe(ToolStarted(
+        run_id=run_id, session_id=None, invocation_id=invocation_id,
+        tool_name="read_file", risk_level=RiskLevel.SAFE,
+        target_summary="path=src/nexus/agent.py start_line=401 max_lines=25",
+    ))
+    profile.observe(ToolFinished(
+        run_id=run_id, session_id=None, invocation_id=invocation_id,
+        tool_name="read_file", success=True, risk_level=RiskLevel.SAFE,
+        policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+        duration_ms=3, error_code=None,
+    ))
+    profile.observe(PhaseFinished(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+        duration_ms=4, success=True,
+    ))
+    profile.observe(AgentStepCompleted(
+        run_id=run_id, session_id=None, step_count=2,
+        decision_kind=AgentDecisionKind.TOOL_ACTION, model_call_id=str(uuid4()),
+        decision_summary="Re-read the same target to construct the exact edit.",
+    ))
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+    ))
+    second_invocation_id = str(uuid4())
+    profile.observe(ToolStarted(
+        run_id=run_id, session_id=None, invocation_id=second_invocation_id,
+        tool_name="read_file", risk_level=RiskLevel.SAFE,
+        target_summary="path=src/nexus/agent.py start_line=401 max_lines=25",
+    ))
+    profile.observe(ToolFinished(
+        run_id=run_id, session_id=None, invocation_id=second_invocation_id,
+        tool_name="read_file", success=True, risk_level=RiskLevel.SAFE,
+        policy_decision=PolicyDecision.ALLOWED, approval_decision=None,
+        duration_ms=5, error_code=None,
+    ))
+    timeline = profile.lines()[profile.lines().index("Agent loop") + 1:]
+    assert timeline == [
+        "  1  TOOL_ACTION read_file path=src/nexus/agent.py "
+        "start_line=401 max_lines=25 PASS 3 ms",
+        "     decision: Inspect the physical implementation before editing.",
+        "  2  TOOL_ACTION read_file path=src/nexus/agent.py "
+        "start_line=401 max_lines=25 PASS 5 ms",
+        "     decision: Re-read the same target to construct the exact edit.",
+    ]
+    assert "outside/agent.py" not in "\n".join(profile.lines())
+
+
+def test_agent_decision_summary_is_bounded_single_line_and_local_only() -> None:
+    run_id = str(uuid4())
+    event = AgentStepCompleted(
+        run_id=run_id,
+        session_id=None,
+        step_count=1,
+        decision_kind=AgentDecisionKind.CONTINUE,
+        model_call_id=str(uuid4()),
+        decision_summary="Inspect current state.\n\t" + "A" * 300 + "\x1b[31m",
+    )
+    assert event.decision_summary is not None
+    assert len(event.decision_summary) == 256
+    assert event.decision_summary.startswith("Inspect current state. A")
+    assert event.decision_summary.endswith("…")
+    assert "\n" not in event.decision_summary
+    assert "\x1b" not in event.decision_summary
+    assert "decision_summary" not in event.to_dict()["payload"]
+
+    profile = ExecutionProfile()
+    profile.observe(event)
+    timeline = profile.lines()[profile.lines().index("Agent loop") + 1:]
+    assert timeline == [
+        "  1  CONTINUE",
+        f"     decision: {event.decision_summary}",
+    ]
+    assert "\x1b" not in "\n".join(timeline)
+
+
+def test_profile_keeps_short_multiline_summary_on_one_indented_line() -> None:
+    profile = ExecutionProfile()
+    profile.observe(AgentStepCompleted(
+        run_id=str(uuid4()), session_id=None, step_count=1,
+        decision_kind=AgentDecisionKind.TASK_READY,
+        model_call_id=str(uuid4()),
+        decision_summary="Evidence is complete.\n Ready for validation.",
+    ))
+    timeline = profile.lines()[profile.lines().index("Agent loop") + 1:]
+    assert timeline == [
+        "  1  TASK_READY",
+        "     decision: Evidence is complete. Ready for validation.",
+    ]
+
+
+def test_profile_rejects_untrusted_target_summary() -> None:
+    run_id = str(uuid4())
+    profile = ExecutionProfile()
+    profile.observe(AgentStepCompleted(
+        run_id=run_id, session_id=None, step_count=1,
+        decision_kind=AgentDecisionKind.TOOL_ACTION, model_call_id=str(uuid4()),
+    ))
+    profile.observe(PhaseStarted(
+        run_id=run_id, session_id=None, phase=ExecutionPhase.AGENT,
+    ))
+    profile.observe(ToolStarted(
+        run_id=run_id, session_id=None, invocation_id=str(uuid4()),
+        tool_name="shell", risk_level=RiskLevel.SAFE,
+        target_summary="executable=uv.exe argv_count=3\nPRIVATE_ARGV",
+    ))
+    rendered = "\n".join(profile.lines())
+    assert "shell incomplete" in rendered
+    assert "PRIVATE_ARGV" not in rendered

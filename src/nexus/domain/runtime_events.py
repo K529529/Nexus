@@ -234,12 +234,20 @@ class ApprovalRequested(RuntimeEvent):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ToolStarted(RuntimeEvent):
-    """A governed invocation entered Tool Runtime with its proposed risk."""
+    """A governed invocation entered Tool Runtime with local-only target metadata."""
 
     status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
     invocation_id: str
     tool_name: str
     risk_level: RiskLevel
+    target_summary: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Keep local target metadata out of generic event serialization."""
+
+        serialized = RuntimeEvent.to_dict(self)
+        serialized["payload"].pop("target_summary", None)
+        return serialized
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -382,6 +390,7 @@ class AgentStepCompleted(RuntimeEvent):
     decision_kind: AgentDecisionKind
     model_call_id: str
     guard_reason: str | None = None
+    decision_summary: str | None = None
 
     def __post_init__(self) -> None:
         RuntimeEvent.__post_init__(self)
@@ -390,6 +399,25 @@ class AgentStepCompleted(RuntimeEvent):
         _validate_uuid(self.model_call_id, "model_call_id")
         if self.guard_reason not in {None, "edit_requires_read", "edit_already_complete"}:
             raise ValueError("AgentStepCompleted guard_reason is invalid.")
+        if self.decision_summary is not None:
+            if not isinstance(self.decision_summary, str):
+                raise ValueError("AgentStepCompleted decision_summary must be text.")
+            single_line = " ".join(
+                "".join(
+                    character if character.isprintable() else " "
+                    for character in self.decision_summary
+                ).split()
+            )
+            if len(single_line) > 256:
+                single_line = single_line[:255] + "…"
+            object.__setattr__(self, "decision_summary", single_line or None)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Keep decision text in the local RuntimeEvent/Profile lane."""
+
+        serialized = RuntimeEvent.to_dict(self)
+        serialized["payload"].pop("decision_summary", None)
+        return serialized
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

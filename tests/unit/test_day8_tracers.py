@@ -9,6 +9,7 @@ import pytest
 
 from nexus.application.event_publisher import PublishedObservation
 from nexus.application.telemetry import EventEnricher, TelemetryRedactor
+from nexus.domain.agent_decision import AgentDecisionKind
 from nexus.domain.model import ModelCallPhase, TokenUsage, UsageAvailability
 from nexus.domain.observability import (
     ExecutionOutcome,
@@ -19,11 +20,14 @@ from nexus.domain.observability import (
 )
 from nexus.domain.planning import TerminalStatus
 from nexus.domain.runtime_events import (
+    AgentStepCompleted,
     ErrorOccurred,
     ModelCallFinished,
     ModelCallStarted,
     RuntimeStatus,
+    ToolStarted,
 )
+from nexus.domain.tooling import RiskLevel
 from nexus.infrastructure.observability.console import ConsoleTracer
 from nexus.infrastructure.observability.langsmith import LangSmithTracer
 
@@ -206,6 +210,69 @@ async def test_langsmith_tracer_uses_manual_empty_input_and_safe_metadata_only()
     assert all(
         call[2]["parent_run_id"] == context.execution_id for call in span_updates
     )
+
+
+@pytest.mark.asyncio
+async def test_tool_target_summary_stays_out_of_enricher_and_langsmith() -> None:
+    context = _context()
+    sentinel = "PRIVATE_LOCAL_TARGET"
+    runtime_event = ToolStarted(
+        run_id=context.run_id,
+        session_id=None,
+        invocation_id=str(uuid4()),
+        tool_name="read_file",
+        risk_level=RiskLevel.SAFE,
+        target_summary=f"path=src/{sentinel}.py start_line=1 max_lines=400",
+    )
+    telemetry = EventEnricher(Path(".")).enrich(
+        runtime_event, PublishedObservation(context, 1)
+    )
+    assert "target_summary" not in telemetry.payload
+    assert sentinel not in repr(telemetry)
+
+    client = _Client()
+    tracer = LangSmithTracer(client, project="safe-project")
+    await tracer.start_run(_start(context))
+    await tracer.record(telemetry)
+    await tracer.finish(_finish(context))
+    assert sentinel not in repr(client.calls)
+    assert "target_summary" not in repr(client.calls)
+    tool_spans = [
+        call for call in client.calls
+        if call[0] == "create" and call[1][0] == "nexus.tool.read_file"
+    ]
+    assert len(tool_spans) == 1
+    assert tool_spans[0][2]["extra"]["metadata"] == dict(telemetry.payload)
+
+
+@pytest.mark.asyncio
+async def test_agent_decision_summary_stays_out_of_enricher_and_langsmith() -> None:
+    context = _context()
+    sentinel = "LOCAL_DECISION_ONLY"
+    runtime_event = AgentStepCompleted(
+        run_id=context.run_id,
+        session_id=None,
+        step_count=1,
+        decision_kind=AgentDecisionKind.CONTINUE,
+        model_call_id=str(uuid4()),
+        decision_summary=f"Inspect {sentinel} before proceeding.",
+    )
+    telemetry = EventEnricher(Path(".")).enrich(
+        runtime_event, PublishedObservation(context, 1)
+    )
+    assert "decision_summary" not in telemetry.payload
+    assert sentinel not in repr(telemetry)
+    assert set(telemetry.payload) == {
+        "step_count", "decision_kind", "model_call_id"
+    }
+
+    client = _Client()
+    tracer = LangSmithTracer(client, project="safe-project")
+    await tracer.start_run(_start(context))
+    await tracer.record(telemetry)
+    await tracer.finish(_finish(context))
+    assert sentinel not in repr(client.calls)
+    assert "decision_summary" not in repr(client.calls)
 
 
 def test_defense_in_depth_redactor_rejects_credential_shaped_allowed_identifier() -> None:

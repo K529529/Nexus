@@ -556,6 +556,7 @@ class Day4LangGraphRuntime:
                     decision_kind=decision.kind,
                     model_call_id=self._model_call_id(),
                     guard_reason=guard_reason,
+                    decision_summary=decision.summary,
                 )
             )
         update: dict[str, object] = {
