@@ -7,9 +7,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from nexus.application.event_publisher import PublishedObservation
+from nexus.application.event_publisher import InProcessEventPublisher, PublishedObservation
+from nexus.application.execution_context import bind_execution_context
 from nexus.application.telemetry import EventEnricher, TelemetryRedactor
-from nexus.domain.agent_decision import AgentDecisionKind
+from nexus.application.telemetry_subscriber import TelemetrySubscriber
+from nexus.application.tracing_dispatcher import SafeTracerDispatcher, TracerSink
+from nexus.domain.agent_decision import AgentDecisionKind, AgentRuntimeFeedback
 from nexus.domain.model import ModelCallPhase, TokenUsage, UsageAvailability
 from nexus.domain.observability import (
     ExecutionOutcome,
@@ -20,13 +23,19 @@ from nexus.domain.observability import (
 )
 from nexus.domain.planning import TerminalStatus
 from nexus.domain.runtime_events import (
+    AgentSemanticRetryStarted,
     AgentStepCompleted,
+    AgentStepStarted,
     ErrorOccurred,
     ModelCallFinished,
     ModelCallStarted,
     RuntimeStatus,
+    TaskStarted,
     ToolFinished,
     ToolStarted,
+    TraceFallback,
+    TraceOperation,
+    TraceSink,
 )
 from nexus.domain.tooling import PolicyDecision, RiskLevel, ToolResult
 from nexus.infrastructure.graph.day4_runtime import _observation_summary
@@ -300,6 +309,59 @@ async def test_read_file_observation_content_stays_out_of_enricher_and_langsmith
     await tracer.finish(_finish(context))
     assert sentinel not in repr(client.calls)
     assert "end_line=400" not in repr(client.calls)
+
+
+@pytest.mark.asyncio
+async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() -> None:
+    context = _context()
+    client = _Client()
+    warnings: list[str] = []
+
+    async def warn(
+        code: str, sink: TraceSink, operation: TraceOperation, fallback: TraceFallback
+    ) -> None:
+        del sink, operation, fallback
+        warnings.append(code)
+
+    tracer = LangSmithTracer(client, project="safe-project")
+    dispatcher = SafeTracerDispatcher(
+        (TracerSink(TraceSink.LANGSMITH, tracer),), warning_emitter=warn,
+    )
+    subscriber = TelemetrySubscriber(
+        EventEnricher(Path(".")), dispatcher, warning_emitter=warn,
+    )
+    publisher = InProcessEventPublisher()
+    publisher.subscribe(subscriber)
+    subscriber.start_execution(_start(context))
+    publisher.open_execution(context)
+    started = AgentStepStarted(
+        run_id=context.run_id, session_id=None, step_count=1,
+    )
+    retry = AgentSemanticRetryStarted(
+        run_id=context.run_id, session_id=None, step_count=1,
+        reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+    )
+
+    with bind_execution_context(context):
+        await publisher.publish(TaskStarted(
+            run_id=context.run_id, session_id=None, task="safe task",
+        ))
+        await publisher.publish(started)
+        await publisher.publish(retry)
+    subscriber.finish_execution(_finish(context))
+    await subscriber.drain_execution(context.execution_id)
+    publisher.close_execution(context.execution_id)
+    await subscriber.close()
+
+    rendered = repr(client.calls)
+    assert "run.started" in rendered
+    assert "AgentStepStarted" not in rendered
+    assert "AgentSemanticRetryStarted" not in rendered
+    assert "REPEATED_SUCCESSFUL_READ" not in rendered
+    assert "Agent guard" not in rendered
+    assert warnings == []
+    with pytest.raises(ValueError, match="not registered"):
+        EventEnricher(Path(".")).enrich(retry, PublishedObservation(context, 3))
 
 
 @pytest.mark.asyncio

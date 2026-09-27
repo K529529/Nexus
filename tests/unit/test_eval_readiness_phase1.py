@@ -18,14 +18,16 @@ from pytest import CaptureFixture, MonkeyPatch
 from nexus.application.event_publisher import PublishedObservation
 from nexus.application.planning import ModelPlanner
 from nexus.application.telemetry import EventEnricher
-from nexus.domain.agent_decision import AgentDecisionKind
+from nexus.domain.agent_decision import AgentDecisionKind, AgentRuntimeFeedback
 from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelCallPhase, ModelChunk, ModelMessage, ModelResponse, TokenUsage
 from nexus.domain.observability import RunExecutionContext
 from nexus.domain.planning import PlanKind
 from nexus.domain.ports.planning import PlanningRequest
 from nexus.domain.runtime_events import (
+    AgentSemanticRetryStarted,
     AgentStepCompleted,
+    AgentStepStarted,
     ApprovalRequested,
     ApprovalSubject,
     ContextBuilt,
@@ -545,6 +547,9 @@ def test_profile_aggregates_deterministically_and_handles_failure_interrupt() ->
             success=True,
         )
     )
+    profile.observe(AgentStepStarted(
+        run_id=run_id, session_id=None, step_count=1,
+    ))
     call_id = str(uuid4())
     profile.observe(
         ModelCallStarted(
@@ -609,6 +614,8 @@ def test_profile_aggregates_deterministically_and_handles_failure_interrupt() ->
     assert "LLM calls           1" in lines
     assert "Tool calls          1" in lines
     assert "Agent steps         1" in lines
+    assert "Agent model calls   1" in lines
+    assert "Semantic retries    0" in lines
     assert "Failure category    PLAN_SCHEMA" in lines
     assert lines.index("search_files            900 ms") < lines.index(
         "AGENT_STEP model        600 ms"
@@ -621,6 +628,53 @@ def test_profile_aggregates_deterministically_and_handles_failure_interrupt() ->
         RunInterrupted(run_id=run_id, session_id=None, timestamp=started + timedelta(seconds=1))
     )
     assert "Total               1000 ms" in interrupted.lines()
+
+
+def test_profile_separates_logical_steps_model_calls_and_semantic_retries() -> None:
+    run_id = str(uuid4())
+    profile = ExecutionProfile()
+    profile.observe(AgentStepStarted(
+        run_id=run_id, session_id=None, step_count=1,
+    ))
+    call_ids = [str(uuid4()) for _ in range(4)]
+    for index, call_id in enumerate(call_ids):
+        if index == 2:
+            profile.observe(AgentSemanticRetryStarted(
+                run_id=run_id, session_id=None, step_count=1,
+                reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+            ))
+        profile.observe(ModelCallStarted(
+            run_id=run_id, session_id=None, model_call_id=call_id,
+            phase=ModelCallPhase.AGENT_STEP, provider=None, model=None,
+        ))
+    profile.observe(AgentStepCompleted(
+        run_id=run_id, session_id=None, step_count=1,
+        decision_kind=AgentDecisionKind.TASK_READY, model_call_id=call_ids[-1],
+    ))
+
+    lines = profile.lines()
+    assert "LLM calls           4" in lines
+    assert "Agent steps         1" in lines
+    assert "Agent model calls   4" in lines
+    assert "Semantic retries    1" in lines
+    assert "TASK_READY          1" in lines
+    assert lines == profile.lines()
+
+    failed = ExecutionProfile()
+    failed.observe(AgentStepStarted(
+        run_id=run_id, session_id=None, step_count=2,
+    ))
+    failed.observe(AgentSemanticRetryStarted(
+        run_id=run_id, session_id=None, step_count=2,
+        reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+    ))
+    failed.observe(ModelCallStarted(
+        run_id=run_id, session_id=None, model_call_id=str(uuid4()),
+        phase=ModelCallPhase.AGENT_STEP, provider=None, model=None,
+    ))
+    assert "Agent steps         2" in failed.lines()
+    assert "Agent model calls   1" in failed.lines()
+    assert "Semantic retries    1" in failed.lines()
 
 
 def test_profile_attributes_agent_tools_and_keeps_existing_summary() -> None:

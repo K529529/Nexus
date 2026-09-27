@@ -21,6 +21,7 @@ from nexus.domain.agent_decision import (
     AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
+    AgentRuntimeFeedback,
     Observation,
     ToolAction,
 )
@@ -51,7 +52,9 @@ from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanning
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
 from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
 from nexus.domain.runtime_events import (
+    AgentSemanticRetryStarted,
     AgentStepCompleted,
+    AgentStepStarted,
     FinalResult,
     RepairStarted,
     RuntimeStatus,
@@ -683,16 +686,35 @@ async def test_agent_step_retries_duplicate_read_once_with_safe_feedback() -> No
         "Approved edit.", None, None,
         compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
     )
+    approved = ApprovedPlanEvidence(
+        plan.plan_id, plan.version, state.run_id, state.session_id,
+        PlanAuthorizationSource.INTERACTIVE, str(uuid4()), plan.scope_digest,
+        plan.authorization_scope, datetime.now(UTC),
+    )
     state = replace(
         state, context=WorkingContext("edit alpha", (), (), ("alpha.py",), (), False),
-        plan=plan,
+        plan=plan, approved_plan=approved,
     )
+
+    class RecordingRuntime(OneActionRuntime):
+        def __init__(self, ledger: ToolExecutionLedger) -> None:
+            super().__init__(ledger)
+            self.seen_authorization: ApprovedPlanEvidence | None = None
+
+        async def execute(
+            self, invocation: ToolInvocation, *,
+            authorization: ApprovedPlanEvidence | None = None,
+        ) -> ToolResult:
+            self.seen_authorization = authorization
+            return await super().execute(invocation, authorization=authorization)
+
     agent = RetryAgent()
     ledger = ToolExecutionLedger()
     events = RuntimeEventBuffer()
+    tool_runtime = RecordingRuntime(ledger)
     runtime = _runtime(
         ledger=ledger, event_buffer=events, planner=FixedPlanner(),
-        agent=agent, tool_runtime=OneActionRuntime(ledger),
+        agent=agent, tool_runtime=tool_runtime,
         model_call_id=lambda: str(uuid4()),
     )
 
@@ -704,15 +726,26 @@ async def test_agent_step_retries_duplicate_read_once_with_safe_feedback() -> No
         "edit_file", {"path": "alpha.py", "old_str": "old", "new_str": "new"}
     )
     assert len(agent.requests) == 2
-    feedback = agent.requests[1].context.compacted_observations
-    assert feedback is not None and "next uncompleted approved Plan action" in feedback
-    assert "PRIVATE_FILE_CONTENT" not in feedback
-    completed = [
-        event for event in events.drain(state.run_id)
-        if isinstance(event, AgentStepCompleted)
+    assert agent.requests[0].runtime_feedback is None
+    assert agent.requests[1].runtime_feedback is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
+    assert agent.requests[1].context is agent.requests[0].context
+    assert agent.requests[1].context.compacted_observations is None
+    assert agent.requests[1].observations == state.observations
+    assert "context" not in command.update
+    assert "runtime_feedback" not in command.update
+    assert "observations" not in command.update
+    emitted = events.drain(state.run_id)
+    assert [type(event) for event in emitted] == [
+        AgentStepStarted, AgentSemanticRetryStarted, AgentStepCompleted,
     ]
-    assert len(completed) == 1
-    assert completed[0].guard_reason is None
+    assert isinstance(emitted[1], AgentSemanticRetryStarted)
+    assert emitted[1].reason is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
+    assert isinstance(emitted[2], AgentStepCompleted)
+    assert emitted[2].guard_reason is None
+    assert "PRIVATE_FILE_CONTENT" not in repr(emitted)
+    pending = cast(ToolAction, command.update["pending_tool_action"])
+    await runtime._execute_tool(replace(state, pending_tool_action=pending))  # noqa: SLF001
+    assert tool_runtime.seen_authorization is approved
 
 
 @pytest.mark.asyncio
@@ -752,8 +785,9 @@ async def test_agent_step_stops_when_corrected_decision_repeats_same_read() -> N
     )
     agent = RepeatAgent()
     ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
     runtime = _runtime(
-        ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
         agent=agent, tool_runtime=OneActionRuntime(ledger),
     )
 
@@ -761,6 +795,11 @@ async def test_agent_step_stops_when_corrected_decision_repeats_same_read() -> N
         await runtime._agent_step(state)  # noqa: SLF001
     assert error.value.code == "INVALID_AGENT_DECISION"
     assert agent.calls == 2
+    assert [type(event) for event in events.drain(state.run_id)] == [
+        AgentStepStarted, AgentSemanticRetryStarted,
+    ]
+    assert ledger.step_count(state.run_id) == 1
+    assert ledger.count(state.run_id) == 0
 
 
 @pytest.mark.asyncio

@@ -22,6 +22,7 @@ from nexus.domain.agent_decision import (
     AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
+    AgentRuntimeFeedback,
     Observation,
     ToolAction,
 )
@@ -891,6 +892,63 @@ async def test_agent_reports_only_sanitized_parser_category(response: str, categ
     assert failure.value.code == "INVALID_AGENT_DECISION"
     assert f"Category: {category}" in str(failure.value)
     assert "SENSITIVE" not in str(failure.value)
+
+
+@pytest.mark.asyncio
+async def test_agent_runtime_feedback_is_a_separate_one_call_message() -> None:
+    valid = json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
+    gateway = QueueGateway(valid, valid)
+    budget_views: list[tuple[ModelMessage, ...]] = []
+
+    def prepare(
+        context: WorkingContext,
+        render: Callable[[WorkingContext], Sequence[ModelMessage]],
+    ) -> WorkingContext:
+        budget_views.append(tuple(render(context)))
+        return context
+
+    adapter = JsonAgentDecisionAdapter(gateway, prepare_input=prepare)
+    context = replace(_context(), compacted_observations="HISTORICAL_FACT")
+    request = AgentDecisionRequest("edit alpha", context, _plan(), ())
+
+    await adapter.decide(request)
+    await adapter.decide(replace(
+        request, runtime_feedback=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+    ))
+
+    assert len(gateway.messages[0]) == 2
+    assert len(gateway.messages[1]) == 3
+    assert budget_views == gateway.messages
+    assert [message.role for message in gateway.messages[1]] == ["system", "user", "user"]
+    payload = json.loads(gateway.messages[1][1].content)
+    assert payload["compacted_observations"] == "HISTORICAL_FACT"
+    correction = gateway.messages[1][2].content
+    assert "next uncompleted approved Plan action" in correction
+    assert "HISTORICAL_FACT" not in correction
+    assert len(correction) <= 512
+    assert "Agent guard" not in gateway.messages[1][1].content
+    assert request.runtime_feedback is None
+    assert request.context.compacted_observations == "HISTORICAL_FACT"
+    with pytest.raises(ValueError, match="approved kind"):
+        replace(request, runtime_feedback=cast(AgentRuntimeFeedback, "RAW_FILE_CONTENT"))
+
+
+@pytest.mark.asyncio
+async def test_structured_retry_keeps_runtime_feedback_in_its_own_message() -> None:
+    valid = json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
+    gateway = QueueGateway("not json", valid)
+    request = AgentDecisionRequest(
+        "edit alpha", _context(), _plan(), (),
+        runtime_feedback=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+    )
+
+    await JsonAgentDecisionAdapter(gateway).decide(request)
+
+    assert len(gateway.messages) == 2
+    assert [len(messages) for messages in gateway.messages] == [3, 4]
+    assert gateway.messages[0][2] == gateway.messages[1][2]
+    assert "Category: JSON_DECODE" in gateway.messages[1][3].content
+    assert "Agent guard" not in gateway.messages[1][3].content
 
 
 @pytest.mark.asyncio

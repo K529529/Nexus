@@ -14,7 +14,9 @@ from nexus.application.tool_target_summary import safe_target_summary
 from nexus.domain.agent_decision import AgentDecisionKind
 from nexus.domain.model import ModelCallPhase
 from nexus.domain.runtime_events import (
+    AgentSemanticRetryStarted,
     AgentStepCompleted,
+    AgentStepStarted,
     ErrorOccurred,
     ExecutionPhase,
     FinalResult,
@@ -80,6 +82,8 @@ class ExecutionProfile:
         self.llm_calls = 0
         self.tool_calls = 0
         self.agent_steps = 0
+        self.agent_model_calls = 0
+        self.semantic_retries = 0
         self.replans = 0
         self.repairs = 0
         self.failure_category: str | None = None
@@ -114,7 +118,11 @@ class ExecutionProfile:
         elif isinstance(event, ModelCallStarted):
             self.llm_calls += 1
             if event.phase is ModelCallPhase.AGENT_STEP:
-                self.agent_steps += 1
+                self.agent_model_calls += 1
+        elif isinstance(event, AgentStepStarted):
+            self.agent_steps = max(self.agent_steps, event.step_count)
+        elif isinstance(event, AgentSemanticRetryStarted):
+            self.semantic_retries += 1
         elif isinstance(event, ToolStarted):
             self.tool_calls += 1
             if (
@@ -209,6 +217,8 @@ class ExecutionProfile:
                 f"LLM calls           {self.llm_calls}",
                 f"Tool calls          {self.tool_calls}",
                 f"Agent steps         {self.agent_steps}",
+                f"Agent model calls   {self.agent_model_calls}",
+                f"Semantic retries    {self.semantic_retries}",
                 f"Replans             {self.replans}",
                 f"Repairs             {self.repairs}",
             ]

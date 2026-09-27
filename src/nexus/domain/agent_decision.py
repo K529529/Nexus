@@ -18,6 +18,12 @@ class AgentDecisionKind(StrEnum):
     TASK_READY = "TASK_READY"
 
 
+class AgentRuntimeFeedback(StrEnum):
+    """Allowlisted, call-scoped runtime correction for Agent decisions."""
+
+    REPEATED_SUCCESSFUL_READ = "REPEATED_SUCCESSFUL_READ"
+
+
 class AgentRoute(StrEnum):
     TOOL_REQUIRED = "TOOL_REQUIRED"
     CONTINUE = "CONTINUE"
@@ -101,6 +107,13 @@ class AgentDecisionRequest:
     observations: tuple[Observation, ...]
     validation_result: ValidationResult | None = None
     repair_guidance: RepairGuidance | None = None
+    runtime_feedback: AgentRuntimeFeedback | None = None
+
+    def __post_init__(self) -> None:
+        if self.runtime_feedback is not None and not isinstance(
+            self.runtime_feedback, AgentRuntimeFeedback
+        ):
+            raise ValueError("Agent runtime feedback must be an approved kind.")
 
 
 def _validate_uuid(value: str, field_name: str) -> None:

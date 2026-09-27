@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from nexus.domain.agent_decision import AgentDecisionKind
+from nexus.domain.agent_decision import AgentDecisionKind, AgentRuntimeFeedback
 from nexus.domain.model import ModelCallPhase, TokenUsage
 from nexus.domain.planning import ChangedFile, ChangeKind, PlanKind, TerminalStatus
 from nexus.domain.tooling import ApprovalDecision, PolicyDecision, RiskLevel
@@ -381,6 +381,35 @@ class ModelCallFinished(RuntimeEvent):
             raise ValueError("Successful model calls cannot carry an error code.")
         if not self.success and not self.error_code:
             raise ValueError("Failed model calls require a safe error code.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AgentStepStarted(RuntimeEvent):
+    """Local diagnostic for one logical Agent graph step."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    step_count: int
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.step_count < 1:
+            raise ValueError("AgentStepStarted step_count must be positive.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AgentSemanticRetryStarted(RuntimeEvent):
+    """Local diagnostic for one runtime-corrected Agent decision."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    step_count: int
+    reason: AgentRuntimeFeedback
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        if self.step_count < 1:
+            raise ValueError("AgentSemanticRetryStarted step_count must be positive.")
+        if not isinstance(self.reason, AgentRuntimeFeedback):
+            raise ValueError("Agent semantic retry reason is invalid.")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

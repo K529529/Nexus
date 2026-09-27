@@ -27,6 +27,7 @@ from nexus.domain.agent_decision import (
     AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
+    AgentRuntimeFeedback,
     Observation,
     ToolAction,
 )
@@ -51,7 +52,9 @@ from nexus.domain.ports.planning import Planner, PlanningRequest, RepairPlanning
 from nexus.domain.ports.repository_context import ContextBuilder, RepositoryExplorer
 from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
 from nexus.domain.runtime_events import (
+    AgentSemanticRetryStarted,
     AgentStepCompleted,
+    AgentStepStarted,
     ApprovalActorCategory,
     ApprovalRequested,
     ApprovalResolved,
@@ -522,6 +525,11 @@ class Day4LangGraphRuntime:
         if state.context is None or state.plan is None:
             raise NexusError("Agent decision context is missing.", code="GRAPH_INVALID_STATE")
         self._ledger.begin_step(state.run_id)
+        await self._events.emit(AgentStepStarted(
+            run_id=state.run_id,
+            session_id=_session_id(state),
+            step_count=self._ledger.step_count(state.run_id),
+        ))
         context = state.context
         if self._context_manager is not None:
             turns = (() if self._conversation_turns is None
@@ -541,21 +549,16 @@ class Day4LangGraphRuntime:
         proposed = await self._agent.decide(request)
         duplicate_read_retry = _is_repeated_successful_read(state, proposed)
         if duplicate_read_retry:
-            feedback = (
-                "Agent guard: this read_file path and range already succeeded, "
-                "its observation is available, and the file has not changed. "
-                "Use that evidence to take the next uncompleted approved Plan action. "
-                "Only read a different range if specific needed lines were not visible; "
-                "do not reread overlapping lines solely to re-inspect them. "
-                "read_file accepts path and optional start_line/max_lines; end_line "
-                "is output metadata, not an input argument."
-            )
-            prior = context.compacted_observations
-            retry_context = replace(
-                context,
-                compacted_observations=f"{prior}\n{feedback}" if prior else feedback,
-            )
-            proposed = await self._agent.decide(replace(request, context=retry_context))
+            await self._events.emit(AgentSemanticRetryStarted(
+                run_id=state.run_id,
+                session_id=_session_id(state),
+                step_count=self._ledger.step_count(state.run_id),
+                reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+            ))
+            proposed = await self._agent.decide(replace(
+                request,
+                runtime_feedback=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+            ))
             if _is_repeated_successful_read(state, proposed):
                 raise ModelError(
                     "Agent repeated a successful read_file after corrective feedback.",
