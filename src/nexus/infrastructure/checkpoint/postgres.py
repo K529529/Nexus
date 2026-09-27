@@ -32,6 +32,7 @@ _CHECKPOINT_TYPES: tuple[tuple[str, str], ...] = (
     ("nexus.domain.planning", "AuthorizationScope"),
     ("nexus.domain.planning", "ChangeKind"),
     ("nexus.domain.planning", "ChangedFile"),
+    ("nexus.domain.planning", "CompletionRequirement"),
     ("nexus.domain.planning", "Plan"),
     ("nexus.domain.planning", "PlanAuthorizationSource"),
     ("nexus.domain.planning", "PlanKind"),

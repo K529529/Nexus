@@ -18,6 +18,13 @@ _CATEGORY_RULES = {
         "For a command step, use tool_name=\"shell\", non-null command_argv, "
         "and non-null command_cwd."
     ),
+    "COMPLETION_REQUIREMENT": (
+        "completion_requirement must be WORKSPACE_CHANGE_REQUIRED or "
+        "WORKSPACE_CHANGE_NOT_REQUIRED; never use UNSPECIFIED."
+    ),
+    "COMPLETION_REQUIREMENT_FROZEN": (
+        "Replan must repeat the previous Plan's frozen completion_requirement exactly."
+    ),
     "COMMAND_TOOL_RELATION": (
         "Any step with command_argv must use tool_name=\"shell\" and provide "
         "a non-null command_cwd. Non-shell steps must use command_argv=null "

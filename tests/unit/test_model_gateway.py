@@ -148,7 +148,7 @@ async def test_qwen_fixed_schemas_are_closed_and_agent_arguments_remain_open() -
 
     plan_schema = client.invocation_options[0]["response_format"]["json_schema"]["schema"]
     assert plan_schema["additionalProperties"] is False
-    assert plan_schema["required"] == ["rationale_summary", "steps"]
+    assert plan_schema["required"] == ["completion_requirement", "rationale_summary", "steps"]
     plan_step = plan_schema["properties"]["steps"]["items"]
     variants = plan_step["oneOf"]
     assert len(variants) == 3

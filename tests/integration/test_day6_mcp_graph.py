@@ -56,6 +56,7 @@ class ModelDrivenGateway:
     def __init__(self) -> None:
         responses = [
             {
+                "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
                 "rationale_summary": "Use the advertised SAFE MCP echo capability.",
                 "steps": [
                     {

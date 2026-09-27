@@ -43,6 +43,7 @@ from nexus.domain.persistence import SessionTurn
 from nexus.domain.planning import (
     ChangedFile,
     ChangeKind,
+    CompletionRequirement,
     Plan,
     PlanApprovalResumeInput,
     PlanKind,
@@ -436,6 +437,14 @@ class Day4LangGraphRuntime:
         )
         history = state.plan_history
         replan_count = state.replan_count
+        if (
+            previous is not None
+            and plan.completion_requirement is not previous.completion_requirement
+        ):
+            raise ModelError(
+                "Replan changed the frozen completion requirement.",
+                code="INVALID_PLAN_OUTPUT",
+            )
         if previous is not None:
             history = (*history, replace(previous, status=PlanStatus.SUPERSEDED))
             replan_count += 1
@@ -527,13 +536,22 @@ class Day4LangGraphRuntime:
             update["terminal_status"] = TerminalStatus.FAILED_APPROVAL_DENIED
             return Command(update=update, goto="finalize_failed")
         update["approved_plan"] = self._plan_approval_service.evidence(plan, approval)
+        if plan.completion_requirement is CompletionRequirement.UNSPECIFIED:
+            update["terminal_status"] = TerminalStatus.FAILED_VALIDATION_UNKNOWN
+            return Command(update=update, goto="finalize_failed")
         if state.baseline_workspace_digest is None:
-            baseline = await self._collect_diff(state)
-            if baseline.error_code is not None or baseline.diff is None:
-                update["terminal_status"] = TerminalStatus.FAILED
-                return Command(update=update, goto="finalize_failed")
-            update["baseline_workspace_digest"] = patch_digest(baseline.diff)
-            update["baseline_has_patch"] = bool(baseline.diff)
+            if _is_pure_read_only_plan(plan):
+                if state.exploration is not None:
+                    update["baseline_has_patch"] = _coarse_workspace_dirty(
+                        state.exploration.initial_git_status
+                    )
+            else:
+                baseline = await self._collect_diff(state)
+                if baseline.error_code is not None or baseline.diff is None:
+                    update["terminal_status"] = TerminalStatus.FAILED
+                    return Command(update=update, goto="finalize_failed")
+                update["baseline_workspace_digest"] = patch_digest(baseline.diff)
+                update["baseline_has_patch"] = bool(baseline.diff)
         return Command(update=update, goto="agent_step")
 
     async def _agent_step(self, state: AgentState) -> Command[Any]:
@@ -700,21 +718,38 @@ class Day4LangGraphRuntime:
             or state.approved_plan is None
         ):
             raise NexusError("Validation state is incomplete.", code="GRAPH_INVALID_STATE")
-        candidate = await self._collect_diff(state)
-        if (
-            state.baseline_workspace_digest is None
-            or candidate.error_code is not None
-            or candidate.diff is None
-        ):
+        requirement = state.plan.completion_requirement
+        if requirement is CompletionRequirement.UNSPECIFIED:
             return Command(
                 update={"terminal_status": TerminalStatus.FAILED_VALIDATION_UNKNOWN},
                 goto="finalize_failed",
             )
-        candidate_digest = patch_digest(candidate.diff)
-        workspace_changed_by_run = candidate_digest != state.baseline_workspace_digest
-        requires_workspace_change = bool(
-            state.plan.authorization_scope.allowed_write_actions
-        ) or workspace_changed_by_run
+        pure_read_only = (
+            _is_pure_read_only_plan(state.plan)
+            and state.baseline_workspace_digest is None
+        )
+        candidate_digest: str | None = None
+        candidate_has_patch = False
+        workspace_changed_by_run = False
+        post_evidence: FinalDiffEvidence | None = None
+        if not pure_read_only:
+            candidate = await self._collect_diff(state)
+            if (
+                state.baseline_workspace_digest is None
+                or candidate.error_code is not None
+                or candidate.diff is None
+            ):
+                return Command(
+                    update={"terminal_status": TerminalStatus.FAILED_VALIDATION_UNKNOWN},
+                    goto="finalize_failed",
+                )
+            candidate_digest = patch_digest(candidate.diff)
+            candidate_has_patch = bool(candidate.diff)
+            workspace_changed_by_run = candidate_digest != state.baseline_workspace_digest
+        requires_workspace_change = (
+            requirement is CompletionRequirement.WORKSPACE_CHANGE_REQUIRED
+            or workspace_changed_by_run
+        )
         validation_plan = await self._validation_planner.plan(
             task=state.task,
             plan=state.plan,
@@ -723,7 +758,6 @@ class Day4LangGraphRuntime:
             requires_workspace_change=requires_workspace_change,
             workspace_changed_by_run=workspace_changed_by_run,
         )
-        post_evidence: FinalDiffEvidence | None = None
 
         async def verify_workspace() -> bool:
             nonlocal post_evidence
@@ -731,6 +765,7 @@ class Day4LangGraphRuntime:
             return bool(
                 post_evidence.error_code is None
                 and post_evidence.diff is not None
+                and candidate_digest is not None
                 and patch_digest(post_evidence.diff) == candidate_digest
             )
 
@@ -742,16 +777,16 @@ class Day4LangGraphRuntime:
             repair_count=state.repair_count,
             requires_workspace_change=requires_workspace_change,
             workspace_changed_by_run=workspace_changed_by_run,
-            candidate_has_patch=bool(candidate.diff),
-            verify_workspace=verify_workspace,
+            candidate_has_patch=candidate_has_patch,
+            verify_workspace=None if pure_read_only else verify_workspace,
         )
-        if post_evidence is None and not await verify_workspace():
+        if not pure_read_only and post_evidence is None and not await verify_workspace():
             return Command(
                 update={"terminal_status": TerminalStatus.FAILED_VALIDATION_UNKNOWN},
                 goto="finalize_failed",
             )
         update = self._evidence_update(state, validation_result=result)
-        if result.status is ValidationStatus.PASS:
+        if result.status is ValidationStatus.PASS and candidate_digest is not None:
             update["validated_workspace_digest"] = candidate_digest
         if result.status is ValidationStatus.PASS:
             return Command(update=update, goto="finalize")
@@ -797,10 +832,37 @@ class Day4LangGraphRuntime:
         return self._evidence_update(state, repair_guidance=guidance)
 
     async def _finalize(self, state: AgentState) -> dict[str, object]:
+        if (
+            state.plan is not None
+            and _is_pure_read_only_plan(state.plan)
+            and state.baseline_workspace_digest is None
+            and state.validation_result is not None
+            and state.validation_result.status is ValidationStatus.PASS
+        ):
+            return await self._emit_final(
+                state,
+                TerminalStatus.SUCCEEDED,
+                _latest_assistant_content(state),
+                "",
+                state.baseline_has_patch,
+            )
         evidence = await self._collect_diff(state)
+        completion_valid = bool(
+            state.plan is not None
+            and state.plan.completion_requirement is not CompletionRequirement.UNSPECIFIED
+            and (
+                state.plan.completion_requirement
+                is not CompletionRequirement.WORKSPACE_CHANGE_REQUIRED
+                or (
+                    state.baseline_workspace_digest != state.validated_workspace_digest
+                    and bool(evidence.diff)
+                )
+            )
+        )
         terminal = (
             TerminalStatus.SUCCEEDED
-            if evidence.error_code is None
+            if completion_valid
+            and evidence.error_code is None
             and evidence.diff is not None
             and state.validated_workspace_digest is not None
             and patch_digest(evidence.diff) == state.validated_workspace_digest
@@ -826,7 +888,13 @@ class Day4LangGraphRuntime:
         )
 
     async def _finalize_failed(self, state: AgentState) -> dict[str, object]:
-        evidence = await self._collect_diff(state)
+        evidence = (
+            FinalDiffEvidence("", state.baseline_has_patch, ())
+            if state.plan is not None
+            and _is_pure_read_only_plan(state.plan)
+            and state.baseline_workspace_digest is None
+            else await self._collect_diff(state)
+        )
         terminal = state.terminal_status or TerminalStatus.FAILED
         content = f"Task ended with terminal status {terminal.value}."
         if evidence.error_code is not None:
@@ -1340,13 +1408,37 @@ def _patch_count_detail(action: ToolAction | None) -> str | None:
     return None
 
 
+def _is_pure_read_only_plan(plan: Plan) -> bool:
+    return (
+        plan.completion_requirement is CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED
+        and not plan.authorization_scope.allowed_write_actions
+        and not plan.authorization_scope.allowed_commands
+    )
+
+
+def _coarse_workspace_dirty(status: ToolResult) -> bool:
+    output = status.output
+    stdout = None if output is None else output.get("stdout")
+    if (
+        not status.success
+        or output is None
+        or output.get("truncated") is True
+        or output.get("output_truncated") is True
+        or not isinstance(stdout, str)
+    ):
+        return False
+    return any(
+        line.strip() and not line.startswith("## ")
+        for line in stdout.splitlines()
+    )
+
+
 def _is_read_only_completion(state: AgentState) -> bool:
     plan = state.plan
     return bool(
         plan is not None
+        and _is_pure_read_only_plan(plan)
         and state.baseline_workspace_digest == state.validated_workspace_digest
-        and not plan.authorization_scope.allowed_write_actions
-        and not plan.authorization_scope.allowed_commands
     )
 
 

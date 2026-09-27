@@ -37,6 +37,7 @@ from nexus.domain.exploration import (
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
+    CompletionRequirement,
     Plan,
     PlanAuthorizationSource,
     PlanKind,
@@ -204,12 +205,15 @@ def test_search_files_observation_preserves_returned_paths() -> None:
 
 
 class Explorer:
+    def __init__(self, status_text: str = "") -> None:
+        self.status_text = status_text
+
     async def explore(self, request: ExplorationRequest) -> ExplorationResult:
         status = _tool_result(
             str(uuid4()),
             "git_status",
             success=True,
-            output={"stdout": "", "truncated": False},
+            output={"stdout": self.status_text, "truncated": False},
         )
         return ExplorationResult((), (), ("alpha.py",), (), status, (status,), False)
 
@@ -256,6 +260,7 @@ class FixedPlanner:
             compute_scope_digest(plan_id, version, scope),
             datetime.now(UTC),
             None,
+            CompletionRequirement.WORKSPACE_CHANGE_REQUIRED,
         )
 
     async def create_repair_guidance(
@@ -338,6 +343,7 @@ class ReadOnlyPlanner(FixedPlanner):
             compute_scope_digest(plan_id, 1, scope),
             datetime.now(UTC),
             None,
+            CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED,
         )
 
 
@@ -478,6 +484,13 @@ class FailingRepairPlanner(FixedPlanner):
 
 
 class RetryRepairPlanner(FixedPlanner):
+    async def create_plan(self, request: PlanningRequest) -> Plan:
+        plan = await super().create_plan(request)
+        return replace(
+            plan,
+            completion_requirement=CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED,
+        )
+
     def __init__(self, ledger: ToolExecutionLedger) -> None:
         super().__init__()
         self.gateway = QueueAgentGateway(
@@ -593,9 +606,10 @@ def _runtime(
     model_call_id: Callable[[], str] | None = None,
     normalize_argv: Callable[[list[str]], list[str]] | None = None,
     diff_collector: DiffCollector | None = None,
+    explorer: Explorer | None = None,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
-        explorer=cast(RepositoryExplorer, Explorer()),
+        explorer=cast(RepositoryExplorer, explorer or Explorer()),
         context_builder=cast(ContextBuilder, Builder()),
         planner=planner,
         agent=agent,
@@ -664,6 +678,7 @@ async def test_agent_step_preserves_proposed_edit_summary() -> None:
         PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
         "Approved edit.", None, None,
         compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+        CompletionRequirement.WORKSPACE_CHANGE_REQUIRED,
     )
     context = WorkingContext("edit alpha", (), (), ("alpha.py",), (), False)
     state = AgentState(
@@ -951,6 +966,7 @@ def _progress_plan() -> Plan:
         plan_id, run_id, session_id, 1, PlanKind.INITIAL, PlanStatus.CREATED,
         ApprovalDecision.PENDING, steps, scope, "Repair and validate.", None,
         None, compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+        CompletionRequirement.WORKSPACE_CHANGE_REQUIRED,
     )
 
 
@@ -1285,6 +1301,7 @@ async def test_read_only_completion_keeps_preexisting_patch_flag() -> None:
         agent=GroundedReadOnlyDecisions(),
         tool_runtime=OneActionRuntime(ledger),
         diff_collector=cast(DiffCollector, PreexistingDiffCollector()),
+        explorer=Explorer("?? preexisting.txt\n"),
     )
     state = AgentState(
         "explain record parsing",
@@ -1298,4 +1315,31 @@ async def test_read_only_completion_keeps_preexisting_patch_flag() -> None:
     assert result.terminal_status is TerminalStatus.SUCCEEDED
     assert isinstance(final, FinalResult)
     assert final.includes_preexisting_changes is True
-    assert final.diff is not None and "preexisting.txt" in final.diff
+    assert final.diff == ""
+
+
+@pytest.mark.asyncio
+async def test_legacy_unspecified_plan_cannot_complete_as_read_only() -> None:
+    class LegacyPlanner(ReadOnlyPlanner):
+        async def create_plan(self, request: PlanningRequest) -> Plan:
+            current = await super().create_plan(request)
+            return replace(
+                current, completion_requirement=CompletionRequirement.UNSPECIFIED
+            )
+
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=RuntimeEventBuffer(),
+        planner=LegacyPlanner(),
+        agent=GroundedReadOnlyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "explain record parsing",
+        [ModelMessage(role="user", content="explain record parsing")],
+        str(uuid4()), str(uuid4()), RuntimeStatus.STARTED,
+    )
+
+    result = await runtime.run(state)
+    assert result.terminal_status is TerminalStatus.FAILED_VALIDATION_UNKNOWN

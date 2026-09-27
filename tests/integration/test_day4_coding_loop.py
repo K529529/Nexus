@@ -42,6 +42,7 @@ def prefer_current_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 class CodingLoopGateway:
     def __init__(self, phase: str = "all") -> None:
         plan: dict[str, object] = {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
             "rationale_summary": "Update the target and run its focused test.",
             "steps": [
                 {
@@ -435,7 +436,11 @@ async def test_shell_mutation_is_detected_without_changed_file_ledger(
     }
     gateway = QueueCodingGateway(
         {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
-        {"rationale_summary": "Update alpha and verify it.", "steps": [shell_step, _test_step()]},
+        {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+            "rationale_summary": "Update alpha and verify it.",
+            "steps": [shell_step, _test_step()],
+        },
         {
             "kind": "TOOL_ACTION",
             "summary": "Run approved update.",
@@ -482,7 +487,11 @@ async def test_full_repair_uses_assertion_evidence_and_final_workspace_patch(
     _coding_repository(tmp_path, expected=3)
     gateway = QueueCodingGateway(
         {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
-        {"rationale_summary": "Edit alpha and verify it.", "steps": [_edit_step(), _test_step()]},
+        {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+            "rationale_summary": "Edit alpha and verify it.",
+            "steps": [_edit_step(), _test_step()],
+        },
         _edit_action(1, 2),
         _ready_action(),
         {"failure_summary": "The assertion requires VALUE 3.", "steps": [_edit_step()]},
@@ -522,3 +531,169 @@ async def test_full_repair_uses_assertion_evidence_and_final_workspace_patch(
     assert [item.path for item in final.changed_files] == ["alpha.py"]
     assert len(gateway.calls) == 7
     assert any("AssertionError" in message.content for message in gateway.calls[4])
+
+
+def _investigative_plan() -> dict[str, object]:
+    return {
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+        "rationale_summary": "Inspect the bug before requesting edit authority.",
+        "steps": [
+            {
+                "description": f"Read {path}",
+                "tool_name": "read_file",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            }
+            for path in ("alpha.py", "test_alpha.py")
+        ],
+    }
+
+
+def _read_action(path: str) -> dict[str, object]:
+    return {
+        "kind": "TOOL_ACTION",
+        "summary": f"Read {path}.",
+        "action": {"tool_name": "read_file", "arguments": {"path": path}},
+    }
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_investigative_bug_fix_plan_cannot_finish_without_workspace_change(
+    migrated_database_url: str, tmp_path: Path
+) -> None:
+    _coding_repository(tmp_path, expected=2)
+    gateway = QueueCodingGateway(
+        {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
+        _investigative_plan(),
+        _read_action("alpha.py"),
+        _read_action("test_alpha.py"),
+        _ready_action(),
+    )
+    config = RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+    async with bootstrap_application(
+        config, model_gateway=gateway, workspace_path=tmp_path
+    ) as application:
+        interrupted = [event async for event in application.runtime.run("Fix alpha bug")][-1]
+        assert isinstance(interrupted, RunInterrupted)
+        assert interrupted.session_id is not None
+        events = [event async for event in application.runtime.resume(
+            interrupted.session_id,
+            resume_input=PlanApprovalResumeInput(ApprovalDecision.APPROVED, "Investigate first."),
+        )]
+    final = events[-1]
+    assert isinstance(final, FinalResult)
+    assert final.terminal_status is TerminalStatus.FAILED_VALIDATION_UNKNOWN
+    assert final.validation_result is not None
+    assert final.validation_result.status.value == "UNKNOWN"
+    assert (tmp_path / "alpha.py").read_text(encoding="utf-8") == "VALUE = 1\n"
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_investigative_bug_fix_replans_to_approved_edit_with_frozen_requirement(
+    migrated_database_url: str, tmp_path: Path
+) -> None:
+    _coding_repository(tmp_path, expected=2)
+    gateway = QueueCodingGateway(
+        {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
+        _investigative_plan(),
+        _read_action("alpha.py"),
+        _read_action("test_alpha.py"),
+        _edit_action(1, 2),
+        {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+            "rationale_summary": "Edit alpha after investigation and validate.",
+            "steps": [_edit_step(), _test_step()],
+        },
+        _edit_action(1, 2),
+        _ready_action(),
+    )
+    config = RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+    async with bootstrap_application(
+        config, model_gateway=gateway, workspace_path=tmp_path
+    ) as application:
+        first = [event async for event in application.runtime.run("Fix alpha bug")][-1]
+        assert isinstance(first, RunInterrupted)
+        assert first.session_id is not None
+        session_id = first.session_id
+        run = await application.session_service.resolve_resumable_run(session_id)
+        second_events = [event async for event in application.runtime.resume(
+            session_id,
+            resume_input=PlanApprovalResumeInput(ApprovalDecision.APPROVED, "Investigate first."),
+        )]
+        assert isinstance(second_events[-1], RunInterrupted)
+        final_events = [event async for event in application.runtime.resume(
+            session_id,
+            resume_input=PlanApprovalResumeInput(ApprovalDecision.APPROVED, "Edit alpha."),
+        )]
+        state = await _checkpoint_state(application.runtime, run.graph_thread_id)
+    final = final_events[-1]
+    assert isinstance(final, FinalResult)
+    assert final.terminal_status is TerminalStatus.SUCCEEDED
+    assert final.diff is not None and "+VALUE = 2" in final.diff
+    assert state.plan is not None
+    assert state.plan.completion_requirement.value == "WORKSPACE_CHANGE_REQUIRED"
+    assert state.plan_history
+    assert all(
+        plan.completion_requirement.value == "WORKSPACE_CHANGE_REQUIRED"
+        for plan in state.plan_history
+    )
+    assert any(
+        result.error is not None and result.error.code == "PLAN_SCOPE_DENIED"
+        for result in state.tool_results
+    )
+    assert (tmp_path / "alpha.py").read_text(encoding="utf-8") == "VALUE = 2\n"
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_pure_read_only_explanation_ignores_preexisting_binary_patch(
+    migrated_database_url: str, tmp_path: Path
+) -> None:
+    _coding_repository(tmp_path, expected=1)
+    (tmp_path / "dataset.bin").write_bytes(b"\x00untracked binary")
+    gateway = QueueCodingGateway(
+        {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
+        {
+            "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
+            "rationale_summary": "Read and explain alpha.",
+            "steps": [{
+                "description": "Read alpha.py",
+                "tool_name": "read_file",
+                "target_paths": [],
+                "command_argv": None,
+                "command_cwd": None,
+            }],
+        },
+        _read_action("alpha.py"),
+        {"kind": "TASK_READY", "summary": "alpha.py defines VALUE as 1.", "action": None},
+    )
+    config = RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+    async with bootstrap_application(
+        config, model_gateway=gateway, workspace_path=tmp_path
+    ) as application:
+        interrupted = [event async for event in application.runtime.run("Explain alpha.py")][-1]
+        assert isinstance(interrupted, RunInterrupted)
+        assert interrupted.session_id is not None
+        run = await application.session_service.resolve_resumable_run(interrupted.session_id)
+        events = [event async for event in application.runtime.resume(
+            interrupted.session_id,
+            resume_input=PlanApprovalResumeInput(ApprovalDecision.APPROVED, "Explain alpha."),
+        )]
+        state = await _checkpoint_state(application.runtime, run.graph_thread_id)
+    final = events[-1]
+    assert isinstance(final, FinalResult)
+    assert final.terminal_status is TerminalStatus.SUCCEEDED
+    assert final.diff == ""
+    assert final.includes_preexisting_changes is True
+    assert "VALUE as 1" in final.content
+    assert state.baseline_workspace_digest is None
+    assert state.validated_workspace_digest is None
+    assert not any(
+        result.tool_name == "read_file"
+        and result.output is not None
+        and result.output.get("path") == "dataset.bin"
+        for result in state.tool_results
+    )

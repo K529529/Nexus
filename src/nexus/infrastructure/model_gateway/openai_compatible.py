@@ -269,6 +269,10 @@ def _plan_schema() -> dict[str, Any]:
         "type": "object",
         "additionalProperties": False,
         "properties": {
+            "completion_requirement": {
+                "type": "string",
+                "enum": ["WORKSPACE_CHANGE_REQUIRED", "WORKSPACE_CHANGE_NOT_REQUIRED"],
+            },
             "rationale_summary": {"type": "string", "minLength": 1},
             "steps": {
                 "type": "array",
@@ -276,7 +280,7 @@ def _plan_schema() -> dict[str, Any]:
                 "minItems": 1,
             },
         },
-        "required": ["rationale_summary", "steps"],
+        "required": ["completion_requirement", "rationale_summary", "steps"],
     }
 
 

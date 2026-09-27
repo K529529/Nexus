@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
+import ormsgpack
 import pytest
 
 from nexus.application.approval_service import ApprovalService
@@ -30,6 +31,7 @@ from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
     ChangeKind,
+    CompletionRequirement,
     Plan,
     PlanAuthorizationSource,
     PlanKind,
@@ -138,6 +140,7 @@ def _plan(*, run_id: str | None = None, session_id: str | None = None) -> Plan:
         compute_scope_digest(plan_id, 1, scope),
         datetime.now(UTC),
         None,
+        CompletionRequirement.WORKSPACE_CHANGE_REQUIRED,
     )
 
 
@@ -229,6 +232,7 @@ def _read_only_plan() -> Plan:
         steps=steps,
         authorization_scope=scope,
         scope_digest=compute_scope_digest(current.plan_id, current.version, scope),
+        completion_requirement=CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED,
     )
 
 
@@ -262,6 +266,7 @@ def _exploration() -> ExplorationResult:
 @pytest.mark.asyncio
 async def test_planner_initial_and_replan_preserve_canonical_correlation() -> None:
     first = {
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "Initial bounded plan.",
         "steps": [
             {
@@ -274,6 +279,7 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
         ],
     }
     second = {
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "Replanned bounded strategy.",
         "steps": [
             {
@@ -367,6 +373,7 @@ async def test_planner_maps_invalid_structured_output() -> None:
 async def test_planner_retries_invalid_output_with_independently_fitted_messages() -> None:
     invalid = json.dumps(
         {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
             "rationale_summary": "SENSITIVE invalid plan",
             "steps": [
                 {
@@ -381,6 +388,7 @@ async def test_planner_retries_invalid_output_with_independently_fitted_messages
     )
     valid = json.dumps(
         {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
             "rationale_summary": "Bounded plan.",
             "steps": [
                 {
@@ -488,8 +496,13 @@ async def test_planner_retries_with_category_specific_correction(
         "command_cwd": None,
     }
     step.update(invalid_step)
-    invalid = json.dumps({"rationale_summary": "invalid", "steps": [step]})
+    invalid = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+        "rationale_summary": "invalid",
+        "steps": [step],
+    })
     valid = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "Inspect safely.",
         "steps": [{
             "description": "Inspect alpha", "tool_name": "read_file",
@@ -518,6 +531,7 @@ async def test_planner_retries_with_category_specific_correction(
 @pytest.mark.asyncio
 async def test_planner_does_not_repair_duplicate_authority_paths_in_place() -> None:
     invalid = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "invalid",
         "steps": [{
             "description": "Edit alpha", "tool_name": "edit_file",
@@ -526,6 +540,7 @@ async def test_planner_does_not_repair_duplicate_authority_paths_in_place() -> N
         }],
     })
     valid = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "valid",
         "steps": [{
             "description": "Edit alpha", "tool_name": "edit_file",
@@ -563,6 +578,7 @@ def test_domain_plan_step_authority_rules_remain_strict() -> None:
 @pytest.mark.asyncio
 async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> None:
     response = {
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
         "rationale_summary": "Inspect and validate.",
         "steps": [
             {
@@ -590,7 +606,7 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
     )
 
     system = gateway.last_messages[0].content
-    assert "exactly the keys rationale_summary and steps" in system
+    assert "exactly the keys completion_requirement" in system
     assert "steps is a required non-empty array" in system
     assert "Every step has exactly the keys" in system
     assert "Read-only and repository-explanation tasks still require" in system
@@ -657,6 +673,7 @@ async def test_repair_prompt_preserves_single_target_and_approved_scope_rules() 
         (
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                     "rationale_summary": "bounded",
                     "steps": [],
                     "SENSITIVE_EXTRA": True,
@@ -667,16 +684,25 @@ async def test_repair_prompt_preserves_single_target_and_approved_scope_rules() 
         (
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                     "rationale_summary": "bounded",
                     "steps": [{"description": "SENSITIVE"}],
                 }
             ),
             "STEP_KEYS",
         ),
-        (json.dumps({"rationale_summary": "bounded", "steps": []}), "STEPS_SCHEMA"),
+        (
+            json.dumps({
+                "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+                "rationale_summary": "bounded",
+                "steps": [],
+            }),
+            "STEPS_SCHEMA",
+        ),
         (
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                     "rationale_summary": "",
                     "steps": [
                         {
@@ -784,7 +810,11 @@ async def test_planner_reports_specific_sanitized_plan_step_category(
     step: dict[str, object],
     category: str,
 ) -> None:
-    response = json.dumps({"rationale_summary": "bounded", "steps": [step]})
+    response = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
+        "rationale_summary": "bounded",
+        "steps": [step],
+    })
     current_plan = _plan()
 
     with pytest.raises(ModelError) as failure:
@@ -1242,6 +1272,7 @@ async def test_new_plan_and_agent_use_edit_file_without_exposing_legacy_patch() 
         QueueGateway(
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                     "rationale_summary": "Edit alpha safely.",
                     "steps": [step],
                 }
@@ -1293,6 +1324,7 @@ async def test_new_plan_and_agent_use_edit_file_without_exposing_legacy_patch() 
                 *[
                     json.dumps(
                         {
+                            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                             "rationale_summary": "Legacy edit.",
                             "steps": [legacy],
                         }
@@ -1640,7 +1672,10 @@ async def test_read_only_validation_passes_with_deterministic_no_change_evidence
 
 @pytest.mark.asyncio
 async def test_changed_edit_without_conclusive_code_check_remains_unknown() -> None:
-    plan = _editing_only_plan()
+    plan = replace(
+        _editing_only_plan(),
+        completion_requirement=CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED,
+    )
     validation_plan = await DeterministicValidationPlanner().plan(
         task="edit alpha",
         plan=plan,
@@ -1920,3 +1955,93 @@ async def test_workspace_truth_controls_modifying_validation(
         verify_workspace=verify_workspace,
     )
     assert result.status is expected
+
+
+@pytest.mark.asyncio
+async def test_replan_retries_completion_downgrade_then_preserves_requirement() -> None:
+    previous = _plan()
+    step = {
+        "description": "Inspect alpha",
+        "tool_name": "read_file",
+        "target_paths": [],
+        "command_argv": None,
+        "command_cwd": None,
+    }
+    downgrade = {
+        "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
+        "rationale_summary": "Inspect only.",
+        "steps": [step],
+    }
+    preserved = {**downgrade, "completion_requirement": "WORKSPACE_CHANGE_REQUIRED"}
+    gateway = QueueGateway(json.dumps(downgrade), json.dumps(preserved))
+    request = PlanningRequest(
+        "Fix alpha", _context(), PlanKind.REPLAN, previous,
+        "The initial scope was insufficient.", previous.run_id, previous.session_id,
+    )
+
+    result = await ModelPlanner(gateway).create_plan(request)
+
+    assert result.completion_requirement is CompletionRequirement.WORKSPACE_CHANGE_REQUIRED
+    assert len(gateway.messages) == 2
+    assert "frozen_completion_requirement" in gateway.messages[0][-1].content
+    assert "Category: COMPLETION_REQUIREMENT_FROZEN" in gateway.messages[1][-1].content
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(
+            QueueGateway(json.dumps(downgrade), json.dumps(downgrade))
+        ).create_plan(request)
+    assert failure.value.failure_category == "COMPLETION_REQUIREMENT_FROZEN"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("requirement", "extra", "category"),
+    [
+        (None, False, "TOP_LEVEL_KEYS"),
+        ("INVALID", False, "COMPLETION_REQUIREMENT"),
+        ("UNSPECIFIED", False, "COMPLETION_REQUIREMENT"),
+        ("WORKSPACE_CHANGE_NOT_REQUIRED", True, "TOP_LEVEL_KEYS"),
+    ],
+)
+async def test_plan_rejects_missing_invalid_and_extra_completion_fields(
+    requirement: str | None, extra: bool, category: str,
+) -> None:
+    payload: dict[str, object] = {
+        "rationale_summary": "Inspect alpha.",
+        "steps": [{
+            "description": "Inspect alpha", "tool_name": None,
+            "target_paths": [], "command_argv": None, "command_cwd": None,
+        }],
+    }
+    if requirement is not None:
+        payload["completion_requirement"] = requirement
+    if extra:
+        payload["unexpected"] = True
+    response = json.dumps(payload)
+    previous = _plan()
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(QueueGateway(response, response)).create_plan(
+            PlanningRequest(
+                "Inspect alpha", _context(), PlanKind.INITIAL, None, None,
+                previous.run_id, previous.session_id,
+            )
+        )
+    assert failure.value.failure_category == category
+
+
+def test_legacy_plan_checkpoint_defaults_completion_requirement_to_unspecified() -> None:
+    serializer = _checkpoint_serializer()
+    encoding, serialized = serializer.dumps_typed(_plan())
+    ext_code, payload = ormsgpack.unpackb(
+        serialized, ext_hook=lambda code, data: (code, data)
+    )
+    legacy_payload = ormsgpack.unpackb(payload, ext_hook=ormsgpack.Ext)
+    assert legacy_payload[1] == "Plan"
+    legacy_payload[2].pop("completion_requirement")
+    old_checkpoint = ormsgpack.packb(
+        ormsgpack.Ext(ext_code, ormsgpack.packb(legacy_payload))
+    )
+
+    restored = serializer.loads_typed((encoding, old_checkpoint))
+    assert isinstance(restored, Plan)
+    assert restored.completion_requirement is CompletionRequirement.UNSPECIFIED

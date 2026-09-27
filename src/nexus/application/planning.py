@@ -27,6 +27,7 @@ from nexus.domain.agent_decision import (
 from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelCallPhase, ModelMessage
 from nexus.domain.planning import (
+    CompletionRequirement,
     Plan,
     PlanKind,
     PlanStatus,
@@ -72,7 +73,7 @@ _AGENT_RUNTIME_FEEDBACK = {
     ),
 }
 
-_PLAN_TOP_LEVEL_KEYS = {"rationale_summary", "steps"}
+_PLAN_TOP_LEVEL_KEYS = {"completion_requirement", "rationale_summary", "steps"}
 _PLAN_STEP_KEYS = {
     "description",
     "tool_name",
@@ -149,6 +150,15 @@ class ModelPlanner:
     def _parse_plan(self, content: str, request: PlanningRequest) -> Plan:
         payload = _json_object(content)
         _require_exact_keys(payload, _PLAN_TOP_LEVEL_KEYS, "TOP_LEVEL_KEYS")
+        raw_requirement = payload.get("completion_requirement")
+        if not isinstance(raw_requirement, str):
+            raise StructuredOutputViolation("COMPLETION_REQUIREMENT")
+        try:
+            requirement = CompletionRequirement(raw_requirement)
+        except (TypeError, ValueError) as exc:
+            raise StructuredOutputViolation("COMPLETION_REQUIREMENT") from exc
+        if requirement is CompletionRequirement.UNSPECIFIED:
+            raise StructuredOutputViolation("COMPLETION_REQUIREMENT")
         steps = self._steps(payload.get("steps"))
         rationale = _required_text(payload.get("rationale_summary"))
         if request.kind is PlanKind.INITIAL:
@@ -166,6 +176,8 @@ class ModelPlanner:
                 or request.session_id != previous_plan.session_id
             ):
                 raise ValueError("REPLAN cannot change Run or Session identity.")
+            if requirement is not previous_plan.completion_requirement:
+                raise StructuredOutputViolation("COMPLETION_REQUIREMENT_FROZEN")
             plan_id = previous_plan.plan_id
             version = previous_plan.version + 1
             reason = request.reason
@@ -187,6 +199,7 @@ class ModelPlanner:
                 compute_scope_digest(plan_id, version, scope),
                 datetime.now(UTC),
                 None,
+                requirement,
             )
         except ValueError as exc:
             raise StructuredOutputViolation("PLAN_SCHEMA") from exc
@@ -491,6 +504,7 @@ def _planning_payload(request: PlanningRequest) -> str:
     }
     if request.previous_plan is not None:
         previous = request.previous_plan
+        payload["frozen_completion_requirement"] = previous.completion_requirement.value
         payload["previous_plan"] = {
             "id": previous.plan_id,
             "version": previous.version,
@@ -625,8 +639,15 @@ def _planning_messages(
             content=(
                 _CONTEXT_AUTHORITY + "Return exactly one raw JSON object for a bounded coding "
                 "Plan. Do not use a markdown fence and do not place prose before or after JSON. "
-                "The top-level object has exactly the keys rationale_summary and steps; extra "
-                "or missing keys are invalid. rationale_summary is a required non-empty string. "
+                "The top-level object has exactly the keys completion_requirement, "
+                "rationale_summary, and steps; extra or missing keys are invalid. "
+                "completion_requirement describes the user's required final outcome, not the "
+                "operations present in this Plan. Use WORKSPACE_CHANGE_REQUIRED when the user "
+                "requires repository changes, including a bug fix whose current Plan only "
+                "investigates or reproduces. Use WORKSPACE_CHANGE_NOT_REQUIRED for an explanation "
+                "or inspection task. Never output UNSPECIFIED. Replan must preserve the frozen "
+                "completion_requirement from the previous Plan. "
+                "rationale_summary is a required non-empty string. "
                 "steps is a required non-empty array. Every step has exactly the keys "
                 "description, tool_name, target_paths, command_argv, and command_cwd. "
                 "description is a required non-empty string; tool_name is a string or null; "
@@ -656,7 +677,8 @@ def _planning_messages(
                 "pytest ..., uv run pytest ..., mypy ..., uv run mypy ..., ruff check ..., or "
                 "uv run ruff check ..., plus uv build when a build check is required. Never use "
                 "python -m pytest. Do not include patch/file bodies. Valid editing example: "
-                '{"rationale_summary":"Edit one file and validate the change.","steps":['
+                '{"completion_requirement":"WORKSPACE_CHANGE_REQUIRED",'
+                '"rationale_summary":"Edit one file and validate the change.","steps":['
                 '{"description":"Inspect the target file","tool_name":"read_file",'
                 '"target_paths":[],"command_argv":null,"command_cwd":null},'
                 '{"description":"Apply the approved change to one file",'
@@ -665,7 +687,8 @@ def _planning_messages(
                 '{"description":"TEST: run targeted tests","tool_name":"shell",'
                 '"target_paths":[],"command_argv":["pytest","-q","tests/test_target.py"],'
                 '"command_cwd":"."}]}. Valid security-boundary Plan example: '
-                '{"rationale_summary":"Route the requested operation to ToolRuntime for an '
+                '{"completion_requirement":"WORKSPACE_CHANGE_NOT_REQUIRED",'
+                '"rationale_summary":"Route the requested operation to ToolRuntime for an '
                 'authoritative decision without granting it Plan authority.","steps":['
                 '{"description":"Submit the unchanged requested write_file action to '
                 'ToolRuntime exactly once for an allow-or-deny decision","tool_name":null,'

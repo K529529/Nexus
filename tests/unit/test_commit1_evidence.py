@@ -25,6 +25,7 @@ from nexus.domain.exploration import WorkingContext
 from nexus.domain.model import ModelMessage, ModelResponse
 from nexus.domain.planning import (
     AuthorizationScope,
+    CompletionRequirement,
     Plan,
     PlanKind,
     PlanStatus,
@@ -93,6 +94,7 @@ def plan() -> Plan:
         PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
         "Inspect evidence", None, None, compute_scope_digest(plan_id, 1, scope),
         datetime.now(UTC), None,
+        CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED,
     )
 
 
@@ -266,6 +268,7 @@ async def test_replan_prompt_contains_safe_denied_action_and_previous_scope() ->
         conversation_turns=(),
     )
     response = json.dumps({
+        "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
         "rationale_summary": "Replan",
         "steps": [{"description": "Review scope", "tool_name": None,
                    "target_paths": [], "command_argv": None, "command_cwd": None}],

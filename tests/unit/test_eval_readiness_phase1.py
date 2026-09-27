@@ -94,10 +94,15 @@ def _request() -> PlanningRequest:
     [
         ("secret model output not JSON", "JSON_DECODE"),
         ('{"rationale_summary":"ok"}', "TOP_LEVEL_KEYS"),
-        ('{"rationale_summary":"ok","steps":[]}', "STEPS_SCHEMA"),
+        (
+            '{"completion_requirement":"WORKSPACE_CHANGE_REQUIRED",'
+            '"rationale_summary":"ok","steps":[]}',
+            "STEPS_SCHEMA",
+        ),
         (
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
                     "rationale_summary": "ok",
                     "steps": [
                         {
@@ -130,6 +135,7 @@ async def test_invalid_plan_has_safe_category_after_retry_without_raw_output(
 async def test_unexpected_parser_exception_is_safely_normalized() -> None:
     content = json.dumps(
         {
+            "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
             "rationale_summary": "ok",
             "steps": [
                 {

@@ -38,6 +38,7 @@ class RealMCPGateway:
                 "selection_reason_summary": "No builtin Skill is relevant to the MCP fixture.",
             },
             {
+                "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
                 "rationale_summary": "Use the discovered SAFE MCP echo tool and validate.",
                 "steps": [
                     {

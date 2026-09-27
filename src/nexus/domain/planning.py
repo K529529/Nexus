@@ -13,6 +13,12 @@ from uuid import UUID
 from nexus.domain.tooling import ApprovalDecision
 
 
+class CompletionRequirement(StrEnum):
+    WORKSPACE_CHANGE_REQUIRED = "WORKSPACE_CHANGE_REQUIRED"
+    WORKSPACE_CHANGE_NOT_REQUIRED = "WORKSPACE_CHANGE_NOT_REQUIRED"
+    UNSPECIFIED = "UNSPECIFIED"
+
+
 class PlanKind(StrEnum):
     INITIAL = "INITIAL"
     REPLAN = "REPLAN"
@@ -137,8 +143,11 @@ class Plan:
     scope_digest: str
     created_at: datetime
     approved_at: datetime | None
+    completion_requirement: CompletionRequirement = CompletionRequirement.UNSPECIFIED
 
     def __post_init__(self) -> None:
+        if not isinstance(self.completion_requirement, CompletionRequirement):
+            raise ValueError("Plan completion_requirement is invalid.")
         for field_name, value in (
             ("plan_id", self.plan_id),
             ("run_id", self.run_id),

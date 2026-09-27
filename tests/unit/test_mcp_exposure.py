@@ -165,6 +165,7 @@ async def test_safe_metadata_drives_concrete_planner_and_agent_only() -> None:
     _, metadata = _adapted()
     gateway = CaptureGateway(
         {
+            "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
             "rationale_summary": "Use the discovered SAFE echo tool.",
             "steps": [
                 {

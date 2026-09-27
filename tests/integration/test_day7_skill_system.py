@@ -70,6 +70,7 @@ class PlanningGateway:
         return ModelResponse(
             json.dumps(
                 {
+                    "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
                     "rationale_summary": "Apply the selected Skill guidance.",
                     "steps": [
                         {
