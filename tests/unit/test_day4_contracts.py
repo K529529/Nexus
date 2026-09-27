@@ -73,11 +73,13 @@ from nexus.infrastructure.graph.day4_runtime import (
     _record_change,
     _require_current_edit_evidence,
 )
+from nexus.infrastructure.sandbox import LocalProcessSandbox
 from nexus.security.command_policy import DefaultCommandPolicy
 from nexus.security.executables import TrustedExecutables
 from nexus.security.workspace import WorkspaceGuard
 from nexus.tools import editing as editing_module
 from nexus.tools.editing import EditFileTool, PatchTool, WriteFileTool
+from nexus.tools.native import ShellTool
 from nexus.tools.registry import ToolRegistry
 
 
@@ -1858,3 +1860,129 @@ def test_observation_rejects_any_additional_replan_heuristic() -> None:
             "PATCH_CONFLICT",
             "Invented semantic reason.",
         )
+
+
+def _python_command_plan(argv: list[str]) -> Plan:
+    plan = _plan()
+    steps = (
+        plan.steps[0],
+        replace(plan.steps[1], command_argv=tuple(argv), command_cwd="."),
+    )
+    scope = derive_authorization_scope(steps)
+    return replace(
+        plan, steps=steps, authorization_scope=scope,
+        scope_digest=compute_scope_digest(plan.plan_id, plan.version, scope),
+    )
+
+
+@pytest.mark.asyncio
+async def test_approved_python_command_requires_exact_argv_and_cwd(tmp_path: Path) -> None:
+    guard = WorkspaceGuard(tmp_path)
+    executables = TrustedExecutables.resolve(guard.root)
+    policy = DefaultCommandPolicy(executables)
+    sandbox = LocalProcessSandbox(guard, policy, executables)
+    runtime = ToolRuntime(
+        ToolRegistry([ShellTool(guard, sandbox, executables)]), policy,
+        cast(ApprovalPolicy, UnusedApprovalPolicy()),
+        cast(ApprovalService, UnusedApprovalService()),
+        plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
+        normalize_argv=executables.normalize_argv,
+    )
+    argv = [executables.python, "-c", "print('approved')"]
+    plan = _python_command_plan(argv)
+
+    async def execute(command: list[str], cwd: str = ".", duration: float = 5.0) -> ToolResult:
+        return await runtime.execute(
+            ToolInvocation(
+                str(uuid4()), "shell",
+                {"argv": command, "cwd": cwd, "timeout_seconds": duration},
+                plan.run_id, plan.session_id,
+            ),
+            authorization=_evidence(plan),
+        )
+
+    allowed = await execute(argv)
+    assert allowed.success and allowed.risk_level is RiskLevel.WRITE
+    assert allowed.output is not None and "approved" in allowed.output["stdout"]
+    changed_code = await execute([executables.python, "-c", "print('changed')"])
+    changed_cwd = await execute(argv, "subdir")
+    assert changed_code.error is not None and changed_code.error.code == "PLAN_SCOPE_DENIED"
+    assert changed_cwd.error is not None and changed_cwd.error.code == "PLAN_SCOPE_DENIED"
+
+
+@pytest.mark.asyncio
+async def test_approved_python_command_still_times_out(tmp_path: Path) -> None:
+    guard = WorkspaceGuard(tmp_path)
+    executables = TrustedExecutables.resolve(guard.root)
+    policy = DefaultCommandPolicy(executables)
+    sandbox = LocalProcessSandbox(guard, policy, executables)
+    runtime = ToolRuntime(
+        ToolRegistry([ShellTool(guard, sandbox, executables)]), policy,
+        cast(ApprovalPolicy, UnusedApprovalPolicy()),
+        cast(ApprovalService, UnusedApprovalService()),
+        plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
+        normalize_argv=executables.normalize_argv,
+    )
+    argv = [executables.python, "-c", "import time; time.sleep(30)"]
+    plan = _python_command_plan(argv)
+    result = await runtime.execute(
+        ToolInvocation(
+            str(uuid4()), "shell",
+            {"argv": argv, "cwd": ".", "timeout_seconds": 0.05},
+            plan.run_id, plan.session_id,
+        ),
+        authorization=_evidence(plan),
+    )
+    assert not result.success
+    assert result.error is not None and result.error.code == "SANDBOX_TIMEOUT"
+
+
+@pytest.mark.asyncio
+async def test_python_script_uses_workspace_guard_for_existing_file(tmp_path: Path) -> None:
+    guard = WorkspaceGuard(tmp_path)
+    executables = TrustedExecutables.resolve(guard.root)
+    policy = DefaultCommandPolicy(executables)
+    sandbox = LocalProcessSandbox(guard, policy, executables)
+    shell = ShellTool(guard, sandbox, executables)
+    (tmp_path / "check.py").write_text("print('inside')\n", encoding="utf-8")
+    inside = await shell.execute(ToolInvocation(
+        str(uuid4()), "shell", {"argv": [executables.python, "check.py"]},
+        str(uuid4()), str(uuid4()),
+    ))
+    assert inside.success and inside.output is not None
+    assert "inside" in inside.output["stdout"]
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "check.py").write_text("print('nested')\n", encoding="utf-8")
+    nested_result = await shell.execute(ToolInvocation(
+        str(uuid4()), "shell",
+        {"argv": [executables.python, "check.py"], "cwd": "nested"},
+        str(uuid4()), str(uuid4()),
+    ))
+    assert nested_result.success and nested_result.output is not None
+    assert "nested" in nested_result.output["stdout"]
+    missing = await shell.execute(ToolInvocation(
+        str(uuid4()), "shell", {"argv": [executables.python, "missing.py"]},
+        str(uuid4()), str(uuid4()),
+    ))
+    assert not missing.success
+    assert missing.error is not None and missing.error.code == "TOOL_EXECUTION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_policy_denial_runtime_feedback_is_one_safe_separate_message() -> None:
+    response = json.dumps({"kind": "TASK_READY", "summary": "ready", "action": None})
+    gateway = QueueGateway(response)
+    request = AgentDecisionRequest(
+        "repair", _context(), _plan(), (),
+        runtime_feedback=AgentRuntimeFeedback.REPEATED_POLICY_DENIAL,
+    )
+    await JsonAgentDecisionAdapter(gateway).decide(request)
+    messages = gateway.messages[0]
+    assert [message.role for message in messages] == ["system", "user", "user"]
+    feedback = messages[-1].content
+    assert "deterministically denied" in feedback
+    assert "Tool action" in feedback
+    assert "argv" not in feedback
+    assert "path=" not in feedback
+    assert len(feedback) <= 512

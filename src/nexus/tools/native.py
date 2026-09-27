@@ -225,10 +225,20 @@ class ShellTool:
                 0.0,
                 300.0,
             )
-            self._guard.resolve_existing(cwd, require_directory=True)
+            resolved_cwd = self._guard.resolve_existing(cwd, require_directory=True)
+            normalized_argv = self._executables.normalize_argv(argv)
+            if (
+                normalized_argv[0] == self._executables.python
+                and len(normalized_argv) >= 2
+                and normalized_argv[1].casefold().endswith(".py")
+            ):
+                script_path = (
+                    Path(self._guard.relative_display(resolved_cwd)) / normalized_argv[1]
+                ).as_posix()
+                self._guard.resolve_existing(script_path, require_file=True)
             request = SandboxRequest(
                 operation=self.name,
-                argv=self._executables.normalize_argv(argv),
+                argv=normalized_argv,
                 cwd=cwd,
                 timeout_seconds=timeout,
             )

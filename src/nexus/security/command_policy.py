@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from types import MappingProxyType
 from typing import TypeGuard
 
@@ -93,6 +94,10 @@ class DefaultCommandPolicy:
         ]
 
     def _is_controlled_write(self, argv: list[str]) -> bool:
+        if argv[0] == self._executables.python:
+            if len(argv) == 3 and argv[1] == "-c":
+                return True
+            return len(argv) >= 2 and _repository_python_script(argv[1])
         direct = {
             self._executables.pytest,
             self._executables.ruff,
@@ -109,6 +114,18 @@ class DefaultCommandPolicy:
             "pytest",
             "mypy",
         } or len(argv) >= 4 and argv[1:3] == ["run", "ruff"] and argv[3] == "check"
+
+
+def _repository_python_script(value: str) -> bool:
+    path = Path(value)
+    return (
+        path.suffix.casefold() == ".py"
+        and not path.is_absolute()
+        and not path.drive
+        and ".." not in path.parts
+        and path.parts[0] not in {".", ""}
+        and not value.startswith("-")
+    )
 
 
 def _is_string_list(value: object) -> TypeGuard[list[str]]:

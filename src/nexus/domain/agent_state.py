@@ -47,3 +47,4 @@ class AgentState:
     repair_count: int = 0
     terminal_status: TerminalStatus | None = None
     token_usage: TokenUsageAggregate = field(default_factory=TokenUsageAggregate)
+    last_policy_denial_fingerprint: str | None = None

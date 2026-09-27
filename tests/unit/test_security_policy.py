@@ -94,7 +94,7 @@ def test_forbidden_git_writes_and_shell_operators_are_dangerous(tmp_path: Path) 
         ["git", "commit", "-m", "x"],
         ["git", "push"],
         ["git", "reset", "--hard"],
-        ["python", "-c", "print('x')"],
+        ["python", "-m", "pip", "install", "something"],
         ["uv", "--version", "&&", "another-command"],
     ):
         assert policy.classify(operation="shell", arguments={"argv": argv}) is (
@@ -171,4 +171,48 @@ def _pending_approval(risk: RiskLevel) -> ApprovalRequest:
         None,
         datetime.now(UTC),
         None,
+    )
+
+
+def test_trusted_python_execution_policy_matrix(tmp_path: Path) -> None:
+    executables = _executables(tmp_path)
+    policy = DefaultCommandPolicy(executables)
+    for argv in (["python", "--version"], ["python", "-V"]):
+        assert policy.classify(operation="shell", arguments={"argv": argv}) is RiskLevel.SAFE
+    for argv in (
+        ["python", "-c", "print('approved')"],
+        ["python", "scripts/check.py", "--flag"],
+    ):
+        assert policy.classify(operation="shell", arguments={"argv": argv}) is RiskLevel.WRITE
+    for argv in (
+        ["python", "-m", "pip"],
+        ["python", "-m", "pytest"],
+        ["python", "../outside.py"],
+        ["python", str(tmp_path / "outside.py")],
+        ["tools/python", "-c", "print('untrusted')"],
+        [str(tmp_path / "other" / "python"), "-c", "print('untrusted')"],
+        ["python", "-c", "print('x')", "&&"],
+        ["python", "scripts/check.py", "|", "more"],
+    ):
+        assert policy.classify(operation="shell", arguments={"argv": argv}) is (
+            RiskLevel.DANGEROUS
+        )
+
+
+def test_only_exact_trusted_python_absolute_path_is_normalized(tmp_path: Path) -> None:
+    trusted = tmp_path / "python.exe"
+    trusted.write_bytes(b"test executable identity")
+    other = tmp_path / "other" / "python.exe"
+    other.parent.mkdir()
+    other.write_bytes(b"untrusted executable identity")
+    executables = TrustedExecutables(str(trusted.resolve()), None, None, None, None, None)
+    policy = DefaultCommandPolicy(executables)
+    assert policy.classify(
+        operation="shell", arguments={"argv": [str(trusted), "-c", "print(1)"]},
+    ) is RiskLevel.WRITE
+    assert policy.classify(
+        operation="shell", arguments={"argv": [str(other), "-c", "print(1)"]},
+    ) is RiskLevel.DANGEROUS
+    assert executables.normalize_argv(["tools/python.exe", "-c", "print(1)"])[0] == (
+        "tools/python.exe"
     )

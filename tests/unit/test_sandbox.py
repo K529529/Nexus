@@ -128,7 +128,7 @@ async def test_operation_name_spoofing_is_denied_before_process(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
-async def test_dangerous_shell_and_git_write_cannot_create_fixture_state(
+async def test_forbidden_shell_operator_and_git_write_cannot_create_fixture_state(
     tmp_path: Path,
 ) -> None:
     sandbox, executables = _sandbox(tmp_path, permissive_for_mechanics=False)
@@ -140,6 +140,7 @@ async def test_dangerous_shell_and_git_write_cannot_create_fixture_state(
                 executables.python,
                 "-c",
                 f"from pathlib import Path; Path({str(marker)!r}).write_text('unsafe')",
+                "&&",
             ],
             ".",
             10.0,

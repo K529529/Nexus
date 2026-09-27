@@ -62,6 +62,11 @@ _AGENT_RUNTIME_FEEDBACK = {
         "read_file accepts path and optional start_line/max_lines; end_line "
         "is output metadata, not an input argument."
     ),
+    AgentRuntimeFeedback.REPEATED_POLICY_DENIAL: (
+        "Agent guard: this exact Tool action was deterministically denied by policy. "
+        "Do not repeat it. Choose another approved Plan action, or follow the existing "
+        "replan path if the approved scope cannot complete the task."
+    ),
 }
 
 _PLAN_TOP_LEVEL_KEYS = {"rationale_summary", "steps"}

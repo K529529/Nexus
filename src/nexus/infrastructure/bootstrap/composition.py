@@ -386,6 +386,7 @@ async def bootstrap_application(
                 context_manager=context_manager,
                 conversation_turns=session_service.context_turns,
                 model_call_id=gateway.last_model_call_id,
+                normalize_argv=executables.normalize_argv,
             )
         application = BootstrappedApplication(
             runtime=NexusRuntime(

@@ -22,6 +22,7 @@ class AgentRuntimeFeedback(StrEnum):
     """Allowlisted, call-scoped runtime correction for Agent decisions."""
 
     REPEATED_SUCCESSFUL_READ = "REPEATED_SUCCESSFUL_READ"
+    REPEATED_POLICY_DENIAL = "REPEATED_POLICY_DENIAL"
 
 
 class AgentRoute(StrEnum):

@@ -343,6 +343,10 @@ async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() ->
         reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
     )
 
+    denied_retry = AgentSemanticRetryStarted(
+        run_id=context.run_id, session_id=None, step_count=2,
+        reason=AgentRuntimeFeedback.REPEATED_POLICY_DENIAL,
+    )
     progress = PlanStepCompleted(
         run_id=context.run_id, session_id=None, plan_id=str(uuid4()),
         plan_version=1, step_id=str(uuid4()), sequence=1,
@@ -353,6 +357,7 @@ async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() ->
         ))
         await publisher.publish(started)
         await publisher.publish(retry)
+        await publisher.publish(denied_retry)
         await publisher.publish(progress)
     subscriber.finish_execution(_finish(context))
     await subscriber.drain_execution(context.execution_id)
@@ -366,6 +371,7 @@ async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() ->
     assert "PlanStepCompleted" not in rendered
     assert progress.step_id not in rendered
     assert "REPEATED_SUCCESSFUL_READ" not in rendered
+    assert "REPEATED_POLICY_DENIAL" not in rendered
     assert "Agent guard" not in rendered
     assert warnings == []
     with pytest.raises(ValueError, match="not registered"):

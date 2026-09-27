@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import fields, replace
+from hashlib import sha256
 from typing import Any, cast
 from uuid import uuid4
 
@@ -149,6 +151,7 @@ class Day4LangGraphRuntime:
         context_manager: ContextManager | None = None,
         conversation_turns: Callable[[str], Awaitable[Sequence[SessionTurn]]] | None = None,
         model_call_id: Callable[[], str] | None = None,
+        normalize_argv: Callable[[list[str]], list[str]] | None = None,
     ) -> None:
         self._explorer = explorer
         self._context_builder = context_builder
@@ -169,6 +172,7 @@ class Day4LangGraphRuntime:
         self._context_manager = context_manager
         self._conversation_turns = conversation_turns
         self._model_call_id = model_call_id
+        self._normalize_argv = normalize_argv or (lambda argv: list(argv))
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
@@ -550,23 +554,28 @@ class Day4LangGraphRuntime:
             state.repair_guidance,
         )
         proposed = await self._agent.decide(request)
-        duplicate_read_retry = _is_repeated_successful_read(state, proposed)
-        if duplicate_read_retry:
+        retry_reason = _semantic_retry_reason(state, proposed, self._normalize_argv)
+        if retry_reason is not None:
             await self._events.emit(AgentSemanticRetryStarted(
                 run_id=state.run_id,
                 session_id=_session_id(state),
                 step_count=self._ledger.step_count(state.run_id),
-                reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+                reason=retry_reason,
             ))
             proposed = await self._agent.decide(replace(
                 request,
-                runtime_feedback=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
+                runtime_feedback=retry_reason,
             ))
-            if _is_repeated_successful_read(state, proposed):
-                raise ModelError(
-                    "Agent repeated a successful read_file after corrective feedback.",
-                    code="INVALID_AGENT_DECISION",
+            second_reason = _semantic_retry_reason(
+                state, proposed, self._normalize_argv,
+            )
+            if second_reason is not None:
+                message = (
+                    "Agent repeated a successful read_file after corrective feedback."
+                    if second_reason is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
+                    else "Agent repeated a deterministically denied Tool action."
                 )
+                raise ModelError(message, code="INVALID_AGENT_DECISION")
         decision = _require_current_edit_evidence(state, proposed)
         guard_reason = None
         if decision is not proposed:
@@ -676,6 +685,11 @@ class Day4LangGraphRuntime:
             state,
             observations=(*state.observations, observation),
             pending_tool_action=None,
+            last_policy_denial_fingerprint=(
+                _action_fingerprint(action, self._normalize_argv)
+                if code in {"PERMISSION_DENIED", "COMMAND_DENIED"}
+                else None
+            ),
         )
         if updated_plan is not None:
             update["plan"] = updated_plan
@@ -1076,6 +1090,40 @@ def _observation_path(
     result = results.get(observation.invocation_id)
     path = None if result is None or result.output is None else result.output.get("path")
     return path if isinstance(path, str) else None
+
+
+def _action_fingerprint(
+    action: ToolAction, normalize_argv: Callable[[list[str]], list[str]],
+) -> str:
+    arguments = dict(action.arguments)
+    if action.tool_name == "shell":
+        argv = arguments.get("argv")
+        if isinstance(argv, list) and all(isinstance(item, str) for item in argv):
+            arguments["argv"] = normalize_argv(argv)
+        arguments.setdefault("cwd", ".")
+    canonical = json.dumps(
+        {"tool_name": action.tool_name, "arguments": arguments},
+        sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+    )
+    return sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _semantic_retry_reason(
+    state: AgentState,
+    decision: AgentDecision,
+    normalize_argv: Callable[[list[str]], list[str]],
+) -> AgentRuntimeFeedback | None:
+    if _is_repeated_successful_read(state, decision):
+        return AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
+    action = decision.action
+    if (
+        action is not None
+        and state.last_policy_denial_fingerprint is not None
+        and _action_fingerprint(action, normalize_argv)
+        == state.last_policy_denial_fingerprint
+    ):
+        return AgentRuntimeFeedback.REPEATED_POLICY_DENIAL
+    return None
 
 
 def _is_repeated_successful_read(state: AgentState, decision: AgentDecision) -> bool:

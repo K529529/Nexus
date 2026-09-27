@@ -56,6 +56,8 @@ class TrustedExecutables:
         candidate = candidates.get(normalized_name)
         if candidate is None:
             return None
+        if not requested_path.is_absolute() and requested_path.parent != Path("."):
+            return None
         if requested_path.is_absolute():
             try:
                 if os.path.normcase(str(requested_path.resolve(strict=True))) != os.path.normcase(

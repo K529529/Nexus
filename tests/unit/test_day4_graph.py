@@ -80,6 +80,7 @@ from nexus.domain.validation import (
 from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import (
     Day4LangGraphRuntime,
+    _action_fingerprint,
     _complete_matching_plan_step,
     _is_repeated_successful_read,
     _observation_summary,
@@ -576,6 +577,7 @@ def _runtime(
     validation_runner: ValidationRunner | None = None,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     model_call_id: Callable[[], str] | None = None,
+    normalize_argv: Callable[[list[str]], list[str]] | None = None,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
@@ -597,6 +599,7 @@ def _runtime(
         max_replans=max_replans,
         checkpointer=checkpointer,
         model_call_id=model_call_id,
+        normalize_argv=normalize_argv,
     )
 
 
@@ -1265,3 +1268,73 @@ async def test_completed_plan_step_survives_graph_checkpoint() -> None:
         {"configurable": {"thread_id": thread_id}}
     )
     assert snapshot.values["plan"].steps[0].status is PlanStepStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("repeat_after_feedback", [False, True])
+@pytest.mark.parametrize("error_code", ["PERMISSION_DENIED", "COMMAND_DENIED"])
+async def test_deterministic_policy_denial_gets_one_semantic_retry_without_execution(
+    repeat_after_feedback: bool, error_code: str,
+) -> None:
+    class DenialDecisions:
+        def __init__(self) -> None:
+            self.requests: list[AgentDecisionRequest] = []
+
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            self.requests.append(request)
+            if len(self.requests) == 1 or repeat_after_feedback:
+                return AgentDecision(AgentDecisionKind.TOOL_ACTION, action,
+                                     "Try the denied command.")
+            return AgentDecision(AgentDecisionKind.TASK_READY, None,
+                                 "Use another approved path.")
+
+    plan = _progress_plan()
+    action = ToolAction("shell", {"argv": ["python", "-m", "pip"], "cwd": "."})
+    denied = _tool_result(
+        str(uuid4()), "shell", success=False, error_code=error_code,
+    )
+    state = AgentState(
+        "repair", [ModelMessage("user", "repair")], plan.run_id,
+        plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("repair", (), (), (), (), False), plan=plan,
+        pending_tool_action=action, latest_tool_result=denied,
+    )
+    agent = DenialDecisions()
+    ledger, events = ToolExecutionLedger(), RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
+        agent=agent, tool_runtime=OneActionRuntime(ledger),
+    )
+    observed = await runtime._observe(state)
+    update = observed.update
+    assert isinstance(update, dict)
+    next_state = replace(state, **update)
+    assert next_state.last_policy_denial_fingerprint == _action_fingerprint(
+        action, lambda argv: argv,
+    )
+    if repeat_after_feedback:
+        with pytest.raises(ModelError, match="deterministically denied") as failure:
+            await runtime._agent_step(next_state)
+        assert failure.value.code == "INVALID_AGENT_DECISION"
+    else:
+        command = await runtime._agent_step(next_state)
+        assert command.goto == "validate"
+    assert len(agent.requests) == 2
+    assert agent.requests[0].runtime_feedback is None
+    assert agent.requests[1].runtime_feedback is AgentRuntimeFeedback.REPEATED_POLICY_DENIAL
+    assert agent.requests[1].context.compacted_observations is None
+    assert ledger.count(plan.run_id) == 0
+    emitted = events.drain(plan.run_id)
+    assert sum(isinstance(item, AgentSemanticRetryStarted) for item in emitted) == 1
+
+
+def test_policy_denial_fingerprint_uses_normalized_shell_argv() -> None:
+    def normalize(argv: list[str]) -> list[str]:
+        return ["C:/trusted/python.exe" if argv[0] == "python" else argv[0],
+                *argv[1:]]
+    alias = ToolAction("shell", {"argv": ["python", "-m", "pip"]})
+    absolute = ToolAction("shell", {"argv": ["C:/trusted/python.exe", "-m", "pip"],
+                                    "cwd": "."})
+    different = ToolAction("shell", {"argv": ["python", "-m", "venv"]})
+    assert _action_fingerprint(alias, normalize) == _action_fingerprint(absolute, normalize)
+    assert _action_fingerprint(alias, normalize) != _action_fingerprint(different, normalize)
