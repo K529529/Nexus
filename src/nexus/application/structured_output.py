@@ -13,14 +13,36 @@ _MessagesForAttempt = Callable[[ModelMessage | None], Sequence[ModelMessage]]
 _CATEGORY_RULES = {
     "ACTION_RELATION": "TOOL_ACTION requires an action; CONTINUE and TASK_READY require null.",
     "ACTION_SCHEMA": "The action envelope must match the frozen AgentDecision schema.",
-    "COMMAND_CWD_RELATION": "command_cwd is null unless command_argv is present.",
-    "COMMAND_TOOL_RELATION": "A command step uses tool_name shell, a cwd, and no target paths.",
-    "EDIT_TARGET_COUNT": "An editing step targets exactly one repository-relative path.",
-    "INVALID_REPOSITORY_PATH": "Repository paths must use the allowed relative form.",
+    "COMMAND_CWD_RELATION": (
+        "command_cwd must be null when command_argv is null. "
+        "For a command step, use tool_name=\"shell\", non-null command_argv, "
+        "and non-null command_cwd."
+    ),
+    "COMMAND_TOOL_RELATION": (
+        "Any step with command_argv must use tool_name=\"shell\" and provide "
+        "a non-null command_cwd. Non-shell steps must use command_argv=null "
+        "and command_cwd=null. Shell steps use target_paths=[]."
+    ),
+    "EDIT_TARGET_COUNT": (
+        "Each edit_file, write_file, or approved apply_patch step must use "
+        "target_paths=[exactly one repository-relative path]. "
+        "Use separate editing steps for separate files."
+    ),
+    "INVALID_REPOSITORY_PATH": (
+        "Use a non-empty, normalized POSIX-style repository-relative path without a leading /, "
+        "backslashes, .., or ./ segments. Use '.' only for shell command_cwd."
+    ),
     "JSON_DECODE": "Return exactly one raw JSON object without prose or a markdown fence.",
     "KIND_ENUM": "AgentDecision kind must be TOOL_ACTION, CONTINUE, or TASK_READY.",
-    "NARRATIVE_AUTHORITY": "A narrative step cannot carry Tool authority.",
-    "NON_FROZEN_TOOL_AUTHORITY": "Only frozen Day 4 tools may carry Plan authority.",
+    "NARRATIVE_AUTHORITY": (
+        "A narrative step uses tool_name=null, target_paths=[], "
+        "command_argv=null, and command_cwd=null; it cannot carry Tool authority."
+    ),
+    "NON_FROZEN_TOOL_AUTHORITY": (
+        "Read-only tools such as read_file must not carry target_paths or command "
+        "authority. For read_file use target_paths=[], command_argv=null, "
+        "command_cwd=null. target_paths is reserved for approved write authority."
+    ),
     "PLAN_SCHEMA": "The complete Plan must satisfy the frozen Nexus Plan contract.",
     "REQUIRED_FIELD": "Every required text field must be a non-empty string.",
     "SKILL_DUPLICATE_IDS": "selected_skill_ids must not contain duplicate identities.",

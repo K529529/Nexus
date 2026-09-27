@@ -431,6 +431,140 @@ async def test_planner_retries_invalid_output_with_independently_fitted_messages
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("invalid_step", "category", "required_feedback"),
+    [
+        (
+            {"tool_name": "read_file", "target_paths": ["alpha.py"]},
+            "NON_FROZEN_TOOL_AUTHORITY",
+            ("read_file", "target_paths=[]", "command_argv=null",
+             "command_cwd=null", "approved write authority"),
+        ),
+        (
+            {"tool_name": "write_file", "target_paths": ["alpha.py"],
+             "command_argv": ["pytest", "-q"], "command_cwd": "."},
+            "COMMAND_TOOL_RELATION",
+            ('tool_name="shell"', "non-null command_cwd",
+             "command_argv=null", "command_cwd=null"),
+        ),
+        (
+            {"tool_name": "shell", "command_argv": ["pytest", "-q"]},
+            "COMMAND_TOOL_RELATION",
+            ('tool_name="shell"', "non-null command_cwd"),
+        ),
+        (
+            {"tool_name": "edit_file", "target_paths": []},
+            "EDIT_TARGET_COUNT",
+            ("exactly one repository-relative path", "separate editing steps"),
+        ),
+        (
+            {"tool_name": None, "target_paths": ["alpha.py"]},
+            "NARRATIVE_AUTHORITY",
+            ("tool_name=null", "target_paths=[]", "command_argv=null"),
+        ),
+        (
+            {"tool_name": "shell", "command_cwd": "."},
+            "COMMAND_CWD_RELATION",
+            ("command_cwd must be null", "command_argv is null"),
+        ),
+        (
+            {"tool_name": "edit_file", "target_paths": ["../alpha.py"]},
+            "INVALID_REPOSITORY_PATH",
+            ("repository-relative path", "backslashes", ".."),
+        ),
+        (
+            {"tool_name": "edit_file", "target_paths": ["src\\alpha.py"]},
+            "INVALID_REPOSITORY_PATH",
+            ("non-empty", "POSIX-style", "backslashes"),
+        ),
+    ],
+)
+async def test_planner_retries_with_category_specific_correction(
+    invalid_step: dict[str, object],
+    category: str,
+    required_feedback: tuple[str, ...],
+) -> None:
+    step: dict[str, object] = {
+        "description": "SENSITIVE_INVALID_DESCRIPTION",
+        "tool_name": "read_file",
+        "target_paths": [],
+        "command_argv": None,
+        "command_cwd": None,
+    }
+    step.update(invalid_step)
+    invalid = json.dumps({"rationale_summary": "invalid", "steps": [step]})
+    valid = json.dumps({
+        "rationale_summary": "Inspect safely.",
+        "steps": [{
+            "description": "Inspect alpha", "tool_name": "read_file",
+            "target_paths": [], "command_argv": None, "command_cwd": None,
+        }],
+    })
+    gateway = QueueGateway(invalid, valid)
+    current = _plan()
+    result = await ModelPlanner(gateway).create_plan(
+        PlanningRequest(
+            "inspect alpha", _context(), PlanKind.INITIAL, None, None,
+            current.run_id, current.session_id,
+        )
+    )
+
+    assert result.steps[0].tool_name == "read_file"
+    assert len(gateway.messages) == 2
+    assert len(gateway.messages[0]) == 2
+    assert len(gateway.messages[1]) == 3
+    feedback = gateway.messages[1][-1].content
+    assert f"Category: {category}" in feedback
+    assert all(fragment in feedback for fragment in required_feedback)
+    assert "SENSITIVE_INVALID_DESCRIPTION" not in feedback
+
+
+@pytest.mark.asyncio
+async def test_planner_does_not_repair_duplicate_authority_paths_in_place() -> None:
+    invalid = json.dumps({
+        "rationale_summary": "invalid",
+        "steps": [{
+            "description": "Edit alpha", "tool_name": "edit_file",
+            "target_paths": ["alpha.py", "alpha.py"],
+            "command_argv": None, "command_cwd": None,
+        }],
+    })
+    valid = json.dumps({
+        "rationale_summary": "valid",
+        "steps": [{
+            "description": "Edit alpha", "tool_name": "edit_file",
+            "target_paths": ["alpha.py"],
+            "command_argv": None, "command_cwd": None,
+        }],
+    })
+    gateway = QueueGateway(invalid, valid)
+    current = _plan()
+    result = await ModelPlanner(gateway).create_plan(
+        PlanningRequest(
+            "edit alpha", _context(), PlanKind.INITIAL, None, None,
+            current.run_id, current.session_id,
+        )
+    )
+    assert len(gateway.messages) == 2
+    assert "Category: STEP_SCHEMA" in gateway.messages[1][-1].content
+    assert result.steps[0].target_paths == ("alpha.py",)
+
+
+def test_domain_plan_step_authority_rules_remain_strict() -> None:
+    for tool_name, paths, argv, cwd in (
+        ("read_file", ("alpha.py",), None, None),
+        ("edit_file", (), None, None),
+        ("shell", (), ("pytest", "-q"), None),
+        (None, ("alpha.py",), None, None),
+    ):
+        with pytest.raises(ValueError):
+            PlanStep(
+                str(uuid4()), 1, "Invalid authority", tool_name,
+                paths, argv, cwd, PlanStepStatus.PENDING,
+            )
+
+
+@pytest.mark.asyncio
 async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> None:
     response = {
         "rationale_summary": "Inspect and validate.",

@@ -281,8 +281,6 @@ class ModelPlanner:
                 raise StructuredOutputViolation("STEP_SCHEMA")
             argv = None if raw_argv is None else tuple(self._normalize_argv(raw_argv))
             cwd = item.get("command_cwd")
-            if argv is not None and cwd is None:
-                cwd = "."
             if cwd is not None and not isinstance(cwd, str):
                 raise StructuredOutputViolation("STEP_SCHEMA")
             try:
@@ -292,7 +290,7 @@ class ModelPlanner:
                         sequence,
                         _required_text(item.get("description")),
                         tool_name,
-                        tuple(sorted(set(raw_paths))),
+                        tuple(raw_paths),
                         argv,
                         cwd,
                         PlanStepStatus.PENDING,
@@ -453,7 +451,11 @@ def _plan_step_violation_category(error: ValueError) -> str:
         return "NARRATIVE_AUTHORITY"
     if message == "Only frozen Day 4 Tool actions may carry Plan authority.":
         return "NON_FROZEN_TOOL_AUTHORITY"
-    if message == "Repository path is outside the allowed relative form.":
+    if message in {
+        "Repository path is outside the allowed relative form.",
+        "Repository paths must be non-empty POSIX-style strings.",
+        "Repository paths must be normalized.",
+    }:
         return "INVALID_REPOSITORY_PATH"
     return "STEP_SCHEMA"
 
