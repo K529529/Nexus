@@ -29,6 +29,7 @@ from nexus.domain.runtime_events import (
     ErrorOccurred,
     ModelCallFinished,
     ModelCallStarted,
+    PlanStepCompleted,
     RuntimeStatus,
     TaskStarted,
     ToolFinished,
@@ -342,12 +343,17 @@ async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() ->
         reason=AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ,
     )
 
+    progress = PlanStepCompleted(
+        run_id=context.run_id, session_id=None, plan_id=str(uuid4()),
+        plan_version=1, step_id=str(uuid4()), sequence=1,
+    )
     with bind_execution_context(context):
         await publisher.publish(TaskStarted(
             run_id=context.run_id, session_id=None, task="safe task",
         ))
         await publisher.publish(started)
         await publisher.publish(retry)
+        await publisher.publish(progress)
     subscriber.finish_execution(_finish(context))
     await subscriber.drain_execution(context.execution_id)
     publisher.close_execution(context.execution_id)
@@ -357,11 +363,15 @@ async def test_local_agent_retry_events_do_not_enter_telemetry_or_langsmith() ->
     assert "run.started" in rendered
     assert "AgentStepStarted" not in rendered
     assert "AgentSemanticRetryStarted" not in rendered
+    assert "PlanStepCompleted" not in rendered
+    assert progress.step_id not in rendered
     assert "REPEATED_SUCCESSFUL_READ" not in rendered
     assert "Agent guard" not in rendered
     assert warnings == []
     with pytest.raises(ValueError, match="not registered"):
         EventEnricher(Path(".")).enrich(retry, PublishedObservation(context, 3))
+    with pytest.raises(ValueError, match="not registered"):
+        EventEnricher(Path(".")).enrich(progress, PublishedObservation(context, 4))
 
 
 @pytest.mark.asyncio

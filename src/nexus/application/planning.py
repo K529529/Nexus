@@ -503,6 +503,19 @@ def _repair_payload(request: RepairPlanningRequest) -> str:
 
 
 def _agent_payload(request: AgentDecisionRequest) -> str:
+    completed_step_ids = [
+        step.step_id for step in request.plan.steps
+        if step.status in {PlanStepStatus.COMPLETED, PlanStepStatus.SKIPPED}
+    ]
+    next_step = next(
+        (step for step in request.plan.steps
+         if step.status not in {PlanStepStatus.COMPLETED, PlanStepStatus.SKIPPED}),
+        None,
+    )
+    next_step_ref = (
+        None if next_step is None else
+        {"step_id": next_step.step_id, "sequence": next_step.sequence}
+    )
     payload = {
         "task": request.task,
         "plan": {
@@ -510,14 +523,20 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
             "version": request.plan.version,
             "steps": [
                 {
+                    "step_id": step.step_id,
+                    "sequence": step.sequence,
                     "description": step.description,
                     "tool_name": step.tool_name,
                     "target_paths": step.target_paths,
                     "command_argv": step.command_argv,
                     "command_cwd": step.command_cwd,
+                    "status": step.status.value,
                 }
                 for step in request.plan.steps
             ],
+            "completed_step_ids": completed_step_ids,
+            "current_step": next_step_ref,
+            "next_step": next_step_ref,
         },
         **context_payload(request.context),
         "validation": None
@@ -655,6 +674,8 @@ def _agent_messages(
                 '"arguments":{"path":"../external.txt","content":"requested content"}}}. '
                 "This example requests a ToolRuntime decision; it does not grant authority. "
                 "Return exactly one Tool action at most. "
+                "Follow approved Plan progress. Do not repeat COMPLETED steps. "
+                "Prefer the next PENDING step unless Tool evidence requires correction or replan. "
                 + _agent_edit_instruction(request.plan)
                 + "write_file arguments are exactly {path:string,content:string}. "
                 "Never repeat an approved edit that a successful observation shows "

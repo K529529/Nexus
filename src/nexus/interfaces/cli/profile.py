@@ -24,6 +24,8 @@ from nexus.domain.runtime_events import (
     ModelCallStarted,
     PhaseFinished,
     PhaseStarted,
+    PlanCreated,
+    PlanStepCompleted,
     RepairStarted,
     ReplanOccurred,
     RunInterrupted,
@@ -43,6 +45,7 @@ _PHASE_LABELS = (
 )
 _MAX_AGENT_TIMELINE = 30
 _MAX_AGENT_TOOL_NAMES = 20
+_MAX_PLAN_PROGRESS_STEPS = 30
 _SAFE_TOOL_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]{0,63}\Z")
 _SAFE_ERROR_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
 
@@ -79,6 +82,9 @@ class ExecutionProfile:
         self._pending_agent_action: tuple[str, _AgentStep | None] | None = None
         self._agent_tool_phase = False
         self._active_agent_tool: tuple[str, str, _AgentStep | None] | None = None
+        self._plan_identity: tuple[str, int] | None = None
+        self._plan_steps: list[tuple[str, str]] = []
+        self._plan_step_count = 0
         self.llm_calls = 0
         self.tool_calls = 0
         self.agent_steps = 0
@@ -115,6 +121,20 @@ class ExecutionProfile:
                 self._pending_agent_action = None
                 self._agent_tool_phase = False
                 self._active_agent_tool = None
+        elif isinstance(event, PlanCreated):
+            self._plan_identity = (event.plan_id, event.plan_version)
+            self._plan_step_count = len(event.step_summaries)
+            self._plan_steps = [
+                (_safe_plan_description(summary), "PENDING")
+                for summary in event.step_summaries[:_MAX_PLAN_PROGRESS_STEPS]
+            ]
+        elif isinstance(event, PlanStepCompleted):
+            if (
+                self._plan_identity == (event.plan_id, event.plan_version)
+                and 1 <= event.sequence <= len(self._plan_steps)
+            ):
+                description, _ = self._plan_steps[event.sequence - 1]
+                self._plan_steps[event.sequence - 1] = (description, "COMPLETED")
         elif isinstance(event, ModelCallStarted):
             self.llm_calls += 1
             if event.phase is ModelCallPhase.AGENT_STEP:
@@ -228,6 +248,15 @@ class ExecutionProfile:
         if self._slow:
             result.extend(["", "Slowest operations"])
             result.extend(f"{label:<24}{duration} ms" for duration, label, _ in self._slow)
+        if self._plan_steps:
+            result.extend(["", "Plan progress"])
+            result.extend(
+                f"{index:<3}{status:<10}{description}"
+                for index, (description, status) in enumerate(self._plan_steps, start=1)
+            )
+            omitted_steps = self._plan_step_count - len(self._plan_steps)
+            if omitted_steps:
+                result.append(f"... {omitted_steps} more steps")
         if self._agent_timeline or any(self._agent_decisions.values()):
             result.extend(["", "Agent decisions"])
             result.extend(
@@ -257,6 +286,15 @@ class ExecutionProfile:
 
     def render(self) -> None:
         typer.echo("\n".join(self.lines()))
+
+
+def _safe_plan_description(summary: str) -> str:
+    description = summary.split(" | ", 1)[0]
+    description = re.sub(r"^\s*\d+\.\s*", "", description)
+    description = " ".join(
+        "".join(character if character.isprintable() else " " for character in description).split()
+    )
+    return description[:159] + "…" if len(description) > 160 else description
 
 
 def _safe_tool_name(name: str) -> str:

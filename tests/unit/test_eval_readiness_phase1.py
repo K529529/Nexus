@@ -39,6 +39,7 @@ from nexus.domain.runtime_events import (
     PhaseFinished,
     PhaseStarted,
     PlanCreated,
+    PlanStepCompleted,
     RunInterrupted,
     TaskStarted,
     ToolFinished,
@@ -1025,3 +1026,37 @@ def test_profile_rejects_untrusted_target_summary() -> None:
     rendered = "\n".join(profile.lines())
     assert "shell incomplete" in rendered
     assert "PRIVATE_ARGV" not in rendered
+
+
+def test_profile_shows_bounded_local_plan_progress() -> None:
+    profile = ExecutionProfile()
+    run_id, plan_id = str(uuid4()), str(uuid4())
+    profile.observe(PlanCreated(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
+        plan_kind=PlanKind.INITIAL,
+        step_summaries=("1. Read iam.py", "2. Read test_iam.py",
+                        "3. Edit iam.py | WRITE edit_file iam.py",
+                        "4. Validate | VALIDATE argv=['pytest'] cwd=."),
+        replan_reason=None,
+    ))
+    profile.observe(PlanStepCompleted(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
+        step_id=str(uuid4()), sequence=1,
+    ))
+    lines = profile.lines()
+    assert "Plan progress" in lines
+    assert "1  COMPLETED Read iam.py" in lines
+    assert "2  PENDING   Read test_iam.py" in lines
+    assert "3  PENDING   Edit iam.py" in lines
+    assert "4  PENDING   Validate" in lines
+    assert "argv" not in "\n".join(lines)
+    profile.observe(PlanCreated(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=2,
+        plan_kind=PlanKind.REPLAN, step_summaries=("1. New read",),
+        replan_reason="safe replan",
+    ))
+    profile.observe(PlanStepCompleted(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
+        step_id=str(uuid4()), sequence=1,
+    ))
+    assert "1  PENDING   New read" in profile.lines()

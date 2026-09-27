@@ -43,6 +43,8 @@ from nexus.domain.planning import (
     PlanApprovalResumeInput,
     PlanKind,
     PlanStatus,
+    PlanStep,
+    PlanStepStatus,
     TerminalStatus,
 )
 from nexus.domain.ports.agent_decision import AgentDecisionAdapter
@@ -66,6 +68,7 @@ from nexus.domain.runtime_events import (
     PhaseFinished,
     PhaseStarted,
     PlanCreated,
+    PlanStepCompleted,
     RepairStarted,
     ReplanOccurred,
     RepositoryExplored,
@@ -657,11 +660,25 @@ class Day4LangGraphRuntime:
             _observation_target_path(result, action),
             state.repair_count,
         )
+        updated_plan, completed_step = _complete_matching_plan_step(
+            state, action, result,
+        )
+        if completed_step is not None and updated_plan is not None:
+            await self._events.emit(PlanStepCompleted(
+                run_id=state.run_id,
+                session_id=_session_id(state),
+                plan_id=updated_plan.plan_id,
+                plan_version=updated_plan.version,
+                step_id=completed_step.step_id,
+                sequence=completed_step.sequence,
+            ))
         update = self._evidence_update(
             state,
             observations=(*state.observations, observation),
             pending_tool_action=None,
         )
+        if updated_plan is not None:
+            update["plan"] = updated_plan
         if reason is None:
             return Command(update=update, goto="agent_step")
         if state.replan_count >= self._max_replans:
@@ -950,6 +967,33 @@ def _approval_event(plan: Plan, pending: ApprovalRequest) -> ApprovalRequested:
         plan_id=plan.plan_id,
         plan_version=plan.version,
     )
+
+
+def _complete_matching_plan_step(
+    state: AgentState, action: ToolAction, result: ToolResult,
+) -> tuple[Plan | None, PlanStep | None]:
+    plan = state.plan
+    if plan is None or not result.success or result.tool_name != action.tool_name:
+        return None, None
+    if action.tool_name not in {"read_file", "edit_file", "write_file", "apply_patch"}:
+        return None, None
+    path = action.arguments.get("path")
+    output_path = None if result.output is None else result.output.get("path")
+    if not isinstance(path, str) or output_path != path:
+        return None, None
+    if action.tool_name == "read_file" and _is_repeated_successful_read(
+        state, AgentDecision(AgentDecisionKind.TOOL_ACTION, action, "Read file."),
+    ):
+        return None, None
+    for index, step in enumerate(plan.steps):
+        if step.status is not PlanStepStatus.PENDING or step.tool_name != action.tool_name:
+            continue
+        if action.tool_name != "read_file" and step.target_paths != (path,):
+            continue
+        completed = replace(step, status=PlanStepStatus.COMPLETED)
+        steps = (*plan.steps[:index], completed, *plan.steps[index + 1:])
+        return replace(plan, steps=steps), completed
+    return None, None
 
 
 def _record_change(

@@ -56,6 +56,7 @@ from nexus.domain.runtime_events import (
     AgentStepCompleted,
     AgentStepStarted,
     FinalResult,
+    PlanStepCompleted,
     RepairStarted,
     RuntimeStatus,
 )
@@ -79,6 +80,7 @@ from nexus.domain.validation import (
 from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import (
     Day4LangGraphRuntime,
+    _complete_matching_plan_step,
     _is_repeated_successful_read,
     _observation_summary,
 )
@@ -1098,3 +1100,168 @@ async def test_repair_structured_retry_does_not_consume_validation_repair_budget
     assert result.repair_count == 1
     assert result.tool_call_count == 0
     assert len([event for event in emitted if isinstance(event, RepairStarted)]) == 1
+
+
+def _progress_plan() -> Plan:
+    plan_id, run_id, session_id = str(uuid4()), str(uuid4()), str(uuid4())
+    steps = (
+        PlanStep(str(uuid4()), 1, "Read iam.py", "read_file", (), None, None,
+                 PlanStepStatus.PENDING),
+        PlanStep(str(uuid4()), 2, "Read test_iam.py", "read_file", (), None, None,
+                 PlanStepStatus.PENDING),
+        PlanStep(str(uuid4()), 3, "Edit iam.py", "edit_file", ("iam.py",), None,
+                 None, PlanStepStatus.PENDING),
+        PlanStep(str(uuid4()), 4, "Validate", "shell", (), ("pytest", "-q"),
+                 ".", PlanStepStatus.PENDING),
+    )
+    scope = derive_authorization_scope(steps)
+    return Plan(
+        plan_id, run_id, session_id, 1, PlanKind.INITIAL, PlanStatus.CREATED,
+        ApprovalDecision.PENDING, steps, scope, "Repair and validate.", None,
+        None, compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_successful_read_completes_only_first_pending_read_and_next_agent_sees_it() -> None:
+    plan = _progress_plan()
+    result = _tool_result(
+        str(uuid4()), "read_file", success=True,
+        output={"path": "iam.py", "start_line": 1, "end_line": 200,
+                "truncated": False, "content": "private file content"},
+    )
+    action = ToolAction("read_file", {"path": "iam.py", "start_line": 1,
+                                      "max_lines": 200})
+    state = AgentState(
+        "repair", [ModelMessage("user", "repair")], plan.run_id, plan.session_id,
+        RuntimeStatus.STARTED, context=WorkingContext("repair", (), (), (), (), False),
+        plan=plan, latest_tool_result=result, pending_tool_action=action,
+    )
+    ledger, events = ToolExecutionLedger(), RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
+        agent=ReadyDecisions(), tool_runtime=OneActionRuntime(ledger),
+    )
+    command = await runtime._observe(state)
+    update = command.update
+    assert isinstance(update, dict)
+    updated = update["plan"]
+    assert isinstance(updated, Plan)
+    assert [step.status for step in updated.steps] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING, PlanStepStatus.PENDING,
+    ]
+    assert updated.authorization_scope == plan.authorization_scope
+    assert updated.scope_digest == plan.scope_digest
+    completed = [event for event in events.drain(plan.run_id)
+                 if isinstance(event, PlanStepCompleted)]
+    assert len(completed) == 1
+    assert completed[0].step_id == plan.steps[0].step_id
+    next_state = replace(state, **update)
+    assert next_state.plan is not None
+    assert next_state.context is not None
+    request = AgentDecisionRequest(
+        next_state.task, next_state.context, next_state.plan,
+        next_state.observations,
+    )
+    from nexus.application.planning import _agent_messages
+    messages = _agent_messages(request)
+    payload = json.loads(messages[-1].content)
+    assert "Follow approved Plan progress" in messages[0].content
+    assert payload["plan"]["steps"][0]["status"] == "COMPLETED"
+    assert payload["plan"]["completed_step_ids"] == [plan.steps[0].step_id]
+    assert payload["plan"]["current_step"]["step_id"] == plan.steps[1].step_id
+    assert payload["plan"]["next_step"]["step_id"] == plan.steps[1].step_id
+    assert next_state.observations[0].success
+
+
+def test_plan_progress_ignores_repeated_read_and_failed_or_unrelated_tools() -> None:
+    plan = _progress_plan()
+    read = _tool_result(
+        str(uuid4()), "read_file", success=True,
+        output={"path": "iam.py", "start_line": 1, "end_line": 200,
+                "truncated": False, "content": "private file content"},
+    )
+    action = ToolAction("read_file", {"path": "iam.py", "start_line": 1,
+                                      "max_lines": 200})
+    state = AgentState(
+        "repair", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        plan=plan,
+    )
+    once, step = _complete_matching_plan_step(state, action, read)
+    assert once is not None and step is not None
+    assert step.step_id == plan.steps[0].step_id
+    prior = Observation(read.invocation_id, "read_file", True, "read evidence",
+                        None, None, "iam.py")
+    repeated = replace(state, plan=once, observations=(prior,), tool_results=(read,))
+    assert _complete_matching_plan_step(repeated, action, read) == (None, None)
+    second = _tool_result(
+        str(uuid4()), "read_file", success=True,
+        output={"path": "test_iam.py", "start_line": 1, "end_line": 20,
+                "truncated": False, "content": "tests"},
+    )
+    advanced, second_step = _complete_matching_plan_step(
+        repeated, ToolAction("read_file", {"path": "test_iam.py"}), second,
+    )
+    assert advanced is not None and second_step is not None
+    assert second_step.step_id == plan.steps[1].step_id
+    failed = _tool_result(str(uuid4()), "edit_file", success=False,
+                          error_code="EDIT_TARGET_NOT_FOUND")
+    assert _complete_matching_plan_step(
+        repeated, ToolAction("edit_file", {"path": "iam.py"}), failed,
+    ) == (None, None)
+    unrelated = _tool_result(str(uuid4()), "search_files", success=True,
+                             output={"paths": ["iam.py"]})
+    assert _complete_matching_plan_step(
+        repeated, ToolAction("search_files", {"query": "iam"}), unrelated,
+    ) == (None, None)
+    shell = _tool_result(str(uuid4()), "shell", success=True, output={})
+    assert _complete_matching_plan_step(
+        repeated, ToolAction("shell", {"argv": ["pytest", "-q"]}), shell,
+    ) == (None, None)
+
+
+def test_successful_write_completes_only_exact_matching_pending_step() -> None:
+    plan = _progress_plan()
+    state = AgentState(
+        "repair", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        plan=plan,
+    )
+    action = ToolAction("edit_file", {"path": "iam.py"})
+    result = _tool_result(str(uuid4()), "edit_file", success=True,
+                          output={"path": "iam.py", "change_kind": "MODIFIED"})
+    updated, step = _complete_matching_plan_step(state, action, result)
+    assert updated is not None and step is not None
+    assert step.step_id == plan.steps[2].step_id
+    assert updated.steps[0].status is PlanStepStatus.PENDING
+    assert updated.steps[2].status is PlanStepStatus.COMPLETED
+    assert updated.steps[3].status is PlanStepStatus.PENDING
+    assert updated.authorization_scope == plan.authorization_scope
+    assert _complete_matching_plan_step(replace(state, plan=updated), action, result) == (
+        None, None,
+    )
+    other_result = _tool_result(str(uuid4()), "edit_file", success=True,
+                                output={"path": "other.py", "change_kind": "MODIFIED"})
+    assert _complete_matching_plan_step(state, action, other_result) == (None, None)
+
+
+@pytest.mark.asyncio
+async def test_completed_plan_step_survives_graph_checkpoint() -> None:
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
+        agent=Decisions(), tool_runtime=OneActionRuntime(ledger),
+        checkpointer=InMemorySaver(),
+    )
+    state = AgentState(
+        "edit alpha", [ModelMessage("user", "edit alpha")],
+        str(uuid4()), str(uuid4()), RuntimeStatus.STARTED,
+    )
+    thread_id = f"nexus-run:{state.run_id}"
+    completed = await runtime.run(state, thread_id=thread_id)
+    assert completed.plan is not None
+    assert completed.plan.steps[0].status is PlanStepStatus.COMPLETED
+    snapshot = await runtime._graph.aget_state(
+        {"configurable": {"thread_id": thread_id}}
+    )
+    assert snapshot.values["plan"].steps[0].status is PlanStepStatus.COMPLETED

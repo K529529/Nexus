@@ -308,6 +308,24 @@ class PlanCreated(RuntimeEvent):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class PlanStepCompleted(RuntimeEvent):
+    """Local profile evidence for a successful approved Plan step."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.COMPLETED, init=False)
+    plan_id: str
+    plan_version: int
+    step_id: str
+    sequence: int
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.plan_id, "plan_id")
+        _validate_uuid(self.step_id, "step_id")
+        if self.plan_version < 1 or self.sequence < 1:
+            raise ValueError("PlanStepCompleted version and sequence must be positive.")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ReplanOccurred(RuntimeEvent):
     status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
     plan_id: str
