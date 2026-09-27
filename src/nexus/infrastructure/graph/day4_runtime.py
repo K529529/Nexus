@@ -18,6 +18,7 @@ from langgraph.types import Command, interrupt
 
 from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence
 from nexus.application.event_publisher import LiveRuntimeEventBridge
+from nexus.application.evidence_projection import bounded_output
 from nexus.application.execution_ledger import (
     RuntimeEventBuffer,
     ToolExecutionLedger,
@@ -1252,14 +1253,6 @@ _READ_OBSERVATION_MAX_PATH_CHARS = 512
 _TOOL_OBSERVATION_MAX_CHARS = 4096
 
 
-def _bounded_evidence(value: object, limit: int) -> tuple[str, bool]:
-    if not isinstance(value, str):
-        return "<empty>", False
-    if len(value) <= limit:
-        return value or "<empty>", False
-    return value[:limit] + "\n...[observation truncated]", True
-
-
 def _read_file_observation(output: dict[str, object]) -> str | None:
     path = output.get("path")
     content = output.get("content")
@@ -1295,14 +1288,16 @@ def _read_file_observation(output: dict[str, object]) -> str | None:
     visible_end = start_line + len(visible) - 1
     observation_truncated = len(visible) < len(lines) or partial_line
     has_more = source_truncated or observation_truncated
-    next_line = visible_end + 1 if has_more else None
+    continuation_unavailable = partial_line
+    next_line = None if partial_line else visible_end + 1 if has_more else None
     header = (
         f"read_file {display_path} start_line={start_line} end_line={end_line} "
         f"truncated={str(source_truncated).lower()} "
         f"visible_start_line={start_line} visible_end_line={visible_end} "
         f"observation_truncated={str(observation_truncated).lower()} "
         f"next_start_line={next_line} "
-        f"line_content_truncated={str(partial_line).lower()}:\n"
+        f"line_content_truncated={str(partial_line).lower()} "
+        f"continuation_unavailable={str(continuation_unavailable).lower()}:\n"
     )
     return header + "".join(visible)
 
@@ -1311,16 +1306,20 @@ def _shell_observation(result: ToolResult) -> str:
     output = result.output or {}
     code = None if result.error is None else result.error.code
     exit_code = output.get("exit_code")
+    if type(exit_code) is not int:
+        exit_code = None
     source_truncated = output.get("output_truncated", output.get("truncated", False))
-    stdout, stdout_cut = _bounded_evidence(output.get("stdout"), 1700)
-    stderr, stderr_cut = _bounded_evidence(output.get("stderr"), 1700)
-    state = "shell" if result.success else f"shell failed error_code={code or 'UNKNOWN'}"
+    if not isinstance(source_truncated, bool):
+        source_truncated = False
+    stdout, stdout_cut = bounded_output(output.get("stdout"), 1700)
+    stderr, stderr_cut = bounded_output(output.get("stderr"), 1700)
+    state = "shell" if result.success else f"shell failed error_code={(code or 'UNKNOWN')[:80]}"
     return (
         f"{state} exit_code={exit_code} "
         f"output_truncated={str(source_truncated).lower()} "
         f"observation_truncated={str(stdout_cut or stderr_cut).lower()}\n"
-        f"stdout:\n{stdout}\nstderr:\n{stderr}"
-    )[:_TOOL_OBSERVATION_MAX_CHARS]
+        f"stdout:\n{stdout or '<empty>'}\nstderr:\n{stderr or '<empty>'}"
+    )
 
 
 def _path_observation(result: ToolResult) -> str | None:

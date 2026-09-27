@@ -184,6 +184,7 @@ def test_read_file_observation_is_contiguous_bounded_and_pageable() -> None:
     shown = visible.splitlines()
     assert len(summary) <= 4096
     assert "observation_truncated=true" in header
+    assert "line_content_truncated=false continuation_unavailable=false" in header
     assert f"visible_end_line={400 + len(shown)}" in header
     assert f"next_start_line={401 + len(shown)}" in header
     assert shown == content.splitlines()[:len(shown)]

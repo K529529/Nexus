@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from nexus.application.evidence_projection import bounded_output
 from nexus.application.structured_output import (
     StructuredOutputViolation,
     append_retry_feedback,
@@ -536,8 +537,8 @@ def _validation_evidence(result: ValidationResult) -> dict[str, object]:
     for item in prioritized[:4]:
         tool = item.tool_result
         output = {} if tool is None or tool.output is None else tool.output
-        stdout = output.get("stdout")
-        stderr = output.get("stderr")
+        stdout, stdout_cut = bounded_output(output.get("stdout"), 800)
+        stderr, stderr_cut = bounded_output(output.get("stderr"), 800)
         checks.append({
             "check_id": item.check.check_id,
             "kind": item.check.kind.value,
@@ -547,14 +548,10 @@ def _validation_evidence(result: ValidationResult) -> dict[str, object]:
             "status": item.status.value,
             "exit_code": output.get("exit_code"),
             "error_code": None if tool is None or tool.error is None else tool.error.code,
-            "stdout": stdout[:800] if isinstance(stdout, str) else "",
-            "stderr": stderr[:800] if isinstance(stderr, str) else "",
+            "stdout": stdout,
+            "stderr": stderr,
             "output_truncated": output.get("output_truncated", output.get("truncated", False)),
-            "observation_truncated": (
-                isinstance(stdout, str) and len(stdout) > 800
-            ) or (
-                isinstance(stderr, str) and len(stderr) > 800
-            ),
+            "observation_truncated": stdout_cut or stderr_cut,
         })
     return {
         "status": result.status.value,

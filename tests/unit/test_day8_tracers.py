@@ -316,10 +316,10 @@ async def test_read_file_observation_content_stays_out_of_enricher_and_langsmith
 @pytest.mark.parametrize(
     ("tool_name", "output", "success", "sentinel"),
     [
-        ("shell", {"exit_code": 0, "stdout": "PRIVATE_STDOUT_EVIDENCE",
+        ("shell", {"exit_code": 0, "stdout": "X" * 5000 + "PRIVATE_STDOUT_EVIDENCE",
                    "stderr": "", "output_truncated": False},
          True, "PRIVATE_STDOUT_EVIDENCE"),
-        ("shell", {"exit_code": 1, "stdout": "", "stderr": "PRIVATE_STDERR_EVIDENCE",
+        ("shell", {"exit_code": 1, "stdout": "", "stderr": "X" * 5000 + "PRIVATE_STDERR_EVIDENCE",
                    "output_truncated": False},
          False, "PRIVATE_STDERR_EVIDENCE"),
         ("search_files", {"paths": ["PRIVATE_SEARCH_PATH.py"], "truncated": False},

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from nexus.application.evidence_projection import bounded_output
 from nexus.application.planning import (
     JsonAgentDecisionAdapter,
     ModelPlanner,
@@ -119,6 +120,14 @@ def result(
         ("shell", {"exit_code": 1, "stdout": "", "stderr": "AssertionError: wrong value",
                    "output_truncated": False},
          False, "COMMAND_EXIT_NONZERO", "AssertionError: wrong value"),
+        ("shell", {"exit_code": 0,
+                   "stdout": "prefix " * 1500 + "\nTAIL_STDOUT_SENTINEL",
+                   "stderr": "", "output_truncated": False},
+         True, None, "TAIL_STDOUT_SENTINEL"),
+        ("shell", {"exit_code": 1, "stdout": "",
+                   "stderr": "prefix " * 1500 + "\nTAIL_ASSERTION_SENTINEL",
+                   "output_truncated": False},
+         False, "COMMAND_EXIT_NONZERO", "TAIL_ASSERTION_SENTINEL"),
         ("search_files", {"paths": ["src/important.py"], "truncated": False},
          True, None, "src/important.py"),
         ("lexical_search", {"matches": [{"path": "src/a.py", "line": 7, "column": 2,
@@ -203,7 +212,9 @@ async def test_validation_failure_reaches_agent_and_repair_gateway() -> None:
     )
     tool = ToolResult(
         check_id, "shell", False,
-        {"exit_code": 1, "stdout": "test output", "stderr": "AssertionError: expected 2",
+        {"exit_code": 1,
+         "stdout": "stdout head " * 1000 + "\nTAIL_STDOUT_SENTINEL",
+         "stderr": "stderr head " * 1000 + "\nAssertionError: TAIL_ASSERTION_SENTINEL",
          "output_truncated": False},
         ToolError("COMMAND_EXIT_NONZERO", "safe error", False),
         RiskLevel.SAFE, PolicyDecision.ALLOWED, None, 1,
@@ -229,10 +240,15 @@ async def test_validation_failure_reaches_agent_and_repair_gateway() -> None:
     )
     for gateway in (agent_gateway, repair_gateway):
         payload = json.loads(gateway.calls[0][1].content)
-        assert "AssertionError: expected 2" in gateway.calls[0][1].content
-        assert "test output" in gateway.calls[0][1].content
+        assert "TAIL_ASSERTION_SENTINEL" in gateway.calls[0][1].content
+        assert "TAIL_STDOUT_SENTINEL" in gateway.calls[0][1].content
         assert "COMMAND_EXIT_NONZERO" in gateway.calls[0][1].content
-        assert payload["validation"]["checks"][0]["exit_code"] == 1
+        check_evidence = payload["validation"]["checks"][0]
+        assert check_evidence["exit_code"] == 1
+        assert check_evidence["observation_truncated"] is True
+        assert len(check_evidence["stdout"]) == 800
+        assert len(check_evidence["stderr"]) == 800
+        assert "...[output omitted]..." in check_evidence["stderr"]
 
 
 @pytest.mark.asyncio
@@ -398,4 +414,18 @@ def test_read_observation_is_bounded_with_long_path_and_large_line() -> None:
     assert len(evidence) <= 4096
     assert "line_content_truncated=true" in evidence
     assert "observation_truncated=true" in evidence
-    assert "next_start_line=123456790" in evidence
+    assert "continuation_unavailable=true" in evidence
+    assert "next_start_line=None" in evidence
+
+
+def test_shared_bounded_output_preserves_short_text_and_failure_tail() -> None:
+    assert bounded_output("short output\n", 800) == ("short output\n", False)
+    assert bounded_output("", 800) == ("", False)
+    text = "HEAD_SENTINEL" + "X" * 5000 + "TAIL_ASSERTION_SENTINEL"
+    projected, truncated = bounded_output(text, 800)
+    assert truncated
+    assert len(projected) == 800
+    assert projected.startswith("HEAD_SENTINEL")
+    assert projected.endswith("TAIL_ASSERTION_SENTINEL")
+    head, tail = projected.split("\n...[output omitted]...\n")
+    assert len(tail) >= len(head)
