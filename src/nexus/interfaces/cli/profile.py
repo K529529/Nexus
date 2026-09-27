@@ -66,7 +66,8 @@ class _AgentStep:
 class ExecutionProfile:
     """Collect event durations without inspecting prompts, tool inputs or file content."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, swe_execution_mode: bool = False) -> None:
+        self._swe_execution_mode = swe_execution_mode
         self._created = time.perf_counter()
         self._segment_start: datetime | None = None
         self._has_terminal = False
@@ -248,7 +249,9 @@ class ExecutionProfile:
         if self._slow:
             result.extend(["", "Slowest operations"])
             result.extend(f"{label:<24}{duration} ms" for duration, label, _ in self._slow)
-        if self._plan_steps:
+        if self._swe_execution_mode and self._plan_steps:
+            result.extend(["", "Plan progress tracking: disabled (SWE mode)"])
+        elif self._plan_steps:
             result.extend(["", "Plan progress"])
             result.extend(
                 f"{index:<3}{status:<10}{description}"

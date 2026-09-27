@@ -1060,3 +1060,21 @@ def test_profile_shows_bounded_local_plan_progress() -> None:
         step_id=str(uuid4()), sequence=1,
     ))
     assert "1  PENDING   New read" in profile.lines()
+
+
+def test_swe_profile_does_not_present_plan_status_as_progress() -> None:
+    profile = ExecutionProfile(swe_execution_mode=True)
+    run_id, plan_id = str(uuid4()), str(uuid4())
+    profile.observe(PlanCreated(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
+        plan_kind=PlanKind.INITIAL, step_summaries=("1. Read iam.py",),
+        replan_reason=None,
+    ))
+    profile.observe(PlanStepCompleted(
+        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
+        step_id=str(uuid4()), sequence=1,
+    ))
+    rendered = "\n".join(profile.lines())
+    assert "Plan progress tracking: disabled (SWE mode)" in rendered
+    assert "COMPLETED Read iam.py" not in rendered
+    assert "PENDING   Read iam.py" not in rendered

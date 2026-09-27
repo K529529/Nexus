@@ -1346,6 +1346,9 @@ async def test_edit_file_approval_is_tool_and_path_and_validation_is_unchanged(
     assert (tmp_path / "beta.py").read_text(encoding="utf-8") == "old\n"
     allowed = await edit("alpha.py", "old", "new")
     assert allowed.success
+    second = await edit("alpha.py", "new", "newer")
+    assert second.success
+    assert target.read_text(encoding="utf-8") == "newer\n"
     changed = _record_change((), allowed)
     validation_plan = await DeterministicValidationPlanner().plan(
         task="edit alpha",
@@ -1461,7 +1464,7 @@ async def test_bad_old_str_reaches_edit_file_tool_after_read(tmp_path: Path) -> 
     assert target.read_bytes() == b"old\r\n"
 
 
-def test_agent_edit_success_converges_and_allows_later_repair() -> None:
+def test_agent_edit_success_requires_new_read_but_allows_later_edit() -> None:
     plan = _edit_file_plan()
     read, result = _read_observation("alpha.py", "old\n")
     state = replace(
@@ -1474,7 +1477,9 @@ def test_agent_edit_success_converges_and_allows_later_repair() -> None:
         str(uuid4()), "edit_file", True, "edit completed", None, None, "alpha.py"
     )
     state = replace(state, observations=(*state.observations, success))
-    assert _require_current_edit_evidence(state, edit).kind is AgentDecisionKind.TASK_READY
+    assert _require_current_edit_evidence(state, edit).action == ToolAction(
+        "read_file", {"path": "alpha.py"}
+    )
 
     refreshed, refreshed_result = _read_observation("alpha.py", "new\n")
     state = replace(
@@ -1496,7 +1501,9 @@ def test_agent_edit_success_converges_and_allows_later_repair() -> None:
 
     repaired = replace(success, invocation_id=str(uuid4()), repair_attempt=1)
     state = replace(state, observations=(*state.observations, repaired))
-    assert _require_current_edit_evidence(state, repair_edit).kind is AgentDecisionKind.TASK_READY
+    assert _require_current_edit_evidence(state, repair_edit).action == ToolAction(
+        "read_file", {"path": "alpha.py"}
+    )
 
 
 def test_old_checkpoint_observation_defaults_new_guard_metadata() -> None:

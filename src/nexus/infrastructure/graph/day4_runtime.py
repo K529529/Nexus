@@ -154,6 +154,7 @@ class Day4LangGraphRuntime:
         conversation_turns: Callable[[str], Awaitable[Sequence[SessionTurn]]] | None = None,
         model_call_id: Callable[[], str] | None = None,
         normalize_argv: Callable[[list[str]], list[str]] | None = None,
+        swe_execution_mode: bool = False,
     ) -> None:
         self._explorer = explorer
         self._context_builder = context_builder
@@ -175,6 +176,7 @@ class Day4LangGraphRuntime:
         self._conversation_turns = conversation_turns
         self._model_call_id = model_call_id
         self._normalize_argv = normalize_argv or (lambda argv: list(argv))
+        self._swe_execution_mode = swe_execution_mode
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
@@ -564,7 +566,10 @@ class Day4LangGraphRuntime:
             state.repair_guidance,
         )
         proposed = await self._agent.decide(request)
-        retry_reason = _semantic_retry_reason(state, proposed, self._normalize_argv)
+        retry_reason = _semantic_retry_reason(
+            state, proposed, self._normalize_argv,
+            swe_execution_mode=self._swe_execution_mode,
+        )
         if retry_reason is not None:
             await self._events.emit(AgentSemanticRetryStarted(
                 run_id=state.run_id,
@@ -578,6 +583,7 @@ class Day4LangGraphRuntime:
             ))
             second_reason = _semantic_retry_reason(
                 state, proposed, self._normalize_argv,
+                swe_execution_mode=self._swe_execution_mode,
             )
             if second_reason is not None:
                 message = (
@@ -586,14 +592,11 @@ class Day4LangGraphRuntime:
                     else "Agent repeated a deterministically denied Tool action."
                 )
                 raise ModelError(message, code="INVALID_AGENT_DECISION")
-        decision = _require_current_edit_evidence(state, proposed)
-        guard_reason = None
-        if decision is not proposed:
-            guard_reason = (
-                "edit_requires_read"
-                if decision.action is not None
-                else "edit_already_complete"
-            )
+        decision = (
+            proposed if self._swe_execution_mode
+            else _require_current_edit_evidence(state, proposed)
+        )
+        guard_reason = "edit_requires_read" if decision is not proposed else None
         if self._model_call_id is not None:
             await self._events.emit(
                 AgentStepCompleted(
@@ -679,8 +682,9 @@ class Day4LangGraphRuntime:
             _observation_target_path(result, action),
             state.repair_count,
         )
-        updated_plan, completed_step = _complete_matching_plan_step(
-            state, action, result,
+        updated_plan, completed_step = (
+            (None, None) if self._swe_execution_mode
+            else _complete_matching_plan_step(state, action, result)
         )
         if completed_step is not None and updated_plan is not None:
             await self._events.emit(PlanStepCompleted(
@@ -1061,18 +1065,6 @@ def _require_current_edit_evidence(
     # Out-of-scope requests still reach ToolRuntime for its authoritative denial.
     if ("edit_file", path) not in state.plan.authorization_scope.allowed_write_actions:
         return decision
-    if _completed_edit_without_repair(state, path):
-        if _all_approved_writes_complete(state):
-            return AgentDecision(
-                AgentDecisionKind.TASK_READY,
-                None,
-                "The approved file changes are complete and ready for validation.",
-            )
-        return AgentDecision(
-            AgentDecisionKind.CONTINUE,
-            None,
-            "The proposed file change is already complete; continue with remaining work.",
-        )
     if _has_fresh_read_evidence(state, path):
         return decision
     return AgentDecision(
@@ -1122,8 +1114,10 @@ def _semantic_retry_reason(
     state: AgentState,
     decision: AgentDecision,
     normalize_argv: Callable[[list[str]], list[str]],
+    *,
+    swe_execution_mode: bool = False,
 ) -> AgentRuntimeFeedback | None:
-    if _is_repeated_successful_read(state, decision):
+    if not swe_execution_mode and _is_repeated_successful_read(state, decision):
         return AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
     action = decision.action
     if (
@@ -1199,30 +1193,6 @@ def _has_fresh_read_evidence(state: AgentState, path: str) -> bool:
         and _observation_path(observation, results) in {path, None}
     )
     return failures < 2
-
-
-def _completed_edit_without_repair(state: AgentState, path: str) -> bool:
-    results = {item.invocation_id: item for item in state.tool_results}
-    return any(
-        item.tool_name == "edit_file"
-        and item.success
-        and item.repair_attempt >= state.repair_count
-        and _observation_path(item, results) == path
-        for item in state.observations
-    )
-
-
-def _all_approved_writes_complete(state: AgentState) -> bool:
-    if state.plan is None:
-        return False
-    results = {item.invocation_id: item for item in state.tool_results}
-    completed = {
-        (item.tool_name, path)
-        for item in state.observations
-        if item.success and (path := _observation_path(item, results)) is not None
-        and item.tool_name in {"edit_file", "apply_patch", "write_file"}
-    }
-    return set(state.plan.authorization_scope.allowed_write_actions) <= completed
 
 
 def _safe_replan_observations(

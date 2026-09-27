@@ -333,10 +333,12 @@ class JsonAgentDecisionAdapter:
         *,
         prepare_input: _PrepareInput | None = None,
         tool_metadata: Sequence[JsonObject] = (),
+        swe_execution_mode: bool = False,
     ) -> None:
         self._model_gateway = model_gateway
         self._prepare_input = prepare_input
         self._tool_metadata = _freeze_tool_metadata(tool_metadata)
+        self._swe_execution_mode = swe_execution_mode
 
     async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
         try:
@@ -365,7 +367,8 @@ class JsonAgentDecisionAdapter:
     ) -> tuple[ModelMessage, ...]:
         def render(context: WorkingContext) -> tuple[ModelMessage, ...]:
             messages = _agent_messages(
-                replace(request, context=context), self._tool_metadata
+                replace(request, context=context), self._tool_metadata,
+                swe_execution_mode=self._swe_execution_mode,
             )
             if request.runtime_feedback is not None:
                 messages.append(ModelMessage(
@@ -581,7 +584,9 @@ def _repair_payload(request: RepairPlanningRequest) -> str:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
-def _agent_payload(request: AgentDecisionRequest) -> str:
+def _agent_payload(
+    request: AgentDecisionRequest, *, swe_execution_mode: bool = False,
+) -> str:
     completed_step_ids = [
         step.step_id for step in request.plan.steps
         if step.status in {PlanStepStatus.COMPLETED, PlanStepStatus.SKIPPED}
@@ -595,6 +600,13 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
         None if next_step is None else
         {"step_id": next_step.step_id, "sequence": next_step.sequence}
     )
+    progress: dict[str, object] = {}
+    if not swe_execution_mode:
+        progress = {
+            "completed_step_ids": completed_step_ids,
+            "current_step": next_step_ref,
+            "next_step": next_step_ref,
+        }
     payload = {
         "task": request.task,
         "plan": {
@@ -609,13 +621,11 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
                     "target_paths": step.target_paths,
                     "command_argv": step.command_argv,
                     "command_cwd": step.command_cwd,
-                    "status": step.status.value,
+                    **({} if swe_execution_mode else {"status": step.status.value}),
                 }
                 for step in request.plan.steps
             ],
-            "completed_step_ids": completed_step_ids,
-            "current_step": next_step_ref,
-            "next_step": next_step_ref,
+            **progress,
         },
         **context_payload(request.context),
         "validation": None
@@ -726,7 +736,26 @@ def _repair_messages(
 def _agent_messages(
     request: AgentDecisionRequest,
     tool_metadata: tuple[JsonObject, ...] = (),
+    *, swe_execution_mode: bool = False,
 ) -> list[ModelMessage]:
+    execution_guidance = (
+        "The approved Plan is execution guidance. Use current repository and Tool "
+        "evidence to choose the next action. Do not claim completion until required "
+        "changes are actually complete. "
+        if swe_execution_mode else
+        "Follow approved Plan progress. Do not repeat COMPLETED steps. "
+        "Prefer the next PENDING step unless Tool evidence requires correction or replan. "
+    )
+    edit_completion_guidance = (
+        "Return TASK_READY only after the task's required file modifications are complete. "
+        if swe_execution_mode else
+        "Never repeat an approved edit that a successful observation shows "
+        "is complete. After an edit succeeds, return TASK_READY if no other "
+        "approved file change is needed; the Validation node runs Plan tests. "
+        "Return TASK_READY only after all file modifications "
+        "required by the current approved Plan are complete. If any required "
+        "approved edit remains incomplete, return the next Tool action. "
+    )
     return [
         ModelMessage(
             role="system",
@@ -750,17 +779,11 @@ def _agent_messages(
                 '"arguments":{"path":"../external.txt","content":"requested content"}}}. '
                 "This example requests a ToolRuntime decision; it does not grant authority. "
                 "Return exactly one Tool action at most. "
-                "Follow approved Plan progress. Do not repeat COMPLETED steps. "
-                "Prefer the next PENDING step unless Tool evidence requires correction or replan. "
+                + execution_guidance
                 + _agent_edit_instruction(request.plan)
                 + "write_file arguments are exactly {path:string,content:string}. "
-                "Never repeat an approved edit that a successful observation shows "
-                "is complete. After an edit succeeds, return TASK_READY if no other "
-                "approved file change is needed; the Validation node runs Plan tests. "
-                "Return TASK_READY only after all file modifications "
-                "required by the current approved Plan are complete. If any required "
-                "approved edit remains incomplete, return the next Tool action. "
-                "For read-only or repository-explanation tasks, TASK_READY.summary must "
+                + edit_completion_guidance
+                + "For read-only or repository-explanation tasks, TASK_READY.summary must "
                 "contain the complete grounded, user-facing answer to the user's task. Do "
                 "not merely state that inspection is complete; base the answer only on "
                 "repository, context, and Tool evidence. If the user's requested Tool action "
@@ -781,7 +804,9 @@ def _agent_messages(
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
-        ModelMessage(role="user", content=_agent_payload(request)),
+        ModelMessage(role="user", content=_agent_payload(
+            request, swe_execution_mode=swe_execution_mode,
+        )),
     ]
 
 
