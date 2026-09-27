@@ -249,7 +249,7 @@ def test_exploration_seed_ceiling_loads_from_context_configuration(tmp_path: Pat
 
 
 @pytest.mark.asyncio
-async def test_zero_observation_budget_compacts_all_observations() -> None:
+async def test_zero_observation_budget_preserves_latest_feedback() -> None:
     observations = tuple(
         Observation(str(uuid4()), "read_file", True, f"fact {index}", None, None)
         for index in range(2)
@@ -260,9 +260,9 @@ async def test_zero_observation_budget_compacts_all_observations() -> None:
         observations=observations,
         conversation_turns=(),
     )
-    assert result.recent_observations == ()
+    assert result.recent_observations == observations[-1:]
     assert "fact 0" in (result.compacted_observations or "")
-    assert "fact 1" in (result.compacted_observations or "")
+    assert "fact 1" not in (result.compacted_observations or "")
 
 
 def test_fixed_retrieval_knobs_are_not_external_configuration(tmp_path: Path) -> None:
@@ -414,19 +414,13 @@ def test_code_eviction_keeps_mandatory_plan_or_fails() -> None:
     assert render_plan(fitted)[-1].content == plan
 
 
-async def test_total_pressure_compacts_history_before_removing_manifest_evidence() -> None:
-    from nexus.domain.exploration import RepositoryFileEvidence
-
-    manifest = RepositoryFileEvidence("package.json", "manifest", "root", "project uses tests")
+async def test_latest_observation_overflow_fails_safely() -> None:
     observations = (
         Observation(str(uuid4()), "shell", False, "failed " * 2000, "COMMAND_EXIT_NONZERO", None),
     )
-    turns = (turn("old request " * 2000),)
-    base = replace(context(), manifest_summaries=(manifest,))
-    result = await manager(1000).prepare_agent_context(
-        working_context=base, plan=None, observations=observations, conversation_turns=turns
-    )
-    assert not result.recent_observations
-    assert not result.recent_conversation_turns
-    assert "COMMAND_EXIT_NONZERO" in (result.compacted_observations or "")
-    assert result.manifest_summaries == (manifest,)
+    with pytest.raises(ContextError) as caught:
+        await manager(1000).prepare_agent_context(
+            working_context=context(), plan=None, observations=observations,
+            conversation_turns=(turn("old request " * 2000),),
+        )
+    assert caught.value.code == "CONTEXT_BUILD_FAILED"

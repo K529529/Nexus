@@ -38,7 +38,7 @@ from nexus.domain.runtime_events import (
     TraceOperation,
     TraceSink,
 )
-from nexus.domain.tooling import PolicyDecision, RiskLevel, ToolResult
+from nexus.domain.tooling import PolicyDecision, RiskLevel, ToolError, ToolResult
 from nexus.infrastructure.graph.day4_runtime import _observation_summary
 from nexus.infrastructure.observability.console import ConsoleTracer
 from nexus.infrastructure.observability.langsmith import LangSmithTracer
@@ -310,6 +310,51 @@ async def test_read_file_observation_content_stays_out_of_enricher_and_langsmith
     await tracer.finish(_finish(context))
     assert sentinel not in repr(client.calls)
     assert "end_line=400" not in repr(client.calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool_name", "output", "success", "sentinel"),
+    [
+        ("shell", {"exit_code": 0, "stdout": "PRIVATE_STDOUT_EVIDENCE",
+                   "stderr": "", "output_truncated": False},
+         True, "PRIVATE_STDOUT_EVIDENCE"),
+        ("shell", {"exit_code": 1, "stdout": "", "stderr": "PRIVATE_STDERR_EVIDENCE",
+                   "output_truncated": False},
+         False, "PRIVATE_STDERR_EVIDENCE"),
+        ("search_files", {"paths": ["PRIVATE_SEARCH_PATH.py"], "truncated": False},
+         True, "PRIVATE_SEARCH_PATH.py"),
+    ],
+)
+async def test_new_tool_evidence_stays_out_of_telemetry(
+    tool_name: str, output: dict[str, object], success: bool, sentinel: str,
+) -> None:
+    context = _context()
+    invocation_id = str(uuid4())
+    result = ToolResult(
+        invocation_id, tool_name, success, output,
+        None if success else ToolError("COMMAND_EXIT_NONZERO", "safe failure", False),
+        RiskLevel.SAFE, PolicyDecision.ALLOWED, None, 1,
+    )
+    assert sentinel in _observation_summary(result)
+    telemetry = EventEnricher(Path(".")).enrich(
+        ToolFinished(
+            run_id=context.run_id, session_id=None, invocation_id=invocation_id,
+            tool_name=tool_name, success=success, risk_level=result.risk_level,
+            policy_decision=result.policy_decision,
+            approval_decision=result.approval_decision,
+            duration_ms=result.duration_ms,
+            error_code=None if success else "COMMAND_EXIT_NONZERO",
+        ),
+        PublishedObservation(context, 1),
+    )
+    assert sentinel not in repr(telemetry)
+    client = _Client()
+    tracer = LangSmithTracer(client, project="safe-project")
+    await tracer.start_run(_start(context))
+    await tracer.record(telemetry)
+    await tracer.finish(_finish(context))
+    assert sentinel not in repr(client.calls)
 
 
 @pytest.mark.asyncio

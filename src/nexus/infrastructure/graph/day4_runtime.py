@@ -24,6 +24,7 @@ from nexus.application.execution_ledger import (
 )
 from nexus.application.plan_approval_service import PlanApprovalService
 from nexus.application.tool_runtime import ToolRuntime
+from nexus.application.tool_target_summary import target_summary
 from nexus.config.models import ApprovalMode
 from nexus.domain.agent_decision import (
     AgentDecision,
@@ -417,10 +418,18 @@ class Day4LangGraphRuntime:
                 raise NexusError("Material Replan reason is missing.", code="GRAPH_INVALID_STATE")
             kind = PlanKind.REPLAN
             reason = state.observations[-1].replan_reason
+        planning_context = state.context
+        if previous is not None and self._context_manager is not None:
+            planning_context = await self._context_manager.prepare_agent_context(
+                working_context=state.context,
+                plan=None,
+                observations=_safe_replan_observations(state.observations),
+                conversation_turns=(),
+            )
         plan = await self._planner.create_plan(
             PlanningRequest(
                 state.task,
-                state.context,
+                planning_context,
                 kind,
                 previous,
                 reason,
@@ -1215,10 +1224,40 @@ def _all_approved_writes_complete(state: AgentState) -> bool:
     return set(state.plan.authorization_scope.allowed_write_actions) <= completed
 
 
-_READ_OBSERVATION_MAX_CHARS = 4096
+def _safe_replan_observations(
+    observations: Sequence[Observation],
+) -> tuple[Observation, ...]:
+    """Keep latest denial detail while excluding earlier raw Tool output."""
+    if not observations:
+        return ()
+    latest = observations[-1]
+    return (
+        *(
+            replace(
+                item,
+                evidence_summary=(
+                    f"{item.tool_name} success={str(item.success).lower()} "
+                    f"error_code={item.error_code or 'None'}"
+                ),
+                target_path=None,
+            )
+            for item in observations[-8:-1]
+        ),
+        replace(latest, target_path=None),
+    )
+
+
+_READ_OBSERVATION_CONTENT_CHARS = 3200
 _READ_OBSERVATION_MAX_PATH_CHARS = 512
-_READ_OBSERVATION_EDGE_CHARS = 300
-_READ_OBSERVATION_OMISSION = "\n...[read_file content omitted from observation]...\n"
+_TOOL_OBSERVATION_MAX_CHARS = 4096
+
+
+def _bounded_evidence(value: object, limit: int) -> tuple[str, bool]:
+    if not isinstance(value, str):
+        return "<empty>", False
+    if len(value) <= limit:
+        return value or "<empty>", False
+    return value[:limit] + "\n...[observation truncated]", True
 
 
 def _read_file_observation(output: dict[str, object]) -> str | None:
@@ -1226,39 +1265,119 @@ def _read_file_observation(output: dict[str, object]) -> str | None:
     content = output.get("content")
     start_line = output.get("start_line")
     end_line = output.get("end_line")
-    truncated = output.get("truncated")
+    source_truncated = output.get("truncated")
     if not (
         isinstance(path, str)
         and isinstance(content, str)
-        and isinstance(start_line, int)
-        and isinstance(end_line, int)
-        and isinstance(truncated, bool)
+        and type(start_line) is int
+        and type(end_line) is int
+        and isinstance(source_truncated, bool)
     ):
         return None
     display_path = (
-        path
-        if len(path) <= _READ_OBSERVATION_MAX_PATH_CHARS
+        path if len(path) <= _READ_OBSERVATION_MAX_PATH_CHARS
         else f"{path[:256]}...{path[-253:]}"
     )
+    # Keep whole consecutive lines where possible. One oversized source line
+    # cannot be paged by read_file's line-based API, so label that partial line.
+    lines = content.splitlines(keepends=True)
+    visible: list[str] = []
+    used = 0
+    partial_line = False
+    for line in lines:
+        if used + len(line) > _READ_OBSERVATION_CONTENT_CHARS:
+            if not visible:
+                visible.append(line[:_READ_OBSERVATION_CONTENT_CHARS])
+                partial_line = True
+            break
+        visible.append(line)
+        used += len(line)
+    visible_end = start_line + len(visible) - 1
+    observation_truncated = len(visible) < len(lines) or partial_line
+    has_more = source_truncated or observation_truncated
+    next_line = visible_end + 1 if has_more else None
     header = (
-        f"read_file {display_path} start_line={start_line} "
-        f"end_line={end_line} truncated={str(truncated).lower()}:\n"
+        f"read_file {display_path} start_line={start_line} end_line={end_line} "
+        f"truncated={str(source_truncated).lower()} "
+        f"visible_start_line={start_line} visible_end_line={visible_end} "
+        f"observation_truncated={str(observation_truncated).lower()} "
+        f"next_start_line={next_line} "
+        f"line_content_truncated={str(partial_line).lower()}:\n"
     )
-    content_budget = _READ_OBSERVATION_MAX_CHARS - len(header)
-    if len(content) <= content_budget:
-        return header + content
-    visible = content_budget - 2 * len(_READ_OBSERVATION_OMISSION)
-    edge = min(_READ_OBSERVATION_EDGE_CHARS, visible // 4)
-    middle = visible - 2 * edge
-    middle_start = (len(content) - middle) // 2
+    return header + "".join(visible)
+
+
+def _shell_observation(result: ToolResult) -> str:
+    output = result.output or {}
+    code = None if result.error is None else result.error.code
+    exit_code = output.get("exit_code")
+    source_truncated = output.get("output_truncated", output.get("truncated", False))
+    stdout, stdout_cut = _bounded_evidence(output.get("stdout"), 1700)
+    stderr, stderr_cut = _bounded_evidence(output.get("stderr"), 1700)
+    state = "shell" if result.success else f"shell failed error_code={code or 'UNKNOWN'}"
     return (
-        header + content[:edge] + _READ_OBSERVATION_OMISSION
-        + content[middle_start:middle_start + middle]
-        + _READ_OBSERVATION_OMISSION + content[-edge:]
+        f"{state} exit_code={exit_code} "
+        f"output_truncated={str(source_truncated).lower()} "
+        f"observation_truncated={str(stdout_cut or stderr_cut).lower()}\n"
+        f"stdout:\n{stdout}\nstderr:\n{stderr}"
+    )[:_TOOL_OBSERVATION_MAX_CHARS]
+
+
+def _path_observation(result: ToolResult) -> str | None:
+    output = result.output or {}
+    paths = output.get("paths")
+    if not isinstance(paths, list):
+        return None
+    header = f"{result.tool_name} truncated={str(output.get('truncated', False)).lower()} paths:"
+    entries: list[str] = []
+    used = len(header)
+    for path in paths:
+        if not isinstance(path, str):
+            continue
+        candidate = "\n" + path
+        if used + len(candidate) > _TOOL_OBSERVATION_MAX_CHARS - 64:
+            break
+        entries.append(candidate)
+        used += len(candidate)
+    return (
+        header + "".join(entries)
+        + f"\nobservation_truncated={str(len(entries) < len(paths)).lower()}"
+    )
+
+
+def _lexical_observation(result: ToolResult) -> str | None:
+    output = result.output or {}
+    matches = output.get("matches")
+    if not isinstance(matches, list):
+        return None
+    header = f"lexical_search truncated={str(output.get('truncated', False)).lower()} matches:"
+    entries: list[str] = []
+    used = len(header)
+    text_cut = False
+    for match in matches:
+        if not isinstance(match, dict):
+            continue
+        safe = {
+            key: match[key] for key in ("path", "line", "column", "start_line", "end_line", "score")
+            if isinstance(match.get(key), (str, int, float))
+        }
+        if isinstance(match.get("text"), str):
+            safe["text"] = match["text"][:600]
+            text_cut = text_cut or len(match["text"]) > 600
+        candidate = "\n" + json.dumps(safe, ensure_ascii=False, separators=(",", ":"))
+        if used + len(candidate) > _TOOL_OBSERVATION_MAX_CHARS - 64:
+            break
+        entries.append(candidate)
+        used += len(candidate)
+    return (
+        header + "".join(entries)
+        + f"\nobservation_truncated={str(len(entries) < len(matches) or text_cut).lower()}"
     )
 
 
 def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
+    if result.tool_name == "shell":
+        return _shell_observation(result)
     if result.success:
         if result.tool_name == "edit_file":
             return "edit_file completed successfully; this exact replacement is complete."
@@ -1266,8 +1385,23 @@ def _observation_summary(result: ToolResult, action: ToolAction | None = None) -
             summary = _read_file_observation(result.output)
             if summary is not None:
                 return summary
+        if result.tool_name in {"search_files", "list_files"}:
+            summary = _path_observation(result)
+            if summary is not None:
+                return summary
+        if result.tool_name == "lexical_search":
+            summary = _lexical_observation(result)
+            if summary is not None:
+                return summary
         return f"{result.tool_name} completed successfully."[:512]
     code = "UNKNOWN" if result.error is None else result.error.code
+    if code == "PLAN_SCOPE_DENIED" and action is not None:
+        target = target_summary(action.tool_name, action.arguments)
+        return (
+            f"{action.tool_name} failed with {code}; "
+            f"target={target or '<unavailable>'}; "
+            f"invocation_id={result.invocation_id}."
+        )[:512]
     if result.tool_name == "edit_file":
         details = {
             "EDIT_TARGET_NOT_FOUND": (

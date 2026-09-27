@@ -514,6 +514,10 @@ async def _build_tool_runtime(
             await manager.close()
         raise
     approval_factory = SqlAlchemyApprovalUnitOfWorkFactory(database.session_factory)
+    native_metadata: list[JsonObject] = [
+        {"registry_name": tool.name, "source": "native"}
+        for tool in tools if not isinstance(tool, MCPToolAdapter)
+    ]
     return (
         ToolRuntime(
             registry,
@@ -528,7 +532,7 @@ async def _build_tool_runtime(
         ),
         executables,
         manager,
-        tuple(tool_metadata),
+        tuple(native_metadata + tool_metadata),
         {
             tool.name: "MCP" if isinstance(tool, MCPToolAdapter) else "NATIVE"
             for tool in tools

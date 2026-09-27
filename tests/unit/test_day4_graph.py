@@ -157,49 +157,49 @@ def test_read_file_observation_preserves_range_and_complete_small_content() -> N
         },
     )
 
-    assert _observation_summary(result) == (
-        "read_file pvlib/iam.py start_line=401 end_line=402 truncated=false:\n"
-        "first line\r\nsecond line\r\n"
-    )
+    summary = _observation_summary(result)
+    assert "start_line=401 end_line=402 truncated=false" in summary
+    assert "visible_start_line=401 visible_end_line=402" in summary
+    assert "observation_truncated=false next_start_line=None" in summary
+    assert summary.endswith("first line\r\nsecond line\r\n")
 
 
-def test_read_file_observation_bounds_large_content_and_keeps_head_middle_tail() -> None:
-    content = (
-        "HEAD-EVIDENCE\n" + "x" * 8000 + "MID-EVIDENCE\n"
-        + "y" * 8000 + "TAIL-EVIDENCE\n"
-    )
+def test_read_file_observation_is_contiguous_bounded_and_pageable() -> None:
+    content = "".join(f"line {i}: {'x' * 80}\r\n" for i in range(401, 501))
     result = _tool_result(
         str(uuid4()),
         "read_file",
         success=True,
         output={
             "path": "pvlib/iam.py",
-            "start_line": 1,
-            "end_line": 400,
+            "start_line": 401,
+            "end_line": 500,
             "truncated": True,
             "content": content,
         },
     )
 
     summary = _observation_summary(result)
-    assert len(summary) == 4096
-    assert summary.startswith(
-        "read_file pvlib/iam.py start_line=1 end_line=400 truncated=true:\n"
-        "HEAD-EVIDENCE\n"
-    )
-    assert summary.count("...[read_file content omitted from observation]...") == 2
-    assert "MID-EVIDENCE\n" in summary
-    assert summary.endswith("TAIL-EVIDENCE\n")
-    assert content not in summary
+    header, visible = summary.split(":\n", 1)
+    shown = visible.splitlines()
+    assert len(summary) <= 4096
+    assert "observation_truncated=true" in header
+    assert f"visible_end_line={400 + len(shown)}" in header
+    assert f"next_start_line={401 + len(shown)}" in header
+    assert shown == content.splitlines()[:len(shown)]
+    assert "\r\n" in visible
+    assert "line 500:" not in visible
 
 
-def test_non_read_file_observation_remains_unchanged() -> None:
+def test_search_files_observation_preserves_returned_paths() -> None:
     result = _tool_result(
         str(uuid4()), "search_files", success=True,
         output={"paths": ["pvlib/iam.py"], "truncated": False},
     )
-
-    assert _observation_summary(result) == "search_files completed successfully."
+    summary = _observation_summary(result)
+    assert "pvlib/iam.py" in summary
+    assert "truncated=false" in summary
+    assert "observation_truncated=false" in summary
 
 
 class Explorer:

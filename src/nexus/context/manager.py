@@ -222,8 +222,11 @@ class BoundedContextManager:
     ) -> WorkingContext:
         count = self._budget.max_recent_observations
         turns = tuple(sorted(conversation_turns, key=lambda turn: turn.sequence))
-        recent_observations = tuple(observations[-count:]) if count else ()
-        older_observations = observations[:-count] if count else observations
+        # The newest Tool feedback is required by the next decision, even when
+        # the configured optional history window is zero.
+        retained = max(count, 1) if observations else 0
+        recent_observations = tuple(observations[-retained:]) if retained else ()
+        older_observations = observations[:-retained] if retained else observations
         context = replace(
             working_context,
             recent_observations=recent_observations,
@@ -259,7 +262,7 @@ class BoundedContextManager:
         while context.selected_files and not fits():
             context = replace(context, selected_files=context.selected_files[:-1], truncated=True)
         # 2. Older observations become bounded factual summaries before recent ones.
-        while context.recent_observations and not fits():
+        while len(context.recent_observations) > 1 and not fits():
             summary = _observation_summary(context.recent_observations[:1])
             context = replace(
                 context,
