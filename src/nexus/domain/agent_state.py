@@ -40,6 +40,9 @@ class AgentState:
     repair_guidance: RepairGuidance | None = None
     validation_result: ValidationResult | None = None
     changed_files: tuple[ChangedFile, ...] = ()
+    baseline_workspace_digest: str | None = None
+    baseline_has_patch: bool = False
+    validated_workspace_digest: str | None = None
     step_count: int = 0
     tool_call_count: int = 0
     llm_call_count: int = 0

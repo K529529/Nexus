@@ -29,7 +29,6 @@ from nexus.domain.exploration import ExplorationResult, WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
 from nexus.domain.planning import (
     ApprovedPlanEvidence,
-    ChangedFile,
     ChangeKind,
     Plan,
     PlanAuthorizationSource,
@@ -1356,7 +1355,8 @@ async def test_edit_file_approval_is_tool_and_path_and_validation_is_unchanged(
         plan=plan,
         exploration=_exploration(),
         context=_context(),
-        changed_files=changed,
+        requires_workspace_change=True,
+        workspace_changed_by_run=True,
     )
     assert [check.kind for check in validation_plan.checks] == [
         ValidationCheckKind.TEST,
@@ -1454,7 +1454,9 @@ async def test_validation_repairability_is_mechanical_without_stdout_heuristics(
         session_id=plan.session_id,
         authorization=_evidence(plan),
         repair_count=0,
-        changed=True,
+        requires_workspace_change=True,
+        workspace_changed_by_run=True,
+        candidate_has_patch=True,
     )
     assert result.status is ValidationStatus.FAIL
     assert result.repairable is True
@@ -1601,7 +1603,9 @@ async def test_validation_runner_rejects_command_absent_from_approved_plan() -> 
             session_id=plan.session_id,
             authorization=_evidence(plan),
             repair_count=0,
-            changed=False,
+            requires_workspace_change=False,
+            workspace_changed_by_run=False,
+            candidate_has_patch=False,
         )
     assert failure.value.code == "VALIDATION_PLAN_INVALID"
 
@@ -1614,7 +1618,8 @@ async def test_read_only_validation_passes_with_deterministic_no_change_evidence
         plan=plan,
         exploration=_exploration(),
         context=_context(),
-        changed_files=(),
+        requires_workspace_change=False,
+        workspace_changed_by_run=False,
     )
 
     assert [check.kind for check in validation_plan.checks] == [ValidationCheckKind.DIFF_INSPECTION]
@@ -1624,7 +1629,9 @@ async def test_read_only_validation_passes_with_deterministic_no_change_evidence
         session_id=plan.session_id,
         authorization=_evidence(plan),
         repair_count=0,
-        changed=False,
+        requires_workspace_change=False,
+        workspace_changed_by_run=False,
+        candidate_has_patch=False,
     )
 
     assert result.status is ValidationStatus.PASS
@@ -1634,20 +1641,13 @@ async def test_read_only_validation_passes_with_deterministic_no_change_evidence
 @pytest.mark.asyncio
 async def test_changed_edit_without_conclusive_code_check_remains_unknown() -> None:
     plan = _editing_only_plan()
-    changed = (
-        ChangedFile(
-            "alpha.py",
-            ChangeKind.MODIFIED,
-            str(uuid4()),
-            str(uuid4()),
-        ),
-    )
     validation_plan = await DeterministicValidationPlanner().plan(
         task="edit alpha",
         plan=plan,
         exploration=_exploration(),
         context=_context(),
-        changed_files=changed,
+        requires_workspace_change=True,
+        workspace_changed_by_run=True,
     )
     result = await ToolValidationRunner(cast(ToolRuntime, ResultRuntime(None))).run(
         validation_plan,
@@ -1655,7 +1655,9 @@ async def test_changed_edit_without_conclusive_code_check_remains_unknown() -> N
         session_id=plan.session_id,
         authorization=_evidence(plan),
         repair_count=0,
-        changed=True,
+        requires_workspace_change=True,
+        workspace_changed_by_run=True,
+        candidate_has_patch=True,
     )
 
     assert result.status is ValidationStatus.UNKNOWN
@@ -1681,7 +1683,8 @@ async def test_read_only_no_change_evidence_never_fails_open(
         plan=plan,
         exploration=_exploration(),
         context=_context(),
-        changed_files=(),
+        requires_workspace_change=False,
+        workspace_changed_by_run=False,
     )
     result = await ToolValidationRunner(
         cast(ToolRuntime, ResultRuntime(error_code, truncated=truncated))
@@ -1691,7 +1694,9 @@ async def test_read_only_no_change_evidence_never_fails_open(
         session_id=plan.session_id,
         authorization=_evidence(plan),
         repair_count=0,
-        changed=False,
+        requires_workspace_change=False,
+        workspace_changed_by_run=False,
+        candidate_has_patch=False,
     )
 
     assert result.status is ValidationStatus.UNKNOWN
@@ -1871,3 +1876,47 @@ async def test_policy_denial_runtime_feedback_is_one_safe_separate_message() -> 
     assert "argv" not in feedback
     assert "path=" not in feedback
     assert len(feedback) <= 512
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("changed_by_run", "has_patch", "error_code", "stable", "expected"),
+    [
+        (False, False, None, True, ValidationStatus.UNKNOWN),
+        (True, True, "COMMAND_EXIT_NONZERO", True, ValidationStatus.FAIL),
+        (True, True, None, False, ValidationStatus.UNKNOWN),
+        (True, True, None, True, ValidationStatus.PASS),
+    ],
+)
+async def test_workspace_truth_controls_modifying_validation(
+    changed_by_run: bool,
+    has_patch: bool,
+    error_code: str | None,
+    stable: bool,
+    expected: ValidationStatus,
+) -> None:
+    plan = _plan()
+    selected = await DeterministicValidationPlanner().plan(
+        task="edit alpha",
+        plan=plan,
+        exploration=_exploration(),
+        context=_context(),
+        requires_workspace_change=True,
+        workspace_changed_by_run=changed_by_run,
+    )
+
+    async def verify_workspace() -> bool:
+        return stable
+
+    result = await ToolValidationRunner(cast(ToolRuntime, ResultRuntime(error_code))).run(
+        selected,
+        run_id=plan.run_id,
+        session_id=plan.session_id,
+        authorization=_evidence(plan),
+        repair_count=0,
+        requires_workspace_change=True,
+        workspace_changed_by_run=changed_by_run,
+        candidate_has_patch=has_patch,
+        verify_workspace=verify_workspace,
+    )
+    assert result.status is expected

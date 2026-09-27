@@ -11,6 +11,7 @@ from typing import cast
 
 import pytest
 
+from nexus.application.diff_service import patch_digest
 from nexus.application.runtime import NexusRuntime
 from nexus.config.models import RuntimeConfig
 from nexus.domain.agent_state import AgentState
@@ -123,9 +124,10 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         "from alpha import VALUE\n\ndef test_value():\n    assert VALUE == 2\n",
         encoding="utf-8",
     )
+    (tmp_path / ".gitignore").write_text("__pycache__/\n.pytest_cache/\n", encoding="utf-8")
     _git(git, tmp_path, "init")
     _git(git, tmp_path, "config", "core.autocrlf", "false")
-    _git(git, tmp_path, "add", "alpha.py", "test_alpha.py")
+    _git(git, tmp_path, "add", ".gitignore", "alpha.py", "test_alpha.py")
     _git(
         git,
         tmp_path,
@@ -189,7 +191,8 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
     assert any(isinstance(event, AgentStepCompleted) for event in resumed_events)
     assert all(
         event.guard_reason is None
-        for event in resumed_events if isinstance(event, AgentStepCompleted)
+        for event in resumed_events
+        if isinstance(event, AgentStepCompleted)
     )
     final = resumed_events[-1]
     assert isinstance(final, FinalResult)
@@ -217,9 +220,10 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         "from alpha import VALUE\n\ndef test_value():\n    assert VALUE == 2\n",
         encoding="utf-8",
     )
+    (tmp_path / ".gitignore").write_text("__pycache__/\n.pytest_cache/\n", encoding="utf-8")
     _git(git, tmp_path, "init")
     _git(git, tmp_path, "config", "core.autocrlf", "false")
-    _git(git, tmp_path, "add", "alpha.py", "test_alpha.py")
+    _git(git, tmp_path, "add", ".gitignore", "alpha.py", "test_alpha.py")
     _git(
         git,
         tmp_path,
@@ -255,9 +259,7 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         interrupted = interrupted_events[-1]
         assert isinstance(interrupted, RunInterrupted)
         assert interrupted.session_id is not None
-        run = await application_a.session_service.resolve_resumable_run(
-            interrupted.session_id
-        )
+        run = await application_a.session_service.resolve_resumable_run(interrupted.session_id)
         state_a = await _checkpoint_state(application_a.runtime, run.graph_thread_id)
 
         assert state_a.pending_plan_approval is not None
@@ -333,3 +335,190 @@ def _git(executable: str, cwd: Path, *arguments: str) -> None:
         capture_output=True,
         text=True,
     )
+
+
+class QueueCodingGateway:
+    def __init__(self, *responses: dict[str, object]) -> None:
+        self.responses = [json.dumps(response) for response in responses]
+        self.calls: list[tuple[ModelMessage, ...]] = []
+
+    async def complete(self, messages: Sequence[ModelMessage]) -> ModelResponse:
+        self.calls.append(tuple(messages))
+        return ModelResponse(self.responses.pop(0))
+
+    async def stream(self, messages: Sequence[ModelMessage]) -> AsyncIterator[ModelChunk]:
+        del messages
+        if False:
+            yield ModelChunk("")
+
+
+def _coding_repository(tmp_path: Path, expected: int) -> None:
+    git = shutil.which("git")
+    if git is None:
+        pytest.skip("Git is unavailable")
+    (tmp_path / "alpha.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (tmp_path / "test_alpha.py").write_text(
+        f"from alpha import VALUE\n\ndef test_value():\n    assert VALUE == {expected}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / ".gitignore").write_text("__pycache__/\n.pytest_cache/\n", encoding="utf-8")
+    _git(git, tmp_path, "init")
+    _git(git, tmp_path, "config", "core.autocrlf", "false")
+    _git(git, tmp_path, "add", ".gitignore", "alpha.py", "test_alpha.py")
+    _git(
+        git,
+        tmp_path,
+        "-c",
+        "user.name=Nexus Test",
+        "-c",
+        "user.email=nexus@example.invalid",
+        "commit",
+        "-m",
+        "fixture",
+    )
+
+
+def _test_step() -> dict[str, object]:
+    return {
+        "description": "TEST: run focused alpha test",
+        "tool_name": "shell",
+        "target_paths": [],
+        "command_argv": ["pytest", "-q", "test_alpha.py"],
+        "command_cwd": ".",
+    }
+
+
+def _edit_step() -> dict[str, object]:
+    return {
+        "description": "Edit alpha",
+        "tool_name": "edit_file",
+        "target_paths": ["alpha.py"],
+        "command_argv": None,
+        "command_cwd": None,
+    }
+
+
+def _edit_action(old: int, new: int) -> dict[str, object]:
+    return {
+        "kind": "TOOL_ACTION",
+        "summary": "Apply the approved alpha edit.",
+        "action": {
+            "tool_name": "edit_file",
+            "arguments": {
+                "path": "alpha.py",
+                "old_str": f"VALUE = {old}",
+                "new_str": f"VALUE = {new}",
+            },
+        },
+    }
+
+
+def _ready_action() -> dict[str, object]:
+    return {"kind": "TASK_READY", "summary": "Ready for validation.", "action": None}
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_shell_mutation_is_detected_without_changed_file_ledger(
+    migrated_database_url: str, tmp_path: Path
+) -> None:
+    _coding_repository(tmp_path, expected=2)
+    script = (
+        "from pathlib import Path; Path('alpha.py').write_text('VALUE = 2\\n', encoding='utf-8')"
+    )
+    shell_step = {
+        "description": "Update alpha with approved Python",
+        "tool_name": "shell",
+        "target_paths": [],
+        "command_argv": ["python", "-c", script],
+        "command_cwd": ".",
+    }
+    gateway = QueueCodingGateway(
+        {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
+        {"rationale_summary": "Update alpha and verify it.", "steps": [shell_step, _test_step()]},
+        {
+            "kind": "TOOL_ACTION",
+            "summary": "Run approved update.",
+            "action": {
+                "tool_name": "shell",
+                "arguments": {"argv": ["python", "-c", script], "cwd": "."},
+            },
+        },
+        _ready_action(),
+    )
+    config = RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+    async with bootstrap_application(
+        config, model_gateway=gateway, workspace_path=tmp_path
+    ) as application:
+        interrupted = [
+            event async for event in application.runtime.run("Update alpha with approved Python")
+        ][-1]
+        assert isinstance(interrupted, RunInterrupted)
+        assert interrupted.session_id is not None
+        run = await application.session_service.resolve_resumable_run(interrupted.session_id)
+        events = [
+            event
+            async for event in application.runtime.resume(
+                interrupted.session_id,
+                resume_input=PlanApprovalResumeInput(
+                    ApprovalDecision.APPROVED, "Fixture approved."
+                ),
+            )
+        ]
+        state = await _checkpoint_state(application.runtime, run.graph_thread_id)
+    final = events[-1]
+    assert isinstance(final, FinalResult)
+    assert final.terminal_status is TerminalStatus.SUCCEEDED
+    assert final.changed_files == ()
+    assert final.diff is not None and "+VALUE = 2" in final.diff
+    assert state.validated_workspace_digest == patch_digest(final.diff)
+
+
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_full_repair_uses_assertion_evidence_and_final_workspace_patch(
+    migrated_database_url: str, tmp_path: Path
+) -> None:
+    _coding_repository(tmp_path, expected=3)
+    gateway = QueueCodingGateway(
+        {"selected_skill_ids": [], "selection_reason_summary": "No Skill needed."},
+        {"rationale_summary": "Edit alpha and verify it.", "steps": [_edit_step(), _test_step()]},
+        _edit_action(1, 2),
+        _ready_action(),
+        {"failure_summary": "The assertion requires VALUE 3.", "steps": [_edit_step()]},
+        _edit_action(2, 3),
+        _ready_action(),
+    )
+    config = RuntimeConfig(database_url=migrated_database_url, model_name="fixture-model")
+    async with bootstrap_application(
+        config, model_gateway=gateway, workspace_path=tmp_path
+    ) as application:
+        interrupted = [event async for event in application.runtime.run("Set alpha VALUE to 3")][-1]
+        assert isinstance(interrupted, RunInterrupted)
+        assert interrupted.session_id is not None
+        run = await application.session_service.resolve_resumable_run(interrupted.session_id)
+        events = [
+            event
+            async for event in application.runtime.resume(
+                interrupted.session_id,
+                resume_input=PlanApprovalResumeInput(
+                    ApprovalDecision.APPROVED, "Fixture approved."
+                ),
+            )
+        ]
+        state = await _checkpoint_state(application.runtime, run.graph_thread_id)
+    final = events[-1]
+    assert isinstance(final, FinalResult)
+    assert final.terminal_status is TerminalStatus.SUCCEEDED
+    assert final.validation_result is not None and final.validation_result.status.value == "PASS"
+    assert final.diff is not None and "+VALUE = 3" in final.diff
+    assert state.baseline_workspace_digest == patch_digest("")
+    assert state.validated_workspace_digest == patch_digest(final.diff)
+    assert state.approved_plan is not None
+    assert state.approved_plan.authorization_scope.allowed_write_actions == (
+        ("edit_file", "alpha.py"),
+    )
+    assert (tmp_path / "alpha.py").read_text(encoding="utf-8") == "VALUE = 3\n"
+    assert [item.path for item in final.changed_files] == ["alpha.py"]
+    assert len(gateway.calls) == 7
+    assert any("AssertionError" in message.content for message in gateway.calls[4])

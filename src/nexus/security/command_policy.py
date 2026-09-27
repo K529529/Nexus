@@ -59,12 +59,21 @@ class DefaultCommandPolicy:
                 else RiskLevel.DANGEROUS
             )
         if operation == "git_status":
-            return RiskLevel.SAFE if arguments == {} else RiskLevel.DANGEROUS
-        if operation == "git_diff":
             return (
                 RiskLevel.SAFE
-                if set(arguments) <= {"staged"}
-                and isinstance(arguments.get("staged", False), bool)
+                if set(arguments) <= {"all_untracked"}
+                and isinstance(arguments.get("all_untracked", False), bool)
+                else RiskLevel.DANGEROUS
+            )
+        if operation == "git_diff":
+            staged = arguments.get("staged", False)
+            against_head = arguments.get("against_head", False)
+            return (
+                RiskLevel.SAFE
+                if set(arguments) <= {"staged", "against_head"}
+                and isinstance(staged, bool)
+                and isinstance(against_head, bool)
+                and not (staged and against_head)
                 else RiskLevel.DANGEROUS
             )
         value = arguments.get("max_entries", 20)

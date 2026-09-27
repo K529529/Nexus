@@ -3,7 +3,18 @@
 from __future__ import annotations
 
 
-def status_argv(git: str) -> list[str]:
+def status_argv(git: str, *, all_untracked: bool = False) -> list[str]:
+    if all_untracked:
+        return [
+            git,
+            "-c",
+            "core.fsmonitor=false",
+            "--no-pager",
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=all",
+        ]
     return [
         git,
         "-c",
@@ -15,7 +26,9 @@ def status_argv(git: str) -> list[str]:
     ]
 
 
-def diff_argv(git: str, *, staged: bool) -> list[str]:
+def diff_argv(git: str, *, staged: bool, against_head: bool = False) -> list[str]:
+    if staged and against_head:
+        raise ValueError("Staged and HEAD diff modes are mutually exclusive.")
     argv = [
         git,
         "-c",
@@ -27,6 +40,8 @@ def diff_argv(git: str, *, staged: bool) -> list[str]:
     ]
     if staged:
         argv.append("--cached")
+    if against_head:
+        argv.append("HEAD")
     return argv
 
 
@@ -47,9 +62,13 @@ def is_canonical_git_argv(operation: str, argv: list[str], git: str | None) -> b
     if git is None:
         return False
     if operation == "git_status":
-        return argv == status_argv(git)
+        return argv in (status_argv(git), status_argv(git, all_untracked=True))
     if operation == "git_diff":
-        return argv in (diff_argv(git, staged=False), diff_argv(git, staged=True))
+        return argv in (
+            diff_argv(git, staged=False),
+            diff_argv(git, staged=True),
+            diff_argv(git, staged=False, against_head=True),
+        )
     if operation == "git_log" and len(argv) == 8:
         prefix = [git, "-c", "core.fsmonitor=false", "--no-pager", "log"]
         if argv[:5] != prefix or argv[6:] != ["--oneline", "--no-decorate"]:

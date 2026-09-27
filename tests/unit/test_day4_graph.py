@@ -371,6 +371,7 @@ class OneActionRuntime:
     ) -> None:
         self.ledger = ledger
         self.error_code = error_code
+        self.mutated = False
 
     async def execute(
         self,
@@ -392,6 +393,10 @@ class OneActionRuntime:
             ),
         )
         self.ledger.record(invocation, result)
+        if result.success and invocation.tool_name in {
+            "apply_patch", "edit_file", "write_file", "shell",
+        }:
+            self.mutated = True
         return result
 
 
@@ -561,9 +566,17 @@ class AutoPlanApprovals:
 
 
 class DiffCollector:
+    def __init__(self, tool_runtime: OneActionRuntime, *, drift_on: int | None = None) -> None:
+        self.tool_runtime = tool_runtime
+        self.drift_on = drift_on
+        self.calls = 0
+
     async def collect(self, **kwargs: Any) -> FinalDiffEvidence:
-        changed = kwargs["changed_files"]
-        diff = "diff --git a/alpha.py b/alpha.py\n" if changed else ""
+        del kwargs
+        self.calls += 1
+        diff = "diff --git a/alpha.py b/alpha.py\n" if self.tool_runtime.mutated else ""
+        if self.drift_on is not None and self.calls >= self.drift_on:
+            diff += "+drift\n"
         return FinalDiffEvidence(diff, False, ())
 
 
@@ -579,6 +592,7 @@ def _runtime(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     model_call_id: Callable[[], str] | None = None,
     normalize_argv: Callable[[list[str]], list[str]] | None = None,
+    diff_collector: DiffCollector | None = None,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
@@ -591,7 +605,7 @@ def _runtime(
             ValidationRunner, PassValidationRunner()
         ),
         plan_approval_service=cast(PlanApprovalService, AutoPlanApprovals()),
-        diff_collector=cast(FinalDiffCollector, DiffCollector()),
+        diff_collector=cast(FinalDiffCollector, diff_collector or DiffCollector(tool_runtime)),
         event_buffer=event_buffer,
         ledger=ledger,
         approval_mode=ApprovalMode.AUTO,
@@ -741,6 +755,7 @@ async def test_read_only_task_ready_summary_reaches_final_result() -> None:
     assert final.content == (
         "Blank records return None; malformed records raise ValueError."
     )
+    assert final.diff == ""
 
 
 @pytest.mark.asyncio
@@ -1227,3 +1242,60 @@ def test_agent_prompt_omits_authoritative_plan_progress() -> None:
     assert "completed_step_ids" not in payload["plan"]
     assert all("status" not in step for step in payload["plan"]["steps"])
     assert payload["plan"]["steps"][2]["target_paths"] == ["iam.py"]
+
+
+@pytest.mark.asyncio
+async def test_finalize_rejects_workspace_drift_after_validation() -> None:
+    ledger = ToolExecutionLedger()
+    tool_runtime = OneActionRuntime(ledger)
+    collector = DiffCollector(tool_runtime, drift_on=4)
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=RuntimeEventBuffer(),
+        planner=FixedPlanner(),
+        agent=Decisions(),
+        tool_runtime=tool_runtime,
+        diff_collector=collector,
+    )
+    state = AgentState(
+        "edit alpha",
+        [ModelMessage(role="user", content="edit alpha")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+    result = await runtime.run(state)
+    assert collector.calls == 4
+    assert result.terminal_status is TerminalStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_read_only_completion_keeps_preexisting_patch_flag() -> None:
+    class PreexistingDiffCollector:
+        async def collect(self, **kwargs: Any) -> FinalDiffEvidence:
+            del kwargs
+            return FinalDiffEvidence("diff --git a/preexisting.txt b/preexisting.txt\n", False, ())
+
+    ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger,
+        event_buffer=events,
+        planner=ReadOnlyPlanner(),
+        agent=GroundedReadOnlyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+        diff_collector=cast(DiffCollector, PreexistingDiffCollector()),
+    )
+    state = AgentState(
+        "explain record parsing",
+        [ModelMessage(role="user", content="explain record parsing")],
+        str(uuid4()),
+        str(uuid4()),
+        RuntimeStatus.STARTED,
+    )
+    result = await runtime.run(state)
+    final = events.drain(state.run_id)[-1]
+    assert result.terminal_status is TerminalStatus.SUCCEEDED
+    assert isinstance(final, FinalResult)
+    assert final.includes_preexisting_changes is True
+    assert final.diff is not None and "preexisting.txt" in final.diff

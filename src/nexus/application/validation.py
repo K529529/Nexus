@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.domain.exploration import ExplorationResult, WorkingContext
-from nexus.domain.planning import ApprovedPlanEvidence, ChangedFile, Plan
+from nexus.domain.planning import ApprovedPlanEvidence, Plan
 from nexus.domain.runtime_events import (
     RuntimeEvent,
     ValidationFinished,
@@ -55,7 +55,8 @@ class DeterministicValidationPlanner:
         plan: Plan,
         exploration: ExplorationResult,
         context: WorkingContext,
-        changed_files: tuple[ChangedFile, ...],
+        requires_workspace_change: bool,
+        workspace_changed_by_run: bool,
     ) -> ValidationPlan:
         del task, exploration, context
         candidates: list[tuple[int, int, ValidationCheckKind, tuple[str, ...], str]] = []
@@ -82,12 +83,12 @@ class DeterministicValidationPlanner:
                 )
             )
         read_only = (
-            not changed_files
+            not workspace_changed_by_run
             and not plan.authorization_scope.allowed_write_actions
             and not plan.authorization_scope.allowed_commands
             and not candidates
         )
-        if changed_files or read_only:
+        if requires_workspace_change or read_only:
             checks.append(
                 ValidationCheck(
                     str(uuid4()),
@@ -120,7 +121,10 @@ class ToolValidationRunner:
         session_id: str,
         authorization: ApprovedPlanEvidence,
         repair_count: int,
-        changed: bool,
+        requires_workspace_change: bool,
+        workspace_changed_by_run: bool,
+        candidate_has_patch: bool,
+        verify_workspace: Callable[[], Awaitable[bool]] | None = None,
     ) -> ValidationResult:
         _validate_plan(plan, authorization)
         started = time.perf_counter()
@@ -147,9 +151,13 @@ class ToolValidationRunner:
             )
             results.append(_check_result(check, result))
 
+        workspace_stable = True if verify_workspace is None else await verify_workspace()
         status = _aggregate_status(
             tuple(results),
-            changed=changed,
+            requires_workspace_change=requires_workspace_change,
+            workspace_changed_by_run=workspace_changed_by_run,
+            candidate_has_patch=candidate_has_patch,
+            workspace_stable=workspace_stable,
         )
         confidence = _confidence(status, tuple(results))
         repairable = aggregate_repairable(status, tuple(results))
@@ -209,7 +217,10 @@ def _check_result(check: ValidationCheck, result: ToolResult) -> ValidationCheck
 def _aggregate_status(
     results: tuple[ValidationCheckResult, ...],
     *,
-    changed: bool,
+    requires_workspace_change: bool,
+    workspace_changed_by_run: bool,
+    candidate_has_patch: bool,
+    workspace_stable: bool,
 ) -> ValidationStatus:
     required = tuple(result for result in results if result.check.required)
     if any(result.status is ValidationStatus.FAIL for result in required):
@@ -226,7 +237,14 @@ def _aggregate_status(
         and result.status is ValidationStatus.PASS
         for result in required
     )
-    if changed and (not has_diff or not has_code_check):
+    if not workspace_stable:
+        return ValidationStatus.UNKNOWN
+    if requires_workspace_change and (
+        not workspace_changed_by_run
+        or not candidate_has_patch
+        or not has_diff
+        or not has_code_check
+    ):
         return ValidationStatus.UNKNOWN
     return ValidationStatus.PASS
 

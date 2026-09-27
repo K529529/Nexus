@@ -267,9 +267,12 @@ class GitStatusTool:
     async def execute(self, invocation: ToolInvocation) -> ToolResult:
         started = time.perf_counter()
         try:
-            _require_keys(invocation.arguments, required=set(), optional=set())
+            _require_keys(invocation.arguments, required=set(), optional={"all_untracked"})
+            all_untracked = _optional_bool(invocation.arguments, "all_untracked", False)
             git = _require_git(self._executables)
-            request = SandboxRequest(self.name, status_argv(git), ".", 30.0)
+            request = SandboxRequest(
+                self.name, status_argv(git, all_untracked=all_untracked), ".", 30.0
+            )
             return _from_git_sandbox(
                 invocation,
                 await self._sandbox.execute(request),
@@ -295,10 +298,15 @@ class GitDiffTool:
     async def execute(self, invocation: ToolInvocation) -> ToolResult:
         started = time.perf_counter()
         try:
-            _require_keys(invocation.arguments, required=set(), optional={"staged"})
+            _require_keys(invocation.arguments, required=set(), optional={"staged", "against_head"})
             staged = _optional_bool(invocation.arguments, "staged", False)
+            against_head = _optional_bool(invocation.arguments, "against_head", False)
+            if staged and against_head:
+                raise ValueError("Staged and HEAD diff modes are mutually exclusive.")
             git = _require_git(self._executables)
-            request = SandboxRequest(self.name, diff_argv(git, staged=staged), ".", 30.0)
+            request = SandboxRequest(
+                self.name, diff_argv(git, staged=staged, against_head=against_head), ".", 30.0
+            )
             return _from_git_sandbox(
                 invocation,
                 await self._sandbox.execute(request),

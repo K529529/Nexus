@@ -64,6 +64,27 @@ def test_git_operation_identity_must_match_canonical_argv(tmp_path: Path) -> Non
         )
         is RiskLevel.SAFE
     )
+    assert policy.classify(
+        operation="git_status", arguments={"all_untracked": True}
+    ) is RiskLevel.SAFE
+    assert policy.classify(
+        operation="git_status",
+        arguments={"argv": status_argv(executables.git, all_untracked=True)},
+    ) is RiskLevel.SAFE
+    assert policy.classify(
+        operation="git_diff", arguments={"against_head": True}
+    ) is RiskLevel.SAFE
+    assert policy.classify(
+        operation="git_diff",
+        arguments={"argv": diff_argv(executables.git, staged=False, against_head=True)},
+    ) is RiskLevel.SAFE
+    assert policy.classify(
+        operation="git_diff", arguments={"staged": True, "against_head": True}
+    ) is RiskLevel.DANGEROUS
+    assert policy.classify(
+        operation="git_diff",
+        arguments={"argv": [*diff_argv(executables.git, staged=False), "main"]},
+    ) is RiskLevel.DANGEROUS
     assert (
         policy.classify(
             operation="git_log",

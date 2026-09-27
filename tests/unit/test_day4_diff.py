@@ -7,7 +7,7 @@ import pytest
 
 from nexus.application.diff_service import FinalDiffCollector
 from nexus.application.tool_runtime import ToolRuntime
-from nexus.domain.planning import ApprovedPlanEvidence, ChangedFile, ChangeKind
+from nexus.domain.planning import ApprovedPlanEvidence
 from nexus.domain.tooling import (
     PolicyDecision,
     RiskLevel,
@@ -30,20 +30,6 @@ def _success(invocation: ToolInvocation, output: dict[str, object]) -> ToolResul
     )
 
 
-def _status(run_id: str, session_id: str, stdout: str) -> ToolResult:
-    return ToolResult(
-        str(uuid4()),
-        "git_status",
-        True,
-        {"stdout": stdout, "truncated": False},
-        None,
-        RiskLevel.SAFE,
-        PolicyDecision.ALLOWED,
-        None,
-        1,
-    )
-
-
 class DiffRuntime:
     def __init__(
         self,
@@ -52,11 +38,13 @@ class DiffRuntime:
         tracked_diff: str,
         files: dict[str, str],
         truncate_diff: bool = False,
+        truncate_read: bool = False,
     ) -> None:
         self.status = status
         self.tracked_diff = tracked_diff
         self.files = files
         self.truncate_diff = truncate_diff
+        self.truncate_read = truncate_read
 
     async def execute(
         self,
@@ -81,24 +69,26 @@ class DiffRuntime:
         path = invocation.arguments["path"]
         assert isinstance(path, str)
         content = self.files[path]
+        if self.truncate_read:
+            content = "partial"
         return _success(
             invocation,
             {
                 "path": path,
                 "content": content,
-                "end_line": max(1, len(content.splitlines())),
-                "truncated": False,
+                "start_line": invocation.arguments["start_line"],
+                "end_line": len(content.splitlines()),
+                "truncated": self.truncate_read,
             },
         )
 
 
 @pytest.mark.asyncio
-async def test_exact_diff_appends_run_created_file_and_ignores_clean_branch_header() -> None:
+async def test_exact_diff_appends_untracked_file_without_ledger() -> None:
     run_id = str(uuid4())
     session_id = str(uuid4())
-    invocation_id = str(uuid4())
     runtime = DiffRuntime(
-        status="## feature/day04\n?? new.txt\n",
+        status="?? new.txt\0",
         tracked_diff="diff --git a/alpha.py b/alpha.py\n-old\n+new\n",
         files={"new.txt": "hello\nworld"},
     )
@@ -106,15 +96,6 @@ async def test_exact_diff_appends_run_created_file_and_ignores_clean_branch_head
     evidence = await collector.collect(
         run_id=run_id,
         session_id=session_id,
-        changed_files=(
-            ChangedFile(
-                "new.txt",
-                ChangeKind.ADDED,
-                invocation_id,
-                invocation_id,
-            ),
-        ),
-        initial_git_status=_status(run_id, session_id, "## feature/day04\n"),
     )
 
     assert evidence.error_code is None
@@ -126,15 +107,14 @@ async def test_exact_diff_appends_run_created_file_and_ignores_clean_branch_head
 
 
 @pytest.mark.asyncio
-async def test_diff_truncation_fails_closed_and_dirty_evidence_is_retained() -> None:
+async def test_diff_truncation_fails_closed() -> None:
     run_id = str(uuid4())
     session_id = str(uuid4())
-    invocation_id = str(uuid4())
     collector = FinalDiffCollector(
         cast(
             ToolRuntime,
             DiffRuntime(
-                status="## branch\n M alpha.py\n",
+                status=" M alpha.py\0",
                 tracked_diff="partial",
                 files={},
                 truncate_diff=True,
@@ -144,17 +124,23 @@ async def test_diff_truncation_fails_closed_and_dirty_evidence_is_retained() -> 
     evidence = await collector.collect(
         run_id=run_id,
         session_id=session_id,
-        changed_files=(
-            ChangedFile(
-                "alpha.py",
-                ChangeKind.MODIFIED,
-                invocation_id,
-                invocation_id,
-            ),
-        ),
-        initial_git_status=_status(run_id, session_id, "## branch\n M alpha.py\n"),
     )
 
     assert evidence.diff is None
     assert evidence.error_code == "DIFF_UNAVAILABLE"
-    assert evidence.includes_preexisting_changes is True
+    assert evidence.includes_preexisting_changes is False
+
+
+@pytest.mark.asyncio
+async def test_incomplete_untracked_read_fails_closed() -> None:
+    runtime = DiffRuntime(
+        status="?? nested/new.txt\0",
+        tracked_diff="diff --git a/alpha.py b/alpha.py\n",
+        files={"nested/new.txt": "complete\ncontent\n"},
+        truncate_read=True,
+    )
+    evidence = await FinalDiffCollector(cast(ToolRuntime, runtime)).collect(
+        run_id=str(uuid4()), session_id=str(uuid4())
+    )
+    assert evidence.diff is None
+    assert evidence.error_code == "DIFF_UNAVAILABLE"

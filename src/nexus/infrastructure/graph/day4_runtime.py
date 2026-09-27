@@ -16,7 +16,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
-from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence
+from nexus.application.diff_service import FinalDiffCollector, FinalDiffEvidence, patch_digest
 from nexus.application.event_publisher import LiveRuntimeEventBridge
 from nexus.application.evidence_projection import bounded_output
 from nexus.application.execution_ledger import (
@@ -527,6 +527,13 @@ class Day4LangGraphRuntime:
             update["terminal_status"] = TerminalStatus.FAILED_APPROVAL_DENIED
             return Command(update=update, goto="finalize_failed")
         update["approved_plan"] = self._plan_approval_service.evidence(plan, approval)
+        if state.baseline_workspace_digest is None:
+            baseline = await self._collect_diff(state)
+            if baseline.error_code is not None or baseline.diff is None:
+                update["terminal_status"] = TerminalStatus.FAILED
+                return Command(update=update, goto="finalize_failed")
+            update["baseline_workspace_digest"] = patch_digest(baseline.diff)
+            update["baseline_has_patch"] = bool(baseline.diff)
         return Command(update=update, goto="agent_step")
 
     async def _agent_step(self, state: AgentState) -> Command[Any]:
@@ -693,22 +700,59 @@ class Day4LangGraphRuntime:
             or state.approved_plan is None
         ):
             raise NexusError("Validation state is incomplete.", code="GRAPH_INVALID_STATE")
+        candidate = await self._collect_diff(state)
+        if (
+            state.baseline_workspace_digest is None
+            or candidate.error_code is not None
+            or candidate.diff is None
+        ):
+            return Command(
+                update={"terminal_status": TerminalStatus.FAILED_VALIDATION_UNKNOWN},
+                goto="finalize_failed",
+            )
+        candidate_digest = patch_digest(candidate.diff)
+        workspace_changed_by_run = candidate_digest != state.baseline_workspace_digest
+        requires_workspace_change = bool(
+            state.plan.authorization_scope.allowed_write_actions
+        ) or workspace_changed_by_run
         validation_plan = await self._validation_planner.plan(
             task=state.task,
             plan=state.plan,
             exploration=state.exploration,
             context=state.context,
-            changed_files=state.changed_files,
+            requires_workspace_change=requires_workspace_change,
+            workspace_changed_by_run=workspace_changed_by_run,
         )
+        post_evidence: FinalDiffEvidence | None = None
+
+        async def verify_workspace() -> bool:
+            nonlocal post_evidence
+            post_evidence = await self._collect_diff(state)
+            return bool(
+                post_evidence.error_code is None
+                and post_evidence.diff is not None
+                and patch_digest(post_evidence.diff) == candidate_digest
+            )
+
         result = await self._validation_runner.run(
             validation_plan,
             run_id=state.run_id,
             session_id=_session_id(state),
             authorization=state.approved_plan,
             repair_count=state.repair_count,
-            changed=bool(state.changed_files),
+            requires_workspace_change=requires_workspace_change,
+            workspace_changed_by_run=workspace_changed_by_run,
+            candidate_has_patch=bool(candidate.diff),
+            verify_workspace=verify_workspace,
         )
+        if post_evidence is None and not await verify_workspace():
+            return Command(
+                update={"terminal_status": TerminalStatus.FAILED_VALIDATION_UNKNOWN},
+                goto="finalize_failed",
+            )
         update = self._evidence_update(state, validation_result=result)
+        if result.status is ValidationStatus.PASS:
+            update["validated_workspace_digest"] = candidate_digest
         if result.status is ValidationStatus.PASS:
             return Command(update=update, goto="finalize")
         if (
@@ -757,20 +801,28 @@ class Day4LangGraphRuntime:
         terminal = (
             TerminalStatus.SUCCEEDED
             if evidence.error_code is None
+            and evidence.diff is not None
+            and state.validated_workspace_digest is not None
+            and patch_digest(evidence.diff) == state.validated_workspace_digest
             else TerminalStatus.FAILED
         )
         if terminal is TerminalStatus.SUCCEEDED and _is_read_only_completion(state):
             content = _latest_assistant_content(state)
         elif terminal is TerminalStatus.SUCCEEDED:
             content = "Task completed with approved changes and validation evidence."
-        else:
+        elif evidence.error_code is not None or evidence.diff is None:
             content = "Task failed because an exact final diff was unavailable (DIFF_UNAVAILABLE)."
+        else:
+            content = (
+                "Task failed because the workspace changed after validation "
+                "(DIFF_UNAVAILABLE)."
+            )
         return await self._emit_final(
             state,
             terminal,
             content,
-            evidence.diff,
-            evidence.includes_preexisting_changes,
+            evidence.diff if terminal is TerminalStatus.SUCCEEDED else None,
+            state.baseline_has_patch,
         )
 
     async def _finalize_failed(self, state: AgentState) -> dict[str, object]:
@@ -784,16 +836,13 @@ class Day4LangGraphRuntime:
             terminal,
             content,
             evidence.diff,
-            evidence.includes_preexisting_changes,
+            state.baseline_has_patch,
         )
 
     async def _collect_diff(self, state: AgentState) -> FinalDiffEvidence:
-        initial = None if state.exploration is None else state.exploration.initial_git_status
         return await self._diff_collector.collect(
             run_id=state.run_id,
             session_id=_session_id(state),
-            changed_files=state.changed_files,
-            initial_git_status=initial,
         )
 
     async def _emit_final(
@@ -1295,7 +1344,7 @@ def _is_read_only_completion(state: AgentState) -> bool:
     plan = state.plan
     return bool(
         plan is not None
-        and not state.changed_files
+        and state.baseline_workspace_digest == state.validated_workspace_digest
         and not plan.authorization_scope.allowed_write_actions
         and not plan.authorization_scope.allowed_commands
     )

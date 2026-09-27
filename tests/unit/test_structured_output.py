@@ -95,7 +95,7 @@ async def test_invalid_output_retries_once_with_same_phase_and_sanitized_feedbac
     assert "complete replacement object" in feedback
     assert "SENSITIVE" not in feedback
     if phase is ModelCallPhase.AGENT_STEP:
-        assert "Do not repeat actions recorded as successful" in feedback
+        assert "Use the approved Plan as guidance and authorization" in feedback
     else:
         assert "approved Plan and observations" not in feedback
 
