@@ -81,9 +81,9 @@ class CodingLoopGateway:
             "selection_reason_summary": "No builtin Skill is relevant to this fixture.",
         }
         responses: dict[str, list[dict[str, object]]] = {
-            "all": [no_skill, plan, edit, edit, ready],
+            "all": [no_skill, plan, edit, ready],
             "plan": [no_skill, plan],
-            "execute": [edit, edit, ready],
+            "execute": [edit, ready],
         }
         self._responses = [json.dumps(item) for item in responses[phase]]
 
@@ -186,10 +186,10 @@ async def test_realistic_day4_coding_loop_interrupts_edits_validates_and_diffs(
         ]
 
     assert any(isinstance(event, ValidationFinished) for event in resumed_events)
-    assert any(
-        isinstance(event, AgentStepCompleted)
-        and event.guard_reason == "edit_requires_read"
-        for event in resumed_events
+    assert any(isinstance(event, AgentStepCompleted) for event in resumed_events)
+    assert all(
+        event.guard_reason is None
+        for event in resumed_events if isinstance(event, AgentStepCompleted)
     )
     final = resumed_events[-1]
     assert isinstance(final, FinalResult)
@@ -294,13 +294,12 @@ async def test_day4_reconstructs_process_and_preserves_checkpoint_evidence(
         assert state_b.context == state_a.context
         assert state_b.approved_plan.authorization_scope == prior_scope
         assert state_b.tool_call_count > state_a.tool_call_count
-        assert state_b.llm_call_count == state_a.llm_call_count + 3
-        assert state_b.step_count == state_a.step_count + 3
+        assert state_b.llm_call_count == state_a.llm_call_count + 2
+        assert state_b.step_count == state_a.step_count + 2
         assert [(item.tool_name, item.success) for item in state_b.observations] == [
-            ("read_file", True), ("edit_file", True)
+            ("edit_file", True)
         ]
         assert state_b.observations[0].target_path == "alpha.py"
-        assert state_b.observations[1].target_path == "alpha.py"
         assert state_b.replan_count == state_a.replan_count
         assert state_b.repair_count == state_a.repair_count
         assert state_b.tool_results[: len(prior_tool_results)] == prior_tool_results

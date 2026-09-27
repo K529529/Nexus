@@ -1028,7 +1028,7 @@ def test_profile_rejects_untrusted_target_summary() -> None:
     assert "PRIVATE_ARGV" not in rendered
 
 
-def test_profile_shows_bounded_local_plan_progress() -> None:
+def test_profile_shows_static_plan_steps_without_heuristic_status() -> None:
     profile = ExecutionProfile()
     run_id, plan_id = str(uuid4()), str(uuid4())
     profile.observe(PlanCreated(
@@ -1043,38 +1043,21 @@ def test_profile_shows_bounded_local_plan_progress() -> None:
         run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
         step_id=str(uuid4()), sequence=1,
     ))
-    lines = profile.lines()
-    assert "Plan progress" in lines
-    assert "1  COMPLETED Read iam.py" in lines
-    assert "2  PENDING   Read test_iam.py" in lines
-    assert "3  PENDING   Edit iam.py" in lines
-    assert "4  PENDING   Validate" in lines
-    assert "argv" not in "\n".join(lines)
+    rendered = "\n".join(profile.lines())
+    assert "Plan steps" in rendered
+    assert "1  Read iam.py" in rendered
+    assert "2  Read test_iam.py" in rendered
+    assert "3  Edit iam.py" in rendered
+    assert "4  Validate" in rendered
+    assert "Plan progress" not in rendered
+    assert "COMPLETED" not in rendered
+    assert "PENDING" not in rendered
+    assert "argv" not in rendered
+    assert "Agent steps" in rendered
+    assert "Semantic retries" in rendered
     profile.observe(PlanCreated(
         run_id=run_id, session_id=None, plan_id=plan_id, plan_version=2,
         plan_kind=PlanKind.REPLAN, step_summaries=("1. New read",),
         replan_reason="safe replan",
     ))
-    profile.observe(PlanStepCompleted(
-        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
-        step_id=str(uuid4()), sequence=1,
-    ))
-    assert "1  PENDING   New read" in profile.lines()
-
-
-def test_swe_profile_does_not_present_plan_status_as_progress() -> None:
-    profile = ExecutionProfile(swe_execution_mode=True)
-    run_id, plan_id = str(uuid4()), str(uuid4())
-    profile.observe(PlanCreated(
-        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
-        plan_kind=PlanKind.INITIAL, step_summaries=("1. Read iam.py",),
-        replan_reason=None,
-    ))
-    profile.observe(PlanStepCompleted(
-        run_id=run_id, session_id=None, plan_id=plan_id, plan_version=1,
-        step_id=str(uuid4()), sequence=1,
-    ))
-    rendered = "\n".join(profile.lines())
-    assert "Plan progress tracking: disabled (SWE mode)" in rendered
-    assert "COMPLETED Read iam.py" not in rendered
-    assert "PENDING   Read iam.py" not in rendered
+    assert "1  New read" in profile.lines()

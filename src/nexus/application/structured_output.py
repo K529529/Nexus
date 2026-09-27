@@ -58,8 +58,8 @@ _CATEGORY_RULES = {
 }
 
 _AGENT_RETRY_REMINDER = (
-    " The approved Plan and observations remain authoritative. "
-    "Do not repeat actions recorded as successful."
+    " Use the approved Plan as guidance and authorization, and current Tool "
+    "observations as evidence for the next action."
 )
 
 

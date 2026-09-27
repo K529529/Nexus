@@ -47,8 +47,6 @@ from nexus.domain.planning import (
     PlanApprovalResumeInput,
     PlanKind,
     PlanStatus,
-    PlanStep,
-    PlanStepStatus,
     TerminalStatus,
 )
 from nexus.domain.ports.agent_decision import AgentDecisionAdapter
@@ -72,7 +70,6 @@ from nexus.domain.runtime_events import (
     PhaseFinished,
     PhaseStarted,
     PlanCreated,
-    PlanStepCompleted,
     RepairStarted,
     ReplanOccurred,
     RepositoryExplored,
@@ -81,7 +78,6 @@ from nexus.domain.runtime_events import (
 from nexus.domain.tooling import ApprovalDecision, RiskLevel, ToolInvocation, ToolResult
 from nexus.domain.validation import ValidationStatus
 from nexus.errors import ModelError, NexusError
-from nexus.tools.native import _MAX_READ_LINES
 
 _SAFE_PATCH_FAILURE_DETAILS = {
     ("INVALID_PATCH", "The patch exceeds the Day 4 size limit."): "patch exceeds size limit",
@@ -154,7 +150,6 @@ class Day4LangGraphRuntime:
         conversation_turns: Callable[[str], Awaitable[Sequence[SessionTurn]]] | None = None,
         model_call_id: Callable[[], str] | None = None,
         normalize_argv: Callable[[list[str]], list[str]] | None = None,
-        swe_execution_mode: bool = False,
     ) -> None:
         self._explorer = explorer
         self._context_builder = context_builder
@@ -176,7 +171,6 @@ class Day4LangGraphRuntime:
         self._conversation_turns = conversation_turns
         self._model_call_id = model_call_id
         self._normalize_argv = normalize_argv or (lambda argv: list(argv))
-        self._swe_execution_mode = swe_execution_mode
 
         builder = StateGraph(AgentState)
         builder.add_node("initialize_run", self._initialize_run)
@@ -568,7 +562,6 @@ class Day4LangGraphRuntime:
         proposed = await self._agent.decide(request)
         retry_reason = _semantic_retry_reason(
             state, proposed, self._normalize_argv,
-            swe_execution_mode=self._swe_execution_mode,
         )
         if retry_reason is not None:
             await self._events.emit(AgentSemanticRetryStarted(
@@ -583,20 +576,13 @@ class Day4LangGraphRuntime:
             ))
             second_reason = _semantic_retry_reason(
                 state, proposed, self._normalize_argv,
-                swe_execution_mode=self._swe_execution_mode,
             )
             if second_reason is not None:
-                message = (
-                    "Agent repeated a successful read_file after corrective feedback."
-                    if second_reason is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
-                    else "Agent repeated a deterministically denied Tool action."
+                raise ModelError(
+                    "Agent repeated a deterministically denied Tool action.",
+                    code="INVALID_AGENT_DECISION",
                 )
-                raise ModelError(message, code="INVALID_AGENT_DECISION")
-        decision = (
-            proposed if self._swe_execution_mode
-            else _require_current_edit_evidence(state, proposed)
-        )
-        guard_reason = "edit_requires_read" if decision is not proposed else None
+        decision = proposed
         if self._model_call_id is not None:
             await self._events.emit(
                 AgentStepCompleted(
@@ -605,7 +591,7 @@ class Day4LangGraphRuntime:
                     step_count=self._ledger.step_count(state.run_id),
                     decision_kind=decision.kind,
                     model_call_id=self._model_call_id(),
-                    guard_reason=guard_reason,
+                    guard_reason=None,
                     decision_summary=decision.summary,
                 )
             )
@@ -682,19 +668,6 @@ class Day4LangGraphRuntime:
             _observation_target_path(result, action),
             state.repair_count,
         )
-        updated_plan, completed_step = (
-            (None, None) if self._swe_execution_mode
-            else _complete_matching_plan_step(state, action, result)
-        )
-        if completed_step is not None and updated_plan is not None:
-            await self._events.emit(PlanStepCompleted(
-                run_id=state.run_id,
-                session_id=_session_id(state),
-                plan_id=updated_plan.plan_id,
-                plan_version=updated_plan.version,
-                step_id=completed_step.step_id,
-                sequence=completed_step.sequence,
-            ))
         update = self._evidence_update(
             state,
             observations=(*state.observations, observation),
@@ -705,8 +678,6 @@ class Day4LangGraphRuntime:
                 else None
             ),
         )
-        if updated_plan is not None:
-            update["plan"] = updated_plan
         if reason is None:
             return Command(update=update, goto="agent_step")
         if state.replan_count >= self._max_replans:
@@ -997,33 +968,6 @@ def _approval_event(plan: Plan, pending: ApprovalRequest) -> ApprovalRequested:
     )
 
 
-def _complete_matching_plan_step(
-    state: AgentState, action: ToolAction, result: ToolResult,
-) -> tuple[Plan | None, PlanStep | None]:
-    plan = state.plan
-    if plan is None or not result.success or result.tool_name != action.tool_name:
-        return None, None
-    if action.tool_name not in {"read_file", "edit_file", "write_file", "apply_patch"}:
-        return None, None
-    path = action.arguments.get("path")
-    output_path = None if result.output is None else result.output.get("path")
-    if not isinstance(path, str) or output_path != path:
-        return None, None
-    if action.tool_name == "read_file" and _is_repeated_successful_read(
-        state, AgentDecision(AgentDecisionKind.TOOL_ACTION, action, "Read file."),
-    ):
-        return None, None
-    for index, step in enumerate(plan.steps):
-        if step.status is not PlanStepStatus.PENDING or step.tool_name != action.tool_name:
-            continue
-        if action.tool_name != "read_file" and step.target_paths != (path,):
-            continue
-        completed = replace(step, status=PlanStepStatus.COMPLETED)
-        steps = (*plan.steps[:index], completed, *plan.steps[index + 1:])
-        return replace(plan, steps=steps), completed
-    return None, None
-
-
 def _record_change(
     current: tuple[ChangedFile, ...],
     result: ToolResult,
@@ -1053,27 +997,6 @@ def _record_change(
     )
 
 
-def _require_current_edit_evidence(
-    state: AgentState, decision: AgentDecision
-) -> AgentDecision:
-    action = decision.action
-    if action is None or action.tool_name != "edit_file" or state.plan is None:
-        return decision
-    path = action.arguments.get("path")
-    if not isinstance(path, str):
-        return decision
-    # Out-of-scope requests still reach ToolRuntime for its authoritative denial.
-    if ("edit_file", path) not in state.plan.authorization_scope.allowed_write_actions:
-        return decision
-    if _has_fresh_read_evidence(state, path):
-        return decision
-    return AgentDecision(
-        AgentDecisionKind.TOOL_ACTION,
-        ToolAction("read_file", {"path": path}),
-        "Read the current target file before exact replacement.",
-    )
-
-
 def _observation_target_path(result: ToolResult, action: ToolAction) -> str | None:
     if result.tool_name not in {"read_file", "edit_file"}:
         return None
@@ -1082,16 +1005,6 @@ def _observation_target_path(result: ToolResult, action: ToolAction) -> str | No
         return output_path
     path = action.arguments.get("path")
     return path if isinstance(path, str) and path else None
-
-
-def _observation_path(
-    observation: Observation, results: dict[str, ToolResult]
-) -> str | None:
-    if observation.target_path is not None:
-        return observation.target_path
-    result = results.get(observation.invocation_id)
-    path = None if result is None or result.output is None else result.output.get("path")
-    return path if isinstance(path, str) else None
 
 
 def _action_fingerprint(
@@ -1114,11 +1027,7 @@ def _semantic_retry_reason(
     state: AgentState,
     decision: AgentDecision,
     normalize_argv: Callable[[list[str]], list[str]],
-    *,
-    swe_execution_mode: bool = False,
 ) -> AgentRuntimeFeedback | None:
-    if not swe_execution_mode and _is_repeated_successful_read(state, decision):
-        return AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
     action = decision.action
     if (
         action is not None
@@ -1128,71 +1037,6 @@ def _semantic_retry_reason(
     ):
         return AgentRuntimeFeedback.REPEATED_POLICY_DENIAL
     return None
-
-
-def _is_repeated_successful_read(state: AgentState, decision: AgentDecision) -> bool:
-    action = decision.action
-    if action is None or action.tool_name != "read_file":
-        return False
-    arguments = action.arguments
-    if not set(arguments) <= {"path", "start_line", "max_lines"}:
-        return False
-    path = arguments.get("path")
-    start = arguments.get("start_line", 1)
-    count = arguments.get("max_lines", _MAX_READ_LINES)
-    if (
-        not isinstance(path, str)
-        or type(start) is not int
-        or type(count) is not int
-        or start < 1
-        or not 1 <= count <= _MAX_READ_LINES
-    ):
-        return False
-    results = {item.invocation_id: item for item in state.tool_results}
-    for observation in reversed(state.observations):
-        if observation.repair_attempt != state.repair_count:
-            continue
-        if _observation_path(observation, results) != path:
-            continue
-        if observation.tool_name in {"edit_file", "apply_patch", "write_file"}:
-            return False
-        if not observation.success or observation.tool_name != "read_file":
-            continue
-        prior = results.get(observation.invocation_id)
-        output = None if prior is None else prior.output
-        if output is None or output.get("start_line") != start:
-            continue
-        end = output.get("end_line")
-        if end == start + count - 1 or (
-            output.get("truncated") is False
-            and type(end) is int
-            and end < start + count - 1
-        ):
-            return True
-    return False
-
-
-def _has_fresh_read_evidence(state: AgentState, path: str) -> bool:
-    results = {item.invocation_id: item for item in state.tool_results}
-    latest_read = -1
-    latest_successful_edit = -1
-    for index, observation in enumerate(state.observations):
-        if _observation_path(observation, results) != path:
-            continue
-        if observation.tool_name == "read_file" and observation.success:
-            latest_read = index
-        elif observation.tool_name == "edit_file" and observation.success:
-            latest_successful_edit = index
-    if latest_read <= latest_successful_edit:
-        return False
-    failures = sum(
-        1
-        for observation in state.observations[latest_read + 1 :]
-        if observation.tool_name == "edit_file"
-        and observation.error_code == "EDIT_TARGET_NOT_FOUND"
-        and _observation_path(observation, results) in {path, None}
-    )
-    return failures < 2
 
 
 def _safe_replan_observations(

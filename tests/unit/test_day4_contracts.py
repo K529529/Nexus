@@ -19,14 +19,11 @@ from nexus.application.planning import JsonAgentDecisionAdapter, ModelPlanner
 from nexus.application.tool_runtime import ToolRuntime
 from nexus.application.validation import DeterministicValidationPlanner, ToolValidationRunner
 from nexus.domain.agent_decision import (
-    AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
     AgentRuntimeFeedback,
     Observation,
-    ToolAction,
 )
-from nexus.domain.agent_state import AgentState
 from nexus.domain.approvals import ApprovalRequest
 from nexus.domain.exploration import ExplorationResult, WorkingContext
 from nexus.domain.model import ModelChunk, ModelMessage, ModelResponse
@@ -40,13 +37,11 @@ from nexus.domain.planning import (
     PlanStatus,
     PlanStep,
     PlanStepStatus,
-    RepairGuidance,
     compute_scope_digest,
     derive_authorization_scope,
 )
 from nexus.domain.ports.planning import PlanningRequest, RepairPlanningRequest
 from nexus.domain.ports.tooling import ApprovalPolicy
-from nexus.domain.runtime_events import RuntimeStatus
 from nexus.domain.tooling import (
     ApprovalDecision,
     JsonObject,
@@ -71,7 +66,6 @@ from nexus.infrastructure.checkpoint.postgres import _checkpoint_serializer
 from nexus.infrastructure.graph.day4_runtime import (
     _observation_summary,
     _record_change,
-    _require_current_edit_evidence,
 )
 from nexus.infrastructure.sandbox import LocalProcessSandbox
 from nexus.security.command_policy import DefaultCommandPolicy
@@ -821,12 +815,19 @@ async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> N
     )
 
     system = gateway.last_messages[0].content
+    payload = json.loads(gateway.last_messages[1].content)
+    assert "current_step" not in payload["plan"]
+    assert "next_step" not in payload["plan"]
+    assert "completed_step_ids" not in payload["plan"]
+    assert all("status" not in step for step in payload["plan"]["steps"])
+    assert "Follow approved Plan progress" not in system
+    assert "Prefer the next PENDING step" not in system
     assert "{path:string,patch:string}" in system
     assert "For this previously approved Plan only" in system
     assert "write_file only for a path that does not exist" in system
-    assert "TASK_READY only after all file modifications" in system
+    assert "TASK_READY only after the task's required file modifications" in system
     assert "Validation node runs the exact commands" in system
-    assert "Never repeat an approved edit" in system
+    assert "The approved Plan is execution guidance" in system
     assert "TASK_READY.summary must contain the complete grounded" in system
     assert "the next decision must be TOOL_ACTION" in system
     assert "Submit it exactly once" in system
@@ -1005,12 +1006,12 @@ async def test_agent_prompt_continues_a_multi_edit_plan_after_first_success() ->
     )
     assert payload["observations"][0]["success"] is True
     assert "Category: ACTION_RELATION" in feedback
-    assert "approved Plan and observations remain authoritative" in feedback
-    assert "Do not repeat actions recorded as successful" in feedback
+    assert "approved Plan as guidance and authorization" in feedback
+    assert "Do not repeat actions recorded as successful" not in feedback
     assert "SENSITIVE" not in feedback
-    assert "Never repeat an approved edit" in system
-    assert "only after all file modifications" in system
-    assert "return the next Tool action" in system
+    assert "Never repeat an approved edit" not in system
+    assert "only after the task's required file modifications" in system
+    assert "Use current repository and Tool evidence" in system
     assert "return TASK_READY immediately" not in system
 
 
@@ -1373,137 +1374,21 @@ async def test_edit_file_approval_is_tool_and_path_and_validation_is_unchanged(
     assert _record_change(changed, allowed) == changed
 
 
-def _read_observation(path: str, content: str) -> tuple[Observation, ToolResult]:
-    invocation_id = str(uuid4())
-    return (
-        Observation(invocation_id, "read_file", True, "current file evidence", None, None),
-        ToolResult(
-            invocation_id, "read_file", True,
-            {"path": path, "content": content}, None,
-            RiskLevel.SAFE, PolicyDecision.ALLOWED, None, 1,
-        ),
-    )
-
-
-def _edit_decision(path: str = "alpha.py", old_str: str = "old") -> AgentDecision:
-    return AgentDecision(
-        AgentDecisionKind.TOOL_ACTION,
-        ToolAction("edit_file", {"path": path, "old_str": old_str, "new_str": "new"}),
-        "Edit the approved file.",
-    )
-
-
-def _edit_guard_state(plan: Plan) -> AgentState:
-    return AgentState(
-        "edit alpha", [ModelMessage("user", "edit alpha")],
-        plan.run_id, plan.session_id, RuntimeStatus.STARTED, plan=plan,
-    )
-
-
-def test_agent_edit_requires_fresh_read_but_does_not_match_old_str() -> None:
-    plan = _edit_file_plan()
-    state = _edit_guard_state(plan)
-    edit = _edit_decision(old_str="guessed text absent from the file")
-    required = _require_current_edit_evidence(state, edit)
-    assert required.action == ToolAction("read_file", {"path": "alpha.py"})
-
-    wrong_read, wrong_result = _read_observation("beta.py", "old")
-    state = replace(state, observations=(wrong_read,), tool_results=(wrong_result,))
-    assert _require_current_edit_evidence(state, edit).action == required.action
-
-    target_read, target_result = _read_observation("alpha.py", "old\r\n")
-    state = replace(
-        state, observations=(*state.observations, target_read),
-        tool_results=(*state.tool_results, target_result),
-    )
-    # Membership is exclusively EditFileTool's responsibility.
-    assert _require_current_edit_evidence(state, edit) is edit
-
-    failed = Observation(
-        str(uuid4()), "edit_file", False,
-        "edit_file failed with EDIT_TARGET_NOT_FOUND.", "EDIT_TARGET_NOT_FOUND", None,
-        "alpha.py",
-    )
-    state = replace(state, observations=(*state.observations, failed))
-    assert _require_current_edit_evidence(state, edit) is edit
-
-    second_failure = replace(failed, invocation_id=str(uuid4()))
-    state = replace(state, observations=(*state.observations, second_failure))
-    assert _require_current_edit_evidence(state, edit).action == required.action
-
-    refreshed, refreshed_result = _read_observation("alpha.py", "old\r\n")
-    state = replace(
-        state, observations=(*state.observations, refreshed),
-        tool_results=(*state.tool_results, refreshed_result),
-    )
-    assert _require_current_edit_evidence(state, edit) is edit
-
-    ambiguous = replace(failed, invocation_id=str(uuid4()), error_code="EDIT_TARGET_AMBIGUOUS")
-    state = replace(state, observations=(*state.observations, ambiguous))
-    assert _require_current_edit_evidence(state, edit) is edit
-
-
 @pytest.mark.asyncio
-async def test_bad_old_str_reaches_edit_file_tool_after_read(tmp_path: Path) -> None:
+async def test_stale_edit_without_prior_read_returns_exact_match_error(tmp_path: Path) -> None:
     target = tmp_path / "alpha.py"
     target.write_bytes(b"old\r\n")
     plan = _edit_file_plan()
-    read, result = _read_observation("alpha.py", "old\r\n")
-    state = replace(_edit_guard_state(plan), observations=(read,), tool_results=(result,))
-    decision = _edit_decision(old_str="wrong\n")
-    assert _require_current_edit_evidence(state, decision) is decision
-    assert decision.action is not None
     attempted = await EditFileTool(WorkspaceGuard(tmp_path)).execute(
         ToolInvocation(
-            str(uuid4()), "edit_file", decision.action.arguments,
+            str(uuid4()), "edit_file",
+            {"path": "alpha.py", "old_str": "wrong\n", "new_str": "new\n"},
             plan.run_id, plan.session_id,
         )
     )
     assert attempted.error is not None
     assert attempted.error.code == "EDIT_TARGET_NOT_FOUND"
     assert target.read_bytes() == b"old\r\n"
-
-
-def test_agent_edit_success_requires_new_read_but_allows_later_edit() -> None:
-    plan = _edit_file_plan()
-    read, result = _read_observation("alpha.py", "old\n")
-    state = replace(
-        _edit_guard_state(plan), observations=(read,), tool_results=(result,),
-    )
-    edit = _edit_decision()
-    assert _require_current_edit_evidence(state, edit) is edit
-
-    success = Observation(
-        str(uuid4()), "edit_file", True, "edit completed", None, None, "alpha.py"
-    )
-    state = replace(state, observations=(*state.observations, success))
-    assert _require_current_edit_evidence(state, edit).action == ToolAction(
-        "read_file", {"path": "alpha.py"}
-    )
-
-    refreshed, refreshed_result = _read_observation("alpha.py", "new\n")
-    state = replace(
-        state,
-        observations=(*state.observations, refreshed),
-        tool_results=(*state.tool_results, refreshed_result),
-        repair_count=1,
-        validation_result=ValidationResult(
-            (), (), ValidationStatus.FAIL, ValidationConfidence.LOW,
-            False, 1, "A further approved edit is required.",
-        ),
-        repair_guidance=RepairGuidance(
-            plan.plan_id, plan.version, 1, plan.steps,
-            "A further approved edit is required.",
-        ),
-    )
-    repair_edit = _edit_decision(old_str="new")
-    assert _require_current_edit_evidence(state, repair_edit) is repair_edit
-
-    repaired = replace(success, invocation_id=str(uuid4()), repair_attempt=1)
-    state = replace(state, observations=(*state.observations, repaired))
-    assert _require_current_edit_evidence(state, repair_edit).action == ToolAction(
-        "read_file", {"path": "alpha.py"}
-    )
 
 
 def test_old_checkpoint_observation_defaults_new_guard_metadata() -> None:
@@ -1520,13 +1405,6 @@ def test_old_checkpoint_observation_defaults_new_guard_metadata() -> None:
     assert isinstance(restored, Observation)
     assert restored.target_path is None
     assert restored.repair_attempt == 0
-
-
-def test_agent_edit_guard_preserves_formal_scope_denial() -> None:
-    plan = _edit_file_plan()
-    state = _edit_guard_state(plan)
-    out_of_scope = _edit_decision(path="beta.py")
-    assert _require_current_edit_evidence(state, out_of_scope) is out_of_scope
 
 
 class ResultRuntime:

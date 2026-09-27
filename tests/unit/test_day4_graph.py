@@ -55,7 +55,6 @@ from nexus.domain.ports.validation import ValidationPlanner, ValidationRunner
 from nexus.domain.runtime_events import (
     AgentSemanticRetryStarted,
     AgentStepCompleted,
-    AgentStepStarted,
     FinalResult,
     PlanStepCompleted,
     RepairStarted,
@@ -82,8 +81,6 @@ from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import (
     Day4LangGraphRuntime,
     _action_fingerprint,
-    _complete_matching_plan_step,
-    _is_repeated_successful_read,
     _observation_summary,
 )
 from nexus.security.workspace import WorkspaceGuard
@@ -582,7 +579,6 @@ def _runtime(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     model_call_id: Callable[[], str] | None = None,
     normalize_argv: Callable[[list[str]], list[str]] | None = None,
-    swe_execution_mode: bool = False,
 ) -> Day4LangGraphRuntime:
     return Day4LangGraphRuntime(
         explorer=cast(RepositoryExplorer, Explorer()),
@@ -605,7 +601,6 @@ def _runtime(
         checkpointer=checkpointer,
         model_call_id=model_call_id,
         normalize_argv=normalize_argv,
-        swe_execution_mode=swe_execution_mode,
     )
 
 
@@ -629,192 +624,8 @@ def _state_with_completed_read() -> AgentState:
     )
 
 
-def test_repeated_successful_read_only_matches_unchanged_same_range() -> None:
-    state = _state_with_completed_read()
-
-    def read(start: int, count: int) -> AgentDecision:
-        return AgentDecision(
-            AgentDecisionKind.TOOL_ACTION,
-            ToolAction("read_file", {
-                "path": "alpha.py", "start_line": start, "max_lines": count,
-            }),
-            "Inspect alpha.",
-        )
-
-    assert _is_repeated_successful_read(state, read(1, 400))
-    assert not _is_repeated_successful_read(state, read(1, 100))
-    assert not _is_repeated_successful_read(state, read(401, 100))
-    assert not _is_repeated_successful_read(replace(state, repair_count=1), read(1, 400))
-
-    edit_id = str(uuid4())
-    edit = Observation(edit_id, "edit_file", True, "edit complete", None, None, "alpha.py")
-    after_write = replace(state, observations=(*state.observations, edit))
-    assert not _is_repeated_successful_read(after_write, read(1, 400))
-
-    failed = Observation(
-        str(uuid4()), "edit_file", False, "exact edit failed",
-        "EDIT_TARGET_NOT_FOUND", None, "alpha.py",
-    )
-    after_failed_edit = replace(state, observations=(*state.observations, failed))
-    assert not _is_repeated_successful_read(after_failed_edit, read(1, 400))
-
-
 @pytest.mark.asyncio
-async def test_agent_step_retries_duplicate_read_once_with_safe_feedback() -> None:
-    class RetryAgent:
-        def __init__(self) -> None:
-            self.requests: list[AgentDecisionRequest] = []
-
-        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
-            self.requests.append(request)
-            if len(self.requests) == 1:
-                return AgentDecision(
-                    AgentDecisionKind.TOOL_ACTION,
-                    ToolAction(
-                        "read_file", {"path": "alpha.py", "start_line": 1, "max_lines": 400}
-                    ),
-                    "Read alpha again.",
-                )
-            return AgentDecision(
-                AgentDecisionKind.TOOL_ACTION,
-                ToolAction("edit_file", {
-                    "path": "alpha.py", "old_str": "old", "new_str": "new",
-                }),
-                "Apply the approved edit.",
-            )
-
-    state = _state_with_completed_read()
-    assert state.session_id is not None
-    step = PlanStep(
-        str(uuid4()), 1, "Edit alpha", "edit_file", ("alpha.py",),
-        None, None, PlanStepStatus.PENDING,
-    )
-    scope = derive_authorization_scope((step,))
-    plan_id = str(uuid4())
-    plan = Plan(
-        plan_id, state.run_id, state.session_id, 1, PlanKind.INITIAL,
-        PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
-        "Approved edit.", None, None,
-        compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
-    )
-    approved = ApprovedPlanEvidence(
-        plan.plan_id, plan.version, state.run_id, state.session_id,
-        PlanAuthorizationSource.INTERACTIVE, str(uuid4()), plan.scope_digest,
-        plan.authorization_scope, datetime.now(UTC),
-    )
-    state = replace(
-        state, context=WorkingContext("edit alpha", (), (), ("alpha.py",), (), False),
-        plan=plan, approved_plan=approved,
-    )
-
-    class RecordingRuntime(OneActionRuntime):
-        def __init__(self, ledger: ToolExecutionLedger) -> None:
-            super().__init__(ledger)
-            self.seen_authorization: ApprovedPlanEvidence | None = None
-
-        async def execute(
-            self, invocation: ToolInvocation, *,
-            authorization: ApprovedPlanEvidence | None = None,
-        ) -> ToolResult:
-            self.seen_authorization = authorization
-            return await super().execute(invocation, authorization=authorization)
-
-    agent = RetryAgent()
-    ledger = ToolExecutionLedger()
-    events = RuntimeEventBuffer()
-    tool_runtime = RecordingRuntime(ledger)
-    runtime = _runtime(
-        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
-        agent=agent, tool_runtime=tool_runtime,
-        model_call_id=lambda: str(uuid4()),
-    )
-
-    command = await runtime._agent_step(state)  # noqa: SLF001
-
-    assert command.goto == "execute_tool"
-    assert command.update is not None
-    assert command.update["pending_tool_action"] == ToolAction(
-        "edit_file", {"path": "alpha.py", "old_str": "old", "new_str": "new"}
-    )
-    assert len(agent.requests) == 2
-    assert agent.requests[0].runtime_feedback is None
-    assert agent.requests[1].runtime_feedback is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
-    assert agent.requests[1].context is agent.requests[0].context
-    assert agent.requests[1].context.compacted_observations is None
-    assert agent.requests[1].observations == state.observations
-    assert "context" not in command.update
-    assert "runtime_feedback" not in command.update
-    assert "observations" not in command.update
-    emitted = events.drain(state.run_id)
-    assert [type(event) for event in emitted] == [
-        AgentStepStarted, AgentSemanticRetryStarted, AgentStepCompleted,
-    ]
-    assert isinstance(emitted[1], AgentSemanticRetryStarted)
-    assert emitted[1].reason is AgentRuntimeFeedback.REPEATED_SUCCESSFUL_READ
-    assert isinstance(emitted[2], AgentStepCompleted)
-    assert emitted[2].guard_reason is None
-    assert "PRIVATE_FILE_CONTENT" not in repr(emitted)
-    pending = cast(ToolAction, command.update["pending_tool_action"])
-    await runtime._execute_tool(replace(state, pending_tool_action=pending))  # noqa: SLF001
-    assert tool_runtime.seen_authorization is approved
-
-
-@pytest.mark.asyncio
-async def test_agent_step_stops_when_corrected_decision_repeats_same_read() -> None:
-    class RepeatAgent:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
-            del request
-            self.calls += 1
-            return AgentDecision(
-                AgentDecisionKind.TOOL_ACTION,
-                ToolAction(
-                    "read_file", {"path": "alpha.py", "start_line": 1, "max_lines": 400}
-                ),
-                "Read alpha again.",
-            )
-
-    state = _state_with_completed_read()
-    assert state.session_id is not None
-    step = PlanStep(
-        str(uuid4()), 1, "Edit alpha", "edit_file", ("alpha.py",),
-        None, None, PlanStepStatus.PENDING,
-    )
-    scope = derive_authorization_scope((step,))
-    plan_id = str(uuid4())
-    plan = Plan(
-        plan_id, state.run_id, state.session_id, 1, PlanKind.INITIAL,
-        PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
-        "Approved edit.", None, None,
-        compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
-    )
-    state = replace(
-        state, context=WorkingContext("edit alpha", (), (), ("alpha.py",), (), False),
-        plan=plan,
-    )
-    agent = RepeatAgent()
-    ledger = ToolExecutionLedger()
-    events = RuntimeEventBuffer()
-    runtime = _runtime(
-        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
-        agent=agent, tool_runtime=OneActionRuntime(ledger),
-    )
-
-    with pytest.raises(ModelError, match="repeated a successful read_file") as error:
-        await runtime._agent_step(state)  # noqa: SLF001
-    assert error.value.code == "INVALID_AGENT_DECISION"
-    assert agent.calls == 2
-    assert [type(event) for event in events.drain(state.run_id)] == [
-        AgentStepStarted, AgentSemanticRetryStarted,
-    ]
-    assert ledger.step_count(state.run_id) == 1
-    assert ledger.count(state.run_id) == 0
-
-
-@pytest.mark.asyncio
-async def test_agent_step_records_final_guard_decision_summary() -> None:
+async def test_agent_step_preserves_proposed_edit_summary() -> None:
     class ProposeEdit:
         async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
             del request
@@ -863,11 +674,8 @@ async def test_agent_step_records_final_guard_decision_summary() -> None:
     ]
     assert len(completed) == 1
     assert completed[0].decision_kind is AgentDecisionKind.TOOL_ACTION
-    assert completed[0].guard_reason == "edit_requires_read"
-    assert completed[0].decision_summary == (
-        "Read the current target file before exact replacement."
-    )
-    assert completed[0].decision_summary != "Apply the exact edit now."
+    assert completed[0].guard_reason is None
+    assert completed[0].decision_summary == "Apply the exact edit now."
 
 
 @pytest.mark.asyncio
@@ -987,10 +795,7 @@ async def test_agent_structured_retry_executes_no_tool_before_valid_decision() -
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("swe_execution_mode", [False, True])
-async def test_plan_scope_denial_is_only_replan_trigger_and_stops_at_limit(
-    swe_execution_mode: bool,
-) -> None:
+async def test_plan_scope_denial_is_only_replan_trigger_and_stops_at_limit() -> None:
     ledger = ToolExecutionLedger()
     events = RuntimeEventBuffer()
     planner = FixedPlanner()
@@ -1000,7 +805,7 @@ async def test_plan_scope_denial_is_only_replan_trigger_and_stops_at_limit(
         planner=planner,
         agent=Decisions(),
         tool_runtime=OneActionRuntime(ledger, error_code="PLAN_SCOPE_DENIED"),
-        max_replans=0, swe_execution_mode=swe_execution_mode,
+        max_replans=0,
     )
     state = AgentState(
         "edit alpha",
@@ -1135,130 +940,7 @@ def _progress_plan() -> Plan:
 
 
 @pytest.mark.asyncio
-async def test_successful_read_completes_only_first_pending_read_and_next_agent_sees_it() -> None:
-    plan = _progress_plan()
-    result = _tool_result(
-        str(uuid4()), "read_file", success=True,
-        output={"path": "iam.py", "start_line": 1, "end_line": 200,
-                "truncated": False, "content": "private file content"},
-    )
-    action = ToolAction("read_file", {"path": "iam.py", "start_line": 1,
-                                      "max_lines": 200})
-    state = AgentState(
-        "repair", [ModelMessage("user", "repair")], plan.run_id, plan.session_id,
-        RuntimeStatus.STARTED, context=WorkingContext("repair", (), (), (), (), False),
-        plan=plan, latest_tool_result=result, pending_tool_action=action,
-    )
-    ledger, events = ToolExecutionLedger(), RuntimeEventBuffer()
-    runtime = _runtime(
-        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
-        agent=ReadyDecisions(), tool_runtime=OneActionRuntime(ledger),
-    )
-    command = await runtime._observe(state)
-    update = command.update
-    assert isinstance(update, dict)
-    updated = update["plan"]
-    assert isinstance(updated, Plan)
-    assert [step.status for step in updated.steps] == [
-        PlanStepStatus.COMPLETED, PlanStepStatus.PENDING,
-        PlanStepStatus.PENDING, PlanStepStatus.PENDING,
-    ]
-    assert updated.authorization_scope == plan.authorization_scope
-    assert updated.scope_digest == plan.scope_digest
-    completed = [event for event in events.drain(plan.run_id)
-                 if isinstance(event, PlanStepCompleted)]
-    assert len(completed) == 1
-    assert completed[0].step_id == plan.steps[0].step_id
-    next_state = replace(state, **update)
-    assert next_state.plan is not None
-    assert next_state.context is not None
-    request = AgentDecisionRequest(
-        next_state.task, next_state.context, next_state.plan,
-        next_state.observations,
-    )
-    from nexus.application.planning import _agent_messages
-    messages = _agent_messages(request)
-    payload = json.loads(messages[-1].content)
-    assert "Follow approved Plan progress" in messages[0].content
-    assert payload["plan"]["steps"][0]["status"] == "COMPLETED"
-    assert payload["plan"]["completed_step_ids"] == [plan.steps[0].step_id]
-    assert payload["plan"]["current_step"]["step_id"] == plan.steps[1].step_id
-    assert payload["plan"]["next_step"]["step_id"] == plan.steps[1].step_id
-    assert next_state.observations[0].success
-
-
-def test_plan_progress_ignores_repeated_read_and_failed_or_unrelated_tools() -> None:
-    plan = _progress_plan()
-    read = _tool_result(
-        str(uuid4()), "read_file", success=True,
-        output={"path": "iam.py", "start_line": 1, "end_line": 200,
-                "truncated": False, "content": "private file content"},
-    )
-    action = ToolAction("read_file", {"path": "iam.py", "start_line": 1,
-                                      "max_lines": 200})
-    state = AgentState(
-        "repair", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
-        plan=plan,
-    )
-    once, step = _complete_matching_plan_step(state, action, read)
-    assert once is not None and step is not None
-    assert step.step_id == plan.steps[0].step_id
-    prior = Observation(read.invocation_id, "read_file", True, "read evidence",
-                        None, None, "iam.py")
-    repeated = replace(state, plan=once, observations=(prior,), tool_results=(read,))
-    assert _complete_matching_plan_step(repeated, action, read) == (None, None)
-    second = _tool_result(
-        str(uuid4()), "read_file", success=True,
-        output={"path": "test_iam.py", "start_line": 1, "end_line": 20,
-                "truncated": False, "content": "tests"},
-    )
-    advanced, second_step = _complete_matching_plan_step(
-        repeated, ToolAction("read_file", {"path": "test_iam.py"}), second,
-    )
-    assert advanced is not None and second_step is not None
-    assert second_step.step_id == plan.steps[1].step_id
-    failed = _tool_result(str(uuid4()), "edit_file", success=False,
-                          error_code="EDIT_TARGET_NOT_FOUND")
-    assert _complete_matching_plan_step(
-        repeated, ToolAction("edit_file", {"path": "iam.py"}), failed,
-    ) == (None, None)
-    unrelated = _tool_result(str(uuid4()), "search_files", success=True,
-                             output={"paths": ["iam.py"]})
-    assert _complete_matching_plan_step(
-        repeated, ToolAction("search_files", {"query": "iam"}), unrelated,
-    ) == (None, None)
-    shell = _tool_result(str(uuid4()), "shell", success=True, output={})
-    assert _complete_matching_plan_step(
-        repeated, ToolAction("shell", {"argv": ["pytest", "-q"]}), shell,
-    ) == (None, None)
-
-
-def test_successful_write_completes_only_exact_matching_pending_step() -> None:
-    plan = _progress_plan()
-    state = AgentState(
-        "repair", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
-        plan=plan,
-    )
-    action = ToolAction("edit_file", {"path": "iam.py"})
-    result = _tool_result(str(uuid4()), "edit_file", success=True,
-                          output={"path": "iam.py", "change_kind": "MODIFIED"})
-    updated, step = _complete_matching_plan_step(state, action, result)
-    assert updated is not None and step is not None
-    assert step.step_id == plan.steps[2].step_id
-    assert updated.steps[0].status is PlanStepStatus.PENDING
-    assert updated.steps[2].status is PlanStepStatus.COMPLETED
-    assert updated.steps[3].status is PlanStepStatus.PENDING
-    assert updated.authorization_scope == plan.authorization_scope
-    assert _complete_matching_plan_step(replace(state, plan=updated), action, result) == (
-        None, None,
-    )
-    other_result = _tool_result(str(uuid4()), "edit_file", success=True,
-                                output={"path": "other.py", "change_kind": "MODIFIED"})
-    assert _complete_matching_plan_step(state, action, other_result) == (None, None)
-
-
-@pytest.mark.asyncio
-async def test_completed_plan_step_survives_graph_checkpoint() -> None:
+async def test_plan_step_is_not_automatically_completed_in_checkpoint() -> None:
     ledger = ToolExecutionLedger()
     runtime = _runtime(
         ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
@@ -1272,19 +954,18 @@ async def test_completed_plan_step_survives_graph_checkpoint() -> None:
     thread_id = f"nexus-run:{state.run_id}"
     completed = await runtime.run(state, thread_id=thread_id)
     assert completed.plan is not None
-    assert completed.plan.steps[0].status is PlanStepStatus.COMPLETED
+    assert completed.plan.steps[0].status is PlanStepStatus.PENDING
     snapshot = await runtime._graph.aget_state(
         {"configurable": {"thread_id": thread_id}}
     )
-    assert snapshot.values["plan"].steps[0].status is PlanStepStatus.COMPLETED
+    assert snapshot.values["plan"].steps[0].status is PlanStepStatus.PENDING
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("repeat_after_feedback", [False, True])
 @pytest.mark.parametrize("error_code", ["PERMISSION_DENIED", "COMMAND_DENIED"])
-@pytest.mark.parametrize("swe_execution_mode", [False, True])
 async def test_deterministic_policy_denial_gets_one_semantic_retry_without_execution(
-    repeat_after_feedback: bool, error_code: str, swe_execution_mode: bool,
+    repeat_after_feedback: bool, error_code: str,
 ) -> None:
     class DenialDecisions:
         def __init__(self) -> None:
@@ -1314,7 +995,6 @@ async def test_deterministic_policy_denial_gets_one_semantic_retry_without_execu
     runtime = _runtime(
         ledger=ledger, event_buffer=events, planner=FixedPlanner(),
         agent=agent, tool_runtime=OneActionRuntime(ledger),
-        swe_execution_mode=swe_execution_mode,
     )
     observed = await runtime._observe(state)
     update = observed.update
@@ -1352,7 +1032,7 @@ def test_policy_denial_fingerprint_uses_normalized_shell_argv() -> None:
 
 
 @pytest.mark.asyncio
-async def test_swe_mode_executes_repeated_successful_reads_without_semantic_retry() -> None:
+async def test_normal_runtime_executes_repeated_successful_reads_without_semantic_retry() -> None:
     class RepeatRead:
         def __init__(self) -> None:
             self.requests: list[AgentDecisionRequest] = []
@@ -1384,7 +1064,6 @@ async def test_swe_mode_executes_repeated_successful_reads_without_semantic_retr
     runtime = _runtime(
         ledger=ledger, event_buffer=events, planner=FixedPlanner(),
         agent=agent, tool_runtime=OneActionRuntime(ledger),
-        swe_execution_mode=True,
     )
     for _ in range(2):
         chosen = await runtime._agent_step(state)
@@ -1404,7 +1083,7 @@ async def test_swe_mode_executes_repeated_successful_reads_without_semantic_retr
 
 
 @pytest.mark.asyncio
-async def test_swe_mode_executes_two_real_edits_to_same_file(tmp_path: Path) -> None:
+async def test_normal_runtime_executes_two_real_edits_to_same_file(tmp_path: Path) -> None:
     (tmp_path / "iam.py").write_text("A C\n", encoding="utf-8")
     plan = _progress_plan()
     authorization = ApprovedPlanEvidence(
@@ -1447,7 +1126,6 @@ async def test_swe_mode_executes_two_real_edits_to_same_file(tmp_path: Path) -> 
     runtime = _runtime(
         ledger=ledger, event_buffer=events, planner=FixedPlanner(),
         agent=TwoEdits(), tool_runtime=RealEditorRuntime(ledger),
-        swe_execution_mode=True,
     )
     state = AgentState(
         "edit iam", [ModelMessage("user", "edit iam")], plan.run_id,
@@ -1476,7 +1154,7 @@ async def test_swe_mode_executes_two_real_edits_to_same_file(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
-async def test_swe_mode_preserves_edit_decision_without_fresh_read() -> None:
+async def test_normal_runtime_preserves_edit_decision_without_fresh_read() -> None:
     plan = _progress_plan()
     action = ToolAction("edit_file", {
         "path": "iam.py", "old_str": "old", "new_str": "new",
@@ -1491,7 +1169,6 @@ async def test_swe_mode_preserves_edit_decision_without_fresh_read() -> None:
     runtime = _runtime(
         ledger=ledger, event_buffer=events, planner=FixedPlanner(),
         agent=EditDecision(), tool_runtime=OneActionRuntime(ledger),
-        swe_execution_mode=True,
     )
     state = AgentState(
         "edit iam", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
@@ -1506,7 +1183,7 @@ async def test_swe_mode_preserves_edit_decision_without_fresh_read() -> None:
 
 
 @pytest.mark.asyncio
-async def test_swe_mode_keeps_plan_progress_as_guidance_only() -> None:
+async def test_normal_runtime_keeps_plan_progress_as_guidance_only() -> None:
     plan = _progress_plan()
     result = _tool_result(
         str(uuid4()), "read_file", success=True,
@@ -1523,7 +1200,6 @@ async def test_swe_mode_keeps_plan_progress_as_guidance_only() -> None:
         ledger=ToolExecutionLedger(), event_buffer=events,
         planner=FixedPlanner(), agent=ReadyDecisions(),
         tool_runtime=OneActionRuntime(ToolExecutionLedger()),
-        swe_execution_mode=True,
     )
     observed = await runtime._observe(state)
     assert isinstance(observed.update, dict)
@@ -1533,7 +1209,7 @@ async def test_swe_mode_keeps_plan_progress_as_guidance_only() -> None:
     assert not any(isinstance(item, PlanStepCompleted) for item in events.drain(plan.run_id))
 
 
-def test_swe_agent_prompt_omits_authoritative_plan_progress() -> None:
+def test_agent_prompt_omits_authoritative_plan_progress() -> None:
     from nexus.application.planning import _agent_messages
 
     plan = _progress_plan()
@@ -1541,7 +1217,7 @@ def test_swe_agent_prompt_omits_authoritative_plan_progress() -> None:
         "edit iam", WorkingContext("edit iam", (), (), (), (), False),
         plan, (),
     )
-    system, user = _agent_messages(request, swe_execution_mode=True)
+    system, user = _agent_messages(request)
     payload = json.loads(user.content)
     assert "execution guidance" in system.content
     assert "Follow approved Plan progress" not in system.content

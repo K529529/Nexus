@@ -202,7 +202,6 @@ async def bootstrap_application(
     tool_event_emitter: RuntimeEventEmitter | None = None,
     embedding_gateway: EmbeddingGateway | None = None,
     eval_trace_collector: EvalTraceCollector | None = None,
-    swe_execution_mode: bool = False,
 ) -> AsyncIterator[BootstrappedApplication]:
     """Build the approved object graph and reliably release infrastructure resources."""
 
@@ -367,7 +366,6 @@ async def bootstrap_application(
                     gateway,
                     prepare_input=context_manager.fit_model_input,
                     tool_metadata=tool_metadata,
-                    swe_execution_mode=swe_execution_mode,
                 ),
                 tool_runtime=tool_runtime,
                 validation_planner=DeterministicValidationPlanner(),
@@ -389,7 +387,6 @@ async def bootstrap_application(
                 conversation_turns=session_service.context_turns,
                 model_call_id=gateway.last_model_call_id,
                 normalize_argv=executables.normalize_argv,
-                swe_execution_mode=swe_execution_mode,
             )
         application = BootstrappedApplication(
             runtime=NexusRuntime(

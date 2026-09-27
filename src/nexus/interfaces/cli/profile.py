@@ -25,7 +25,6 @@ from nexus.domain.runtime_events import (
     PhaseFinished,
     PhaseStarted,
     PlanCreated,
-    PlanStepCompleted,
     RepairStarted,
     ReplanOccurred,
     RunInterrupted,
@@ -66,8 +65,7 @@ class _AgentStep:
 class ExecutionProfile:
     """Collect event durations without inspecting prompts, tool inputs or file content."""
 
-    def __init__(self, *, swe_execution_mode: bool = False) -> None:
-        self._swe_execution_mode = swe_execution_mode
+    def __init__(self) -> None:
         self._created = time.perf_counter()
         self._segment_start: datetime | None = None
         self._has_terminal = False
@@ -83,8 +81,7 @@ class ExecutionProfile:
         self._pending_agent_action: tuple[str, _AgentStep | None] | None = None
         self._agent_tool_phase = False
         self._active_agent_tool: tuple[str, str, _AgentStep | None] | None = None
-        self._plan_identity: tuple[str, int] | None = None
-        self._plan_steps: list[tuple[str, str]] = []
+        self._plan_steps: list[str] = []
         self._plan_step_count = 0
         self.llm_calls = 0
         self.tool_calls = 0
@@ -123,19 +120,11 @@ class ExecutionProfile:
                 self._agent_tool_phase = False
                 self._active_agent_tool = None
         elif isinstance(event, PlanCreated):
-            self._plan_identity = (event.plan_id, event.plan_version)
             self._plan_step_count = len(event.step_summaries)
             self._plan_steps = [
-                (_safe_plan_description(summary), "PENDING")
+                _safe_plan_description(summary)
                 for summary in event.step_summaries[:_MAX_PLAN_PROGRESS_STEPS]
             ]
-        elif isinstance(event, PlanStepCompleted):
-            if (
-                self._plan_identity == (event.plan_id, event.plan_version)
-                and 1 <= event.sequence <= len(self._plan_steps)
-            ):
-                description, _ = self._plan_steps[event.sequence - 1]
-                self._plan_steps[event.sequence - 1] = (description, "COMPLETED")
         elif isinstance(event, ModelCallStarted):
             self.llm_calls += 1
             if event.phase is ModelCallPhase.AGENT_STEP:
@@ -249,13 +238,11 @@ class ExecutionProfile:
         if self._slow:
             result.extend(["", "Slowest operations"])
             result.extend(f"{label:<24}{duration} ms" for duration, label, _ in self._slow)
-        if self._swe_execution_mode and self._plan_steps:
-            result.extend(["", "Plan progress tracking: disabled (SWE mode)"])
-        elif self._plan_steps:
-            result.extend(["", "Plan progress"])
+        if self._plan_steps:
+            result.extend(["", "Plan steps"])
             result.extend(
-                f"{index:<3}{status:<10}{description}"
-                for index, (description, status) in enumerate(self._plan_steps, start=1)
+                f"{index:<3}{description}"
+                for index, description in enumerate(self._plan_steps, start=1)
             )
             omitted_steps = self._plan_step_count - len(self._plan_steps)
             if omitted_steps:
