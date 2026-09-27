@@ -25,9 +25,11 @@ from nexus.domain.runtime_events import (
     ModelCallFinished,
     ModelCallStarted,
     RuntimeStatus,
+    ToolFinished,
     ToolStarted,
 )
-from nexus.domain.tooling import RiskLevel
+from nexus.domain.tooling import PolicyDecision, RiskLevel, ToolResult
+from nexus.infrastructure.graph.day4_runtime import _observation_summary
 from nexus.infrastructure.observability.console import ConsoleTracer
 from nexus.infrastructure.observability.langsmith import LangSmithTracer
 
@@ -243,6 +245,61 @@ async def test_tool_target_summary_stays_out_of_enricher_and_langsmith() -> None
     ]
     assert len(tool_spans) == 1
     assert tool_spans[0][2]["extra"]["metadata"] == dict(telemetry.payload)
+
+
+@pytest.mark.asyncio
+async def test_read_file_observation_content_stays_out_of_enricher_and_langsmith() -> None:
+    context = _context()
+    invocation_id = str(uuid4())
+    sentinel = "PRIVATE_FILE_CONTENT_NOT_FOR_TELEMETRY"
+    result = ToolResult(
+        invocation_id=invocation_id,
+        tool_name="read_file",
+        success=True,
+        output={
+            "path": "pvlib/iam.py",
+            "start_line": 1,
+            "end_line": 400,
+            "truncated": True,
+            "content": sentinel,
+        },
+        error=None,
+        risk_level=RiskLevel.SAFE,
+        policy_decision=PolicyDecision.ALLOWED,
+        approval_decision=None,
+        duration_ms=3,
+    )
+    summary = _observation_summary(result)
+    assert sentinel in summary
+    assert "end_line=400 truncated=true" in summary
+
+    telemetry = EventEnricher(Path(".")).enrich(
+        ToolFinished(
+            run_id=context.run_id,
+            session_id=None,
+            invocation_id=invocation_id,
+            tool_name="read_file",
+            success=True,
+            risk_level=result.risk_level,
+            policy_decision=result.policy_decision,
+            approval_decision=result.approval_decision,
+            duration_ms=result.duration_ms,
+            error_code=None,
+        ),
+        PublishedObservation(context, 1),
+    )
+    assert sentinel not in repr(telemetry)
+    assert "end_line" not in telemetry.payload
+    assert "truncated" not in telemetry.payload
+    assert "content" not in telemetry.payload
+
+    client = _Client()
+    tracer = LangSmithTracer(client, project="safe-project")
+    await tracer.start_run(_start(context))
+    await tracer.record(telemetry)
+    await tracer.finish(_finish(context))
+    assert sentinel not in repr(client.calls)
+    assert "end_line=400" not in repr(client.calls)
 
 
 @pytest.mark.asyncio

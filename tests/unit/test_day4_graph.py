@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator, Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID, uuid4, uuid5
@@ -20,6 +21,7 @@ from nexus.domain.agent_decision import (
     AgentDecision,
     AgentDecisionKind,
     AgentDecisionRequest,
+    Observation,
     ToolAction,
 )
 from nexus.domain.agent_state import AgentState
@@ -74,6 +76,7 @@ from nexus.domain.validation import (
 from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import (
     Day4LangGraphRuntime,
+    _is_repeated_successful_read,
     _observation_summary,
 )
 
@@ -132,6 +135,65 @@ def test_patch_observation_exposes_only_allowlisted_safe_failure_detail() -> Non
         "header counts equal to the body counts."
     )
     assert _observation_summary(unknown_message) == "apply_patch failed with INVALID_PATCH."
+
+
+def test_read_file_observation_preserves_range_and_complete_small_content() -> None:
+    result = _tool_result(
+        str(uuid4()),
+        "read_file",
+        success=True,
+        output={
+            "path": "pvlib/iam.py",
+            "start_line": 401,
+            "end_line": 402,
+            "truncated": False,
+            "content": "first line\r\nsecond line\r\n",
+        },
+    )
+
+    assert _observation_summary(result) == (
+        "read_file pvlib/iam.py start_line=401 end_line=402 truncated=false:\n"
+        "first line\r\nsecond line\r\n"
+    )
+
+
+def test_read_file_observation_bounds_large_content_and_keeps_head_middle_tail() -> None:
+    content = (
+        "HEAD-EVIDENCE\n" + "x" * 8000 + "MID-EVIDENCE\n"
+        + "y" * 8000 + "TAIL-EVIDENCE\n"
+    )
+    result = _tool_result(
+        str(uuid4()),
+        "read_file",
+        success=True,
+        output={
+            "path": "pvlib/iam.py",
+            "start_line": 1,
+            "end_line": 400,
+            "truncated": True,
+            "content": content,
+        },
+    )
+
+    summary = _observation_summary(result)
+    assert len(summary) == 4096
+    assert summary.startswith(
+        "read_file pvlib/iam.py start_line=1 end_line=400 truncated=true:\n"
+        "HEAD-EVIDENCE\n"
+    )
+    assert summary.count("...[read_file content omitted from observation]...") == 2
+    assert "MID-EVIDENCE\n" in summary
+    assert summary.endswith("TAIL-EVIDENCE\n")
+    assert content not in summary
+
+
+def test_non_read_file_observation_remains_unchanged() -> None:
+    result = _tool_result(
+        str(uuid4()), "search_files", success=True,
+        output={"paths": ["pvlib/iam.py"], "truncated": False},
+    )
+
+    assert _observation_summary(result) == "search_files completed successfully."
 
 
 class Explorer:
@@ -531,6 +593,174 @@ def _runtime(
         checkpointer=checkpointer,
         model_call_id=model_call_id,
     )
+
+
+def _state_with_completed_read() -> AgentState:
+    invocation_id = str(uuid4())
+    result = _tool_result(
+        invocation_id, "read_file", success=True,
+        output={
+            "path": "alpha.py", "start_line": 1, "end_line": 400,
+            "truncated": True, "content": "PRIVATE_FILE_CONTENT",
+        },
+    )
+    observation = Observation(
+        invocation_id, "read_file", True, "read_file alpha.py: evidence",
+        None, None, "alpha.py",
+    )
+    return AgentState(
+        "edit alpha", [ModelMessage("user", "edit alpha")],
+        str(uuid4()), str(uuid4()), RuntimeStatus.STARTED,
+        observations=(observation,), tool_results=(result,),
+    )
+
+
+def test_repeated_successful_read_only_matches_unchanged_same_range() -> None:
+    state = _state_with_completed_read()
+
+    def read(start: int, count: int) -> AgentDecision:
+        return AgentDecision(
+            AgentDecisionKind.TOOL_ACTION,
+            ToolAction("read_file", {
+                "path": "alpha.py", "start_line": start, "max_lines": count,
+            }),
+            "Inspect alpha.",
+        )
+
+    assert _is_repeated_successful_read(state, read(1, 400))
+    assert not _is_repeated_successful_read(state, read(1, 100))
+    assert not _is_repeated_successful_read(state, read(401, 100))
+    assert not _is_repeated_successful_read(replace(state, repair_count=1), read(1, 400))
+
+    edit_id = str(uuid4())
+    edit = Observation(edit_id, "edit_file", True, "edit complete", None, None, "alpha.py")
+    after_write = replace(state, observations=(*state.observations, edit))
+    assert not _is_repeated_successful_read(after_write, read(1, 400))
+
+    failed = Observation(
+        str(uuid4()), "edit_file", False, "exact edit failed",
+        "EDIT_TARGET_NOT_FOUND", None, "alpha.py",
+    )
+    after_failed_edit = replace(state, observations=(*state.observations, failed))
+    assert not _is_repeated_successful_read(after_failed_edit, read(1, 400))
+
+
+@pytest.mark.asyncio
+async def test_agent_step_retries_duplicate_read_once_with_safe_feedback() -> None:
+    class RetryAgent:
+        def __init__(self) -> None:
+            self.requests: list[AgentDecisionRequest] = []
+
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            self.requests.append(request)
+            if len(self.requests) == 1:
+                return AgentDecision(
+                    AgentDecisionKind.TOOL_ACTION,
+                    ToolAction(
+                        "read_file", {"path": "alpha.py", "start_line": 1, "max_lines": 400}
+                    ),
+                    "Read alpha again.",
+                )
+            return AgentDecision(
+                AgentDecisionKind.TOOL_ACTION,
+                ToolAction("edit_file", {
+                    "path": "alpha.py", "old_str": "old", "new_str": "new",
+                }),
+                "Apply the approved edit.",
+            )
+
+    state = _state_with_completed_read()
+    assert state.session_id is not None
+    step = PlanStep(
+        str(uuid4()), 1, "Edit alpha", "edit_file", ("alpha.py",),
+        None, None, PlanStepStatus.PENDING,
+    )
+    scope = derive_authorization_scope((step,))
+    plan_id = str(uuid4())
+    plan = Plan(
+        plan_id, state.run_id, state.session_id, 1, PlanKind.INITIAL,
+        PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
+        "Approved edit.", None, None,
+        compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+    )
+    state = replace(
+        state, context=WorkingContext("edit alpha", (), (), ("alpha.py",), (), False),
+        plan=plan,
+    )
+    agent = RetryAgent()
+    ledger = ToolExecutionLedger()
+    events = RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
+        agent=agent, tool_runtime=OneActionRuntime(ledger),
+        model_call_id=lambda: str(uuid4()),
+    )
+
+    command = await runtime._agent_step(state)  # noqa: SLF001
+
+    assert command.goto == "execute_tool"
+    assert command.update is not None
+    assert command.update["pending_tool_action"] == ToolAction(
+        "edit_file", {"path": "alpha.py", "old_str": "old", "new_str": "new"}
+    )
+    assert len(agent.requests) == 2
+    feedback = agent.requests[1].context.compacted_observations
+    assert feedback is not None and "next uncompleted approved Plan action" in feedback
+    assert "PRIVATE_FILE_CONTENT" not in feedback
+    completed = [
+        event for event in events.drain(state.run_id)
+        if isinstance(event, AgentStepCompleted)
+    ]
+    assert len(completed) == 1
+    assert completed[0].guard_reason is None
+
+
+@pytest.mark.asyncio
+async def test_agent_step_stops_when_corrected_decision_repeats_same_read() -> None:
+    class RepeatAgent:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            del request
+            self.calls += 1
+            return AgentDecision(
+                AgentDecisionKind.TOOL_ACTION,
+                ToolAction(
+                    "read_file", {"path": "alpha.py", "start_line": 1, "max_lines": 400}
+                ),
+                "Read alpha again.",
+            )
+
+    state = _state_with_completed_read()
+    assert state.session_id is not None
+    step = PlanStep(
+        str(uuid4()), 1, "Edit alpha", "edit_file", ("alpha.py",),
+        None, None, PlanStepStatus.PENDING,
+    )
+    scope = derive_authorization_scope((step,))
+    plan_id = str(uuid4())
+    plan = Plan(
+        plan_id, state.run_id, state.session_id, 1, PlanKind.INITIAL,
+        PlanStatus.CREATED, ApprovalDecision.PENDING, (step,), scope,
+        "Approved edit.", None, None,
+        compute_scope_digest(plan_id, 1, scope), datetime.now(UTC), None,
+    )
+    state = replace(
+        state, context=WorkingContext("edit alpha", (), (), ("alpha.py",), (), False),
+        plan=plan,
+    )
+    agent = RepeatAgent()
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
+        agent=agent, tool_runtime=OneActionRuntime(ledger),
+    )
+
+    with pytest.raises(ModelError, match="repeated a successful read_file") as error:
+        await runtime._agent_step(state)  # noqa: SLF001
+    assert error.value.code == "INVALID_AGENT_DECISION"
+    assert agent.calls == 2
 
 
 @pytest.mark.asyncio

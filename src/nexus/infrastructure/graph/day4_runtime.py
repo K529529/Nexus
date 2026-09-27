@@ -70,7 +70,8 @@ from nexus.domain.runtime_events import (
 )
 from nexus.domain.tooling import ApprovalDecision, RiskLevel, ToolInvocation, ToolResult
 from nexus.domain.validation import ValidationStatus
-from nexus.errors import NexusError
+from nexus.errors import ModelError, NexusError
+from nexus.tools.native import _MAX_READ_LINES
 
 _SAFE_PATCH_FAILURE_DETAILS = {
     ("INVALID_PATCH", "The patch exceeds the Day 4 size limit."): "patch exceeds size limit",
@@ -529,16 +530,37 @@ class Day4LangGraphRuntime:
                 working_context=context, plan=state.plan, observations=state.observations,
                 conversation_turns=turns,
             )
-        proposed = await self._agent.decide(
-            AgentDecisionRequest(
-                state.task,
-                context,
-                state.plan,
-                state.observations,
-                state.validation_result,
-                state.repair_guidance,
-            )
+        request = AgentDecisionRequest(
+            state.task,
+            context,
+            state.plan,
+            state.observations,
+            state.validation_result,
+            state.repair_guidance,
         )
+        proposed = await self._agent.decide(request)
+        duplicate_read_retry = _is_repeated_successful_read(state, proposed)
+        if duplicate_read_retry:
+            feedback = (
+                "Agent guard: this read_file path and range already succeeded, "
+                "its observation is available, and the file has not changed. "
+                "Use that evidence to take the next uncompleted approved Plan action. "
+                "Only read a different range if specific needed lines were not visible; "
+                "do not reread overlapping lines solely to re-inspect them. "
+                "read_file accepts path and optional start_line/max_lines; end_line "
+                "is output metadata, not an input argument."
+            )
+            prior = context.compacted_observations
+            retry_context = replace(
+                context,
+                compacted_observations=f"{prior}\n{feedback}" if prior else feedback,
+            )
+            proposed = await self._agent.decide(replace(request, context=retry_context))
+            if _is_repeated_successful_read(state, proposed):
+                raise ModelError(
+                    "Agent repeated a successful read_file after corrective feedback.",
+                    code="INVALID_AGENT_DECISION",
+                )
         decision = _require_current_edit_evidence(state, proposed)
         guard_reason = None
         if decision is not proposed:
@@ -1009,6 +1031,48 @@ def _observation_path(
     return path if isinstance(path, str) else None
 
 
+def _is_repeated_successful_read(state: AgentState, decision: AgentDecision) -> bool:
+    action = decision.action
+    if action is None or action.tool_name != "read_file":
+        return False
+    arguments = action.arguments
+    if not set(arguments) <= {"path", "start_line", "max_lines"}:
+        return False
+    path = arguments.get("path")
+    start = arguments.get("start_line", 1)
+    count = arguments.get("max_lines", _MAX_READ_LINES)
+    if (
+        not isinstance(path, str)
+        or type(start) is not int
+        or type(count) is not int
+        or start < 1
+        or not 1 <= count <= _MAX_READ_LINES
+    ):
+        return False
+    results = {item.invocation_id: item for item in state.tool_results}
+    for observation in reversed(state.observations):
+        if observation.repair_attempt != state.repair_count:
+            continue
+        if _observation_path(observation, results) != path:
+            continue
+        if observation.tool_name in {"edit_file", "apply_patch", "write_file"}:
+            return False
+        if not observation.success or observation.tool_name != "read_file":
+            continue
+        prior = results.get(observation.invocation_id)
+        output = None if prior is None else prior.output
+        if output is None or output.get("start_line") != start:
+            continue
+        end = output.get("end_line")
+        if end == start + count - 1 or (
+            output.get("truncated") is False
+            and type(end) is int
+            and end < start + count - 1
+        ):
+            return True
+    return False
+
+
 def _has_fresh_read_evidence(state: AgentState, path: str) -> bool:
     results = {item.invocation_id: item for item in state.tool_results}
     latest_read = -1
@@ -1056,15 +1120,57 @@ def _all_approved_writes_complete(state: AgentState) -> bool:
     return set(state.plan.authorization_scope.allowed_write_actions) <= completed
 
 
+_READ_OBSERVATION_MAX_CHARS = 4096
+_READ_OBSERVATION_MAX_PATH_CHARS = 512
+_READ_OBSERVATION_EDGE_CHARS = 300
+_READ_OBSERVATION_OMISSION = "\n...[read_file content omitted from observation]...\n"
+
+
+def _read_file_observation(output: dict[str, object]) -> str | None:
+    path = output.get("path")
+    content = output.get("content")
+    start_line = output.get("start_line")
+    end_line = output.get("end_line")
+    truncated = output.get("truncated")
+    if not (
+        isinstance(path, str)
+        and isinstance(content, str)
+        and isinstance(start_line, int)
+        and isinstance(end_line, int)
+        and isinstance(truncated, bool)
+    ):
+        return None
+    display_path = (
+        path
+        if len(path) <= _READ_OBSERVATION_MAX_PATH_CHARS
+        else f"{path[:256]}...{path[-253:]}"
+    )
+    header = (
+        f"read_file {display_path} start_line={start_line} "
+        f"end_line={end_line} truncated={str(truncated).lower()}:\n"
+    )
+    content_budget = _READ_OBSERVATION_MAX_CHARS - len(header)
+    if len(content) <= content_budget:
+        return header + content
+    visible = content_budget - 2 * len(_READ_OBSERVATION_OMISSION)
+    edge = min(_READ_OBSERVATION_EDGE_CHARS, visible // 4)
+    middle = visible - 2 * edge
+    middle_start = (len(content) - middle) // 2
+    return (
+        header + content[:edge] + _READ_OBSERVATION_OMISSION
+        + content[middle_start:middle_start + middle]
+        + _READ_OBSERVATION_OMISSION + content[-edge:]
+    )
+
+
 def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
     if result.success:
         if result.tool_name == "edit_file":
             return "edit_file completed successfully; this exact replacement is complete."
         if result.tool_name == "read_file" and result.output is not None:
-            path = result.output.get("path")
-            content = result.output.get("content")
-            if isinstance(path, str) and isinstance(content, str):
-                return f"read_file {path}:\n{content[:4000]}"
+            summary = _read_file_observation(result.output)
+            if summary is not None:
+                return summary
         return f"{result.tool_name} completed successfully."[:512]
     code = "UNKNOWN" if result.error is None else result.error.code
     if result.tool_name == "edit_file":
