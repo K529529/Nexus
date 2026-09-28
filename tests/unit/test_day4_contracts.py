@@ -620,10 +620,24 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
     )
     assert "that action must also be represented by an appropriate PlanStep" in system
     assert (
+        "PlanSteps should represent concrete executable Tool actions or actions that "
+        "establish required authorization" in system
+    )
+    assert (
+        "Do not create separate PlanSteps for internal reasoning such as analyze, "
+        "understand, identify, diagnose, or decide" in system
+    )
+    assert "perform that reasoning as part of the surrounding read or edit action" in system
+    assert (
+        "Do not add a separate search or locate step when the target repository path "
+        "is already known from the user's task or supplied context" in system
+    )
+    assert "read the known target directly" in system
+    assert (
         "Use shell only for concrete repository execution, reproduction, or validation commands"
         in system
     )
-    assert "are allowed by command policy" in system
+    assert "commands permitted by the active command policy" in system
     assert "and shell only for exact validation commands" not in system
     assert "Every step has exactly the keys" in system
     assert "Read-only and repository-explanation tasks still require" in system
@@ -639,8 +653,6 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
     assert "Do not tell the Agent to preemptively refuse" in system
     assert "Valid security-boundary Plan example" in system
     assert "without granting it Plan authority" in system
-    assert "pytest ..., uv run pytest ..." in system
-    assert "Never use python -m pytest" in system
     assert "Do not use a markdown fence" in system
 
 

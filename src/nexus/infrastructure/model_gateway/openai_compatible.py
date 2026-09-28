@@ -90,6 +90,12 @@ class OpenAICompatibleModelGateway:
         return self._client
 
     def _structured_output_options(self) -> dict[str, Any]:
+        if self._config.model_name in {
+            "deepseek-flash",
+            "deepseek-v4-flash",
+            "deepseek-v4.1-flash",
+        }:
+            return {"extra_body": {"enable_thinking": False}}
         if not _is_qwen_3_7_plus(self._config.model_name):
             return {}
         try:

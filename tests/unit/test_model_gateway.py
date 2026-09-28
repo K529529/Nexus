@@ -91,6 +91,22 @@ async def test_missing_model_configuration_is_safe_configuration_error() -> None
 
 
 @pytest.mark.asyncio
+async def test_deepseek_v4_1_flash_disables_thinking() -> None:
+    config = RuntimeConfig(
+        model_name="deepseek-v4.1-flash",
+        model_api_key=SecretStr("test-secret"),
+    )
+    client = FakeChatClient()
+    gateway = OpenAICompatibleModelGateway(config)
+    gateway._client = cast(ChatOpenAI, client)
+
+    with bind_model_call_phase(ModelCallPhase.PLAN):
+        await gateway.complete([ModelMessage(role="user", content="hello")])
+
+    assert client.invocation_options == [{"extra_body": {"enable_thinking": False}}]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("phase", "schema_name"),
     [
