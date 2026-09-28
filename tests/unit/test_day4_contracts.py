@@ -576,10 +576,10 @@ def test_domain_plan_step_authority_rules_remain_strict() -> None:
 
 
 @pytest.mark.asyncio
-async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> None:
+async def test_planner_prompt_requires_minimal_complete_policy_bound_plan() -> None:
     response = {
-        "completion_requirement": "WORKSPACE_CHANGE_REQUIRED",
-        "rationale_summary": "Inspect and validate.",
+        "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
+        "rationale_summary": "Inspect alpha to explain it.",
         "steps": [
             {
                 "description": "Inspect alpha",
@@ -606,42 +606,57 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
     )
 
     system = gateway.last_messages[0].content
-    assert "exactly the keys completion_requirement" in system
-    assert "steps is a required non-empty array" in system
+    assert "minimal sufficient executable coding Plan" in system
+    assert "smallest sufficient Plan" in system
+    assert "Do not use a markdown fence or prose outside the JSON" in system
+    assert "must contain exactly completion_requirement, rationale_summary, and steps" in system
+    assert "WORKSPACE_CHANGE_REQUIRED when satisfying the user's task requires" in system
+    assert "WORKSPACE_CHANGE_NOT_REQUIRED for inspection, explanation" in system
+    assert "Never output UNSPECIFIED" in system
+    assert "previous Plan's frozen completion_requirement" in system
+    assert "complete path required to satisfy the user's requested outcome" in system
     assert (
-        "the Plan must cover the complete executable path to the requested final outcome"
+        "do not stop at investigation or reproduction when modification and validation"
         in system
     )
-    assert "must not stop at investigation or reproduction only" in system
-    assert "whose current Plan only investigates or reproduces" not in system
+    assert "Do not add redundant discovery steps" in system
+    assert "Do not add search or locate steps" in system
+    assert "required target path or symbol is already known" in system
+    assert "brief explanation of why the proposed Plan is sufficient" in system
+    assert "Do not speculate about root cause before evidence is available" in system
+    assert "The steps must be consistent with rationale_summary" in system
+    assert "steps must be a non-empty array" in system
+    assert "Every step must contain exactly description" in system
+    assert "tool_name, target_paths, command_argv, and command_cwd" in system
+    assert "Read-only tasks must include enough inspection" in system
     assert (
-        "The steps must collectively cover the actions required to satisfy the user's task"
-        in system
+        "Each edit_file or write_file step must target exactly one non-empty "
+        "repository-relative path" in system
     )
-    assert "that action must also be represented by an appropriate PlanStep" in system
-    assert (
-        "Use shell only for concrete repository execution, reproduction, or validation commands"
-        in system
-    )
-    assert "are allowed by command policy" in system
-    assert "and shell only for exact validation commands" not in system
-    assert "Every step has exactly the keys" in system
-    assert "Read-only and repository-explanation tasks still require" in system
-    assert "must target exactly one file" in system
-    assert "create multiple separate PlanStep objects" in system
-    assert '["src/a.py","tests/test_a.py"]' in system
-    assert "An empty target_paths array is also invalid" in system
-    assert "Valid editing example" in system
-    assert '"tool_name":"edit_file","target_paths":["src/a.py"]' in system
-    assert "Security tasks still require a legal non-authorizing narrative PlanStep" in system
-    assert "Agent must then propose the requested operation" in system
-    assert "submit the unchanged requested Tool action to ToolRuntime" in system
-    assert "Do not tell the Agent to preemptively refuse" in system
-    assert "Valid security-boundary Plan example" in system
-    assert "without granting it Plan authority" in system
-    assert "pytest ..., uv run pytest ..." in system
-    assert "Never use python -m pytest" in system
-    assert "Do not use a markdown fence" in system
+    assert "use separate editing steps for separate files" in system
+    assert "Use edit_file for existing files and write_file for new files" in system
+    assert "Use shell only for concrete repository execution, reproduction, or validation" in system
+    assert "Shell commands must comply with the active command policy" in system
+    for prefix in (
+        "TEST:", "BUILD:", "LINT:", "TYPE_CHECK:", "GENERATED_TARGETED_TEST:",
+        "BASIC_EXECUTION:", "REPOSITORY_COMMAND:",
+    ):
+        assert prefix in system
+    assert "the Plan must not expand authority beyond the user's explicit task" in system
+    assert "non-authorizing narrative step rather than granting Tool authority" in system
+    assert "Do not include patch or file bodies in the Plan" in system
+    for obsolete in (
+        "bounded coding Plan",
+        "Validation argv must use only policy-supported forms",
+        "pytest ..., uv run pytest ...",
+        "Never use python -m pytest",
+        "Valid multi-file shape",
+        "Invalid shape",
+        "Valid editing example",
+        "Valid security-boundary Plan example",
+        "whose current Plan only investigates or reproduces",
+    ):
+        assert obsolete not in system
 
 
 @pytest.mark.asyncio

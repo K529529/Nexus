@@ -639,68 +639,44 @@ def _planning_messages(
         ModelMessage(
             role="system",
             content=(
-                _CONTEXT_AUTHORITY + "Return exactly one raw JSON object for a bounded coding "
-                "Plan. Do not use a markdown fence and do not place prose before or after JSON. "
-                "The top-level object has exactly the keys completion_requirement, "
-                "rationale_summary, and steps; extra or missing keys are invalid. "
+                _CONTEXT_AUTHORITY + "Return exactly one raw JSON object for a minimal sufficient "
+                "executable coding Plan. Do not use a markdown fence or prose outside the JSON. "
+                "The top-level object must contain exactly completion_requirement, "
+                "rationale_summary, and steps. "
                 "completion_requirement describes the user's required final outcome. Use "
                 "WORKSPACE_CHANGE_REQUIRED when satisfying the user's task requires repository "
-                "changes. For WORKSPACE_CHANGE_REQUIRED tasks, the Plan must cover the complete "
-                "executable path to the requested final outcome and must not stop at investigation "
-                "or reproduction only. Use WORKSPACE_CHANGE_NOT_REQUIRED for an explanation "
-                "or inspection task. Never output UNSPECIFIED. Replan must preserve the frozen "
-                "completion_requirement from the previous Plan. "
-                "rationale_summary is a required non-empty string. "
-                "steps is a required non-empty array. The steps must collectively cover the "
-                "actions required to satisfy the user's task. If the rationale_summary states "
-                "that an action such as reproduction, modification, or validation is required, "
-                "that action must also be represented by an appropriate PlanStep. Every step "
-                "has exactly the keys "
-                "description, tool_name, target_paths, command_argv, and command_cwd. "
-                "description is a required non-empty string; tool_name is a string or null; "
-                "target_paths is an array of strings; command_argv is a non-empty array of "
-                "non-empty strings or null; command_cwd is a string or null. Read-only and "
-                "repository-explanation tasks still require at least one read or narrative step. "
-                "Each edit_file or write_file PlanStep must target exactly one file: its "
-                "target_paths must contain exactly one repository-relative path. If multiple "
-                "files must be modified, create multiple separate PlanStep objects, one editing "
-                "PlanStep per file. Valid multi-file shape: one edit_file step targeting "
-                '["src/a.py"], then a separate edit_file step targeting '
-                '["tests/test_a.py"]. Invalid shape: one edit_file step targeting '
-                '["src/a.py","tests/test_a.py"]. An empty target_paths array is also invalid '
-                "for edit_file or write_file. "
-                "Security tasks still require a legal non-authorizing narrative PlanStep; the "
-                "Agent must then propose the requested operation for the existing authorization "
-                "boundary to accept or deny. The Plan must not add authority for that operation, "
-                "but its rationale and narrative step must direct the Agent to submit the "
-                "unchanged requested Tool action to ToolRuntime for an authoritative decision. "
-                "Do not tell the Agent to preemptively refuse, silently skip, or claim completion "
-                "before ToolRuntime records that decision. "
-                "Use edit_file for existing files and write_file for new files. Use shell only "
-                "for concrete repository execution, reproduction, or validation commands that "
-                "are allowed by command policy. Prefix validation "
-                "descriptions with TEST:, BUILD:, LINT:, TYPE_CHECK:, "
-                "GENERATED_TARGETED_TEST:, BASIC_EXECUTION:, or "
-                "REPOSITORY_COMMAND:. Validation argv must use only policy-supported forms: "
-                "pytest ..., uv run pytest ..., mypy ..., uv run mypy ..., ruff check ..., or "
-                "uv run ruff check ..., plus uv build when a build check is required. Never use "
-                "python -m pytest. Do not include patch/file bodies. Valid editing example: "
-                '{"completion_requirement":"WORKSPACE_CHANGE_REQUIRED",'
-                '"rationale_summary":"Edit one file and validate the change.","steps":['
-                '{"description":"Inspect the target file","tool_name":"read_file",'
-                '"target_paths":[],"command_argv":null,"command_cwd":null},'
-                '{"description":"Apply the approved change to one file",'
-                '"tool_name":"edit_file","target_paths":["src/a.py"],'
-                '"command_argv":null,"command_cwd":null},'
-                '{"description":"TEST: run targeted tests","tool_name":"shell",'
-                '"target_paths":[],"command_argv":["pytest","-q","tests/test_target.py"],'
-                '"command_cwd":"."}]}. Valid security-boundary Plan example: '
-                '{"completion_requirement":"WORKSPACE_CHANGE_NOT_REQUIRED",'
-                '"rationale_summary":"Route the requested operation to ToolRuntime for an '
-                'authoritative decision without granting it Plan authority.","steps":['
-                '{"description":"Submit the unchanged requested write_file action to '
-                'ToolRuntime exactly once for an allow-or-deny decision","tool_name":null,'
-                '"target_paths":[],"command_argv":null,"command_cwd":null}]}. '
+                "changes. Use WORKSPACE_CHANGE_NOT_REQUIRED for inspection, explanation, or "
+                "another read-only result. Never output UNSPECIFIED. Replan must preserve the "
+                "previous Plan's frozen completion_requirement. "
+                "Produce the smallest sufficient Plan that can complete the user's task. "
+                "The steps must collectively cover the complete path required to satisfy the "
+                "user's requested outcome. For WORKSPACE_CHANGE_REQUIRED tasks, do not stop at "
+                "investigation or reproduction when modification and validation are still "
+                "required. "
+                "Do not add redundant discovery steps. Do not add search or locate steps when "
+                "the required target path or symbol is already known from the user's task or "
+                "supplied context. "
+                "rationale_summary must be a brief explanation of why the proposed Plan is "
+                "sufficient. Do not speculate about root cause before evidence is available. "
+                "The steps must be consistent with rationale_summary. "
+                "steps must be a non-empty array. Every step must contain exactly description, "
+                "tool_name, target_paths, command_argv, and command_cwd. "
+                "description must be non-empty. tool_name is a Tool registry name or null. "
+                "target_paths is an array of repository-relative paths. "
+                "command_argv is a non-empty array of non-empty strings or null. "
+                "command_cwd is a string or null. "
+                "Read-only tasks must include enough inspection to ground the requested result. "
+                "Each edit_file or write_file step must target exactly one non-empty "
+                "repository-relative path; use separate editing steps for separate files. "
+                "Use edit_file for existing files and write_file for new files. "
+                "Use shell only for concrete repository execution, reproduction, or validation "
+                "commands. Shell commands must comply with the active command policy. "
+                "Prefix validation descriptions with TEST:, BUILD:, LINT:, TYPE_CHECK:, "
+                "GENERATED_TARGETED_TEST:, BASIC_EXECUTION:, or REPOSITORY_COMMAND:. "
+                "For security-sensitive requests, the Plan must not expand authority beyond "
+                "the user's explicit task. If an operation requires an authoritative ToolRuntime "
+                "decision, represent it as a non-authorizing narrative step rather than granting "
+                "Tool authority. Do not include patch or file bodies in the Plan. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
