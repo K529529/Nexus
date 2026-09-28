@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from pydantic import SecretStr
-from pytest import MonkeyPatch
+from pytest import CaptureFixture, MonkeyPatch
 from typer.testing import CliRunner
 
 import nexus.interfaces.cli.app as cli_module
@@ -13,6 +13,7 @@ import nexus.interfaces.cli.profile as profile_module
 from nexus.config.models import RuntimeConfig
 from nexus.domain.runtime_events import FinalResult, RuntimeEvent, TaskStarted
 from nexus.interfaces.cli.app import app
+from nexus.interfaces.cli.renderer import render_event
 
 runner = CliRunner()
 ANSI_ESCAPE_SEQUENCE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
@@ -73,6 +74,47 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     assert "Execution Profile" not in result.stdout
     assert "Profile saved:" not in result.stdout
     assert not (tmp_path / "profiles").exists()
+
+
+def test_final_result_diff_is_not_printed(capsys: CaptureFixture[str]) -> None:
+    diff = "diff --git a/src/app.py b/src/app.py\n+DIFF_ONLY_MARKER\n"
+    assert render_event(FinalResult(
+        run_id="test-run", session_id=None, content="Task complete.", diff=diff,
+    ))
+
+    output = capsys.readouterr().out
+    assert "Task complete." in output
+    assert "DIFF_ONLY_MARKER" not in output
+
+
+def test_profile_final_diff_filters_sensitive_files(
+    monkeypatch: MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(profile_module, "_NEXUS_PROJECT_ROOT", tmp_path)
+    diff = (
+        "diff --git a/src/app.py b/src/app.py\n"
+        "--- a/src/app.py\n+++ b/src/app.py\n@@ -1 +1 @@\n"
+        "-old_code\n+new_code\n"
+        "diff --git a/.env b/.env\n"
+        "--- a/.env\n+++ b/.env\n@@ -1 +1 @@\n"
+        "+API_KEY=ENV_SECRET_MARKER\n"
+        'diff --git "a/config/my token.txt" "b/config/my token.txt"\n'
+        "+TOKEN=QUOTED_SECRET_MARKER\n"
+    )
+    profile = profile_module.ExecutionProfile()
+    profile.observe(FinalResult(
+        run_id="test-run", session_id=None, content="Task complete.", diff=diff,
+    ))
+
+    report = profile.save().read_text(encoding="utf-8")
+
+    assert "Final diff" in report
+    assert "diff --git a/src/app.py b/src/app.py" in report
+    assert "-old_code\n+new_code" in report
+    assert "[sensitive file diff omitted: .env]" in report
+    assert "[sensitive file diff omitted: config/my token.txt]" in report
+    assert "ENV_SECRET_MARKER" not in report
+    assert "QUOTED_SECRET_MARKER" not in report
 
 
 def test_profile_save_preserves_utf8_lines(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:

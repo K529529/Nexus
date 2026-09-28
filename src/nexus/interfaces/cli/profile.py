@@ -1,7 +1,8 @@
-"""Deterministic, bounded projection of RuntimeEvents for CLI profiling."""
+"""CLI profiling projection of RuntimeEvents."""
 
 from __future__ import annotations
 
+import ast
 import re
 import time
 from collections import defaultdict
@@ -49,6 +50,12 @@ _MAX_AGENT_TOOL_NAMES = 20
 _MAX_PLAN_PROGRESS_STEPS = 30
 _SAFE_TOOL_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]{0,63}\Z")
 _SAFE_ERROR_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
+_DIFF_HEADER = re.compile(
+    r'diff --git (?P<old>"(?:\\.|[^"\\])*"|\S+) (?P<new>"(?:\\.|[^"\\])*"|\S+)'
+)
+_SENSITIVE_DIFF_PATH_TERMS = (
+    "secret", "private", "password", "token", "credential", "api_key", "key",
+)
 
 
 @dataclass(slots=True)
@@ -65,7 +72,7 @@ class _AgentStep:
 
 
 class ExecutionProfile:
-    """Collect event durations without inspecting prompts, tool inputs or file content."""
+    """Collect event durations and a path-filtered final diff for CLI profiling."""
 
     def __init__(self) -> None:
         self._created = time.perf_counter()
@@ -94,6 +101,7 @@ class ExecutionProfile:
         self.replans = 0
         self.repairs = 0
         self.failure_category: str | None = None
+        self._final_diff_lines: list[str] | None = None
 
     def observe(self, event: RuntimeEvent) -> None:
         if isinstance(event, TaskStarted):
@@ -110,6 +118,8 @@ class ExecutionProfile:
                 self._segment_start = None
             if isinstance(event, ErrorOccurred):
                 self.failure_category = event.failure_category
+            elif isinstance(event, FinalResult):
+                self._final_diff_lines = _safe_final_diff_lines(event.diff)
         elif isinstance(event, PhaseStarted):
             if self._pending_agent_action is not None:
                 self._agent_tool_phase = event.phase is ExecutionPhase.AGENT
@@ -287,6 +297,8 @@ class ExecutionProfile:
                     f"model_call_id={item.model_call_id}"
                 )
                 result.extend(item.diagnostic_lines)
+        if self._final_diff_lines is not None:
+            result.extend(["", "Final diff", *self._final_diff_lines])
         return result
 
     def save(self) -> Path:
@@ -295,6 +307,49 @@ class ExecutionProfile:
         path = directory / f"profile-{datetime.now():%Y%m%d-%H%M%S-%f}.txt"
         path.write_text("\n".join(self.lines()), encoding="utf-8", newline="\n")
         return path
+
+
+def _safe_final_diff_lines(diff: str | None) -> list[str]:
+    if not diff:
+        return ["(none)"]
+    result: list[str] = []
+    for section in re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE):
+        if not section:
+            continue
+        header = section.split("\n", 1)[0].rstrip("\r")
+        match = _DIFF_HEADER.fullmatch(header)
+        if match is None:
+            result.append("[unrecognized file diff omitted]")
+            continue
+        old_path = _git_diff_path(match.group("old"), "a/")
+        new_path = _git_diff_path(match.group("new"), "b/")
+        if old_path is None or new_path is None:
+            result.append("[unrecognized file diff omitted]")
+        elif _sensitive_diff_path(old_path) or _sensitive_diff_path(new_path):
+            sensitive_path = old_path if _sensitive_diff_path(old_path) else new_path
+            result.append(f"[sensitive file diff omitted: {sensitive_path}]")
+        else:
+            result.extend(section.splitlines())
+    return result or ["[unrecognized file diff omitted]"]
+
+
+def _git_diff_path(token: str, prefix: str) -> str | None:
+    try:
+        value = ast.literal_eval(token) if token.startswith('"') else token
+    except (SyntaxError, ValueError):
+        return None
+    if not isinstance(value, str) or not value.startswith(prefix):
+        return None
+    path = value[len(prefix):]
+    return path if path and path.isprintable() else None
+
+
+def _sensitive_diff_path(path: str) -> bool:
+    normalized = path.replace("\\", "/").casefold()
+    return (
+        any(part.startswith(".env") for part in normalized.split("/"))
+        or any(term in normalized for term in _SENSITIVE_DIFF_PATH_TERMS)
+    )
 
 
 def _safe_plan_description(summary: str) -> str:

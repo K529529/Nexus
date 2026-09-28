@@ -223,8 +223,6 @@ def render_event(event: RuntimeEvent) -> bool:
     if isinstance(event, FinalResult):
         typer.echo("Done" if event.status.value == "COMPLETED" else "Finished with errors")
         typer.echo(event.content)
-        if event.diff:
-            typer.echo(event.diff)
         return event.status.value == "COMPLETED"
     if isinstance(event, PlanCreated):
         for summary in event.step_summaries:
