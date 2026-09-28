@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextvars import ContextVar
 from uuid import uuid4
 
+from nexus.application.agent_input_profile import project_agent_model_input
 from nexus.application.execution_context import current_execution_context
 from nexus.application.execution_ledger import ToolExecutionLedger
 from nexus.application.model_call_context import current_model_call_phase
@@ -19,7 +20,12 @@ from nexus.domain.model import (
     TokenUsage,
 )
 from nexus.domain.ports.model_gateway import ModelGateway
-from nexus.domain.runtime_events import ModelCallFinished, ModelCallStarted, RuntimeEvent
+from nexus.domain.runtime_events import (
+    AgentModelInputProfiled,
+    ModelCallFinished,
+    ModelCallStarted,
+    RuntimeEvent,
+)
 from nexus.errors import NexusError
 
 RuntimeEventEmitter = Callable[[RuntimeEvent], Awaitable[None]]
@@ -40,12 +46,16 @@ class ObservedModelGateway:
         ledger: ToolExecutionLedger,
         provider: str | None,
         model: str | None,
+        local_profile_input_diagnostics: bool = False,
+        max_model_input_tokens: int | None = None,
     ) -> None:
         self._gateway = gateway
         self._emit = emit
         self._ledger = ledger
         self._provider = provider
         self._model = model
+        self._local_profile_input_diagnostics = local_profile_input_diagnostics
+        self._max_model_input_tokens = max_model_input_tokens
 
     def last_model_call_id(self) -> str:
         model_call_id = _LAST_MODEL_CALL_ID.get()
@@ -59,6 +69,8 @@ class ObservedModelGateway:
         call_id = str(uuid4())
         self._ledger.begin_model(context.run_id)
         await self._emit_started(call_id, phase)
+        if self._local_profile_input_diagnostics and phase is ModelCallPhase.AGENT_STEP:
+            await self._profile_agent_input(call_id, messages)
         started = time.perf_counter()
         try:
             response = await self._gateway.complete(messages)
@@ -151,6 +163,29 @@ class ObservedModelGateway:
             error_code=None,
         )
         _LAST_MODEL_CALL_ID.set(call_id)
+
+    async def _profile_agent_input(
+        self, call_id: str, messages: Sequence[ModelMessage]
+    ) -> None:
+        """Emit a safe local projection; diagnostics never gate the model call."""
+
+        context = current_execution_context()
+        try:
+            lines = project_agent_model_input(
+                messages, max_model_input_tokens=self._max_model_input_tokens,
+            )
+        except Exception:
+            lines = ("  diagnostic_parse_error=true",)
+        try:
+            await self._emit(AgentModelInputProfiled(
+                run_id=context.run_id,
+                session_id=context.session_id,
+                model_call_id=call_id,
+                agent_step_count=self._ledger.step_count(context.run_id),
+                diagnostic_lines=lines,
+            ))
+        except Exception:
+            pass
 
     async def _emit_started(self, call_id: str, phase: ModelCallPhase) -> None:
         context = current_execution_context()

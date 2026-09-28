@@ -202,6 +202,7 @@ async def bootstrap_application(
     tool_event_emitter: RuntimeEventEmitter | None = None,
     embedding_gateway: EmbeddingGateway | None = None,
     eval_trace_collector: EvalTraceCollector | None = None,
+    local_profile_input_diagnostics: bool = False,
 ) -> AsyncIterator[BootstrappedApplication]:
     """Build the approved object graph and reliably release infrastructure resources."""
 
@@ -318,6 +319,8 @@ async def bootstrap_application(
             ledger=ledger,
             provider=config.model_provider,
             model=config.model_name,
+            local_profile_input_diagnostics=local_profile_input_diagnostics,
+            max_model_input_tokens=config.max_model_input_tokens,
         )
         checkpointer = cast(BaseCheckpointSaver[Any], checkpoint_provider.get_checkpointer())
         legacy_runtime = LangGraphRuntime(

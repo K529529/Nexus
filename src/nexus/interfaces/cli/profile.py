@@ -14,6 +14,7 @@ from nexus.application.tool_target_summary import safe_target_summary
 from nexus.domain.agent_decision import AgentDecisionKind
 from nexus.domain.model import ModelCallPhase
 from nexus.domain.runtime_events import (
+    AgentModelInputProfiled,
     AgentSemanticRetryStarted,
     AgentStepCompleted,
     AgentStepStarted,
@@ -78,6 +79,7 @@ class ExecutionProfile:
         self._agent_tools: dict[str, int] = {}
         self._other_agent_tools = 0
         self._agent_timeline: list[_AgentStep] = []
+        self._agent_model_inputs: list[AgentModelInputProfiled] = []
         self._pending_agent_action: tuple[str, _AgentStep | None] | None = None
         self._agent_tool_phase = False
         self._active_agent_tool: tuple[str, str, _AgentStep | None] | None = None
@@ -129,6 +131,8 @@ class ExecutionProfile:
             self.llm_calls += 1
             if event.phase is ModelCallPhase.AGENT_STEP:
                 self.agent_model_calls += 1
+        elif isinstance(event, AgentModelInputProfiled):
+            self._agent_model_inputs.append(event)
         elif isinstance(event, AgentStepStarted):
             self.agent_steps = max(self.agent_steps, event.step_count)
         elif isinstance(event, AgentSemanticRetryStarted):
@@ -272,6 +276,16 @@ class ExecutionProfile:
             omitted = sum(self._agent_decisions.values()) - len(self._agent_timeline)
             if omitted:
                 result.append(f"  ... {omitted} more steps")
+        if self._agent_model_inputs:
+            result.extend(["", "Agent model inputs"])
+            attempts: dict[int, int] = defaultdict(int)
+            for item in self._agent_model_inputs:
+                attempts[item.agent_step_count] += 1
+                result.append(
+                    f"Step {item.agent_step_count} attempt {attempts[item.agent_step_count]} "
+                    f"model_call_id={item.model_call_id}"
+                )
+                result.extend(item.diagnostic_lines)
         return result
 
     def render(self) -> None:

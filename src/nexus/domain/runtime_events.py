@@ -402,6 +402,30 @@ class ModelCallFinished(RuntimeEvent):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class AgentModelInputProfiled(RuntimeEvent):
+    """Local-only, metadata-only projection of one final Agent model input."""
+
+    status: RuntimeStatus = field(default=RuntimeStatus.STARTED, init=False)
+    model_call_id: str
+    agent_step_count: int
+    diagnostic_lines: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        RuntimeEvent.__post_init__(self)
+        _validate_uuid(self.model_call_id, "model_call_id")
+        if self.agent_step_count < 1:
+            raise ValueError("Agent model input step count must be positive.")
+        object.__setattr__(self, "diagnostic_lines", tuple(self.diagnostic_lines))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Keep detailed local profile metadata out of generic serialization."""
+
+        serialized = RuntimeEvent.to_dict(self)
+        serialized["payload"].pop("diagnostic_lines", None)
+        return serialized
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class AgentStepStarted(RuntimeEvent):
     """Local diagnostic for one logical Agent graph step."""
 

@@ -20,6 +20,7 @@ from nexus.domain.observability import (
     TraceRunStart,
 )
 from nexus.domain.runtime_events import (
+    AgentModelInputProfiled,
     AgentSemanticRetryStarted,
     AgentStepStarted,
     PlanStepCompleted,
@@ -90,7 +91,15 @@ class TelemetrySubscriber:
         )
 
     async def on_event(self, event: RuntimeEvent) -> None:
-        if isinstance(event, (AgentStepStarted, AgentSemanticRetryStarted, PlanStepCompleted)):
+        if isinstance(
+            event,
+            (
+                AgentModelInputProfiled,
+                AgentStepStarted,
+                AgentSemanticRetryStarted,
+                PlanStepCompleted,
+            ),
+        ):
             return  # Local profile diagnostics have no remote telemetry mapping.
         observation = current_published_observation()
         state = self._executions.get(observation.context.execution_id)

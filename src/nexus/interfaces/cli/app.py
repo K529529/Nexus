@@ -72,7 +72,7 @@ def chat(
     ] = None,
     profile: Annotated[
         bool,
-        typer.Option("--profile", help="Print a safe execution timing summary."),
+        typer.Option("--profile", help="Print safe timing and Agent input metadata."),
     ] = False,
 ) -> None:
     """Run a coding task through the Nexus V1 runtime."""
@@ -94,7 +94,9 @@ def chat(
 async def _run_chat(
     config: RuntimeConfig, task: str, profile: ExecutionProfile | None = None
 ) -> bool:
-    async with bootstrap_application(config) as application:
+    async with bootstrap_application(
+        config, local_profile_input_diagnostics=profile is not None
+    ) as application:
         return await _consume_with_plan_approval(
             application.runtime.run(task),
             application.runtime,

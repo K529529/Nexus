@@ -51,8 +51,11 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
     config = RuntimeConfig(model_name="mock-model", model_api_key=SecretStr("mock-secret"))
 
     @asynccontextmanager
-    async def fake_bootstrap(resolved: RuntimeConfig) -> AsyncIterator[SimpleNamespace]:
+    async def fake_bootstrap(
+        resolved: RuntimeConfig, *, local_profile_input_diagnostics: bool = False,
+    ) -> AsyncIterator[SimpleNamespace]:
         assert resolved == config
+        assert local_profile_input_diagnostics is False
         yield SimpleNamespace(runtime=FakeRuntime())
 
     monkeypatch.setattr(cli_module, "load_runtime_config", lambda **_: config)
@@ -85,8 +88,11 @@ def test_chat_profile_is_printed_after_failure(monkeypatch: MonkeyPatch) -> None
             )
 
     @asynccontextmanager
-    async def fake_bootstrap(resolved: RuntimeConfig) -> AsyncIterator[SimpleNamespace]:
+    async def fake_bootstrap(
+        resolved: RuntimeConfig, *, local_profile_input_diagnostics: bool = False,
+    ) -> AsyncIterator[SimpleNamespace]:
         assert resolved == config
+        assert local_profile_input_diagnostics is True
         yield SimpleNamespace(runtime=FailingRuntime())
 
     monkeypatch.setattr(cli_module, "load_runtime_config", lambda **_: config)
