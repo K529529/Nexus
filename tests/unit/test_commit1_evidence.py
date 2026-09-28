@@ -113,6 +113,65 @@ def result(
     )
 
 
+def test_successful_edit_observation_preserves_applied_replacement() -> None:
+    tool = result("edit_file", {"path": "pvlib/iam.py"})
+    action = ToolAction(
+        "edit_file",
+        {"path": "pvlib/iam.py", "old_str": "return old_value", "new_str": "return new_value"},
+    )
+
+    summary = _observation_summary(tool, action)
+
+    assert 'path="pvlib/iam.py"' in summary
+    assert 'old_str="return old_value"' in summary
+    assert 'new_str="return new_value"' in summary
+    assert "already been applied successfully" in summary
+    assert "not a complete file snapshot" in summary
+    assert "old_str_truncated=false" in summary
+    assert "new_str_truncated=false" in summary
+
+
+def test_successful_edit_observation_bounds_both_replacement_sides() -> None:
+    tool = result("edit_file", {"path": "pvlib/iam.py"})
+    action = ToolAction(
+        "edit_file",
+        {
+            "path": "pvlib/iam.py",
+            "old_str": "OLD_HEAD" + "o" * 5000 + "OLD_TAIL",
+            "new_str": "NEW_HEAD" + "n" * 5000 + "NEW_TAIL",
+        },
+    )
+
+    summary = _observation_summary(tool, action)
+
+    assert len(summary) < 4096
+    assert "old_str_truncated=true" in summary
+    assert "new_str_truncated=true" in summary
+    assert summary.count("...[output omitted]...") == 2
+    for marker in ("OLD_HEAD", "OLD_TAIL", "NEW_HEAD", "NEW_TAIL"):
+        assert marker in summary
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        None,
+        ToolAction(
+            "edit_file",
+            {"path": "pvlib/iam.py", "old_str": 123, "new_str": "replacement"},
+        ),
+    ],
+)
+def test_successful_edit_observation_without_valid_action_uses_generic_summary(
+    action: ToolAction | None,
+) -> None:
+    tool = result("edit_file", {"path": "pvlib/iam.py"})
+
+    assert _observation_summary(tool, action) == (
+        "edit_file completed successfully; this exact replacement is complete."
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("tool_name", "output", "success", "error_code", "sentinel"),

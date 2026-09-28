@@ -1305,12 +1305,43 @@ def _lexical_observation(result: ToolResult) -> str | None:
     )
 
 
+def _successful_edit_observation(action: ToolAction | None) -> str | None:
+    if action is None or action.tool_name != "edit_file":
+        return None
+    arguments = action.arguments
+    path = arguments.get("path")
+    old_str = arguments.get("old_str")
+    new_str = arguments.get("new_str")
+    if (
+        set(arguments) != {"path", "old_str", "new_str"}
+        or not isinstance(path, str)
+        or not path
+        or not isinstance(old_str, str)
+        or not old_str
+        or not isinstance(new_str, str)
+    ):
+        return None
+    display_path, path_cut = bounded_output(json.dumps(path), 512)
+    display_old, old_cut = bounded_output(json.dumps(old_str), 1400)
+    display_new, new_cut = bounded_output(json.dumps(new_str), 1400)
+    return (
+        "edit_file succeeded; this replacement has already been applied successfully. "
+        "These values describe the applied replacement, not a complete file snapshot.\n"
+        f"path={display_path} path_truncated={str(path_cut).lower()}\n"
+        f"old_str={display_old} old_str_truncated={str(old_cut).lower()}\n"
+        f"new_str={display_new} new_str_truncated={str(new_cut).lower()}"
+    )
+
+
 def _observation_summary(result: ToolResult, action: ToolAction | None = None) -> str:
     if result.tool_name == "shell":
         return _shell_observation(result)
     if result.success:
         if result.tool_name == "edit_file":
-            return "edit_file completed successfully; this exact replacement is complete."
+            return (
+                _successful_edit_observation(action)
+                or "edit_file completed successfully; this exact replacement is complete."
+            )
         if result.tool_name == "read_file" and result.output is not None:
             summary = _read_file_observation(result.output)
             if summary is not None:
