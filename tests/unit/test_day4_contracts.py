@@ -608,6 +608,23 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
     system = gateway.last_messages[0].content
     assert "exactly the keys completion_requirement" in system
     assert "steps is a required non-empty array" in system
+    assert (
+        "the Plan must cover the complete executable path to the requested final outcome"
+        in system
+    )
+    assert "must not stop at investigation or reproduction only" in system
+    assert "whose current Plan only investigates or reproduces" not in system
+    assert (
+        "The steps must collectively cover the actions required to satisfy the user's task"
+        in system
+    )
+    assert "that action must also be represented by an appropriate PlanStep" in system
+    assert (
+        "Use shell only for concrete repository execution, reproduction, or validation commands"
+        in system
+    )
+    assert "are allowed by command policy" in system
+    assert "and shell only for exact validation commands" not in system
     assert "Every step has exactly the keys" in system
     assert "Read-only and repository-explanation tasks still require" in system
     assert "must target exactly one file" in system
