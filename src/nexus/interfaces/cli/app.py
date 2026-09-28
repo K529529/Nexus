@@ -72,7 +72,7 @@ def chat(
     ] = None,
     profile: Annotated[
         bool,
-        typer.Option("--profile", help="Print safe timing and Agent input metadata."),
+        typer.Option("--profile", help="Save Execution Profile to Nexus profiles/."),
     ] = False,
 ) -> None:
     """Run a coding task through the Nexus V1 runtime."""
@@ -86,7 +86,7 @@ def chat(
         raise typer.Exit(code=1) from exc
     finally:
         if execution_profile is not None:
-            execution_profile.render()
+            typer.echo(f"Profile saved: {execution_profile.save()}")
     if not succeeded:
         raise typer.Exit(code=1)
 

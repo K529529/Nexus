@@ -1,6 +1,7 @@
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from types import SimpleNamespace
 
 from pydantic import SecretStr
@@ -8,6 +9,7 @@ from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 import nexus.interfaces.cli.app as cli_module
+import nexus.interfaces.cli.profile as profile_module
 from nexus.config.models import RuntimeConfig
 from nexus.domain.runtime_events import FinalResult, RuntimeEvent, TaskStarted
 from nexus.interfaces.cli.app import app
@@ -47,7 +49,7 @@ class FakeRuntime:
         yield FinalResult(run_id="test-run", session_id=session_id, content="Short greeting.")
 
 
-def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
+def test_mocked_chat_smoke(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     config = RuntimeConfig(model_name="mock-model", model_api_key=SecretStr("mock-secret"))
 
     @asynccontextmanager
@@ -60,6 +62,7 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
 
     monkeypatch.setattr(cli_module, "load_runtime_config", lambda **_: config)
     monkeypatch.setattr(cli_module, "bootstrap_application", fake_bootstrap)
+    monkeypatch.setattr(profile_module, "_NEXUS_PROJECT_ROOT", tmp_path)
 
     result = runner.invoke(app, ["chat", "Reply with a short greeting."])
 
@@ -68,9 +71,24 @@ def test_mocked_chat_smoke(monkeypatch: MonkeyPatch) -> None:
     assert "Task started" not in result.stdout
     assert "Short greeting." in result.stdout
     assert "Execution Profile" not in result.stdout
+    assert "Profile saved:" not in result.stdout
+    assert not (tmp_path / "profiles").exists()
 
 
-def test_chat_profile_is_printed_after_failure(monkeypatch: MonkeyPatch) -> None:
+def test_profile_save_preserves_utf8_lines(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(profile_module, "_NEXUS_PROJECT_ROOT", tmp_path)
+    profile = profile_module.ExecutionProfile()
+    lines = ["Execution Profile", "Agent model inputs", "selected_files=文件.py"]
+    monkeypatch.setattr(profile, "lines", lambda: lines)
+
+    saved_path = profile.save()
+
+    assert saved_path.read_bytes() == "\n".join(lines).encode("utf-8")
+
+
+def test_chat_profile_is_saved_after_failure(
+    monkeypatch: MonkeyPatch, tmp_path: Path,
+) -> None:
     config = RuntimeConfig(model_name="mock-model", model_api_key=SecretStr("mock-secret"))
 
     class FailingRuntime:
@@ -95,12 +113,26 @@ def test_chat_profile_is_printed_after_failure(monkeypatch: MonkeyPatch) -> None
         assert local_profile_input_diagnostics is True
         yield SimpleNamespace(runtime=FailingRuntime())
 
+    nexus_root = tmp_path / "nexus"
+    repository_root = tmp_path / "repository"
+    repository_root.mkdir()
+    monkeypatch.chdir(repository_root)
     monkeypatch.setattr(cli_module, "load_runtime_config", lambda **_: config)
     monkeypatch.setattr(cli_module, "bootstrap_application", fake_bootstrap)
+    monkeypatch.setattr(profile_module, "_NEXUS_PROJECT_ROOT", nexus_root)
 
     result = runner.invoke(app, ["chat", "Work", "--profile"])
 
     assert result.exit_code == 1
-    assert "Execution Profile" in result.stdout
-    assert "Failure category    STEP_SCHEMA" in result.stdout
+    assert "Execution Profile" not in result.stdout
+    assert "Failure category    STEP_SCHEMA" not in result.stdout
+    saved_line = result.stdout.splitlines()[-1]
+    assert saved_line.startswith("Profile saved: ")
+    saved_path = Path(saved_line.removeprefix("Profile saved: "))
+    assert saved_path.parent == nexus_root / "profiles"
+    assert not (repository_root / "profiles").exists()
+    assert re.fullmatch(r"profile-\d{8}-\d{6}-\d{6}\.txt", saved_path.name)
+    profile_text = saved_path.read_text(encoding="utf-8")
+    assert "Execution Profile" in profile_text
+    assert "Failure category    STEP_SCHEMA" in profile_text
     assert "Error [INVALID_PLAN_OUTPUT]" in result.stderr

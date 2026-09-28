@@ -7,8 +7,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-
-import typer
+from pathlib import Path
 
 from nexus.application.tool_target_summary import safe_target_summary
 from nexus.domain.agent_decision import AgentDecisionKind
@@ -34,6 +33,8 @@ from nexus.domain.runtime_events import (
     ToolFinished,
     ToolStarted,
 )
+
+_NEXUS_PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 _PHASE_LABELS = (
     ("Repository", (ExecutionPhase.REPOSITORY,)),
@@ -288,8 +289,12 @@ class ExecutionProfile:
                 result.extend(item.diagnostic_lines)
         return result
 
-    def render(self) -> None:
-        typer.echo("\n".join(self.lines()))
+    def save(self) -> Path:
+        directory = _NEXUS_PROJECT_ROOT / "profiles"
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"profile-{datetime.now():%Y%m%d-%H%M%S-%f}.txt"
+        path.write_text("\n".join(self.lines()), encoding="utf-8", newline="\n")
+        return path
 
 
 def _safe_plan_description(summary: str) -> str:
