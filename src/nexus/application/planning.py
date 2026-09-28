@@ -582,6 +582,7 @@ def _repair_payload(request: RepairPlanningRequest) -> str:
         "plan": {
             "id": request.plan.plan_id,
             "version": request.plan.version,
+            "completion_requirement": request.plan.completion_requirement.value,
             "steps": [step.description for step in request.plan.steps],
         },
         "plan_id": request.plan.plan_id,
@@ -601,6 +602,7 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
         "plan": {
             "id": request.plan.plan_id,
             "version": request.plan.version,
+            "completion_requirement": request.plan.completion_requirement.value,
             "steps": [
                 {
                     "step_id": step.step_id,
@@ -722,6 +724,8 @@ def _repair_messages(
                 '"command_argv":null,"command_cwd":null}. '
                 "Use only Tool/path and exact validation command actions already "
                 "present in the approved Plan. Edit content is chosen later. "
+                "The Plan's completion_requirement is frozen, read-only repair "
+                "context; satisfy it without redefining it. "
                 + _tool_metadata_instruction(tool_metadata)
             ),
         ),
@@ -759,6 +763,13 @@ def _agent_messages(
                 "The approved Plan is execution guidance. Use current repository and Tool "
                 "evidence to choose the next action. Do not claim completion until required "
                 "changes are actually complete. "
+                "The Plan's completion_requirement is the frozen run-level completion "
+                "contract. If it is WORKSPACE_CHANGE_REQUIRED, do not return TASK_READY "
+                "while the required repository change is absent. If the approved Plan scope "
+                "is insufficient for that change, propose the necessary Tool action unchanged "
+                "for ToolRuntime's authoritative scope decision; PLAN_SCOPE_DENIED may trigger "
+                "Replan with expanded approved scope. If it is WORKSPACE_CHANGE_NOT_REQUIRED, "
+                "do not create changes merely to satisfy the Plan. "
                 + _agent_edit_instruction(request.plan)
                 + "write_file arguments are exactly {path:string,content:string}. "
                 "Return TASK_READY only after the task's required file modifications are complete. "

@@ -173,6 +173,8 @@ async def test_qwen_fixed_schemas_are_closed_and_agent_arguments_remain_open() -
 
     repair_schema = client.invocation_options[1]["response_format"]["json_schema"]["schema"]
     assert repair_schema["additionalProperties"] is False
+    assert repair_schema["required"] == ["failure_summary", "steps"]
+    assert "completion_requirement" not in repair_schema["properties"]
     repair_variants = repair_schema["properties"]["steps"]["items"]["oneOf"]
     assert len(repair_variants) == 3
     assert all(variant["additionalProperties"] is False for variant in repair_variants)

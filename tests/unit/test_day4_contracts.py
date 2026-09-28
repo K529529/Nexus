@@ -646,11 +646,11 @@ async def test_repair_prompt_preserves_single_target_and_approved_scope_rules() 
     validation = ValidationResult(
         (),
         (),
-        ValidationStatus.UNKNOWN,
+        ValidationStatus.FAIL,
         ValidationConfidence.LOW,
         False,
         0,
-        "Validation evidence was inconclusive.",
+        "Validation failed.",
     )
 
     await ModelPlanner(gateway).create_repair_guidance(
@@ -658,11 +658,44 @@ async def test_repair_prompt_preserves_single_target_and_approved_scope_rules() 
     )
 
     system = gateway.last_messages[0].content
+    payload = json.loads(gateway.last_messages[1].content)
+    assert payload["validation"]["status"] == "FAIL"
+    assert payload["plan"]["completion_requirement"] == "WORKSPACE_CHANGE_REQUIRED"
+    assert "completion_requirement is frozen, read-only repair context" in system
+    assert "satisfy it without redefining it" in system
     assert "must target exactly one file" in system
     assert "multiple separate PlanStep objects" in system
     assert "Never use an empty target_paths array" in system
     assert "Valid editing step" in system
     assert "already present in the approved Plan" in system
+
+
+@pytest.mark.asyncio
+async def test_repair_output_cannot_redefine_completion_requirement() -> None:
+    plan = _plan()
+    validation = ValidationResult(
+        (), (), ValidationStatus.FAIL, ValidationConfidence.LOW,
+        False, 0, "Validation failed.",
+    )
+    response = json.dumps({
+        "failure_summary": "Repair alpha.",
+        "steps": [{
+            "description": "Edit alpha", "tool_name": "apply_patch",
+            "target_paths": ["alpha.py"],
+            "command_argv": None, "command_cwd": None,
+        }],
+        "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
+    })
+    gateway = QueueGateway(response, response)
+
+    with pytest.raises(ModelError) as failure:
+        await ModelPlanner(gateway).create_repair_guidance(
+            RepairPlanningRequest("edit alpha", _context(), plan, validation, 1)
+        )
+
+    assert len(gateway.messages) == 2
+    assert failure.value.failure_category == "TOP_LEVEL_KEYS"
+    assert plan.completion_requirement is CompletionRequirement.WORKSPACE_CHANGE_REQUIRED
 
 
 @pytest.mark.asyncio
@@ -832,6 +865,49 @@ async def test_planner_reports_specific_sanitized_plan_step_category(
 
     assert failure.value.code == "INVALID_PLAN_OUTPUT"
     assert str(failure.value) == f"The model returned invalid Plan. Category: {category}."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("requirement", "task"),
+    [
+        (CompletionRequirement.WORKSPACE_CHANGE_REQUIRED, "Fix alpha bug"),
+        (CompletionRequirement.WORKSPACE_CHANGE_NOT_REQUIRED, "Explain alpha"),
+    ],
+)
+async def test_agent_gateway_receives_frozen_completion_contract_for_investigative_plan(
+    requirement: CompletionRequirement, task: str,
+) -> None:
+    plan = _read_only_plan()
+    plan = replace(
+        plan,
+        completion_requirement=requirement,
+        steps=(replace(plan.steps[0], tool_name="read_file", description="Inspect alpha"),),
+    )
+    gateway = QueueGateway(json.dumps({
+        "kind": "TASK_READY", "summary": "Evidence is available.", "action": None,
+    }))
+
+    decision = await JsonAgentDecisionAdapter(gateway).decide(
+        AgentDecisionRequest(task, _context(), plan, ())
+    )
+
+    system, user = gateway.last_messages
+    payload = json.loads(user.content)
+    assert decision.kind is AgentDecisionKind.TASK_READY
+    assert plan.authorization_scope.allowed_write_actions == ()
+    assert plan.authorization_scope.allowed_commands == ()
+    assert payload["plan"]["completion_requirement"] == requirement.value
+    assert payload["plan"]["steps"][0]["tool_name"] == "read_file"
+    assert "completion_requirement is the frozen run-level completion contract" in system.content
+    assert "WORKSPACE_CHANGE_REQUIRED" in system.content
+    assert "do not return TASK_READY" in system.content
+    assert "required repository change is absent" in system.content
+    assert "propose the necessary Tool action unchanged" in system.content
+    assert "ToolRuntime's authoritative scope decision" in system.content
+    assert "PLAN_SCOPE_DENIED may trigger Replan" in system.content
+    assert "WORKSPACE_CHANGE_NOT_REQUIRED" in system.content
+    assert "do not create changes merely to satisfy the Plan" in system.content
 
 
 @pytest.mark.asyncio
