@@ -228,7 +228,7 @@ class ShellTool:
             resolved_cwd = self._guard.resolve_existing(cwd, require_directory=True)
             normalized_argv = self._executables.normalize_argv(argv)
             if (
-                normalized_argv[0] == self._executables.python
+                normalized_argv[0] == "python"
                 and len(normalized_argv) >= 2
                 and normalized_argv[1].casefold().endswith(".py")
             ):

@@ -33,7 +33,14 @@ def test_command_policy_matrix_and_unknown_fail_closed(tmp_path: Path) -> None:
     assert policy.classify(operation="read_file", arguments={"path": "a.py"}) is RiskLevel.SAFE
     assert (
         policy.classify(operation="shell", arguments={"argv": ["uv", "run", "pytest"]})
-        is RiskLevel.WRITE
+        is RiskLevel.DANGEROUS
+    )
+    assert policy.classify(
+        operation="shell", arguments={"argv": ["uv", "run", "mypy", "src"]}
+    ) is RiskLevel.WRITE
+    assert (
+        policy.classify(operation="shell", arguments={"argv": ["uv", "--version"]})
+        is RiskLevel.SAFE
     )
     assert (
         policy.classify(operation="shell", arguments={"argv": ["unknown-command"]})
@@ -220,7 +227,7 @@ def test_trusted_python_execution_policy_matrix(tmp_path: Path) -> None:
         )
 
 
-def test_only_exact_trusted_python_absolute_path_is_normalized(tmp_path: Path) -> None:
+def test_control_python_absolute_path_is_not_a_repository_command(tmp_path: Path) -> None:
     trusted = tmp_path / "python.exe"
     trusted.write_bytes(b"test executable identity")
     other = tmp_path / "other" / "python.exe"
@@ -230,10 +237,12 @@ def test_only_exact_trusted_python_absolute_path_is_normalized(tmp_path: Path) -
     policy = DefaultCommandPolicy(executables)
     assert policy.classify(
         operation="shell", arguments={"argv": [str(trusted), "-c", "print(1)"]},
-    ) is RiskLevel.WRITE
+    ) is RiskLevel.DANGEROUS
     assert policy.classify(
         operation="shell", arguments={"argv": [str(other), "-c", "print(1)"]},
     ) is RiskLevel.DANGEROUS
     assert executables.normalize_argv(["tools/python.exe", "-c", "print(1)"])[0] == (
         "tools/python.exe"
     )
+    assert executables.normalize_argv(["python", "-c", "print(1)"])[0] == "python"
+    assert executables.normalize_argv(["pytest", "-q"])[0] == "pytest"

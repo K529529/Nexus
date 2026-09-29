@@ -4,6 +4,9 @@ import asyncio
 import base64
 import hashlib
 import json
+import os
+import sys
+import venv
 from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -1905,8 +1908,44 @@ def _python_command_plan(argv: list[str]) -> Plan:
     )
 
 
+
 @pytest.mark.asyncio
-async def test_approved_python_command_requires_exact_argv_and_cwd(tmp_path: Path) -> None:
+async def test_planner_keeps_repository_python_authorization_logical(tmp_path: Path) -> None:
+    executables = TrustedExecutables.resolve(tmp_path)
+    response = {
+        "completion_requirement": "WORKSPACE_CHANGE_NOT_REQUIRED",
+        "rationale_summary": "Run a repository Python check.",
+        "steps": [{
+            "description": "BASIC_EXECUTION: inspect repository behavior",
+            "tool_name": "shell",
+            "target_paths": [],
+            "command_argv": ["python", "-c", "print('repository')"],
+            "command_cwd": ".",
+        }],
+    }
+    planner = ModelPlanner(
+        QueueGateway(json.dumps(response)),
+        normalize_argv=executables.normalize_argv,
+    )
+    plan = await planner.create_plan(PlanningRequest(
+        "inspect repository behavior", _context(), PlanKind.INITIAL,
+        None, None, str(uuid4()), str(uuid4()),
+    ))
+
+    command = ("python", "-c", "print('repository')")
+    assert plan.steps[0].command_argv == command
+    assert (command, ".") in plan.authorization_scope.allowed_commands
+    assert executables.python not in command
+
+
+@pytest.mark.asyncio
+async def test_approved_python_command_requires_exact_argv_and_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    venv.create(tmp_path / ".venv", with_pip=False)
+    monkeypatch.setenv(
+        "PATH", f"{Path(sys.executable).parent}{os.pathsep}{os.environ.get('PATH', '')}"
+    )
     guard = WorkspaceGuard(tmp_path)
     executables = TrustedExecutables.resolve(guard.root)
     policy = DefaultCommandPolicy(executables)
@@ -1918,7 +1957,7 @@ async def test_approved_python_command_requires_exact_argv_and_cwd(tmp_path: Pat
         plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
         normalize_argv=executables.normalize_argv,
     )
-    argv = [executables.python, "-c", "print('approved')"]
+    argv = ["python", "-c", "import sys; print('approved'); print(sys.prefix)"]
     plan = _python_command_plan(argv)
 
     async def execute(command: list[str], cwd: str = ".", duration: float = 5.0) -> ToolResult:
@@ -1933,15 +1972,29 @@ async def test_approved_python_command_requires_exact_argv_and_cwd(tmp_path: Pat
 
     allowed = await execute(argv)
     assert allowed.success and allowed.risk_level is RiskLevel.WRITE
+    assert tuple(argv) in {
+        command for command, _ in plan.authorization_scope.allowed_commands
+    }
     assert allowed.output is not None and "approved" in allowed.output["stdout"]
-    changed_code = await execute([executables.python, "-c", "print('changed')"])
+    executed_argv = allowed.output["argv"]
+    assert isinstance(executed_argv, list)
+    expected_python = tmp_path / ".venv" / (
+        "Scripts/python.exe" if os.name == "nt" else "bin/python"
+    )
+    assert executed_argv[0] == str(expected_python)
+    assert executed_argv[0] != executables.python
+    assert str(tmp_path / ".venv") in str(allowed.output["stdout"])
+    changed_code = await execute(["python", "-c", "print('changed')"])
     changed_cwd = await execute(argv, "subdir")
     assert changed_code.error is not None and changed_code.error.code == "PLAN_SCOPE_DENIED"
     assert changed_cwd.error is not None and changed_cwd.error.code == "PLAN_SCOPE_DENIED"
 
 
+
 @pytest.mark.asyncio
-async def test_approved_python_command_still_times_out(tmp_path: Path) -> None:
+async def test_approved_python_without_repository_venv_reports_environment_failure(
+    tmp_path: Path,
+) -> None:
     guard = WorkspaceGuard(tmp_path)
     executables = TrustedExecutables.resolve(guard.root)
     policy = DefaultCommandPolicy(executables)
@@ -1953,7 +2006,45 @@ async def test_approved_python_command_still_times_out(tmp_path: Path) -> None:
         plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
         normalize_argv=executables.normalize_argv,
     )
-    argv = [executables.python, "-c", "import time; time.sleep(30)"]
+    argv = ["python", "-c", "print('repository')"]
+    plan = _python_command_plan(argv)
+
+    result = await runtime.execute(
+        ToolInvocation(
+            str(uuid4()), "shell", {"argv": argv, "cwd": "."},
+            plan.run_id, plan.session_id,
+        ),
+        authorization=_evidence(plan),
+    )
+
+    assert not result.success
+    assert result.risk_level is RiskLevel.WRITE
+    assert result.error is not None
+    assert result.error.code == "REPOSITORY_ENVIRONMENT_UNAVAILABLE"
+    assert result.output is not None
+    assert "repository execution environment is unavailable" in (
+        str(result.output["stderr"]).casefold()
+    )
+    observation = _observation_summary(result)
+    assert "error_code=REPOSITORY_ENVIRONMENT_UNAVAILABLE" in observation
+    assert "Repository execution environment is unavailable" in observation
+
+
+@pytest.mark.asyncio
+async def test_approved_python_command_still_times_out(tmp_path: Path) -> None:
+    venv.create(tmp_path / ".venv", with_pip=False)
+    guard = WorkspaceGuard(tmp_path)
+    executables = TrustedExecutables.resolve(guard.root)
+    policy = DefaultCommandPolicy(executables)
+    sandbox = LocalProcessSandbox(guard, policy, executables)
+    runtime = ToolRuntime(
+        ToolRegistry([ShellTool(guard, sandbox, executables)]), policy,
+        cast(ApprovalPolicy, UnusedApprovalPolicy()),
+        cast(ApprovalService, UnusedApprovalService()),
+        plan_approval_service=cast(PlanApprovalService, ApprovedPlanVerifier()),
+        normalize_argv=executables.normalize_argv,
+    )
+    argv = ["python", "-c", "import time; time.sleep(30)"]
     plan = _python_command_plan(argv)
     result = await runtime.execute(
         ToolInvocation(
@@ -1969,6 +2060,7 @@ async def test_approved_python_command_still_times_out(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_python_script_uses_workspace_guard_for_existing_file(tmp_path: Path) -> None:
+    venv.create(tmp_path / ".venv", with_pip=False)
     guard = WorkspaceGuard(tmp_path)
     executables = TrustedExecutables.resolve(guard.root)
     policy = DefaultCommandPolicy(executables)
@@ -1976,7 +2068,7 @@ async def test_python_script_uses_workspace_guard_for_existing_file(tmp_path: Pa
     shell = ShellTool(guard, sandbox, executables)
     (tmp_path / "check.py").write_text("print('inside')\n", encoding="utf-8")
     inside = await shell.execute(ToolInvocation(
-        str(uuid4()), "shell", {"argv": [executables.python, "check.py"]},
+        str(uuid4()), "shell", {"argv": ["python", "check.py"]},
         str(uuid4()), str(uuid4()),
     ))
     assert inside.success and inside.output is not None
@@ -1986,13 +2078,13 @@ async def test_python_script_uses_workspace_guard_for_existing_file(tmp_path: Pa
     (nested / "check.py").write_text("print('nested')\n", encoding="utf-8")
     nested_result = await shell.execute(ToolInvocation(
         str(uuid4()), "shell",
-        {"argv": [executables.python, "check.py"], "cwd": "nested"},
+        {"argv": ["python", "check.py"], "cwd": "nested"},
         str(uuid4()), str(uuid4()),
     ))
     assert nested_result.success and nested_result.output is not None
     assert "nested" in nested_result.output["stdout"]
     missing = await shell.execute(ToolInvocation(
-        str(uuid4()), "shell", {"argv": [executables.python, "missing.py"]},
+        str(uuid4()), "shell", {"argv": ["python", "missing.py"]},
         str(uuid4()), str(uuid4()),
     ))
     assert not missing.success

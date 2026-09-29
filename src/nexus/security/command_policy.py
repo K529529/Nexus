@@ -88,8 +88,8 @@ class DefaultCommandPolicy:
 
     def _is_safe_inspection(self, argv: list[str]) -> bool:
         return argv in [
-            [self._executables.python, "--version"],
-            [self._executables.python, "-V"],
+            ["python", "--version"],
+            ["python", "-V"],
             *(
                 [[self._executables.uv, "--version"]]
                 if self._executables.uv is not None
@@ -103,12 +103,12 @@ class DefaultCommandPolicy:
         ]
 
     def _is_controlled_write(self, argv: list[str]) -> bool:
-        if argv[0] == self._executables.python:
+        if argv[0] == "python":
             if len(argv) == 3 and argv[1] == "-c":
                 return True
             return len(argv) >= 2 and _repository_python_script(argv[1])
         direct = {
-            self._executables.pytest,
+            "pytest",
             self._executables.ruff,
             self._executables.mypy,
         }
@@ -119,10 +119,10 @@ class DefaultCommandPolicy:
             return False
         if argv[1:2] == ["build"]:
             return True
-        return len(argv) >= 3 and argv[1] == "run" and argv[2] in {
-            "pytest",
-            "mypy",
-        } or len(argv) >= 4 and argv[1:3] == ["run", "ruff"] and argv[3] == "check"
+        return (
+            len(argv) >= 3 and argv[1:3] == ["run", "mypy"]
+            or len(argv) >= 4 and argv[1:3] == ["run", "ruff"] and argv[3] == "check"
+        )
 
 
 def _repository_python_script(value: str) -> bool:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import venv
 from pathlib import Path
 from typing import cast
 
@@ -33,9 +34,10 @@ def _sandbox(
 
 @pytest.mark.asyncio
 async def test_safe_command_captures_structured_success(tmp_path: Path) -> None:
-    sandbox, executables = _sandbox(tmp_path, permissive_for_mechanics=False)
+    venv.create(tmp_path / ".venv", with_pip=False)
+    sandbox, _ = _sandbox(tmp_path, permissive_for_mechanics=False)
     result = await sandbox.execute(
-        SandboxRequest("shell", [executables.python, "--version"], ".", 10.0)
+        SandboxRequest("shell", ["python", "--version"], ".", 10.0)
     )
 
     assert result.policy_decision is PolicyDecision.ALLOWED

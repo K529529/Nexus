@@ -21,7 +21,7 @@ from nexus.domain.tooling import (
     ToolError,
 )
 from nexus.errors import NexusError
-from nexus.security.executables import TrustedExecutables
+from nexus.security.executables import RepositoryExecutionEnvironment, TrustedExecutables
 from nexus.security.workspace import WorkspaceGuard
 
 _OUTPUT_LIMIT_BYTES = 1_048_576
@@ -37,6 +37,9 @@ class LocalProcessSandbox:
         self._workspace_guard = workspace_guard
         self._command_policy = command_policy
         self._executables = executables
+        self._repository_environment = RepositoryExecutionEnvironment(
+            workspace_guard.root, executables.python
+        )
 
     async def execute(self, request: SandboxRequest) -> SandboxResult:
         started = time.perf_counter()
@@ -72,20 +75,42 @@ class LocalProcessSandbox:
                 error=_tool_error(exc),
             )
 
+        execution_argv = normalized_argv
+        if request.operation == "shell" and normalized_argv[0] in {"python", "pytest"}:
+            try:
+                execution_argv = [
+                    self._repository_environment.executable(normalized_argv[0]),
+                    *normalized_argv[1:],
+                ]
+            except NexusError as exc:
+                return SandboxResult(
+                    argv=normalized_argv,
+                    cwd=self._workspace_guard.relative_display(cwd),
+                    risk_level=proposed_risk,
+                    policy_decision=PolicyDecision.ALLOWED,
+                    exit_code=None,
+                    stdout="",
+                    stderr=str(exc),
+                    duration_ms=_duration_ms(started),
+                    timed_out=False,
+                    output_truncated=False,
+                    error=_tool_error(exc),
+                )
+
         if os.name == "nt" and isinstance(
             asyncio.get_running_loop(), asyncio.SelectorEventLoop
         ):
             return await asyncio.to_thread(
                 self._execute_on_windows_proactor,
                 request,
-                normalized_argv,
+                execution_argv,
                 cwd,
                 proposed_risk,
                 started,
             )
         return await self._execute_allowed(
             request,
-            normalized_argv,
+            execution_argv,
             cwd,
             proposed_risk,
             started,
