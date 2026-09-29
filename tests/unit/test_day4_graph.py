@@ -82,6 +82,8 @@ from nexus.errors import ModelError
 from nexus.infrastructure.graph.day4_runtime import (
     Day4LangGraphRuntime,
     _action_fingerprint,
+    _activate_first_plan_step,
+    _complete_active_plan_step,
     _observation_summary,
 )
 from nexus.security.workspace import WorkspaceGuard
@@ -970,8 +972,24 @@ def _progress_plan() -> Plan:
     )
 
 
+def _active_progress_plan(*statuses: PlanStepStatus) -> Plan:
+    plan = _progress_plan()
+    assert len(statuses) == len(plan.steps)
+    return replace(
+        plan,
+        status=PlanStatus.ACTIVE,
+        approval_status=ApprovalDecision.APPROVED,
+        approval_id=str(uuid4()),
+        approved_at=datetime.now(UTC),
+        steps=tuple(
+            replace(step, status=status)
+            for step, status in zip(plan.steps, statuses, strict=True)
+        ),
+    )
+
+
 @pytest.mark.asyncio
-async def test_plan_step_is_not_automatically_completed_in_checkpoint() -> None:
+async def test_completed_plan_step_survives_checkpoint_and_resume() -> None:
     ledger = ToolExecutionLedger()
     runtime = _runtime(
         ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
@@ -985,11 +1003,15 @@ async def test_plan_step_is_not_automatically_completed_in_checkpoint() -> None:
     thread_id = f"nexus-run:{state.run_id}"
     completed = await runtime.run(state, thread_id=thread_id)
     assert completed.plan is not None
-    assert completed.plan.steps[0].status is PlanStepStatus.PENDING
+    assert completed.plan.steps[0].status is PlanStepStatus.COMPLETED
     snapshot = await runtime._graph.aget_state(
         {"configurable": {"thread_id": thread_id}}
     )
-    assert snapshot.values["plan"].steps[0].status is PlanStepStatus.PENDING
+    assert snapshot.values["plan"].steps[0].status is PlanStepStatus.COMPLETED
+    resumed = await runtime.resume(thread_id=thread_id)
+    assert resumed.plan is not None
+    assert resumed.plan.steps[0].status is PlanStepStatus.COMPLETED
+    assert resumed.active_step_started_observation_count == 1
 
 
 @pytest.mark.asyncio
@@ -1214,8 +1236,13 @@ async def test_normal_runtime_preserves_edit_decision_without_fresh_read() -> No
 
 
 @pytest.mark.asyncio
-async def test_normal_runtime_keeps_plan_progress_as_guidance_only() -> None:
-    plan = _progress_plan()
+async def test_read_observation_keeps_active_step_in_progress() -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.IN_PROGRESS,
+        PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING,
+    )
     result = _tool_result(
         str(uuid4()), "read_file", success=True,
         output={"path": "iam.py", "start_line": 1, "end_line": 2,
@@ -1236,14 +1263,19 @@ async def test_normal_runtime_keeps_plan_progress_as_guidance_only() -> None:
     assert isinstance(observed.update, dict)
     assert "plan" not in observed.update
     assert state.plan is plan
-    assert all(step.status is PlanStepStatus.PENDING for step in plan.steps)
+    assert plan.steps[0].status is PlanStepStatus.IN_PROGRESS
     assert not any(isinstance(item, PlanStepCompleted) for item in events.drain(plan.run_id))
 
 
-def test_agent_prompt_omits_authoritative_plan_progress() -> None:
+def test_agent_prompt_exposes_authoritative_plan_progress() -> None:
     from nexus.application.planning import _agent_messages
 
-    plan = _progress_plan()
+    plan = _active_progress_plan(
+        PlanStepStatus.COMPLETED,
+        PlanStepStatus.IN_PROGRESS,
+        PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING,
+    )
     request = AgentDecisionRequest(
         "edit iam", WorkingContext("edit iam", (), (), (), (), False),
         plan, (),
@@ -1253,10 +1285,14 @@ def test_agent_prompt_omits_authoritative_plan_progress() -> None:
     assert "execution guidance" in system.content
     assert "Follow approved Plan progress" not in system.content
     assert "Never repeat an approved edit" not in system.content
-    assert "current_step" not in payload["plan"]
-    assert "next_step" not in payload["plan"]
-    assert "completed_step_ids" not in payload["plan"]
-    assert all("status" not in step for step in payload["plan"]["steps"])
+    assert payload["plan"]["active_step"]["step_id"] == plan.steps[1].step_id
+    assert payload["plan"]["active_step"]["sequence"] == 2
+    assert payload["plan"]["completed_step_ids"] == [plan.steps[0].step_id]
+    assert [step["status"] for step in payload["plan"]["steps"]] == [
+        "COMPLETED", "IN_PROGRESS", "PENDING", "PENDING",
+    ]
+    assert "Work primarily on its current IN_PROGRESS step" in system.content
+    assert "CONTINUE cannot claim their completion" in system.content
     assert payload["plan"]["steps"][2]["target_paths"] == ["iam.py"]
 
 
@@ -1343,3 +1379,355 @@ async def test_legacy_unspecified_plan_cannot_complete_as_read_only() -> None:
 
     result = await runtime.run(state)
     assert result.terminal_status is TerminalStatus.FAILED_VALIDATION_UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_plan_creation_and_approval_activate_only_first_step() -> None:
+    plan = await FixedPlanner().create_plan(PlanningRequest(
+        "edit alpha", WorkingContext("edit alpha", (), (), (), (), False),
+        PlanKind.INITIAL, None, None, str(uuid4()), str(uuid4()),
+    ))
+    assert all(step.status is PlanStepStatus.PENDING for step in plan.steps)
+    plan = _progress_plan()
+    assert all(step.status is PlanStepStatus.PENDING for step in plan.steps)
+
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(),
+        planner=FixedPlanner(), agent=ReadyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "edit alpha", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("edit alpha", (), (), (), (), False),
+        plan=plan, baseline_workspace_digest="baseline",
+    )
+    approved = await runtime._approval_gate(state)
+    assert isinstance(approved.update, dict)
+    active = approved.update["plan"]
+    assert isinstance(active, Plan)
+    assert [step.status for step in active.steps] == [
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING, PlanStepStatus.PENDING,
+    ]
+    assert active.approval_id is not None
+    assert approved.update["active_step_started_observation_count"] == 0
+    assert active.authorization_scope == plan.authorization_scope
+    assert active.scope_digest == plan.scope_digest
+
+
+@pytest.mark.asyncio
+async def test_read_pages_wait_for_continue_and_empty_continue_retries() -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING, PlanStepStatus.PENDING,
+    )
+    ledger, events = ToolExecutionLedger(), RuntimeEventBuffer()
+
+    class ContinueAgent:
+        def __init__(self) -> None:
+            self.requests: list[AgentDecisionRequest] = []
+
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            self.requests.append(request)
+            return AgentDecision(AgentDecisionKind.CONTINUE, None, "Inspection done.")
+
+    agent = ContinueAgent()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
+        agent=agent, tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "inspect", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("inspect", (), (), (), (), False), plan=plan,
+    )
+    for page in range(3):
+        result = _tool_result(
+            str(uuid4()), "read_file", success=True,
+            output={
+                "path": "iam.py", "start_line": page + 1,
+                "end_line": page + 1, "truncated": False,
+                "content": f"page {page}\n",
+            },
+        )
+        observed = await runtime._observe(replace(
+            state, pending_tool_action=ToolAction("read_file", {"path": "iam.py"}),
+            latest_tool_result=result,
+        ))
+        assert isinstance(observed.update, dict)
+        assert "plan" not in observed.update
+        state = replace(state, **observed.update)
+        assert state.plan is not None
+        assert state.plan.steps[0].status is PlanStepStatus.IN_PROGRESS
+
+    advanced = await runtime._agent_step(state)
+    assert isinstance(advanced.update, dict)
+    state = replace(state, **advanced.update)
+    assert state.plan is not None
+    assert [step.status for step in state.plan.steps[:2]] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.IN_PROGRESS,
+    ]
+    assert state.active_step_started_observation_count == 3
+    completed = [item for item in events.drain(plan.run_id)
+                 if isinstance(item, PlanStepCompleted)]
+    assert len(completed) == 1 and completed[0].step_id == plan.steps[0].step_id
+    with pytest.raises(ModelError) as failure:
+        await runtime._agent_step(state)
+    assert failure.value.code == "INVALID_AGENT_DECISION"
+    assert len(agent.requests) == 3
+    assert agent.requests[-1].runtime_feedback is AgentRuntimeFeedback.INVALID_PLAN_CONTINUE
+    assert state.plan.steps[1].status is PlanStepStatus.IN_PROGRESS
+
+
+@pytest.mark.asyncio
+async def test_edit_progress_requires_matching_success_and_auxiliary_read_does_not_reopen() -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+    )
+    ledger, events = ToolExecutionLedger(), RuntimeEventBuffer()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=events, planner=FixedPlanner(),
+        agent=ReadyDecisions(), tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "edit", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        plan=plan,
+    )
+
+    async def observe(action: ToolAction, result: ToolResult) -> None:
+        nonlocal state
+        transition = await runtime._observe(replace(
+            state, pending_tool_action=action, latest_tool_result=result,
+        ))
+        assert isinstance(transition.update, dict)
+        state = replace(state, **transition.update)
+
+    await observe(
+        ToolAction("read_file", {"path": "iam.py"}),
+        _tool_result(str(uuid4()), "read_file", success=True, output={
+            "path": "iam.py", "start_line": 1, "end_line": 1,
+            "truncated": False, "content": "old\n",
+        }),
+    )
+    await observe(
+        ToolAction("edit_file", {"path": "iam.py"}),
+        _tool_result(str(uuid4()), "edit_file", success=False,
+                     error_code="EDIT_TARGET_NOT_FOUND"),
+    )
+    await observe(
+        ToolAction("edit_file", {"path": "other.py"}),
+        _tool_result(str(uuid4()), "edit_file", success=True,
+                     output={"path": "other.py"}),
+    )
+    assert state.plan is not None
+    assert [step.status for step in state.plan.steps] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+    ]
+    await observe(
+        ToolAction("edit_file", {"path": "iam.py"}),
+        _tool_result(str(uuid4()), "edit_file", success=True,
+                     output={"path": "iam.py"}),
+    )
+    assert state.plan is not None
+    assert [step.status for step in state.plan.steps] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.COMPLETED, PlanStepStatus.IN_PROGRESS,
+    ]
+    assert state.active_step_started_observation_count == 4
+    completed = [item for item in events.drain(plan.run_id)
+                 if isinstance(item, PlanStepCompleted)]
+    assert len(completed) == 1 and completed[0].step_id == plan.steps[2].step_id
+
+
+@pytest.mark.asyncio
+async def test_shell_progress_requires_exact_approved_command_and_success() -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.COMPLETED, PlanStepStatus.IN_PROGRESS,
+    )
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(),
+        planner=FixedPlanner(), agent=ReadyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "test", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        plan=plan,
+    )
+    for action, result in (
+        (
+            ToolAction("shell", {"argv": ["pytest", "-x"], "cwd": "."}),
+            _tool_result(str(uuid4()), "shell", success=True),
+        ),
+        (
+            ToolAction("shell", {"argv": ["pytest", "-q"], "cwd": "subdir"}),
+            _tool_result(str(uuid4()), "shell", success=True),
+        ),
+        (
+            ToolAction("shell", {"argv": ["pytest", "-q"]}),
+            _tool_result(str(uuid4()), "shell", success=False,
+                         error_code="COMMAND_EXIT_NONZERO"),
+        ),
+    ):
+        observed = await runtime._observe(replace(
+            state, pending_tool_action=action, latest_tool_result=result,
+        ))
+        assert isinstance(observed.update, dict)
+        assert "plan" not in observed.update
+        state = replace(state, **observed.update)
+    observed = await runtime._observe(replace(
+        state, pending_tool_action=ToolAction("shell", {"argv": ["pytest", "-q"]}),
+        latest_tool_result=_tool_result(str(uuid4()), "shell", success=True),
+    ))
+    assert isinstance(observed.update, dict)
+    advanced = observed.update["plan"]
+    assert isinstance(advanced, Plan)
+    assert advanced.steps[-1].status is PlanStepStatus.COMPLETED
+
+
+def test_progress_transitions_preserve_authorization_and_approval_identity() -> None:
+    created = _progress_plan()
+    active = _activate_first_plan_step(replace(
+        created, status=PlanStatus.ACTIVE,
+        approval_status=ApprovalDecision.APPROVED,
+        approval_id=str(uuid4()), approved_at=datetime.now(UTC),
+    ))
+    evidence = ApprovedPlanEvidence(
+        active.plan_id, active.version, active.run_id, active.session_id,
+        PlanAuthorizationSource.AUTO_MODE, cast(str, active.approval_id),
+        active.scope_digest, active.authorization_scope,
+        cast(datetime, active.approved_at),
+    )
+    advanced, completed = _complete_active_plan_step(active)
+    assert completed.step_id == created.steps[0].step_id
+    assert advanced.steps[0].status is PlanStepStatus.COMPLETED
+    assert advanced.steps[1].status is PlanStepStatus.IN_PROGRESS
+    assert (
+        advanced.plan_id, advanced.version, advanced.authorization_scope,
+        advanced.scope_digest, advanced.approval_id, advanced.approved_at,
+    ) == (
+        active.plan_id, active.version, active.authorization_scope,
+        active.scope_digest, active.approval_id, active.approved_at,
+    )
+    assert evidence.scope_digest == advanced.scope_digest
+    assert evidence.authorization_scope == advanced.authorization_scope
+
+
+@pytest.mark.asyncio
+async def test_replan_history_keeps_old_progress_and_activates_new_version() -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+    )
+    denial = Observation(
+        str(uuid4()), "edit_file", False, "scope denied",
+        "PLAN_SCOPE_DENIED", "Approved scope is insufficient.",
+    )
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(),
+        planner=FixedPlanner(), agent=ReadyDecisions(),
+        tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "edit", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("edit", (), (), (), (), False),
+        plan=plan, observations=(denial,), baseline_workspace_digest="baseline",
+    )
+    created = await runtime._create_plan(state)
+    old = created["plan_history"][-1]
+    new = created["plan"]
+    assert isinstance(old, Plan) and isinstance(new, Plan)
+    assert old.status is PlanStatus.SUPERSEDED
+    assert [step.status for step in old.steps] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.COMPLETED,
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+    ]
+    assert new.version == plan.version + 1
+    assert all(step.status is PlanStepStatus.PENDING for step in new.steps)
+    approved = await runtime._approval_gate(replace(state, **created))
+    assert isinstance(approved.update, dict)
+    replacement = approved.update["plan"]
+    assert isinstance(replacement, Plan)
+    assert replacement.steps[0].status is PlanStepStatus.IN_PROGRESS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("active_sequence", [3, 4])
+async def test_continue_cannot_complete_edit_or_shell_step(active_sequence: int) -> None:
+    statuses = [PlanStepStatus.COMPLETED] * (active_sequence - 1)
+    statuses.append(PlanStepStatus.IN_PROGRESS)
+    statuses.extend([PlanStepStatus.PENDING] * (4 - active_sequence))
+    plan = _active_progress_plan(*statuses)
+
+    class ContinueAgent:
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            del request
+            return AgentDecision(AgentDecisionKind.CONTINUE, None, "Skip.")
+
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
+        agent=ContinueAgent(), tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "work", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("work", (), (), (), (), False),
+        plan=plan,
+        observations=(Observation(
+            str(uuid4()), "read_file", True, "fresh read", None, None,
+        ),),
+    )
+    with pytest.raises(ModelError) as failure:
+        await runtime._agent_step(state)
+    assert failure.value.code == "INVALID_AGENT_DECISION"
+    assert plan.steps[active_sequence - 1].status is PlanStepStatus.IN_PROGRESS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("step_tool", "evidence_tool", "success"),
+    [
+        ("search_files", "search_files", True),
+        (None, "write_file", False),
+    ],
+)
+async def test_inspection_and_narrative_continue_need_new_tool_evidence(
+    step_tool: str | None, evidence_tool: str, success: bool,
+) -> None:
+    plan = _active_progress_plan(
+        PlanStepStatus.IN_PROGRESS, PlanStepStatus.PENDING,
+        PlanStepStatus.PENDING, PlanStepStatus.PENDING,
+    )
+    plan = replace(
+        plan,
+        steps=(replace(plan.steps[0], tool_name=step_tool), *plan.steps[1:]),
+    )
+
+    class ContinueAgent:
+        async def decide(self, request: AgentDecisionRequest) -> AgentDecision:
+            del request
+            return AgentDecision(AgentDecisionKind.CONTINUE, None, "Step done.")
+
+    ledger = ToolExecutionLedger()
+    runtime = _runtime(
+        ledger=ledger, event_buffer=RuntimeEventBuffer(), planner=FixedPlanner(),
+        agent=ContinueAgent(), tool_runtime=OneActionRuntime(ledger),
+    )
+    state = AgentState(
+        "inspect", [], plan.run_id, plan.session_id, RuntimeStatus.STARTED,
+        context=WorkingContext("inspect", (), (), (), (), False), plan=plan,
+        observations=(Observation(
+            str(uuid4()), evidence_tool, success, "new Tool evidence", None, None,
+        ),),
+    )
+    decision = await runtime._agent_step(state)
+    assert isinstance(decision.update, dict)
+    advanced = decision.update["plan"]
+    assert isinstance(advanced, Plan)
+    assert [step.status for step in advanced.steps[:2]] == [
+        PlanStepStatus.COMPLETED, PlanStepStatus.IN_PROGRESS,
+    ]

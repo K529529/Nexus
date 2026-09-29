@@ -71,6 +71,12 @@ _AGENT_RUNTIME_FEEDBACK = {
         "Do not repeat it. Choose another approved Plan action, or follow the existing "
         "replan path if the approved scope cannot complete the task."
     ),
+    AgentRuntimeFeedback.INVALID_PLAN_CONTINUE: (
+        "Agent guard: CONTINUE needs new matching successful Tool evidence for an "
+        "inspection step, or a new Tool observation for a narrative step. Edit, write, "
+        "and shell steps require a real successful ToolResult. Use the required Tool "
+        "action or return TASK_READY when the task is complete; do not skip Plan steps."
+    ),
 }
 
 _PLAN_TOP_LEVEL_KEYS = {"completion_requirement", "rationale_summary", "steps"}
@@ -603,6 +609,20 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
             "id": request.plan.plan_id,
             "version": request.plan.version,
             "completion_requirement": request.plan.completion_requirement.value,
+            "active_step": next((
+                {
+                    "step_id": step.step_id,
+                    "sequence": step.sequence,
+                    "description": step.description,
+                    "tool_name": step.tool_name,
+                }
+                for step in request.plan.steps
+                if step.status is PlanStepStatus.IN_PROGRESS
+            ), None),
+            "completed_step_ids": [
+                step.step_id for step in request.plan.steps
+                if step.status is PlanStepStatus.COMPLETED
+            ],
             "steps": [
                 {
                     "step_id": step.step_id,
@@ -612,6 +632,7 @@ def _agent_payload(request: AgentDecisionRequest) -> str:
                     "target_paths": step.target_paths,
                     "command_argv": step.command_argv,
                     "command_cwd": step.command_cwd,
+                    "status": step.status.value,
                 }
                 for step in request.plan.steps
             ],
@@ -649,7 +670,9 @@ def _planning_messages(
                 "executable path to the requested final outcome and must not stop at investigation "
                 "or reproduction only. Use WORKSPACE_CHANGE_NOT_REQUIRED for an explanation "
                 "or inspection task. Never output UNSPECIFIED. Replan must preserve the frozen "
-                "completion_requirement from the previous Plan. "
+                "completion_requirement from the previous Plan. On Replan, treat "
+                "COMPLETED steps in the previous Plan as completed history evidence; do "
+                "not mechanically repeat successful steps unless new evidence invalidates them. "
                 "rationale_summary is a required non-empty string. "
                 "steps is a required non-empty array. The steps must collectively cover the "
                 "actions required to satisfy the user's task. If the rationale_summary states "
@@ -770,9 +793,20 @@ def _agent_messages(
                 '"arguments":{"path":"../external.txt","content":"requested content"}}}. '
                 "This example requests a ToolRuntime decision; it does not grant authority. "
                 "Return exactly one Tool action at most. "
-                "The approved Plan is execution guidance. Use current repository and Tool "
-                "evidence to choose the next action. Do not claim completion until required "
-                "changes are actually complete. "
+                "The approved Plan is execution guidance. Work primarily on its current "
+                "IN_PROGRESS step. COMPLETED steps are finished; do not repeat them merely "
+                "because they remain visible. A read_file inspection step may need several "
+                "reads. After an inspection step has matching successful Tool evidence, "
+                "return CONTINUE when its objective is satisfied to activate the next step. "
+                "A narrative step needs a new Tool observation before CONTINUE. "
+                "Do not reread unchanged visible content solely "
+                "for confirmation. Edit, write, and shell steps require a successful Tool "
+                "action; CONTINUE cannot claim their completion. During an edit step, "
+                "auxiliary read_file calls may obtain exact old_str without reopening a "
+                "COMPLETED read step. Revisit a completed inspection or reproduction only "
+                "when new Tool evidence invalidates its conclusion. Use current repository "
+                "and Tool evidence to choose the next action. Do not claim completion until "
+                "required changes are actually complete. "
                 "The Plan's completion_requirement is the frozen run-level completion "
                 "contract. If it is WORKSPACE_CHANGE_REQUIRED, do not return TASK_READY "
                 "while the required repository change is absent. If the approved Plan scope "

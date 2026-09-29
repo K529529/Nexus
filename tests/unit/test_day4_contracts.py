@@ -294,9 +294,8 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
             }
         ],
     }
-    planner = ModelPlanner(
-        QueueGateway(json.dumps(first), json.dumps(second)),
-    )
+    gateway = QueueGateway(json.dumps(first), json.dumps(second))
+    planner = ModelPlanner(gateway)
     run_id = str(uuid4())
     session_id = str(uuid4())
 
@@ -311,12 +310,16 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
             session_id,
         )
     )
+    progressed = replace(
+        initial,
+        steps=(replace(initial.steps[0], status=PlanStepStatus.COMPLETED),),
+    )
     replanned = await planner.create_plan(
         PlanningRequest(
             "edit alpha",
             _context(),
             PlanKind.REPLAN,
-            initial,
+            progressed,
             "Approved scope is insufficient.",
             run_id,
             session_id,
@@ -327,6 +330,9 @@ async def test_planner_initial_and_replan_preserve_canonical_correlation() -> No
     assert initial.session_id == replanned.session_id == session_id
     assert replanned.plan_id == initial.plan_id
     assert replanned.version == 2
+    replan_input = json.loads(gateway.last_messages[1].content)
+    assert replan_input["previous_plan"]["steps"][0]["status"] == "COMPLETED"
+    assert all(step.status is PlanStepStatus.PENDING for step in replanned.steps)
 
 
 def test_planning_request_rejects_replan_identity_change_and_noncanonical_uuid() -> None:
@@ -616,6 +622,8 @@ async def test_planner_prompt_freezes_strict_schema_and_validation_argv() -> Non
         in system
     )
     assert "must not stop at investigation or reproduction only" in system
+    assert "On Replan, treat COMPLETED steps in the previous Plan" in system
+    assert "do not mechanically repeat successful steps" in system
     assert "whose current Plan only investigates or reproduces" not in system
     assert (
         "The steps must collectively cover the actions required to satisfy the user's task"
@@ -955,8 +963,9 @@ async def test_agent_prompt_freezes_native_edit_argument_and_patch_format() -> N
     payload = json.loads(gateway.last_messages[1].content)
     assert "current_step" not in payload["plan"]
     assert "next_step" not in payload["plan"]
-    assert "completed_step_ids" not in payload["plan"]
-    assert all("status" not in step for step in payload["plan"]["steps"])
+    assert payload["plan"]["completed_step_ids"] == []
+    assert payload["plan"]["active_step"] is None
+    assert all(step["status"] == "PENDING" for step in payload["plan"]["steps"])
     assert "Follow approved Plan progress" not in system
     assert "Prefer the next PENDING step" not in system
     assert "{path:string,patch:string}" in system

@@ -90,6 +90,28 @@ def project_agent_model_input(
         f"  completion={requirement} plan_version={version} plan_step_count={len(steps)}"
     )
     lines.append(f"  plan_tools: {', '.join(plan_tools) if plan_tools else '(none)'}")
+    active = plan.get("active_step")
+    active_sequence = (
+        _nonnegative_int(active.get("sequence"))
+        if isinstance(active, dict) else "none"
+    )
+    statuses = []
+    for step in steps[:32]:
+        if not isinstance(step, dict):
+            continue
+        sequence = _nonnegative_int(step.get("sequence"))
+        status = step.get("status")
+        if not isinstance(status, str) or status not in {
+            "PENDING", "IN_PROGRESS", "COMPLETED", "SKIPPED", "FAILED",
+        }:
+            status = "unknown"
+        statuses.append(f"{sequence}:{status}")
+    omitted = max(0, len(steps) - 32)
+    lines.append(
+        f"  plan_progress: active={active_sequence} "
+        f"statuses={','.join(statuses) if statuses else '(none)'} "
+        f"omitted={omitted}"
+    )
 
     selected_windows: dict[str, list[tuple[int, int]]] = defaultdict(list)
     lines.append("  selected_files:")

@@ -48,6 +48,8 @@ from nexus.domain.planning import (
     PlanApprovalResumeInput,
     PlanKind,
     PlanStatus,
+    PlanStep,
+    PlanStepStatus,
     TerminalStatus,
 )
 from nexus.domain.ports.agent_decision import AgentDecisionAdapter
@@ -71,6 +73,7 @@ from nexus.domain.runtime_events import (
     PhaseFinished,
     PhaseStarted,
     PlanCreated,
+    PlanStepCompleted,
     RepairStarted,
     ReplanOccurred,
     RepositoryExplored,
@@ -122,6 +125,10 @@ _SAFE_PATCH_FAILURE_DETAILS = {
 _PATCH_HUNK_HEADER = re.compile(
     r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?: .*)?$"
 )
+_INSPECTION_TOOLS = frozenset({
+    "read_file", "search_files", "lexical_search", "list_files",
+    "git_status", "git_diff",
+})
 
 
 class Day4LangGraphRuntime:
@@ -528,9 +535,12 @@ class Day4LangGraphRuntime:
             )
         )
         activated = self._plan_approval_service.activate(plan, approval)
+        if activated.status is PlanStatus.ACTIVE:
+            activated = _activate_first_plan_step(activated)
         update: dict[str, object] = {
             "plan": activated,
             "pending_plan_approval": None,
+            "active_step_started_observation_count": len(state.observations),
         }
         if approval.decision is ApprovalDecision.DENIED:
             update["terminal_status"] = TerminalStatus.FAILED_APPROVAL_DENIED
@@ -604,7 +614,9 @@ class Day4LangGraphRuntime:
             )
             if second_reason is not None:
                 raise ModelError(
-                    "Agent repeated a deterministically denied Tool action.",
+                    "Agent repeated a deterministically denied Tool action."
+                    if second_reason is AgentRuntimeFeedback.REPEATED_POLICY_DENIAL
+                    else "Agent repeated an invalid Plan CONTINUE.",
                     code="INVALID_AGENT_DECISION",
                 )
         decision = proposed
@@ -628,6 +640,11 @@ class Day4LangGraphRuntime:
                 *state.messages,
                 ModelMessage(role="assistant", content=decision.summary),
             ]
+        if decision.kind is AgentDecisionKind.CONTINUE and state.plan is not None:
+            advanced, completed = _complete_active_plan_step(state.plan)
+            update["plan"] = advanced
+            update["active_step_started_observation_count"] = len(state.observations)
+            await self._emit_plan_step_completed(state, completed)
         update = self._evidence_update(state, **update)
         if decision.kind is AgentDecisionKind.TOOL_ACTION:
             return Command(update=update, goto="execute_tool")
@@ -703,12 +720,34 @@ class Day4LangGraphRuntime:
                 else None
             ),
         )
+        if state.plan is not None and _action_completes_active_step(
+            state.plan, action, result, self._normalize_argv,
+        ):
+            advanced, completed = _complete_active_plan_step(state.plan)
+            update["plan"] = advanced
+            update["active_step_started_observation_count"] = len(state.observations) + 1
+            await self._emit_plan_step_completed(state, completed)
         if reason is None:
             return Command(update=update, goto="agent_step")
         if state.replan_count >= self._max_replans:
             update["terminal_status"] = TerminalStatus.STOPPED_MAX_REPLANS
             return Command(update=update, goto="finalize_failed")
         return Command(update=update, goto="create_plan")
+
+    async def _emit_plan_step_completed(
+        self, state: AgentState, step: PlanStep,
+    ) -> None:
+        plan = state.plan
+        if plan is None:
+            raise NexusError("Plan progress is missing.", code="GRAPH_INVALID_STATE")
+        await self._events.emit(PlanStepCompleted(
+            run_id=state.run_id,
+            session_id=_session_id(state),
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+            step_id=step.step_id,
+            sequence=step.sequence,
+        ))
 
     async def _validate(self, state: AgentState) -> Command[Any]:
         if (
@@ -1036,6 +1075,70 @@ def _to_agent_state(value: object) -> AgentState:
         raise NexusError("The graph returned invalid state.", code="GRAPH_INVALID_STATE") from exc
 
 
+def _active_plan_step(plan: Plan) -> PlanStep | None:
+    if plan.status is not PlanStatus.ACTIVE:
+        return None
+    active = tuple(
+        step for step in plan.steps if step.status is PlanStepStatus.IN_PROGRESS
+    )
+    if len(active) > 1:
+        raise NexusError("Plan has multiple active steps.", code="GRAPH_INVALID_STATE")
+    return active[0] if active else None
+
+
+def _activate_first_plan_step(plan: Plan) -> Plan:
+    if plan.status is not PlanStatus.ACTIVE or any(
+        step.status is not PlanStepStatus.PENDING for step in plan.steps
+    ):
+        raise NexusError("Plan cannot begin execution.", code="GRAPH_INVALID_STATE")
+    return replace(
+        plan,
+        steps=(replace(plan.steps[0], status=PlanStepStatus.IN_PROGRESS), *plan.steps[1:]),
+    )
+
+
+def _complete_active_plan_step(plan: Plan) -> tuple[Plan, PlanStep]:
+    current = _active_plan_step(plan)
+    if current is None:
+        raise NexusError("Active Plan step is missing.", code="GRAPH_INVALID_STATE")
+    steps = list(plan.steps)
+    index = current.sequence - 1
+    steps[index] = replace(current, status=PlanStepStatus.COMPLETED)
+    if index + 1 < len(steps):
+        next_step = steps[index + 1]
+        if next_step.status is not PlanStepStatus.PENDING:
+            raise NexusError("Plan progress order is invalid.", code="GRAPH_INVALID_STATE")
+        steps[index + 1] = replace(next_step, status=PlanStepStatus.IN_PROGRESS)
+    return replace(plan, steps=tuple(steps)), current
+
+
+def _action_completes_active_step(
+    plan: Plan,
+    action: ToolAction,
+    result: ToolResult,
+    normalize_argv: Callable[[list[str]], list[str]],
+) -> bool:
+    step = _active_plan_step(plan)
+    if step is None or not result.success or result.tool_name != action.tool_name:
+        return False
+    if step.tool_name in {"edit_file", "apply_patch", "write_file"}:
+        return (
+            action.tool_name == step.tool_name
+            and action.arguments.get("path") == step.target_paths[0]
+        )
+    if step.tool_name != "shell" or action.tool_name != "shell":
+        return False
+    argv = action.arguments.get("argv")
+    cwd = action.arguments.get("cwd", ".")
+    return (
+        isinstance(argv, list)
+        and all(isinstance(item, str) for item in argv)
+        and isinstance(cwd, str)
+        and tuple(normalize_argv(argv)) == step.command_argv
+        and cwd == step.command_cwd
+    )
+
+
 def _session_id(state: AgentState) -> str:
     if state.session_id is None:
         raise NexusError("Day 4 Session identity is missing.", code="GRAPH_INVALID_STATE")
@@ -1145,6 +1248,21 @@ def _semantic_retry_reason(
     decision: AgentDecision,
     normalize_argv: Callable[[list[str]], list[str]],
 ) -> AgentRuntimeFeedback | None:
+    if decision.kind is AgentDecisionKind.CONTINUE:
+        step = None if state.plan is None else _active_plan_step(state.plan)
+        recent = state.observations[state.active_step_started_observation_count:]
+        if step is None:
+            return AgentRuntimeFeedback.INVALID_PLAN_CONTINUE
+        if step.tool_name is None:
+            has_evidence = bool(recent)
+        elif step.tool_name in _INSPECTION_TOOLS:
+            has_evidence = any(
+                item.success and item.tool_name == step.tool_name for item in recent
+            )
+        else:
+            has_evidence = False
+        if not has_evidence:
+            return AgentRuntimeFeedback.INVALID_PLAN_CONTINUE
     action = decision.action
     if (
         action is not None

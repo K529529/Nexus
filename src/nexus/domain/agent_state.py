@@ -51,3 +51,4 @@ class AgentState:
     terminal_status: TerminalStatus | None = None
     token_usage: TokenUsageAggregate = field(default_factory=TokenUsageAggregate)
     last_policy_denial_fingerprint: str | None = None
+    active_step_started_observation_count: int = 0

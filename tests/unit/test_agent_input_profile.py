@@ -178,6 +178,25 @@ def test_latest_occurrence_tool_visibility_and_input_budget() -> None:
     assert "max_model_input_tokens=24000" in text
 
 
+def test_profile_projects_bounded_plan_progress_from_final_payload() -> None:
+    messages = list(_messages([]))
+    payload = json.loads(messages[1].content)
+    payload["plan"]["active_step"] = {"sequence": 2}
+    payload["plan"]["steps"] = [
+        {"sequence": 1, "status": "COMPLETED", "tool_name": "read_file"},
+        {"sequence": 2, "status": "IN_PROGRESS", "tool_name": "edit_file"},
+        {"sequence": 3, "status": "PENDING", "tool_name": "shell"},
+    ]
+    messages[1] = ModelMessage("user", json.dumps(payload))
+    profile = _profile_text(tuple(messages))
+
+    assert (
+        "plan_progress: active=2 "
+        "statuses=1:COMPLETED,2:IN_PROGRESS,3:PENDING omitted=0"
+    ) in profile
+    assert "Inspect a.py" not in profile
+
+
 @pytest.mark.asyncio
 async def test_observed_gateway_profiles_actual_post_fit_agent_messages() -> None:
     run_id, session_id = str(uuid4()), str(uuid4())
