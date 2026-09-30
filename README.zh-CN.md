@@ -2,6 +2,12 @@
 
 [English](README.md) | 简体中文
 
+> 当前工作区已进入 **Nexus Next V0** 开发上下文，请从 [AGENTS.md](AGENTS.md) 和
+> [Next 审核与迁移状态](docs/next/00-review-and-decisions.md) 开始。
+> 除已更新的“文档”导航外，以下各节均描述旧 Nexus V1 实现，仅作历史背景；
+> 其中的架构、安装命令与门禁不是 Next 的开发要求，也不证明 Next 已可运行。
+> 本轮基线收尾未实现 Next 功能。
+
 Nexus 是一个面向真实仓库任务的透明、async-first Coding Agent Runtime，提供持久化 PostgreSQL
 session/checkpoint、受策略治理的原生与 MCP 工具、有界仓库上下文、经过 Validation 的代码编辑、
 仓库级/用户级 Skills、结构化 Observability，以及确定性的 Evaluation harness。LangGraph 和具体
@@ -100,11 +106,10 @@ nexus eval --help
 
 ## 文档
 
-[Nexus V1 指南](docs/nexus-v1-release-guide.md)包含架构概览与架构图、CLI/配置参考、Validation、
-Observability 与 Evaluation 流程、FastAPI walkthrough、已知限制，以及 V1 后续 roadmap。
-
-此外还提供面向具体子系统的 [MCP](docs/mcp-guide.md)、[Skills](docs/skill-guide.md)、
-[Observability](docs/day8-observability-guide.md) 和[架构决策](docs/adr/)指南。
+当前 Next 设计依据：[冻结架构](docs/next/architecture-contract-v0.md)、
+[开发设计](docs/next/01-development-design.md)和[实施与验收](docs/next/02-delivery-and-acceptance.md)。
+[审核与迁移状态](docs/next/00-review-and-decisions.md)仅记录状态，不另设契约层。
+旧 V1 指南已从当前工作树删除，历史由 Git 保留。
 
 ## 从源码开发
 

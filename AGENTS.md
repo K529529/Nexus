@@ -1,110 +1,23 @@
-# AGENTS.md
+# Nexus Next V0
 
-## Project
+本仓库当前开发 Nexus Next V0。本文件只作开发入口，不复制项目契约。
 
-This repository contains **Nexus**, a transparent and extensible coding-agent runtime.
+## 有效设计依据
 
-The authoritative product and engineering specification is:
+- [冻结架构原文](docs/next/architecture-contract-v0.md)
+- [开发设计 v0.2](docs/next/01-development-design.md)
+- [实施与验收清单](docs/next/02-delivery-and-acceptance.md)
 
-`docs/Nexus_V1_Product_Requirements_and_10-Day_Engineering_Specification_v1.1.1_中文.md`
+`docs/next/00-review-and-decisions.md` 只记录审核、迁移和状态，不建立新的长期 Contract / ADR 权威层。
 
-That specification is the frozen implementation baseline for Nexus V1.
+## 旧规则失效
 
-## Authority and Scope
+旧 Nexus 的 Day1–Day10、旧 Product Specification、旧 ADR、spec-addenda、旧 AGENTS 指令全部失效，不得从历史文档、代码或 Memory 继续继承为默认规则。这也包括 LangGraph 工作流、Planner / Validator / Validation / Repair / Replan 节点、SAFE / WRITE / DANGEROUS 与 Plan-based authorization，以及旧 PostgreSQL / pgvector / RAG / Skills / LangSmith 架构要求。遗留源码、测试、配置和示例是待迁移材料，不是 Next 的设计依据。
 
-1. Treat the Nexus V1.1.1 specification as the authoritative product and architecture contract.
-2. Implement only the currently assigned Day Specification.
-3. Future Day sections are architecture context only and MUST NOT be implemented early.
-4. Do not silently reinterpret, weaken, redesign, or replace frozen decisions.
-5. If the current task conflicts with the frozen specification, STOP implementation and report:
-   - the conflict,
-   - supporting evidence,
-   - implementation impact,
-   - available options.
-6. Await an approved specification or ADR change before proceeding with any change that crosses the Codex decision boundary.
+## 开发原则
 
-## Frozen Architecture Constraints
-
-Preserve these principles unless the specification is explicitly amended:
-
-- CLI-first, runtime-independent architecture.
-- Async-first core.
-- LangGraph implementation behind Nexus-owned runtime/domain boundaries.
-- Domain must not depend on LangGraph, SQLAlchemy, MCP, Typer, or concrete model vendors.
-- All side effects must pass through Tool Runtime, policy, approval, and sandbox boundaries as applicable.
-- Context must be selected and bounded; never dump the entire repository or full session history into the model.
-- Code modifications require validation.
-- Runtime behavior must be observable through safe structured events without exposing private chain-of-thought.
-- Concrete dependency assembly belongs only in `src/nexus/infrastructure/bootstrap/`.
-- Provider boundaries must use dependency inversion where required by the specification.
-- V1 tool execution is sequential by default.
-- Existing files should normally be modified with `apply_patch`; `write_file` is for new files.
-- Do not implement prohibited Git operations such as `git commit`, `git push`, or `git reset --hard` as Nexus Agent capabilities.
-
-## Codex Implementation Decision Boundary
-
-Codex MAY decide:
-
-- private helper structure,
-- local variable names,
-- small refactors within the current module,
-- test fixture details,
-- error wording,
-- standard-library usage,
-- clearly equivalent low-level implementation details.
-
-Codex MUST NOT independently change or invent:
-
-- domain models,
-- graph node responsibilities or edges,
-- public/provider/tool contracts,
-- database schema,
-- security policy or risk classification,
-- retrieval/chunking/ranking algorithms,
-- evaluation success criteria,
-- CLI public contract,
-- persistence ownership boundaries,
-- major/new dependencies,
-- future features.
-
-For any decision in the MUST NOT category:
-
-`STOP → Report conflict → Explain options → Await approved specification change`
-
-## Daily Workflow
-
-For each Day task:
-
-1. Read the relevant global constraints in the authoritative specification.
-2. Read the complete 18-item specification for the assigned Day.
-3. Inspect the current repository state before editing.
-4. Produce a concise implementation plan mapped to the current Day.
-5. Implement only the current Day scope.
-6. Do not perform unrelated refactors or future-scope work.
-7. Run all checks required by the current Day specification.
-8. Report:
-   - changed files,
-   - tests/lint/type-check results,
-   - acceptance-criteria mapping,
-   - unresolved issues,
-   - intentionally deferred future-Day work.
-
-## Quality Gates
-
-Before a Day is considered complete, preserve the project governance defined in the specification:
-
-1. Acceptance Criteria
-2. Code & Architecture Review
-3. Tests / CI / Evaluation as applicable
-4. Product Owner Knowledge Review
-
-A Day is not complete merely because the code runs.
-
-## General Safety
-
-- Never log or commit secrets.
-- Never bypass workspace containment, approval policy, command policy, or sandbox restrictions.
-- Do not introduce raw `subprocess` usage in agent orchestration.
-- Do not scatter raw SQL through services or agent nodes.
-- Do not expose private chain-of-thought in events, logs, traces, or user output.
-- Prefer minimal, specification-aligned changes over speculative abstraction.
+- Minimal scaffold, evidence-driven complexity。
+- 一个 hand-written message-driven Agent Loop；不擅自加入冻结范围外的新架构。
+- 实现细节优先采用最简单合理方案；只有真正改变冻结架构边界的问题，才停止并报告证据与选项。
+- 按当前任务范围推进并验证；不恢复旧 Product Owner / knowledge review / Day gate 审批体系。
+- 不自行 commit / push / merge / publish。

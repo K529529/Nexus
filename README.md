@@ -2,6 +2,12 @@
 
 English | [简体中文](README.zh-CN.md)
 
+> This worktree is now the **Nexus Next V0** development context. Start with
+> [AGENTS.md](AGENTS.md) and the [Next review and migration status](docs/next/00-review-and-decisions.md).
+> Except for the updated Documentation navigation, the remaining sections below describe the historical Nexus V1 implementation;
+> their architecture, setup commands and gates are not Next requirements or evidence of Next readiness.
+> Next functionality has not been implemented in this baseline cleanup.
+
 Nexus is a transparent, async-first coding-agent runtime for real repository tasks, with durable
 PostgreSQL sessions and checkpoints, policy-governed native and MCP tools, bounded repository
 context, validated code editing, repository/user Skills, structured observability, and a
@@ -105,13 +111,11 @@ nexus eval --help
 
 ## Documentation
 
-The [Nexus V1 guide](docs/nexus-v1-release-guide.md) contains the architecture overview and diagram,
-CLI/configuration reference, validation, observability and evaluation procedures, a FastAPI
-walkthrough, known limitations, and the post-V1 roadmap.
-
-Focused subsystem guides are available for [MCP](docs/mcp-guide.md),
-[Skills](docs/skill-guide.md), [observability](docs/day8-observability-guide.md), and
-[architecture decisions](docs/adr/).
+Current Next design sources: [frozen architecture](docs/next/architecture-contract-v0.md),
+[development design](docs/next/01-development-design.md), and
+[delivery and acceptance](docs/next/02-delivery-and-acceptance.md).
+[Review and migration status](docs/next/00-review-and-decisions.md) records status only, not another contract layer.
+Old V1 guides have been removed from this worktree; historical material remains in Git.
 
 ## Development from source
 
