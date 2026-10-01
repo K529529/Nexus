@@ -97,10 +97,12 @@ async def test_invalid_utf8_is_observation(execution: ExecutionContext) -> None:
     assert "\ufffd" in result.data["stdout"]
 
 
-async def test_context_length_error_retries_only_at_compaction_boundary(tmp_path: Path) -> None:
+async def test_context_length_error_stops_without_compaction_retry(tmp_path: Path) -> None:
     class TooLarge(ScriptedModel):
         async def complete(self, messages: Any, tools: Any, emit: Any) -> Any:
+            self.requests.append(list(messages))
             raise ModelError("context_limit")
 
-    result = await run_turn(Session(tmp_path), "small", TooLarge([]), {}, Recorder(), Limits())
-    assert result.outcome == "limited"
+    model = TooLarge([])
+    result = await run_turn(Session(tmp_path), "small", model, {}, Recorder(), Limits())
+    assert result.outcome == "limited" and len(model.requests) == 1

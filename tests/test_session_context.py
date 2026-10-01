@@ -20,7 +20,7 @@ from nexus.app.session import (
     session_directory,
 )
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, estimate, groups, instructions
+from nexus.core.context import ContextBuilder, estimate, groups, instructions
 from nexus.core.types import Limits, Message, RuntimeEvent, Session, ToolResult, ToolSpec
 from nexus.tools.registry import native_tools
 from tests.conftest import Recorder, ScriptedModel, call, reply
@@ -210,35 +210,47 @@ async def test_tui_failure_is_optional(tmp_path: Path) -> None:
         writer.close()
 
 
-async def test_compaction_preserves_groups_and_replays_identically(tmp_path: Path) -> None:
-    session = Session(tmp_path)
+async def test_legacy_compaction_restores_originals_without_cross_run_summary(
+    tmp_path: Path,
+) -> None:
+    session = Session(tmp_path, run_id="old-run")
     writer = SessionLog.create(session, "compact", {}, tmp_path)
     events = Events(session, writer, ignore)
+    await events("run_started", {"workspace": str(tmp_path)})
     for message in [
         Message("system", "root instructions"),
-        Message("user", "old " * 1000),
+        Message("user", "old task"),
         reply(call("exec_command", {}, "old-call")).message,
         ToolResult("old-call", True, {"stdout": "large " * 700}).message(),
         Message("assistant", "previous final"),
-        Message("user", "current task"),
     ]:
         await append_message(session, message, events)
-    limits = Limits(context_window=4300, max_output_tokens=500)
-    context = Context(limits, session.messages[-1])
-    model = ScriptedModel(
-        [reply(text="Earlier task and successful tool output; no pending changes.")]
+    await events("run_finished", {"outcome": "completed"})
+    session.run_id = "current-run"
+    await events("run_started", {"workspace": str(tmp_path)})
+    await append_message(session, Message("user", "current task"), events)
+    await events(
+        "context_compacted",
+        {
+            "summary": "Old task plus current task mixed in legacy summary",
+            "summary_index": 1,
+            "kept_seqs": [session.messages[0].seq, session.messages[-1].seq],
+            "replaced_seqs": [m.seq for m in session.messages[1:-1]],
+        },
     )
     try:
-        assert await context.prepare(session, [], model, events)
-        assert len(model.requests) == 1
-        assert session.messages[-1].content == "current task"
-        assert session.messages[0].content == "root instructions"
-        groups(session.messages)
         records, _ = read_records(writer.stream)
         restored = replay(records, tmp_path)
         assert [(m.public(), m.seq) for m in restored.messages] == [
             (m.public(), m.seq) for m in session.messages
         ]
+        assert [
+            m.content for m in ContextBuilder().build_active_context(restored, "current-run")
+        ] == [
+            "root instructions",
+            "current task",
+        ]
+        groups(restored.messages)
         assert any(r["kind"] == "context_compacted" for r in records)
     finally:
         writer.close()
@@ -256,27 +268,6 @@ async def test_protected_context_overflow_no_model_request(tmp_path: Path) -> No
         Limits(context_window=4000, max_output_tokens=1000),
     )
     assert result.outcome == "limited" and not model.requests
-
-
-async def test_compaction_of_old_tools_within_current_turn(tmp_path: Path) -> None:
-    request = Message("user", "Keep this original task verbatim")
-    session = Session(tmp_path, messages=[Message("system", "root"), request])
-    for name in ("old", "recent-1", "recent-2"):
-        session.messages.extend(
-            [
-                reply(call("exec_command", {}, name)).message,
-                ToolResult(
-                    name, True, {"stdout": "output " * (900 if name == "old" else 1)}
-                ).message(),
-            ]
-        )
-    context = Context(Limits(context_window=5000, max_output_tokens=500), request)
-    model = ScriptedModel([reply(text="Earlier inspection completed.")])
-    assert await context.prepare(session, [], model, Recorder(), force=True)
-    assert session.messages[1] is request
-    assert [c.id for m in session.messages for c in m.tool_calls] == ["recent-1", "recent-2"]
-    groups(session.messages)
-    assert len(model.requests) == 1
 
 
 def test_missing_optional_secret_does_not_corrupt_text() -> None:

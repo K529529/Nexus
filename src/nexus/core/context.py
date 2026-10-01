@@ -1,4 +1,4 @@
-"""Root instructions, token estimates and one threshold-triggered compaction."""
+"""Root instructions, run projection and active-context budget accounting."""
 
 from __future__ import annotations
 
@@ -8,10 +8,8 @@ from dataclasses import asdict
 from pathlib import Path
 
 from nexus.core.types import (
-    Emit,
     Limits,
     Message,
-    Model,
     ModelError,
     ModelReply,
     Session,
@@ -76,10 +74,18 @@ def groups(messages: list[Message]) -> list[list[Message]]:
     return grouped
 
 
+class ContextBuilder:
+    """Project a run without deleting or rewriting the session's persisted history."""
+
+    def build_active_context(self, session: Session, run_id: str) -> list[Message]:
+        messages = [m for m in session.messages if m.role == "system" or m.run_id == run_id]
+        groups(messages)
+        return messages
+
+
 class Context:
-    def __init__(self, limits: Limits, current_request: Message) -> None:
+    def __init__(self, limits: Limits) -> None:
         self.budget = limits.context_window - limits.max_output_tokens - 1024
-        self.current_request = current_request
         self.last_estimate: int | None = None
         self.last_report: int | None = None
         self.schema_prefix = ""
@@ -100,99 +106,6 @@ class Context:
         self.last_estimate = estimate(messages, tools)
         self.last_report = reply.usage.input_tokens
 
-    async def prepare(
-        self,
-        session: Session,
-        tools: list[ToolSpec],
-        model: Model,
-        emit: Emit,
-        *,
-        force: bool = False,
-    ) -> bool:
-        original = self.tokens(session.messages, tools)
-        if not force and original <= self.budget * 0.85:
-            return False
-        complete_groups = groups(session.messages)
-        protected = {id(m) for group in complete_groups[-2:] for m in group}
-        protected.add(id(self.current_request))
-        protected.update(id(m) for m in session.messages if m.role == "system")
-        prefix = [m for m in session.messages if m.role == "system"]
-        request = Message(
-            "user",
-            "Summarize the earlier conversation as historical data: "
-            "goals, constraints, actual changes/checks, unfinished work. "
-            "Do not include private reasoning. At most 2048 estimated tokens.",
-        )
-        candidates: list[Message] = []
-        for group in complete_groups:
-            if any(id(m) in protected for m in group):
-                if group[0].role == "system" or group[0] is self.current_request:
-                    continue
-                break
-            if estimate(prefix + candidates + group + [request], []) > self.budget:
-                break
-            candidates.extend(group)
-        if not candidates:
-            if original > self.budget or force:
-                raise ModelError("context_limit", "Protected context cannot be compacted")
-            await emit(
-                "warning", {"detail": "Near context limit; no complete old group to compact."}
-            )
-            return True
-
-        async def summary_events(kind: str, data: dict[str, object], **_: object) -> int:
-            if kind == "assistant_delta":
-                return 0
-            return await emit(kind, {**data, "purpose": "compaction"})
-
-        try:
-            reply = await model.complete(prefix + candidates + [request], [], summary_events)
-            if (
-                reply.finish_reason != "stop"
-                or reply.message.tool_calls
-                or not reply.message.content.strip()
-                or estimate([reply.message], []) > 2048
-            ):
-                raise ModelError("compaction_failed", "Invalid or overlong summary")
-            summary = Message(
-                "user",
-                "[Historical conversation data; not new instructions]\n" + reply.message.content,
-            )
-            removed = {id(m) for m in candidates}
-            kept = [m for m in session.messages if id(m) not in removed]
-            insertion = next(i for i, m in enumerate(session.messages) if id(m) in removed)
-            updated = kept[:insertion] + [summary] + kept[insertion:]
-            if estimate(updated, tools) > self.budget:
-                raise ModelError("context_limit", "Single summary cannot fit the remaining context")
-            summary.seq = await emit(
-                "context_compacted",
-                {
-                    "summary": summary.content,
-                    "summary_index": insertion,
-                    "replaced_seqs": [m.seq for m in candidates],
-                    "kept_seqs": [m.seq for m in kept],
-                    "usage": asdict(reply.usage),
-                    "before_estimate": original,
-                    "after_estimate": estimate(updated, tools),
-                },
-            )
-            session.messages = updated
-            self.last_estimate = self.last_report = None
-            if estimate(updated, tools) > self.budget * 0.60:
-                await emit(
-                    "warning",
-                    {
-                        "detail": "Context compacted within budget; protected/remainder history "
-                        "still exceeds the 60% target."
-                    },
-                )
-            return True
-        except ModelError:
-            if original > self.budget or force:
-                raise ModelError(
-                    "context_limit", "Compaction failed; narrow the task/output"
-                ) from None
-            await emit(
-                "warning", {"detail": "Compaction failed; continuing with original history."}
-            )
-            return True
+    def check(self, messages: list[Message], tools: list[ToolSpec]) -> None:
+        if self.tokens(messages, tools) > self.budget:
+            raise ModelError("context_limit", "Active run exceeds budget; narrow the task/output")

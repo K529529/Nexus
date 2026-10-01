@@ -106,6 +106,8 @@ async def application(args: argparse.Namespace) -> int:
             if text == "/help":
                 console.print(
                     "/resume select a session · /new new conversation · /exit quit. "
+                    "Each ordinary input starts an isolated run; /resume continues the "
+                    "selected session's unfinished run. "
                     "Ctrl+C aborts the current turn; at the prompt it clears input."
                 )
             elif text == "/new":

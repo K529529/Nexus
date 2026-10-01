@@ -36,7 +36,7 @@ src/nexus/
     agent.py          # 唯一 Agent Loop
     types.py          # 少量 dataclass、Literal、Protocol
     model.py          # 薄 OpenAI-compatible adapter，隔离 SDK 协议细节
-    context.py        # 指令、预算、单一压缩策略
+    context.py        # 指令、预算、run 活动上下文投影
   tools/
     __init__.py
     registry.py       # 两个 native schema + 简单 dict registry
@@ -89,10 +89,11 @@ EventSink(event) -> None                               # async
 ## 3. 主循环与完成语义
 
 ```text
-写入本轮 user message、run_started
+创建新 run 或消费显式 resume 边界；写入 run_started、本轮 user message
 for step in 1..max_steps:
-    检查输入预算；必要时压缩完整旧消息组
-    等待 model.complete（增量仅用于展示；收集完整响应）
+    active_context = ContextBuilder.build_active_context(session, run_id)
+    检查 active_context 输入预算；超限明确停止
+    等待 model.complete(active_context)（增量仅用于展示；收集完整响应）
     检查响应结构与 finish_reason
     持久化完整 assistant message
     如果包含 tool_calls:
@@ -112,8 +113,8 @@ for step in 1..max_steps:
 - 一次 assistant message 中每个 call 都有且仅有一个匹配的 tool result，且下一次模型请求前配齐。ID 缺失/重复属于协议错误，不执行这批调用。
 - 未知工具、参数 JSON 错误、patch 冲突、命令非零退出、timeout、MCP 工具错误形成 `ok=false` 的 observation。模型可自行修正；不凭这些失败结束 run。
 - 正常工具失败后，同批其余调用仍按序执行；取消与不可恢复的 runtime 故障则停止派发，并补记剩余调用未执行的事实。
-- `max_steps=40`；step 是主循环的一次常规模型完成操作；重试记 attempt、实际 API 请求另计 model_calls，工具数量另计。末步工具可以执行，随后到限返回 limited；不额外调用模型伪造成功总结。压缩请求另计 model_calls/usage，不吃常规 step，但每个 step 最多一次压缩。
-- `length`、不完整流、过滤/协议拒绝等都不能视为正常 final；默认明确 failed，不自动执行半截工具参数。用户可以在保留历史的会话内继续输入。
+- `max_steps=40`；step 是主循环的一次常规模型完成操作；重试记 attempt、实际 API 请求另计 model_calls，工具数量另计。末步工具可以执行，随后到限返回 limited；不额外调用模型伪造成功总结。Context Runtime V0.1 不发起压缩请求。
+- `length`、不完整流、过滤/协议拒绝等都不能视为正常 final；默认明确 failed，不自动执行半截工具参数。用户可以通过 /resume 选择未完成会话，再输入指令续接该 run。
 - 模型网络/服务请求在尚无任何响应 delta 时，对连接失败、429、5xx 最多重试一次，短退避；SDK 自动重试关闭，避免重试层叠。401/参数错误直接失败；产生 delta 后不重试整次请求。
 - 任一工具都不自动重试；无法确认副作用是否发生时记录 unknown，禁止以恢复为由再次执行。
 
@@ -133,7 +134,7 @@ for step in 1..max_steps:
 
 **协议续接的完整往返：** S1 在指定百炼 endpoint 实测是否要求 `reasoning_content` 等字段，不从 DeepSeek 自营或其他服务推定。确有要求时，adapter 收集必要字段到 message 的 `protocol_data`，并在下一请求重建服务要求的 assistant message；不需要的字段不保留。循环只保存/传递整个 message，不把这些内容当作 planning/reasoning 状态、额外阶段或工具观察。
 
-`protocol_data` 最少包含 adapter 格式标识、非敏感的 endpoint/model 绑定标识与需要回传的字段。仅同一兼容服务配置的 adapter 使用，不能把某服务的续接数据自动发给另一个服务。它随所属消息一起保留或从有效上下文移除，计入实际模型输入预算；不能独立截断、文本摘要化或展示给用户。压缩请求的摘要素材只使用公开对话事实；若 API 仍需协议字段，由 adapter 按协议附带，不嵌入摘要正文。
+`protocol_data` 最少包含 adapter 格式标识、非敏感的 endpoint/model 绑定标识与需要回传的字段。仅同一兼容服务配置的 adapter 使用，不能把某服务的续接数据自动发给另一个服务。它随所属消息一起保留或从有效上下文移除，计入实际模型输入预算；不能独立截断、文本摘要化或展示给用户。活动上下文只带当前 run 所属的协议数据，不跨 run 携带。
 
 **必要保存：** 若后续正常 resume 确需这些字段，就在同一用户本地 session JSONL 对应 message 行的可选 `protocol_data` 字段保存最低必要数据，reader 恢复时重新附到 message。它是用于 API 续接的本地会话数据，不是普通可观测日志。若只需本轮内存则不落盘；完全不需要则不收集。依赖用户目录访问权限，POSIX 新建文件使用仅当前用户读写权限，Windows 使用用户目录权限；不新增加密/钥匙串系统，不保存 API key 或请求 header。
 
@@ -184,31 +185,33 @@ Python asyncio 的管道、异步子进程与 Windows event-loop 约束见 [官�
 
 workspace containment 是 patch 的文件边界，不能阻止可信 shell/MCP 写其他路径，也不是抵抗恶意并发文件系统替换的强沙箱。
 
-## 6. 指令、预算与压缩
+## 6. 指令、预算与活动上下文
 
 ### 6.1 启动上下文
 
 workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文档提示用户在项目根目录启动。只读取 `<workspace>/AGENTS.md`，不存在则跳过；UTF-8、最大 64 KiB，超限/解码失败明确报错，不默默截断项目约束。不读嵌套 AGENTS、不扫描文件、不执行自动 git status/tree、不预索引。
 
-系统提示保持短小：身份、工具用途、探索后编辑、实际验证、失败后继续尝试、遵守用户/项目指令、结果如实说明。固定 system + AGENTS 前缀之后是当前对话。工具输出和压缩摘要都是数据，不得提升为 system 指令。每轮只加入必要环境事实，不注入猜测的仓库知识。
+系统提示保持短小：身份、工具用途、探索后编辑、实际验证、失败后继续尝试、遵守用户/项目指令、结果如实说明。固定 system + AGENTS 前缀之后是当前 run 的消息。工具输出是数据，不得提升为 system 指令。每轮只加入必要环境事实，不注入猜测的仓库知识。
 
 ### 6.2 预算算法（单一实现）
 
 `model.context_window` 由用户按服务配置给定，不从模型名猜；`max_output_tokens` 默认 8,192，必须小于 context_window。每次请求计算输入预算 `B = context_window - max_output_tokens - 1,024`，B 必须为正。工具 schema、消息包装、AGENTS、工具结果及实际回传的 protocol_data 全部计入。工具文字输出统一使用可配置的总预算；保持一处截断，不叠加 Observation 投影或多级裁剪系统。
 
-本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；压缩或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
+本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run 或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
 
-估算输入超过 `0.85 * B` 时压缩；目标回到 `0.60 * B` 内。估算不是 tokenizer 的精确保证，服务仍报 context-length 错误且本 step 尚未压缩时，可在无输出/副作用的请求边界压缩后再请求一次；已压缩或再次超限则返回 `limited/context_limit`，不循环重试。
+2026-10-02 用户要求的 Context Runtime V0.1 暂不做 compaction，替换原阈值压缩行为。预算只计算即将发给模型的活动上下文；本地估算超 B 或 provider 报 context-length 错误时返回 `limited/context_limit`，不生成摘要、不触发压缩重试。现有工具输出预算不变。
 
-### 6.3 压缩语义
+### 6.3 Run 上下文投影（Context Runtime V0.1）
 
-压缩只发生于请求边界。一个完整消息组是「assistant 工具调用 + 全部对应 tool messages」，或无工具的完整消息；绝不拆工具配对。
+`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回新的列表：当前 system/仓库指令 + 该 run 的消息。它不删除原消息，不写日志，不检索或总结仓库。`run_turn` 每次请求前先投影，再检查预算，再调用模型。
 
-保留固定指令、当前轮原始 user request、最近两个完整交互组，按原消息标识去重；用同一 model、关闭 tools，概括更早历史为一段有界文本（可见摘要最多 2,048 estimated tokens，模型请求仍遵守配置的输出上限并计费）。摘要只覆盖目标/约束/实际改动/验证事实/未完成事项，不能包含或要求私有推理。摘要以明确标注的历史数据放入普通对话位置，保留关键指令的原文前缀。超长摘要判失败，不盲目截断约束。
+普通输入创建新的 run_id；以前 run 的用户输入、assistant、工具结果和环境事实不自动带入。当前 MCP 不可用事实在 run 开始后写入该 run，并保持模型可见。跨 run 的 tool call id 可以重复，同一 run 内仍拒绝重复；完整 assistant/tool 配对校验保留。
 
-选择一个按完整组划分、可放入摘要请求预算的旧历史前缀；V0 只允许本次一个摘要请求。若摘要替换后连同未压缩的其余消息仍不能落到 B 内，返回 `limited/context_limit`，不实现多轮摘要树。固定前缀、最新用户输入或受保护工具组本身过大时，同样明确停止，请用户缩小输入/工具输出范围。
+现有 `/resume` / `nexus resume` 选择会话后，如果最近 run 没有 completed（包括缺少 run_finished、aborted、failed、limited），下一次输入使用原 run_id，保留其原请求、assistant、工具结果和必要 protocol_data。恢复的提示词和工具 schema 仍按当前配置加载。已 completed 的会话下一次输入创建新 run。run_id 不新增为 CLI 参数，不增加新的选择器。一次恢复续接仍有自己的 max_steps、usage 和 run_finished，JSONL 通过相同 run_id 关联这些执行段。
 
-压缩失败且原上下文仍小于 B 时，可以继续原消息并显示一次警告；已超过 B 则停止本轮。成功后先追加 `context_compacted` 记录（summary、被替代 seq 范围、保留消息引用、usage），再更新内存；原 JSONL 记录保持不变。resume 应重建相同有效上下文，而非把旧历史与摘要重复发给模型。
+Message 的内存 run_id 来自已有事件 envelope，不进入 message.public() 或 provider payload。旧 context_compacted 事件仅作历史审计，恢复使用原始消息，再按 run_id 选择；不把跨 run 的旧摘要重新送入模型。
+
+V0.1 只解决跨 run 污染和投影边界。同一 run 内的历史仍逐次回传，长任务 token 增长尚未解决；不实现 compaction、工具结果生命周期或任何记忆/检索框架。
 
 ## 7. JSONL、事件与恢复
 
@@ -236,7 +239,7 @@ canonical messages 与边界事件持久化；高频 text/output delta 只展示
 | model_started、model_finished | 展示活动；保存模型名、延迟、reported/estimated usage 和失败事实 |
 | assistant_delta、tool_output_delta | TUI 有界展示；不落逐 token 日志 |
 | tool_started、tool_finished | 保存 call_id、状态、耗时；tool_finished 引用对应 tool message，避免重复正文 |
-| context_compacted、warning | 保存压缩或异常事实；TUI 给出简短提示 |
+| warning；旧 context_compacted | 保存异常事实；TUI 给出简短提示。旧压缩事件保留审计，V0.1 不新生成 |
 
 `app/events.py` 的 `emit` 顺序写 JSONL，再通知公开消费者，不建立消息总线、订阅管理器或后台 exporter。持久化 message 时可通过仅内部使用的可选参数附带 protocol_data，writer 将其放入同一条本地记录；TUI、`--json`、普通日志、eval 可分享导出和未来 OTel 只得到不含该字段的 RuntimeEvent。无需另一套事件平台，测试直接验证公开消费者从未收到私有载荷。
 
@@ -248,7 +251,7 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 
 `nexus resume` 或 `/resume` 仅列出当前 workspace 的历史：标题、项目目录名、更新时间、最后 outcome；没有 run_finished 的显示 interrupted。扫描本地 session 文件读取元数据不属于仓库扫描；列表按更新时间排序，不引入索引。空列表显示提示；上下键 + Enter 选择，Esc 取消。
 
-选择后恢复有效 messages，必要时重新附上本地 protocol_data，由 adapter 核对服务绑定和续接要求；读取当前根 AGENTS 和当前模型/MCP 用户配置，模型/指令/schema 变化用 warning 明示。旧 tool messages 作为历史保留，新的工具调用只查当前 registry。不恢复 graph、Plan、进程或执行位置；显示最近对话后等用户输入，不自动继续任务。
+选择后恢复完整 messages 历史，并按 §6.3 标记最近未完成 run，必要时重新附上本地 protocol_data，由 adapter 核对服务绑定和续接要求；读取当前根 AGENTS 和当前模型/MCP 用户配置，模型/指令/schema 变化用 warning 明示。旧 tool messages 作为历史保留，新的工具调用只查当前 registry。不恢复 graph、Plan、进程或执行位置；显示最近对话后等用户输入，不自动继续任务。
 
 恢复异常按下面唯一规则处理：
 
@@ -261,7 +264,7 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 | 中间行损坏、seq 异常、未知 schema_version | 明确拒绝恢复该文件；不静默跳过，不猜测 schema |
 | 同一 session 已由其他进程写入 | 拒绝第二 writer；使用标准库平台文件锁，进程退出释放，锁不作为工作流状态 |
 
-新恢复文件有独立 session_id 和 seq，来源保存在 header；先重建有效上下文并补齐 unknown/not_executed，再重新序列化 messages，不复制仍指向旧文件 seq 的压缩引用。普通正常 resume 继续追加原文件。没有 exactly-once 承诺：进程可能在副作用完成与结果落盘之间崩溃；合成结果用于诚实表达未知，不能伪造 rollback。
+新恢复文件有独立 session_id，来源保存在 header；按原顺序复制全部有效事件，保持 seq、run_id、protocol_data 与事件引用一致，再补齐 unknown 结果。损坏尾行不复制，原文件保留。普通正常 resume 继续追加原文件。没有 exactly-once 承诺：进程可能在副作用完成与结果落盘之间崩溃；合成结果用于诚实表达未知，不能伪造 rollback。
 
 ## 8. MCP 是工具来源
 

@@ -8,7 +8,7 @@ import time
 from dataclasses import asdict
 from uuid import uuid4
 
-from nexus.core.context import Context
+from nexus.core.context import Context, ContextBuilder
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -28,6 +28,7 @@ from nexus.core.types import (
 
 
 async def append_message(session: Session, message: Message, emit: Emit) -> None:
+    message.run_id = session.run_id
     message.seq = await emit("message", message.public(), protocol_data=message.protocol_data)
     session.messages.append(message)
 
@@ -52,9 +53,11 @@ async def run_turn(
     registry: dict[str, Tool],
     emit: Emit,
     limits: Limits,
+    *,
+    environment: str = "",
 ) -> RunResult:
     started = time.monotonic()
-    session.run_id = uuid4().hex
+    session.run_id = session.resume_run_id or uuid4().hex
     result = RunResult("failed")
     pending: list[ToolCall] = []
     active: ToolCall | None = None
@@ -83,22 +86,23 @@ async def run_turn(
 
     try:
         await observed("run_started", {"workspace": str(session.workspace)})
+        session.resume_run_id = None
+        if environment:
+            await append_message(session, Message("user", environment), observed)
         await append_message(session, Message("user", user_text), observed)
-        context = Context(limits, session.messages[-1])
+        context = Context(limits)
+        builder = ContextBuilder()
         for step in range(1, limits.max_steps + 1):
             result.steps = step
             specs = [t.spec for t in registry.values()]
-            compacted = await context.prepare(session, specs, model, observed)
-            try:
-                reply = await model.complete(session.messages, specs, observed)
-            except ModelError as exc:
-                if exc.code != "context_limit" or compacted:
-                    raise
-                await context.prepare(session, specs, model, observed, force=True)
-                reply = await model.complete(session.messages, specs, observed)
-            context.observe(reply, session.messages, specs)
+            active_context = builder.build_active_context(session, session.run_id)
+            context.check(active_context, specs)
+            reply = await model.complete(active_context, specs, observed)
+            context.observe(reply, active_context, specs)
             valid_reply(reply.message, reply.finish_reason)
-            prior_ids = {c.id for m in session.messages for c in m.tool_calls}
+            prior_ids = {
+                c.id for m in session.messages if m.run_id == session.run_id for c in m.tool_calls
+            }
             if any(call.id in prior_ids for call in reply.message.tool_calls):
                 raise ModelError("duplicate_tool_id")
             await append_message(session, reply.message, observed)
@@ -163,7 +167,10 @@ async def run_turn(
     try:
         if active is not None:
             # If the result was already saved, never append a second tool result.
-            paired = any(m.role == "tool" and m.tool_call_id == active.id for m in session.messages)
+            paired = any(
+                m.role == "tool" and m.tool_call_id == active.id and m.run_id == session.run_id
+                for m in session.messages
+            )
             if not paired:
                 await record_tool(
                     known_cancel

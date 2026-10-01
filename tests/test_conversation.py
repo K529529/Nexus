@@ -72,7 +72,7 @@ async def test_reuses_resources_until_close_and_reopens_on_resume(
         assert (await cli.drive(convo, "two")).outcome == "completed"
         assert len(clients) == 1 and clients[0].closed == 0
         assert connections == ["open"] and convo.registry is registry
-        assert any(m.content == "first" for m in clients[0].requests[-1])
+        assert not any(m.content in {"one", "first"} for m in clients[0].requests[-1])
         assert convo.writer is not None
         path = convo.writer.path
     finally:
@@ -85,10 +85,67 @@ async def test_reuses_resources_until_close_and_reopens_on_resume(
     try:
         await cli.drive(resumed, "continue")
         assert len(clients) == 2 and connections.count("open") == 2
-        assert any(m.content == "two" for m in clients[1].requests[0])
+        assert not any(
+            m.content in {"one", "two", "first", "second"} for m in clients[1].requests[0]
+        )
     finally:
         await resumed.close()
     assert clients[1].closed == 1 and connections.count("close") == 2
+
+
+async def test_resume_unfinished_conversation_and_refresh_current_environment(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    cfg = config(monkeypatch)
+    root = tmp_path / "AGENTS.md"
+    root.write_text("initial root rules", encoding="utf-8")
+    clients: list[Any] = []
+
+    class Model(ScriptedModel):
+        def __init__(self, _: Any) -> None:
+            super().__init__([reply(text="Recovered"), reply(text="New task answer")])
+            clients.append(self)
+
+        async def complete(self, messages: Any, tools: Any, emit: Any) -> ModelReply:
+            if len(clients) == 1:
+                raise asyncio.CancelledError
+            return await super().complete(messages, tools, emit)
+
+        async def close(self) -> None:
+            pass
+
+    async def connect(configured: Any, registry: Any, stack: Any, events: Any) -> list[str]:
+        return ["offline-server"]
+
+    monkeypatch.setattr(bootstrap, "ChatModel", Model)
+    monkeypatch.setattr(bootstrap, "connect_servers", connect)
+    convo = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path)
+    try:
+        assert (await convo.turn("Interrupted task")).outcome == "aborted"
+        run_id = convo.session.run_id
+        assert convo.writer is not None
+        path = convo.writer.path
+    finally:
+        await convo.close()
+
+    root.write_text("updated root rules", encoding="utf-8")
+    resumed = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path, resume=path)
+    try:
+        assert (await resumed.turn("Continue")).outcome == "completed"
+        assert resumed.session.run_id == run_id
+        active = clients[1].requests[0]
+        assert "updated root rules" in active[0].content
+        assert "initial root rules" not in active[0].content
+        assert any(m.content == "Interrupted task" for m in active)
+        assert active[-1].content == "Continue"
+        assert (await resumed.turn("Unrelated question")).outcome == "completed"
+        active = clients[1].requests[1]
+        assert len(active) == 3
+        assert "offline-server" in active[1].content
+        assert active[1].run_id == resumed.session.run_id != run_id
+        assert active[2].content == "Unrelated question"
+    finally:
+        await resumed.close()
 
 
 async def test_real_mcp_two_turns_discover_once_and_release(

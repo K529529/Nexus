@@ -32,6 +32,8 @@ class Message:
     tool_call_id: str | None = None
     protocol_data: Json | None = None
     seq: int = 0
+    # In-memory copy of the existing JSONL event envelope, never model payload data.
+    run_id: str | None = None
 
     def public(self) -> Json:
         data: Json = {"role": self.role, "content": self.content}
@@ -42,7 +44,14 @@ class Message:
         return data
 
     @classmethod
-    def from_data(cls, data: Json, *, seq: int = 0, protocol_data: Json | None = None) -> Message:
+    def from_data(
+        cls,
+        data: Json,
+        *,
+        seq: int = 0,
+        protocol_data: Json | None = None,
+        run_id: str | None = None,
+    ) -> Message:
         return cls(
             role=data["role"],
             content=data.get("content", ""),
@@ -50,6 +59,7 @@ class Message:
             tool_call_id=data.get("tool_call_id"),
             protocol_data=protocol_data,
             seq=seq,
+            run_id=run_id,
         )
 
 
@@ -136,6 +146,8 @@ class Session:
     session_id: str = field(default_factory=lambda: uuid4().hex)
     messages: list[Message] = field(default_factory=list)
     run_id: str | None = None
+    # Set only by explicit resume; ordinary turns always start an independent run.
+    resume_run_id: str | None = None
 
 
 @dataclass

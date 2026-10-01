@@ -89,7 +89,15 @@ def replay(records: list[Json], workspace: Path) -> Session:
     try:
         for record in records[1:]:
             data = record["data"]
-            if record["kind"] == "message":
+            run_id = record.get("run_id")
+            if run_id is not None and (not isinstance(run_id, str) or not run_id):
+                raise SessionError("Invalid run id")
+            if record["kind"] == "run_started":
+                session.run_id = session.resume_run_id = run_id
+            elif record["kind"] == "run_finished" and run_id == session.run_id:
+                if data.get("outcome") == "completed":
+                    session.resume_run_id = None
+            elif record["kind"] == "message":
                 if not isinstance(data.get("content", ""), str):
                     raise SessionError("Invalid message content")
                 if record.get("protocol_data") is not None and not isinstance(
@@ -101,38 +109,37 @@ def replay(records: list[Json], workspace: Path) -> Session:
                         data,
                         seq=record["seq"],
                         protocol_data=record.get("protocol_data"),
+                        # Older recovery records omitted the envelope run id.
+                        run_id=run_id or session.run_id,
                     )
                 )
             elif record["kind"] == "instructions":
                 session.messages = [Message("system", data["content"], seq=record["seq"])] + [
                     m for m in session.messages if m.role != "system"
                 ]
-            elif record["kind"] == "context_compacted":
-                by_seq = {m.seq: m for m in session.messages}
-                keep = data["kept_seqs"]
-                removed = data["replaced_seqs"]
-                if len(set(keep + removed)) != len(keep + removed) or set(keep + removed) != set(
-                    by_seq
-                ):
-                    raise SessionError("Invalid compaction message references")
-                summary = Message("user", data["summary"], seq=record["seq"])
-                session.messages = [by_seq[n] for n in keep]
-                session.messages.insert(data["summary_index"], summary)
+            # Legacy compaction events stay in JSONL for audit. Restore original
+            # messages, not cross-run summaries; V0.1 projects them by run below.
     except (KeyError, TypeError, ValueError):
-        raise SessionError("Invalid message/compaction record") from None
+        raise SessionError("Invalid message/run record") from None
     # Validate complete groups; only an unfinished final batch may lack results.
     expected: list[str] = []
+    expected_run: str | None = None
     for message in session.messages:
         if message.role not in {"system", "user", "assistant", "tool"}:
             raise SessionError("Invalid message role")
         if message.role == "tool":
-            if not expected or message.tool_call_id != expected.pop(0):
+            if (
+                not expected
+                or message.tool_call_id != expected.pop(0)
+                or message.run_id != expected_run
+            ):
                 raise SessionError("Invalid tool result pairing")
         else:
             if expected:
                 raise SessionError("Unpaired tool call before subsequent conversation")
             if message.tool_calls:
                 expected = [call.id for call in message.tool_calls]
+                expected_run = message.run_id
                 if (
                     message.role != "assistant"
                     or not all(expected)
@@ -224,7 +231,12 @@ def resume_session(
         if truncated:
             writer.close()
             prior = session.session_id
-            fresh = Session(workspace.resolve(), messages=session.messages)
+            fresh = Session(
+                workspace.resolve(),
+                messages=session.messages,
+                run_id=session.run_id,
+                resume_run_id=session.resume_run_id,
+            )
             writer = SessionLog.create(
                 fresh,
                 records[0]["data"]["title"],
@@ -233,17 +245,26 @@ def resume_session(
                 recovered_from=prior,
             )
             session = fresh
-            # Re-serialize effective messages; never copy stale compaction references.
-            for message in session.messages:
-                message.seq = writer.append(
-                    RuntimeEvent("message", now(), session.session_id, None, message.public()),
-                    message.protocol_data,
+            # Copy every valid event, preserving seq and run boundaries. Only the
+            # session identity/header change; references still address the same seq.
+            for record in records[1:]:
+                writer.append(
+                    RuntimeEvent(
+                        record["kind"],
+                        record["timestamp"],
+                        session.session_id,
+                        record.get("run_id"),
+                        record["data"],
+                    ),
+                    record.get("protocol_data"),
                 )
             warnings.append("Truncated tail recovered into a new session; original file preserved.")
         pending: list[str] = []
+        pending_run: str | None = None
         for message in session.messages:
             if message.tool_calls:
                 pending = [call.id for call in message.tool_calls]
+                pending_run = message.run_id
             elif message.role == "tool" and pending:
                 pending.pop(0)
         for call_id in pending:
@@ -255,8 +276,9 @@ def resume_session(
                 },
                 "interrupted_unknown",
             ).message()
+            message.run_id = pending_run
             message.seq = writer.append(
-                RuntimeEvent("message", now(), session.session_id, None, message.public())
+                RuntimeEvent("message", now(), session.session_id, pending_run, message.public())
             )
             session.messages.append(message)
         if pending:

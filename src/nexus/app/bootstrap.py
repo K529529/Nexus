@@ -13,7 +13,7 @@ from pathlib import Path
 from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.session import SessionLog, resume_session
-from nexus.core.agent import append_message, run_turn
+from nexus.core.agent import run_turn
 from nexus.core.context import instructions
 from nexus.core.model import ChatModel
 from nexus.core.types import Message, RunResult, RuntimeEvent, Session, json_text
@@ -104,8 +104,12 @@ class Conversation:
                 await self.events(
                     "warning",
                     {
-                        "detail": "Resumed with current model and tool schemas; "
-                        "old calls remain history and are never replayed."
+                        "detail": (
+                            "Resuming the unfinished run with current instructions/model/tools. "
+                            if self.session.resume_run_id
+                            else "No unfinished run boundary; next input starts an isolated run. "
+                        )
+                        + "Saved tool calls are never replayed."
                     },
                 )
                 self.resumed = False
@@ -113,19 +117,21 @@ class Conversation:
                 "configuration",
                 {"fingerprint": fingerprint, "model": asdict(self.config.model)},
             )
-            if self.unavailable:
-                await append_message(
-                    self.session,
-                    Message(
-                        "user",
-                        "[Environment fact] MCP servers "
-                        + ", ".join(self.unavailable)
-                        + " are unavailable in this conversation; their tools did not run.",
-                    ),
-                    self.events,
-                )
+            environment = (
+                "[Environment fact] MCP servers "
+                + ", ".join(self.unavailable)
+                + " are unavailable in this conversation; their tools did not run."
+                if self.unavailable
+                else ""
+            )
             return await run_turn(
-                self.session, text, self.model, self.registry, self.events, self.config.limits
+                self.session,
+                text,
+                self.model,
+                self.registry,
+                self.events,
+                self.config.limits,
+                environment=environment,
             )
         except asyncio.CancelledError:
             result = RunResult("aborted", reason="startup_cancelled")
