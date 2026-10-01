@@ -119,12 +119,15 @@ instructions, the current request and that run's messages. Previous runs stay in
 Use `/resume` or `nexus resume` to select a session whose latest run is unfinished
 (interrupted, aborted, failed or limited); the next input continues that run's context.
 A completed session's next input starts a new run. Run IDs remain internal metadata;
-the selector resumes only the latest unfinished run. Context Runtime V0.1 focuses on
-active context projection and run isolation. Long-run context growth is a known current
-limitation: without compaction, an oversized active run stops with `limited/context_limit`.
-This is not the permanent context policy. Future Context Runtime versions will introduce
-tool observation lifecycle management, soft compaction, and history reduction strategies;
-these are outside the V0.1 implementation scope.
+the selector resumes only the latest unfinished run. Context Runtime V0.1.1 retains run
+isolation and restores safety compaction. At 85% of the input budget, it summarizes old
+complete groups in the current run's active context, aiming for roughly 60%. Original
+messages stay in session history and JSONL; resume reconstructs the saved projection.
+If the provider reports a context limit before compaction was attempted at that boundary,
+Nexus attempts compaction and retries once. Unrecoverable overflow returns
+`limited/context_limit`. Safety compaction is not a long-run cost optimization:
+tool observation lifecycle management, soft compaction, and further history reduction
+remain future work and are not implemented in V0.1.1.
 It never reruns old commands. Missing results after interruption become
 `interrupted_unknown`; inspect actual files/process state before retrying. A
 corrupt final line is recovered into a new file while preserving the original;

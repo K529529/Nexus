@@ -92,7 +92,7 @@ EventSink(event) -> None                               # async
 创建新 run 或消费显式 resume 边界；写入 run_started、本轮 user message
 for step in 1..max_steps:
     active_context = ContextBuilder.build_active_context(session, run_id)
-    检查 active_context 输入预算；超限明确停止
+    检查 active_context 输入预算；达到 85% 时尝试安全压缩，再重新投影
     等待 model.complete(active_context)（增量仅用于展示；收集完整响应）
     检查响应结构与 finish_reason
     持久化完整 assistant message
@@ -113,7 +113,7 @@ for step in 1..max_steps:
 - 一次 assistant message 中每个 call 都有且仅有一个匹配的 tool result，且下一次模型请求前配齐。ID 缺失/重复属于协议错误，不执行这批调用。
 - 未知工具、参数 JSON 错误、patch 冲突、命令非零退出、timeout、MCP 工具错误形成 `ok=false` 的 observation。模型可自行修正；不凭这些失败结束 run。
 - 正常工具失败后，同批其余调用仍按序执行；取消与不可恢复的 runtime 故障则停止派发，并补记剩余调用未执行的事实。
-- `max_steps=40`；step 是主循环的一次常规模型完成操作；重试记 attempt、实际 API 请求另计 model_calls，工具数量另计。末步工具可以执行，随后到限返回 limited；不额外调用模型伪造成功总结。Context Runtime V0.1 不发起压缩请求。
+- `max_steps=40`；step 是主循环的一次常规模型完成操作；重试记 attempt、实际 API 请求另计 model_calls，工具数量另计。末步工具可以执行，随后到限返回 limited；不额外调用模型伪造成功总结。V0.1.1 的安全压缩请求另计 model_calls/usage，不消耗常规 step；每个请求边界最多尝试一次。
 - `length`、不完整流、过滤/协议拒绝等都不能视为正常 final；默认明确 failed，不自动执行半截工具参数。用户可以通过 /resume 选择未完成会话，再输入指令续接该 run。
 - 模型网络/服务请求在尚无任何响应 delta 时，对连接失败、429、5xx 最多重试一次，短退避；SDK 自动重试关闭，避免重试层叠。401/参数错误直接失败；产生 delta 后不重试整次请求。
 - 任一工具都不自动重试；无法确认副作用是否发生时记录 unknown，禁止以恢复为由再次执行。
@@ -197,21 +197,27 @@ workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文
 
 `model.context_window` 由用户按服务配置给定，不从模型名猜；`max_output_tokens` 默认 8,192，必须小于 context_window。每次请求计算输入预算 `B = context_window - max_output_tokens - 1,024`，B 必须为正。工具 schema、消息包装、AGENTS、工具结果及实际回传的 protocol_data 全部计入。工具文字输出统一使用可配置的总预算；保持一处截断，不叠加 Observation 投影或多级裁剪系统。
 
-本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run 或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
+本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run、成功压缩或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
 
-2026-10-02 用户要求的 Context Runtime V0.1 暂不做 compaction，替换原阈值压缩行为。预算只计算即将发给模型的活动上下文；本地估算超 B 或 provider 报 context-length 错误时返回 `limited/context_limit`，不生成摘要、不触发压缩重试。现有工具输出预算不变。
+Context Runtime V0.1.1 修复 V0.1 误移除安全压缩的回归。预算只计算当前 run 的活动上下文；估算达到 `0.85 * B` 时，在模型请求边界尝试一次安全压缩，目标约为 `0.60 * B`。若 provider 报 context-length 错误且本边界尚未尝试压缩，则强制压缩并最多重试一次；已经尝试压缩、压缩后仍超限或受保护内容无法容纳时返回 `limited/context_limit`。现有工具输出预算不变。
 
-### 6.3 Run 上下文投影（Context Runtime V0.1）
+### 6.3 Run 上下文投影与安全压缩（Context Runtime V0.1.1）
 
-`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回新的列表：当前 system/仓库指令 + 该 run 的消息。它不删除原消息，不写日志，不检索或总结仓库。`run_turn` 每次请求前先投影，再检查预算，再调用模型。
+`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回新的列表：当前 system/仓库指令 + 该 run 的活动消息。已有压缩时使用最近投影快照，再追加快照 seq 之后属于该 run 的原消息。`run_turn` 每次请求前先投影、检查压缩阈值，必要时生成摘要并重新投影，再调用模型；绝不把完整 Session 历史直接发给模型。
 
 普通输入创建新的 run_id；以前 run 的用户输入、assistant、工具结果和环境事实不自动带入。当前 MCP 不可用事实在 run 开始后写入该 run，并保持模型可见。跨 run 的 tool call id 可以重复，同一 run 内仍拒绝重复；完整 assistant/tool 配对校验保留。
 
 现有 `/resume` / `nexus resume` 选择会话后，如果最近 run 没有 completed（包括缺少 run_finished、aborted、failed、limited），下一次输入使用原 run_id，保留其原请求、assistant、工具结果和必要 protocol_data。恢复的提示词和工具 schema 仍按当前配置加载。已 completed 的会话下一次输入创建新 run。run_id 不新增为 CLI 参数，不增加新的选择器。一次恢复续接仍有自己的 max_steps、usage 和 run_finished，JSONL 通过相同 run_id 关联这些执行段。
 
-Message 的内存 run_id 来自已有事件 envelope，不进入 message.public() 或 provider payload。旧 context_compacted 事件仅作历史审计，恢复使用原始消息，再按 run_id 选择；不把跨 run 的旧摘要重新送入模型。
+Message 的内存 run_id 来自已有事件 envelope，不进入 message.public() 或 provider payload。V0.1.1 的 `context_compacted` 事件增加 `data.scope="run"`，其 envelope run_id 标识所属 run；data 保存摘要、插入位置、kept/replaced seq 引用、估算和 usage。只解析该 run 当前活动消息的引用；旧版不带 scope 的跨 run 压缩事件仍仅作历史审计，不重新带入旧摘要。JSONL schema_version 仍为 1。
 
-Context Runtime V0.1 当前聚焦活动上下文投影与 run 隔离。同一 run 内的历史仍逐次回传，长任务上下文增长是已知的当前限制，不是永久保留完整活动历史或超限即停止的设计目标。后续 Context Runtime 版本将引入工具 observation 生命周期管理、软压缩（soft compaction）与历史缩减策略；本轮仅明确演进方向，不实现这些能力，也不引入记忆/检索框架。
+安全压缩保留当前 system/仓库指令、该 run 的全部原始用户消息（包括原请求和恢复后的补充输入/环境事实）与最近两个完整交互组。旧的完整 assistant/tool 组可整体总结；protocol_data 随原消息一起保留或离开活动上下文，不单独摘要或截断。摘要只描述可观察的目标、约束、已读取/修改文件、工具/测试结果和未完成工作，不要求私有推理。使用同一 model、禁用 tools，摘要正文最多 2,048 estimated tokens，摘要流不直接展示；请求 usage 正常计入总账单。
+
+每次只做一个有界摘要请求，不拆组填预算，不构造摘要树。摘要必须实际减少上下文并使其落到 B 内；受保护内容或剩余历史导致仍高于 60% 目标但未超 B 时给出警告。普通阈值压缩失败、原上下文仍在 B 内时可警告后继续原上下文；原上下文已经超 B 或因 provider 超限强制压缩失败时停止，不循环重试。
+
+成功压缩先追加 context_compacted 事件，再更新 `Session.compactions[run_id]` 的小型投影快照（活动消息引用、summary message、through_seq）。不删除或覆盖 `Session.messages`，不重写旧 JSONL。后续每次请求继续使用该投影，不重新带回已替代的旧结果；再次压缩可替换旧摘要。resume 按事件顺序重建相同投影、恢复必要协议数据，再补齐未知工具结果；损坏尾行恢复复制有效事件，仍可重建投影。
+
+V0.1.1 仅恢复接近容量上限时的 safety compaction，不是 soft/economic compaction。长任务在触发阈值前仍可能产生较高累计输入成本。后续版本将引入工具 observation 生命周期管理、软压缩与进一步历史缩减；本轮不实现这些能力，也不引入记忆/检索框架。
 
 ## 7. JSONL、事件与恢复
 
@@ -239,7 +245,7 @@ canonical messages 与边界事件持久化；高频 text/output delta 只展示
 | model_started、model_finished | 展示活动；保存模型名、延迟、reported/estimated usage 和失败事实 |
 | assistant_delta、tool_output_delta | TUI 有界展示；不落逐 token 日志 |
 | tool_started、tool_finished | 保存 call_id、状态、耗时；tool_finished 引用对应 tool message，避免重复正文 |
-| warning；旧 context_compacted | 保存异常事实；TUI 给出简短提示。旧压缩事件保留审计，V0.1 不新生成 |
+| context_compacted、warning | 保存 run 活动投影或异常事实；TUI 给出简短提示。原始消息继续保留 |
 
 `app/events.py` 的 `emit` 顺序写 JSONL，再通知公开消费者，不建立消息总线、订阅管理器或后台 exporter。持久化 message 时可通过仅内部使用的可选参数附带 protocol_data，writer 将其放入同一条本地记录；TUI、`--json`、普通日志、eval 可分享导出和未来 OTel 只得到不含该字段的 RuntimeEvent。无需另一套事件平台，测试直接验证公开消费者从未收到私有载荷。
 

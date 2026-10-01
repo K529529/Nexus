@@ -1,5 +1,7 @@
 # Context Runtime V0.1：实施与验证记录
 
+后续修正：V0.1 误移除了已有安全压缩；[V0.1.1](context-runtime-v0.1.1-evidence.md) 已在保留 run 隔离和完整历史的前提下恢复。本文“不压缩”的描述是当时的实现记录，不代表当前行为或永久策略。
+
 日期：2026-10-02（Asia/Shanghai）。工作区 `Nexus-next`，分支 `refactor/lean-agent-core`，起始 HEAD `e67c7e4870314e0f9ef129c442d9f3877097eb32`。本文件记录本轮结果，不建立额外架构契约。
 
 ## 改动文件与决策

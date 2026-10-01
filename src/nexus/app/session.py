@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import BinaryIO
 
 from nexus import __version__
-from nexus.core.types import Json, Message, RuntimeEvent, Session, ToolResult, json_text
+from nexus.core.context import ContextBuilder
+from nexus.core.types import Json, Message, ModelError, RuntimeEvent, Session, ToolResult, json_text
 
 
 class SessionError(RuntimeError):
@@ -117,9 +118,12 @@ def replay(records: list[Json], workspace: Path) -> Session:
                 session.messages = [Message("system", data["content"], seq=record["seq"])] + [
                     m for m in session.messages if m.role != "system"
                 ]
-            # Legacy compaction events stay in JSONL for audit. Restore original
-            # messages, not cross-run summaries; V0.1 projects them by run below.
-    except (KeyError, TypeError, ValueError):
+            elif record["kind"] == "context_compacted" and data.get("scope") == "run":
+                if run_id is None or run_id != session.run_id:
+                    raise SessionError("Invalid compaction run")
+                ContextBuilder().restore_compaction(session, run_id, data, record["seq"])
+            # Legacy unscoped compactions remain audit-only: their summaries may mix runs.
+    except (KeyError, TypeError, ValueError, ModelError):
         raise SessionError("Invalid message/run record") from None
     # Validate complete groups; only an unfinished final batch may lack results.
     expected: list[str] = []
@@ -236,6 +240,7 @@ def resume_session(
                 messages=session.messages,
                 run_id=session.run_id,
                 resume_run_id=session.resume_run_id,
+                compactions=session.compactions,
             )
             writer = SessionLog.create(
                 fresh,

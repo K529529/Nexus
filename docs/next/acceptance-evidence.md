@@ -2,7 +2,7 @@
 
 执行日期：2026-10-01（Asia/Shanghai）。本文件记录实现与实际执行结果，不增加设计契约。
 
-2026-10-02 增量：[Context Runtime V0.1 实测记录](context-runtime-v0.1-evidence.md)。本轮把模型输入与完整历史分开，保留 JSONL schema v1，并停止运行时 compaction；下文 Phase 2 的压缩验收是历史结果。
+Context Runtime 增量：[V0.1 实测记录](context-runtime-v0.1-evidence.md) 验证模型输入与完整历史分离；[V0.1.1 实测记录](context-runtime-v0.1.1-evidence.md) 修复安全压缩被误移除的回归，在 run 投影上恢复阈值压缩和单次超限恢复。JSONL schema 仍为 v1，完整历史保留。
 
 工作区清理记录（2026-10-01）：关键原始证据已归档到 [Next Phase 2 验收档案](../../artifacts/next-v0-phase2-evidence.zip)，包含 132 个证据文件及 SHA-256 清单。下文 `.pytest-tmp/` 是执行时的历史路径，可在压缩包中按同名查找；该临时目录、临时安装环境、单元测试生成目录和旧 Day8 目录已从工作区删除。SWE-bench prediction、官方任务行和评分日志已保留，后续可解压到独立临时目录继续评分。
 

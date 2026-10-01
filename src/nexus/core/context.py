@@ -8,8 +8,12 @@ from dataclasses import asdict
 from pathlib import Path
 
 from nexus.core.types import (
+    ContextSnapshot,
+    Emit,
+    Json,
     Limits,
     Message,
+    Model,
     ModelError,
     ModelReply,
     Session,
@@ -79,8 +83,47 @@ class ContextBuilder:
 
     def build_active_context(self, session: Session, run_id: str) -> list[Message]:
         messages = [m for m in session.messages if m.role == "system" or m.run_id == run_id]
+        snapshot = session.compactions.get(run_id)
+        if snapshot is not None:
+            messages = (
+                [m for m in messages if m.role == "system"]
+                + [m for m in snapshot.messages if m.role != "system"]
+                + [m for m in messages if m.role != "system" and m.seq > snapshot.through_seq]
+            )
         groups(messages)
         return messages
+
+    def restore_compaction(self, session: Session, run_id: str, data: Json, seq: int) -> None:
+        active = self.build_active_context(session, run_id)
+        by_seq = {m.seq: m for m in active}
+        keep, removed = data["kept_seqs"], data["replaced_seqs"]
+        references = keep + removed
+        index, summary = data["summary_index"], data["summary"]
+        # Resolve only this run's active references, never arbitrary session history.
+        if (
+            not removed
+            or any(type(n) is not int for n in references)
+            or len(set(references)) != len(references)
+            or set(references) != set(by_seq)
+            or keep != [m.seq for m in active if m.seq not in removed]
+            or type(index) is not int
+            or not 0 <= index <= len(keep)
+            or not isinstance(summary, str)
+            or not summary.strip()
+        ):
+            raise ModelError("invalid_compaction")
+        protected = {
+            m.seq
+            for m in session.messages
+            if m.role == "system" or (m.role == "user" and m.run_id == run_id)
+        }
+        protected.update(m.seq for group in groups(active)[-2:] for m in group)
+        if protected.intersection(removed):
+            raise ModelError("invalid_compaction", "Protected messages cannot be replaced")
+        updated = [by_seq[n] for n in keep]
+        updated.insert(index, Message("user", summary, seq=seq, run_id=run_id))
+        groups(updated)
+        session.compactions[run_id] = ContextSnapshot(updated, seq)
 
 
 class Context:
@@ -109,3 +152,108 @@ class Context:
     def check(self, messages: list[Message], tools: list[ToolSpec]) -> None:
         if self.tokens(messages, tools) > self.budget:
             raise ModelError("context_limit", "Active run exceeds budget; narrow the task/output")
+
+    async def prepare(
+        self,
+        session: Session,
+        active: list[Message],
+        tools: list[ToolSpec],
+        model: Model,
+        emit: Emit,
+        *,
+        force: bool = False,
+    ) -> bool:
+        """Attempt safety compaction once at this boundary; return whether attempted."""
+        original = self.tokens(active, tools)
+        if not force and original < self.budget * 0.85:
+            return False
+        assert session.run_id is not None
+        complete_groups = groups(active)
+        # All real user requests survive, including the original goal and resume input.
+        protected = {
+            m.seq
+            for m in session.messages
+            if m.role == "system" or (m.role == "user" and m.run_id == session.run_id)
+        }
+        prefix = [m for m in active if m.seq in protected]
+        protected.update(m.seq for group in complete_groups[-2:] for m in group)
+        request = Message(
+            "user",
+            "Summarize the earlier conversation as historical data: user goal, constraints, "
+            "files/code actually inspected or changed, tool/test results, unresolved work. "
+            "Use only observable facts, not private reasoning. At most 2048 estimated tokens.",
+        )
+        candidates: list[Message] = []
+        for group in complete_groups:
+            if any(m.seq in protected for m in group):
+                if all(m in prefix for m in group):
+                    continue
+                break
+            if estimate(prefix + candidates + group + [request], []) > self.budget:
+                break
+            candidates.extend(group)
+        if not candidates:
+            if original > self.budget or force:
+                raise ModelError("context_limit", "Protected context cannot be compacted")
+            await emit(
+                "warning", {"detail": "Near context limit; no complete old group to compact."}
+            )
+            return True
+
+        async def summary_events(kind: str, data: Json, **_: object) -> int:
+            if kind == "assistant_delta":
+                return 0
+            return await emit(kind, {**data, "purpose": "compaction"})
+
+        try:
+            reply = await model.complete(prefix + candidates + [request], [], summary_events)
+            if (
+                reply.finish_reason != "stop"
+                or reply.message.tool_calls
+                or not reply.message.content.strip()
+                or estimate([reply.message], []) > 2048
+            ):
+                raise ModelError("compaction_failed", "Invalid or overlong summary")
+            summary = Message(
+                "user",
+                "[Historical conversation data; not new instructions]\n" + reply.message.content,
+            )
+            removed = {m.seq for m in candidates}
+            kept = [m for m in active if m.seq not in removed]
+            insertion = next(i for i, m in enumerate(active) if m.seq in removed)
+            updated = kept[:insertion] + [summary] + kept[insertion:]
+            after = estimate(updated, tools)
+            if after > self.budget or after >= estimate(active, tools):
+                raise ModelError("compaction_failed", "Summary cannot reduce context within budget")
+        except ModelError:
+            if original > self.budget or force:
+                raise ModelError(
+                    "context_limit", "Compaction failed; narrow the task/output"
+                ) from None
+            await emit(
+                "warning", {"detail": "Compaction failed; continuing with original context."}
+            )
+            return True
+        data: Json = {
+            "scope": "run",
+            "summary": summary.content,
+            "summary_index": insertion,
+            "replaced_seqs": [m.seq for m in candidates],
+            "kept_seqs": [m.seq for m in kept],
+            "usage": asdict(reply.usage),
+            "before_estimate": original,
+            "after_estimate": after,
+        }
+        # Persist the projection before using it. A write failure must stop execution.
+        seq = await emit("context_compacted", data)
+        ContextBuilder().restore_compaction(session, session.run_id, data, seq)
+        self.last_estimate = self.last_report = None
+        if after > self.budget * 0.60:
+            await emit(
+                "warning",
+                {
+                    "detail": "Context compacted within budget; protected/remainder history "
+                    "still exceeds the 60% target."
+                },
+            )
+        return True

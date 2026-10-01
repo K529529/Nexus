@@ -97,7 +97,7 @@ async def test_invalid_utf8_is_observation(execution: ExecutionContext) -> None:
     assert "\ufffd" in result.data["stdout"]
 
 
-async def test_context_length_error_stops_without_compaction_retry(tmp_path: Path) -> None:
+async def test_context_limit_without_old_groups_stops_without_retry(tmp_path: Path) -> None:
     class TooLarge(ScriptedModel):
         async def complete(self, messages: Any, tools: Any, emit: Any) -> Any:
             self.requests.append(list(messages))

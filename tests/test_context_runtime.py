@@ -102,7 +102,9 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         writer.close()
 
 
-async def test_budget_checks_only_active_run_and_never_compacts(tmp_path: Path) -> None:
+async def test_budget_ignores_old_runs_but_protected_output_can_still_overflow(
+    tmp_path: Path,
+) -> None:
     historical = Message("user", "old logs " * 10000, run_id="old-run")
     session = Session(tmp_path, messages=[Message("system", "rules"), historical])
     limits = Limits(context_window=2500, max_output_tokens=500)

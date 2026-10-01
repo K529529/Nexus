@@ -141,6 +141,14 @@ class Tool:
 
 
 @dataclass
+class ContextSnapshot:
+    """A compacted projection through one event seq; never the source history."""
+
+    messages: list[Message]
+    through_seq: int
+
+
+@dataclass
 class Session:
     workspace: Path
     session_id: str = field(default_factory=lambda: uuid4().hex)
@@ -148,6 +156,7 @@ class Session:
     run_id: str | None = None
     # Set only by explicit resume; ordinary turns always start an independent run.
     resume_run_id: str | None = None
+    compactions: dict[str, ContextSnapshot] = field(default_factory=dict)
 
 
 @dataclass

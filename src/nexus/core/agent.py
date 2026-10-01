@@ -96,8 +96,17 @@ async def run_turn(
             result.steps = step
             specs = [t.spec for t in registry.values()]
             active_context = builder.build_active_context(session, session.run_id)
+            attempted = await context.prepare(session, active_context, specs, model, observed)
+            active_context = builder.build_active_context(session, session.run_id)
             context.check(active_context, specs)
-            reply = await model.complete(active_context, specs, observed)
+            try:
+                reply = await model.complete(active_context, specs, observed)
+            except ModelError as exc:
+                if exc.code != "context_limit" or attempted:
+                    raise
+                await context.prepare(session, active_context, specs, model, observed, force=True)
+                active_context = builder.build_active_context(session, session.run_id)
+                reply = await model.complete(active_context, specs, observed)
             context.observe(reply, active_context, specs)
             valid_reply(reply.message, reply.finish_reason)
             prior_ids = {
