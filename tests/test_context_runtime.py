@@ -80,6 +80,15 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         assert saved_bytes(writer) == raw
         records, truncated = read_records(writer.stream)
         assert not truncated
+        starts = [r for r in records if r["kind"] == "run_started"]
+        assert first_run is not None
+        assert [r["run_id"] for r in starts] == [first_run, session.run_id]
+        for index, start in enumerate(starts):
+            end = starts[index + 1]["seq"] if index + 1 < len(starts) else writer.seq + 1
+            run_messages = [
+                r for r in records if r["kind"] == "message" and start["seq"] < r["seq"] < end
+            ]
+            assert run_messages and all(r["run_id"] == start["run_id"] for r in run_messages)
         stored = [r for r in records if r["kind"] == "message"]
         assert len(stored) == len(session.messages)
         assert [r["data"] for r in stored] == [m.public() for m in session.messages]
@@ -173,12 +182,18 @@ async def test_resume_restores_only_interrupted_run(
     restored, writer, _ = resume_session(recovered_path, tmp_path, tmp_path)
     try:
         assert restored.resume_run_id == "interrupted-run"
+        before_resume = writer.seq
         model = ScriptedModel([reply(text="Recovered answer")])
         result = await run_turn(
             restored, "Continue", model, {}, Events(restored, writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
         assert restored.run_id == "interrupted-run" and restored.resume_run_id is None
+        records, truncated_tail = read_records(writer.stream)
+        assert not truncated_tail
+        resumed_records = [r for r in records if r["seq"] > before_resume]
+        assert resumed_records[0]["kind"] == "run_started"
+        assert all(r["run_id"] == "interrupted-run" for r in resumed_records)
         active = model.requests[0]
         assert [m.role for m in active] == ["system", "user", "assistant", "tool", "tool", "user"]
         assert active[1].content == "Unfinished task"

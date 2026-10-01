@@ -211,7 +211,7 @@ workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文
 
 Message 的内存 run_id 来自已有事件 envelope，不进入 message.public() 或 provider payload。旧 context_compacted 事件仅作历史审计，恢复使用原始消息，再按 run_id 选择；不把跨 run 的旧摘要重新送入模型。
 
-V0.1 只解决跨 run 污染和投影边界。同一 run 内的历史仍逐次回传，长任务 token 增长尚未解决；不实现 compaction、工具结果生命周期或任何记忆/检索框架。
+Context Runtime V0.1 当前聚焦活动上下文投影与 run 隔离。同一 run 内的历史仍逐次回传，长任务上下文增长是已知的当前限制，不是永久保留完整活动历史或超限即停止的设计目标。后续 Context Runtime 版本将引入工具 observation 生命周期管理、软压缩（soft compaction）与历史缩减策略；本轮仅明确演进方向，不实现这些能力，也不引入记忆/检索框架。
 
 ## 7. JSONL、事件与恢复
 

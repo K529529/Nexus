@@ -87,7 +87,10 @@ writer。普通输入每次开启独立 run，模型只接收当前 system/仓�
 的消息；之前 run 的完整历史仍保留在 JSONL。使用 `/resume` 或 `nexus resume` 选择最近
 run 未完成的会话（中断、aborted、failed、limited），下一次输入会续接这个 run 的上下文。
 已完成会话的下一次输入开启新 run；run_id 仍是内部元数据，选择器只恢复最近的未完成 run。
-V0.1 不做压缩，活动上下文超预算返回 `limited/context_limit`，同一长任务的历史仍会增长。
+Context Runtime V0.1 当前聚焦活动上下文投影与 run 隔离。长任务上下文持续增长是已知的
+当前限制：本版尚未实现压缩，活动上下文超预算时返回 `limited/context_limit`，这不是永久策略。
+后续 Context Runtime 版本将引入工具 observation 生命周期管理、软压缩（soft compaction）
+与历史缩减策略；这些能力不在 V0.1 本轮实现范围内。
 恢复后等待用户输入，不重新执行旧命令。崩溃后的缺失结果标为
 `interrupted_unknown`，需要先检查实际文件/进程状态。损坏尾行恢复到新文件并保留原文件；
 中间损坏拒绝恢复。逐记录 flush 不等于耐断电事务，也不保证副作用恰好执行一次。
