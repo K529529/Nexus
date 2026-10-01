@@ -1,7 +1,7 @@
 # Nexus Next V0：开发设计
 
-状态：**DRAFT v0.2 / 待审核** · 2026-09-30  
-生效前提：用户批准本开发设计与验收清单；准备责任见 [审核入口](00-review-and-decisions.md)。本轮只修订文档，不授权实现，也不另设 ADR 审批层。
+状态：**APPROVED v0.2 / Phase 2 Implementation** · 2026-10-01
+用户在本次实施任务中明确批准本开发设计与验收清单（IMPLEMENTATION AUTHORIZATION: APPROVED）。按 S1 → S5 连续实施；实际验收状态见 acceptance-evidence.md。不另设 ADR 审批层。
 
 ## 1. 最小运行结构
 
@@ -295,7 +295,7 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 
 TUI 用 prompt_toolkit 的 async 输入和 Rich 文本/diff 渲染；只使用一个 asyncio loop。运行时暂停接受新任务，仅保留 Ctrl+C；空闲 Ctrl+C 清空输入，`/exit`/EOF 退出。先支持可靠顺序交互，不实现运行中 steering、后台任务或 full-screen 面板。
 
-Transcript 始终可滚动：用户输入 → assistant streaming → 命令摘要与有界输出/exit code → patch 路径与差异 → 最终答复 + tokens/耗时。色彩只区分角色与状态；尊重 NO_COLOR、窄终端和重定向。工具控制字符过滤后再显示，避免覆盖终端提示；正文流与最终正文不能重复打印。
+Transcript 始终可滚动：用户输入 → assistant streaming → 简短命令摘要与状态/exit code → patch 路径与差异预览 → 最终答复 + tokens/耗时。按 Phase 2 用户实测反馈，默认不展开 shell/MCP 的工具正文或输出 delta；失败显示最多四行错误摘录，patch 最多展示三个文件、每文件六行 diff，长行限宽，省略明确标记。该收缩仅属于展示层，模型 tool message、会话日志和 `--json` 继续保留原工具预算内结果；不展示私有 reasoning。色彩只区分角色与状态；尊重 NO_COLOR、窄终端和重定向。工具控制字符过滤后再显示，避免覆盖终端提示；正文流与最终正文不能重复打印。
 
 UI 不读取文件猜工具结果，不自己判测试通过；只消费事件。输出刷新节流到约 20 次/秒；不能在内存里累积整段无限原始输出。输入处理方式参考 [prompt_toolkit asyncio 文档](https://python-prompt-toolkit.readthedocs.io/en/stable/pages/advanced_topics/asyncio.html)。
 

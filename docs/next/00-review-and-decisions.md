@@ -1,6 +1,10 @@
 # Nexus Next V0：审核入口与迁移说明
 
-状态：**S0 开发入口准备 completed / ready；本轮未授权功能实现**
+状态：**Phase 2 Implementation 已获用户授权（2026-10-01）**
+
+当前实施批准：用户明确给出 `IMPLEMENTATION AUTHORIZATION: APPROVED`，按开发设计 v0.2 和验收清单实施 S1 → S5。开工时 `refactor/lean-agent-core` 的 HEAD 与 fetch 后 `origin/next` 均为 `ff4eab2574b0d7aceb901a8e496460fe88b958e6`，无需合并。未跟踪 `.idea/` 保留，不自行 commit/push/merge/publish。实际结果见 acceptance-evidence.md。
+
+下文是 S0 文档轮次的历史记录；其中“本轮未授权”“待审核”和旧 HEAD 仅描述当时状态，不撤销上述当前批准。
 
 版本：0.2 · 状态同步：2026-10-01
 

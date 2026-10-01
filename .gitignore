@@ -6,7 +6,9 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.pytest-tmp/
+.pytest-tmp*/
+.pytest-temp*/
+artifacts/
 .mypy_cache/
 .ruff_cache/
 .coverage

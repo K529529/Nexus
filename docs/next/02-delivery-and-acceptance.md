@@ -1,8 +1,8 @@
 # Nexus Next V0：实施与验收清单
 
-状态：**v0.2 / S0 开发入口 ready；功能实现未授权** · 2026-10-01
+状态：**APPROVED v0.2 / Phase 2 Implementation** · 2026-10-01
 
-依据：[冻结架构契约](architecture-contract-v0.md)、[开发设计](01-development-design.md)；准备状态见 [审核入口](00-review-and-decisions.md)。开发入口准备已完成，所有功能实现/测试/产品交付结果当前仍为 **NOT RUN**。
+依据：[冻结架构契约](architecture-contract-v0.md)、[开发设计](01-development-design.md)。用户已在本次实施任务明确授权连续推进 S1 → S5。以下表格定义验收标准，实际执行结果另记 acceptance-evidence.md；历史 S0 说明不再表示本次实施未授权。
 
 ## 1. 实施顺序
 
@@ -120,7 +120,7 @@ prediction 始终比较任务原始 base_commit 与结束时真实文件内容�
 
 ```bash
 python -m swebench.harness.run_evaluation \
-  --dataset_name princeton-nlp/SWE-bench_Lite \
+  --dataset_name SWE-bench/SWE-bench_Lite \
   --predictions_path artifacts/predictions.jsonl \
   --instance_ids <verified-instance-id> \
   --max_workers 1 \
@@ -128,6 +128,8 @@ python -m swebench.harness.run_evaluation \
 ```
 
 同一 patch hash/instance/run 关联原始报告，重跑使用新 run_id，避免缓存旧结果。官方 grader 的环境准备和测试执行由其 harness 负责；Nexus inference workspace 的准备记录单独保留。详见 [SWE-bench 官方 Evaluation Guide](https://www.swebench.com/SWE-bench/guides/evaluation/)。
+
+实施时验证的 harness 5.0.2 需要新版官方 dataset 的 `image`/evaluation 字段；旧 `princeton-nlp` 数据副本会报 `KeyError: image`。这是上游调用格式兼容修正，不改变评测职责。固定 revision 的官方行也可原样导出为 JSON 传给该入口，必须核对题目和原始 base_commit 一致，不手工补造 grader 数据。
 
 对接 PASS：有效 prediction 被官方 harness 接收、实际评分执行、报告可回收且与 trajectory 对应。resolved=false 可以是一次真实有效的评分；基础设施错误或只有 fake report 不满足真实对接。接入 smoke、样本 resolved 与环境是否无污染分别记录；即使非正式实验打通接入，也不能声称取得干净 benchmark 能力证据。缺 Docker/镜像/资源就报告 NOT RUN，不用自定义 pytest 冒充官方 verdict。
 

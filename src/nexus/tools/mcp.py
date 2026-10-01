@@ -1,160 +1,200 @@
-"""Adapt SDK-neutral MCP descriptors to the existing Nexus Tool contract."""
+"""Explicit user-configured stdio servers are dynamic tool providers only."""
 
 from __future__ import annotations
 
 import asyncio
-from typing import cast
+import hashlib
+import os
+import re
+import time
+from contextlib import AsyncExitStack
+from typing import Any
 
-from nexus.domain.mcp import MCPToolDescriptor
-from nexus.domain.ports.mcp import MCPManager
-from nexus.domain.tooling import (
-    JsonObject,
-    PolicyDecision,
-    RiskLevel,
-    ToolError,
-    ToolInvocation,
+from mcp import Client, StdioServerParameters
+
+from nexus.core.types import (
+    Emit,
+    ExecutionContext,
+    Json,
+    Tool,
+    ToolCancelled,
     ToolResult,
+    ToolSpec,
+    json_text,
 )
-from nexus.errors import MCPError
 
 
-class MCPToolAdapter:
-    def __init__(
-        self,
-        descriptor: MCPToolDescriptor,
-        manager: MCPManager,
-        *,
-        risk_level: RiskLevel,
-        timeout_seconds: float,
-    ) -> None:
-        self.descriptor = descriptor
-        self._manager = manager
-        self.risk_level = risk_level
-        self._timeout_seconds = timeout_seconds
+def public_name(server: str, remote: str) -> str:
+    readable = re.sub(r"[^a-zA-Z0-9_-]", "_", f"mcp_{server}_{remote}")[:46]
+    digest = hashlib.sha256(json_text([server, remote]).encode()).hexdigest()[:16]
+    return f"{readable}_{digest}"
 
-    @property
-    def name(self) -> str:
-        return self.descriptor.registry_name
 
-    async def execute(self, invocation: ToolInvocation) -> ToolResult:
-        if invocation.tool_name != self.name:
-            return self._failure(
-                invocation,
-                MCPError("MCP Tool invocation identity is invalid.", code="MCP_CALL_FAILED"),
-            )
+def server_parameters(raw: Any) -> StdioServerParameters:
+    if not isinstance(raw, dict) or raw.keys() - {"command", "args", "env_from"}:
+        raise ValueError("invalid server fields")
+    command, args, env_from = raw.get("command"), raw.get("args", []), raw.get("env_from", {})
+    if not isinstance(command, str) or not command.strip():
+        raise ValueError("command must be a non-empty string")
+    if not isinstance(args, list) or any(not isinstance(a, str) for a in args):
+        raise ValueError("args must be a string list")
+    if not isinstance(env_from, dict):
+        raise ValueError("env_from must be a table")
+    env: dict[str, str] = {}
+    for target, source in env_from.items():
+        if not isinstance(source, str) or not os.environ.get(source):
+            raise ValueError("a configured environment variable is missing")
+        env[target] = os.environ[source]
+    return StdioServerParameters(command=command, args=args, env=env)
+
+
+def _bounded_result(result: Any, limit: int) -> tuple[Json, bool, bool]:
+    data: Json = {"text": [], "unsupported_content": []}
+    truncated = False
+    for block in result.content:
+        if block.type == "text":
+            raw = block.text.encode("utf-8")
+            data["text"].append(raw[:limit].decode("utf-8", errors="ignore"))
+            truncated |= len(raw) > limit
+            limit = max(0, limit - len(raw))
+        else:
+            if block.type not in data["unsupported_content"]:
+                data["unsupported_content"].append(block.type)
+    if result.structured_content is not None:
+        raw = json_text(result.structured_content).encode("utf-8")
+        if len(raw) <= limit:
+            data["structured_content"] = result.structured_content
+        else:
+            data["structured_content_preview"] = raw[:limit].decode("utf-8", errors="ignore")
+            truncated = True
+    unsupported = bool(data["unsupported_content"]) or result.result_type != "complete"
+    if result.result_type != "complete":
+        data["detail"] = "input-required/sampling/elicitation is unsupported"
+    return data, truncated, unsupported
+
+
+def adapt_tool(
+    client: Any,
+    remote: str,
+    spec: ToolSpec,
+    server: str,
+    disabled: set[str],
+    registry: dict[str, Tool],
+    server_names: list[str],
+) -> Tool:
+    async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+        started = time.monotonic()
         try:
-            _validate_arguments(invocation.arguments, self.descriptor.input_schema)
-        except MCPError as exc:
-            return self._failure(invocation, exc)
-        try:
-            result = await self._manager.call_tool(
-                server_id=self.descriptor.server_id,
-                remote_name=self.descriptor.remote_name,
-                arguments=invocation.arguments,
-                timeout_seconds=self._timeout_seconds,
+            if server in disabled:
+                return ToolResult(context.call_id, False, {"server": server}, "mcp_unavailable")
+            async with asyncio.timeout(120):
+                result = await client.call_tool(remote, arguments, read_timeout_seconds=120)
+            data, truncated, unsupported = _bounded_result(result, context.output_limit_bytes)
+            code = (
+                "mcp_unsupported_content"
+                if unsupported
+                else "mcp_tool_error"
+                if result.is_error
+                else None
             )
-        except asyncio.CancelledError:
-            raise
-        except MCPError as exc:
-            return self._failure(invocation, exc)
-        except Exception:
-            return self._failure(
-                invocation,
-                MCPError("MCP Tool call failed safely.", code="MCP_CALL_FAILED"),
-            )
-        try:
-            if result.get("is_error") is True:
-                return self._failure(
-                    invocation,
-                    MCPError(
-                        _mcp_error_message(result),
-                        code="MCP_TOOL_ERROR",
-                        retryable=False,
-                    ),
-                )
-            if result.get("is_error") is not False:
-                raise MCPError("MCP returned an invalid Tool result.", code="MCP_INVALID_RESULT")
-            content = result.get("content")
-            structured = result.get("structured_content")
-            if not isinstance(content, list) or (
-                structured is not None and not isinstance(structured, dict)
-            ):
-                raise MCPError("MCP returned an invalid Tool result.", code="MCP_INVALID_RESULT")
             return ToolResult(
-                invocation.invocation_id,
-                invocation.tool_name,
-                True,
-                cast(JsonObject, dict(result)),
-                None,
-                self.risk_level,
-                PolicyDecision.ALLOWED,
-                None,
-                0,
+                context.call_id,
+                code is None,
+                data,
+                code,
+                int((time.monotonic() - started) * 1000),
+                truncated,
             )
         except asyncio.CancelledError:
-            raise
-        except MCPError as exc:
-            return self._failure(invocation, exc)
-        except Exception:
-            return self._failure(
-                invocation,
-                MCPError("MCP returned an invalid Tool result.", code="MCP_INVALID_RESULT"),
+            # Bootstrap owns the client context in this same turn task and closes it.
+            raise ToolCancelled(
+                ToolResult(
+                    context.call_id,
+                    False,
+                    {
+                        "server": server,
+                        "side_effects": "unknown",
+                        "cancelled": True,
+                    },
+                    "interrupted_unknown",
+                )
+            ) from None
+        except Exception as exc:
+            disabled.add(server)
+            for name in server_names:
+                registry.pop(name, None)
+            code = "mcp_timeout" if isinstance(exc, TimeoutError) else "mcp_unavailable"
+            await emit("warning", {"detail": f"MCP server {server} disabled ({code}); no retry."})
+            return ToolResult(
+                context.call_id,
+                False,
+                {"server": server, "side_effects": "unknown"},
+                code,
+                int((time.monotonic() - started) * 1000),
             )
 
-    def _failure(self, invocation: ToolInvocation, error: MCPError) -> ToolResult:
-        return ToolResult(
-            invocation.invocation_id,
-            invocation.tool_name,
-            False,
-            None,
-            ToolError(error.code, str(error), error.retryable),
-            self.risk_level,
-            PolicyDecision.ALLOWED,
-            None,
-            0,
-        )
+    return Tool(spec, execute)
 
 
-def _validate_arguments(arguments: JsonObject, schema: JsonObject) -> None:
-    if schema.get("type", "object") != "object":
-        raise MCPError("MCP Tool input schema must describe an object.", code="MCP_INVALID_SCHEMA")
-    properties = schema.get("properties", {})
-    required = schema.get("required", [])
-    if not isinstance(properties, dict) or not isinstance(required, list) or any(
-        not isinstance(item, str) for item in required
-    ):
-        raise MCPError("MCP Tool input schema is malformed.", code="MCP_INVALID_SCHEMA")
-    missing = [item for item in required if item not in arguments]
-    if missing:
-        raise MCPError("MCP Tool arguments omit required fields.", code="MCP_INVALID_SCHEMA")
-    if schema.get("additionalProperties") is False and not set(arguments) <= set(properties):
-        raise MCPError("MCP Tool arguments contain unknown fields.", code="MCP_INVALID_SCHEMA")
-    for name, value in arguments.items():
-        property_schema = properties.get(name)
-        if isinstance(property_schema, dict):
-            _validate_primitive(value, property_schema.get("type"))
-
-
-def _validate_primitive(value: object, expected: object) -> None:
-    valid = {
-        "string": lambda item: isinstance(item, str),
-        "boolean": lambda item: isinstance(item, bool),
-        "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
-        "number": lambda item: isinstance(item, (int, float)) and not isinstance(item, bool),
-        "object": lambda item: isinstance(item, dict),
-        "array": lambda item: isinstance(item, list),
-        "null": lambda item: item is None,
-    }
-    if isinstance(expected, str) and expected in valid and not valid[expected](value):
-        raise MCPError("MCP Tool argument type is invalid.", code="MCP_INVALID_SCHEMA")
-
-
-def _mcp_error_message(result: JsonObject) -> str:
-    content = result.get("content")
-    if isinstance(content, list):
-        for block in content:
-            if isinstance(block, dict):
-                text = block.get("text")
-                if isinstance(text, str) and text:
-                    return text[:512]
-    return "The MCP server reported a Tool error."
+async def connect_servers(
+    configured: Json,
+    registry: dict[str, Tool],
+    stack: AsyncExitStack,
+    emit: Emit,
+    *,
+    client_factory: Any = Client,
+) -> list[str]:
+    unavailable: list[str] = []
+    disabled: set[str] = set()
+    for server, raw in configured.items():
+        local = AsyncExitStack()
+        try:
+            parameters = server_parameters(raw)
+            client = client_factory(
+                parameters, read_timeout_seconds=15, input_required_max_rounds=0
+            )
+            async with asyncio.timeout(15):
+                await local.enter_async_context(client)
+                found: dict[str, ToolSpec] = {}
+                cursor: str | None = None
+                seen: set[str] = set()
+                while True:
+                    page = await client.list_tools(cursor=cursor)
+                    if page.result_type != "complete":
+                        raise ValueError("unsupported discovery response")
+                    for remote in page.tools:
+                        if (
+                            not remote.name
+                            or remote.name in found
+                            or not isinstance(remote.input_schema, dict)
+                            or remote.input_schema.get("type") != "object"
+                        ):
+                            raise ValueError("invalid tool definition")
+                        name = public_name(server, remote.name)
+                        if name in registry or any(t.name == name for t in found.values()):
+                            raise ValueError("tool name collision")
+                        found[remote.name] = ToolSpec(
+                            name, remote.description or "MCP tool", remote.input_schema
+                        )
+                    cursor = page.next_cursor
+                    if cursor is None:
+                        break
+                    if not cursor or cursor in seen:
+                        raise ValueError("invalid/repeated pagination cursor")
+                    seen.add(cursor)
+            names = [spec.name for spec in found.values()]
+            for remote, spec in found.items():
+                registry[spec.name] = adapt_tool(
+                    client, remote, spec, server, disabled, registry, names
+                )
+            stack.push_async_callback(local.aclose)
+        except asyncio.CancelledError:
+            await local.aclose()
+            raise
+        except Exception as exc:
+            await local.aclose()
+            unavailable.append(server)
+            await emit(
+                "warning", {"detail": f"MCP server {server} unavailable ({type(exc).__name__})."}
+            )
+    return unavailable

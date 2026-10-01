@@ -1,27 +1,41 @@
-"""Immutable exact-name Tool registry."""
+"""Two native tools and explicitly configured MCP tools share one dictionary."""
 
-from collections.abc import Sequence
+from nexus.core.types import Tool, ToolSpec
+from nexus.tools.execution import execute
+from nexus.tools.patch import apply_patch
 
-from nexus.domain.ports.tooling import Tool
-from nexus.errors import ToolExecutionError
+EXEC_SPEC = ToolSpec(
+    "exec_command",
+    "Execute a command in the actual local shell. Use for reading/searching files, git, "
+    "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
+    "truncation. timeout_ms: 1..600000 (default 120000).",
+    {
+        "type": "object",
+        "properties": {
+            "command": {"type": "string"},
+            "workdir": {"type": "string"},
+            "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 600000},
+        },
+        "required": ["command"],
+        "additionalProperties": False,
+    },
+)
+PATCH_SPEC = ToolSpec(
+    "apply_patch",
+    "Apply a UTF-8 unified diff inside workspace. Use --- a/path and +++ b/path, "
+    "with @@ -old,count +new,count @@ hunks; /dev/null for add/delete. No rename, "
+    "binary, mode changes or Codex Begin Patch syntax. Example:\n"
+    "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n"
+    "New file example (no extra blank lines outside hunks):\n"
+    "--- /dev/null\n+++ b/new.py\n@@ -0,0 +1 @@\n+pass\n",
+    {
+        "type": "object",
+        "properties": {"patch": {"type": "string"}},
+        "required": ["patch"],
+        "additionalProperties": False,
+    },
+)
 
 
-class ToolRegistry:
-    def __init__(self, tools: Sequence[Tool]) -> None:
-        registry: dict[str, Tool] = {}
-        for tool in tools:
-            if not tool.name:
-                raise ValueError("Tool names must not be empty.")
-            if tool.name in registry:
-                raise ValueError(f"Duplicate Tool name: {tool.name}")
-            registry[tool.name] = tool
-        self._tools = registry
-
-    def resolve(self, name: str) -> Tool:
-        try:
-            return self._tools[name]
-        except KeyError as exc:
-            raise ToolExecutionError(
-                "The requested Tool is not registered.",
-                code="TOOL_NOT_FOUND",
-            ) from exc
+def native_tools() -> dict[str, Tool]:
+    return {"exec_command": Tool(EXEC_SPEC, execute), "apply_patch": Tool(PATCH_SPEC, apply_patch)}
