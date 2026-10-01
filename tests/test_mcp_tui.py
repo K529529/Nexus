@@ -21,7 +21,14 @@ from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ConfigError, ModelConfig, load_config
 from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records
-from nexus.app.tui import Transcript, select_session, setup, terminal_text
+from nexus.app.tui import (
+    Transcript,
+    json_consumer,
+    select_session,
+    setup,
+    terminal_text,
+    tool_title,
+)
 from nexus.core.agent import run_turn
 from nexus.core.types import (
     ExecutionContext,
@@ -145,6 +152,116 @@ async def test_transcript_no_duplicate_final_and_controls() -> None:
     assert terminal_text("safe\x1b[2J\r\x00text") == "safetext"
 
 
+@pytest.mark.parametrize(
+    "command,title",
+    [
+        ('Get-Content "src/file name.py" -TotalCount 10', 'Read "src/file name.py" -TotalCount 10'),
+        ("cat a.py", "Read a.py"),
+        ('sed -n "1,20p" a.py', 'Read -n "1,20p" a.py'),
+        ("head -20 a.py", "Read -20 a.py"),
+        ("tail -20 a.py", "Read -20 a.py"),
+        ('rg "run_turn" tests', 'Search "run_turn" tests'),
+        ("grep pattern a.py", "Search pattern a.py"),
+        ("Select-String -Pattern run_turn -Path a.py", "Search -Pattern run_turn -Path a.py"),
+        ("pytest -q", "Test pytest -q"),
+        ("uv run pytest -q", "Test uv run pytest -q"),
+        ("git status --short", "Inspect git status --short"),
+        ("git diff", "Inspect git diff"),
+        ("git log -3", "Inspect git log -3"),
+        ("python script.py", "Run python script.py"),
+        ("cat a; cat b", "Run shell command"),
+        ("rg x | head", "Run shell command"),
+        ("echo " + "x" * 2000, "Run shell command"),
+    ],
+)
+def test_ui_command_labels_do_not_change_arguments(command: str, title: str) -> None:
+    data = {"name": "exec_command", "arguments_json": json.dumps({"command": command})}
+    original = dict(data)
+    assert tool_title(data) == title
+    assert data == original
+
+
+async def test_model_activity_is_silent_and_narrow_success_is_one_line() -> None:
+    output = io.StringIO()
+    ui = Transcript(Console(file=output, width=40, color_system=None))
+    await ui(RuntimeEvent("model_started", "t", "s", "r", {}))
+    await ui(RuntimeEvent("message", "t", "s", "r", {"role": "assistant", "content": ""}))
+    assert output.getvalue() == ""
+    await ui(
+        RuntimeEvent(
+            "tool_started",
+            "t",
+            "s",
+            "r",
+            {
+                "call_id": "c",
+                "name": "exec_command",
+                "arguments_json": json.dumps({"command": "cat " + "folder/" * 15 + "file.py"}),
+            },
+        )
+    )
+    value = ToolResult("c", True, {"exit_code": 0}, duration_ms=800)
+    await ui(RuntimeEvent("message", "t", "s", "r", value.message().public()))
+    rows = output.getvalue().splitlines()
+    assert len(rows) == 1 and len(rows[0]) <= 40
+    assert "✓ · 0.8s" in rows[0] and "…" in rows[0]
+
+
+async def test_terminal_activity_is_transient_and_removed_on_abort(monkeypatch: Any) -> None:
+    monkeypatch.setenv("TERM", "xterm-256color")
+    output = io.StringIO()
+    console = Console(file=output, force_terminal=True, legacy_windows=False)
+    ui = Transcript(console)
+    await ui(
+        RuntimeEvent(
+            "tool_started",
+            "t",
+            "s",
+            "r",
+            {
+                "call_id": "c",
+                "name": "exec_command",
+                "arguments_json": '{"command":"pytest"}',
+            },
+        )
+    )
+    assert ui.activity is not None and ui.activity.transient
+    activity = ui.activity
+    await ui(
+        RuntimeEvent(
+            "run_finished",
+            "t",
+            "s",
+            "r",
+            {
+                "outcome": "aborted",
+                "duration_ms": 100,
+                "usage": {},
+                "reason": "user_abort",
+            },
+        )
+    )
+    assert ui.activity is None and not ui.tools and not activity.is_started
+    assert "\x1b[2K" in output.getvalue()
+
+
+async def test_dumb_terminal_does_not_leave_temporary_activity(monkeypatch: Any) -> None:
+    monkeypatch.setenv("TERM", "dumb")
+    output = io.StringIO()
+    ui = Transcript(Console(file=output, force_terminal=True))
+    await ui(RuntimeEvent("tool_started", "t", "s", "r", {"name": "exec_command"}))
+    assert ui.activity is None and output.getvalue() == ""
+
+
+async def test_json_consumer_retains_full_public_tool_events(capsys: Any) -> None:
+    body = "source content\n" * 1000
+    value = ToolResult("c", True, {"stdout": body, "exit_code": 0})
+    event = RuntimeEvent("message", "t", "s", "r", value.message().public())
+    await json_consumer(event)
+    row = json.loads(capsys.readouterr().out)
+    assert json.loads(row["data"]["content"])["data"]["stdout"] == body
+
+
 @pytest.mark.parametrize("streamed", [True, False])
 async def test_transcript_hides_tool_bodies_and_keeps_read_status(streamed: bool) -> None:
     output = io.StringIO()
@@ -157,6 +274,7 @@ async def test_transcript_hides_tool_bodies_and_keeps_read_status(streamed: bool
             "r",
             {
                 "name": "exec_command",
+                "call_id": "c",
                 "arguments_json": '{"command":"Get-Content README.md"}',
             },
         )
@@ -166,15 +284,16 @@ async def test_transcript_hides_tool_bodies_and_keeps_read_status(streamed: bool
         await transcript(
             RuntimeEvent("tool_output_delta", "time", "s", "r", {"call_id": "c", "text": body})
         )
-    assert "Read README.md" in output.getvalue()
-    assert "FILE_BODY" not in output.getvalue()
+    assert output.getvalue() == ""
     value = ToolResult("c", True, {"stdout": body, "stderr": "", "exit_code": 0})
     await transcript(RuntimeEvent("message", "time", "s", "r", value.message().public()))
+    assert len(output.getvalue().splitlines()) == 1
+    assert "Read README.md" in output.getvalue() and "✓" in output.getvalue()
     # MCP text and structured content must not dump entire documents either.
     value = ToolResult("m", True, {"text": [body], "structured_content": {"document": body}})
     await transcript(RuntimeEvent("message", "time", "s", "r", value.message().public()))
     assert "FILE_BODY" not in output.getvalue()
-    assert "exit=0" in output.getvalue()
+    assert "exit=0" not in output.getvalue()
     assert len(output.getvalue()) < 200
 
 
@@ -218,12 +337,12 @@ async def test_transcript_bounds_compound_commands_and_patch_previews() -> None:
             "r",
             {
                 "name": "exec_command",
+                "call_id": "p",
                 "arguments_json": json.dumps({"command": "Get-Content a;\n" + "echo LONG;" * 1000}),
             },
         )
     )
-    assert "Run Get-Content a;" in output.getvalue()
-    assert "Read a" not in output.getvalue()
+    assert output.getvalue() == ""
     files = [
         {
             "status": "modified",
@@ -237,6 +356,7 @@ async def test_transcript_bounds_compound_commands_and_patch_previews() -> None:
     result = ToolResult("p", True, {"files": files, "omitted_files": 2}, truncated=True)
     await transcript(RuntimeEvent("message", "time", "s", "r", result.message().public()))
     rendered = output.getvalue()
+    assert "Run shell command" in rendered and "Get-Content" not in rendered
     assert "file0.py" in rendered and "+new" in rendered
     assert "file3.py" not in rendered and "19 more changed files" in rendered
     assert "tool result truncated" in rendered
@@ -371,7 +491,7 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
             self.closed = False
             instances.append(self)
 
-        def close(self) -> None:
+        async def close(self) -> None:
             self.closed = True
 
     class FakePrompt:

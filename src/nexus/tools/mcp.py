@@ -106,7 +106,10 @@ def adapt_tool(
                 truncated,
             )
         except asyncio.CancelledError:
-            # Bootstrap owns the client context in this same turn task and closes it.
+            # Do not reuse a server with an interrupted, unknown-side-effect request.
+            disabled.add(server)
+            for name in server_names:
+                registry.pop(name, None)
             raise ToolCancelled(
                 ToolResult(
                     context.call_id,

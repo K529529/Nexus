@@ -18,6 +18,7 @@ from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from rich.console import Console
+from rich.live import Live
 from rich.syntax import Syntax
 from rich.text import Text
 
@@ -53,9 +54,20 @@ def tool_title(data: Json) -> str:
         args = {}
     if data["name"] == "exec_command" and isinstance(args, dict):
         command = str(args.get("command", "")).strip()
-        # Only label an unambiguous single-file read; compound shell stays "Run".
-        read = re.fullmatch(r"(?:Get-Content|cat)\s+([^\s;|&<>`$]+)", command, re.I)
-        return short_line(f"Read {read[1]}" if read else f"Run {command}")
+        # Conservative display hints only, never shell parsing or execution policy.
+        if not command or len(command) > 160 or re.search(r"[;|&<>`$\n\r]", command):
+            return "Run shell command"
+        parts = command.split(maxsplit=1)
+        head, rest = parts[0].lower(), parts[1] if len(parts) > 1 else ""
+        if head in {"get-content", "cat", "sed", "head", "tail"}:
+            return short_line(f"Read {rest}")
+        if head in {"select-string", "rg", "grep"}:
+            return short_line(f"Search {rest}")
+        if re.match(r"^(?:pytest|uv\s+run\s+pytest)(?:\s|$)", command, re.I):
+            return short_line(f"Test {command}")
+        if re.match(r"^git\s+(?:status|diff|log)(?:\s|$)", command, re.I):
+            return short_line(f"Inspect {command}")
+        return short_line(f"Run {command}")
     return short_line("Apply patch" if data["name"] == "apply_patch" else data["name"])
 
 
@@ -65,6 +77,20 @@ class Transcript:
         self.buffer = ""
         self.last_flush = 0.0
         self.assistant_streamed = False
+        self.tools: dict[str, str] = {}
+        self.activity: Live | None = None
+
+    def stop_activity(self) -> None:
+        if self.activity is not None:
+            self.activity.stop()
+            self.activity = None
+
+    def tool_status(self, title: str, status: str, style: str) -> None:
+        # Reserve terminal cells for status so successful calls stay on one physical row.
+        suffix = Text(f"  {status}", style=style)
+        label = Text(f"› {title}", style="cyan")
+        label.truncate(max(1, self.console.width - suffix.cell_len), overflow="ellipsis")
+        self.console.print(label + suffix, overflow="ellipsis", no_wrap=True)
 
     def flush(self) -> None:
         if self.buffer:
@@ -86,23 +112,39 @@ class Transcript:
         self.flush()
         if kind == "model_started":
             self.assistant_streamed = False
-            self.console.print(Text("\nNexus · generating…", style="dim"))
             self.last_flush = 0.0
         elif kind == "tool_started":
-            self.console.print(Text(f"\n› {tool_title(data)}", style="cyan"))
+            self.stop_activity()
+            title = tool_title(data)
+            self.tools[data.get("call_id", "")] = title
+            if self.console.is_terminal and not self.console.is_dumb_terminal:
+                self.activity = Live(
+                    Text(f"› {title} …", style="dim", overflow="ellipsis", no_wrap=True),
+                    console=self.console,
+                    transient=True,
+                    auto_refresh=False,
+                )
+                self.activity.start(refresh=True)
             self.last_flush = 0.0
         elif kind == "message" and data["role"] == "assistant":
             if data["content"] and not self.assistant_streamed:
                 self.console.print(Text(terminal_text(data["content"])))
-            else:
+            elif self.assistant_streamed:
                 self.console.print()
         elif kind == "message" and data["role"] == "tool":
+            self.stop_activity()
             value = json.loads(data["content"])
             result = value["data"]
+            title = self.tools.pop(value["call_id"], "Tool")
+            status = "✓" if value["ok"] else "✗ " + str(value["error_code"] or "failed")
+            if not value["ok"] and "exit_code" in result:
+                status += f" · exit {result['exit_code']}"
+            status += f" · {value['duration_ms'] / 1000:.1f}s"
+            self.tool_status(title, status, "dim" if value["ok"] else "yellow")
             files = result.get("files", [])
             for file in files[:3]:
                 label = (
-                    f"{file['status']}: {file['path']} "
+                    f"› {file['status'].capitalize()} {file['path']} "
                     f"(+{file['added_lines']} -{file['deleted_lines']})"
                 )
                 self.console.print(Text(short_line(label)))
@@ -119,24 +161,25 @@ class Transcript:
                 )
                 if detail:
                     self.console.print(Text(output_preview(detail, tail=True), style="yellow"))
-            status = "ok" if value["ok"] else str(value["error_code"] or "failed")
-            if "exit_code" in result:
-                status += f" · exit={result['exit_code']}"
+            notices = []
             if result.get("partial"):
-                status += " · partial changes"
+                notices.append("partial changes")
             if result.get("side_effects") == "unknown":
-                status += " · side effects unknown"
+                notices.append("side effects unknown")
             if value["truncated"]:
-                status += " · tool result truncated"
-            style = "dim" if value["ok"] else "yellow"
-            self.console.print(Text(f"  {status} · {value['duration_ms']} ms", style=style))
+                notices.append("tool result truncated")
+            if notices:
+                self.console.print(Text("  " + " · ".join(notices), style="yellow"))
         elif kind in {"warning", "context_compacted"}:
+            self.stop_activity()
             self.console.print(
                 Text(
                     terminal_text(data.get("detail", "Earlier context compacted.")), style="yellow"
                 )
             )
         elif kind == "run_finished":
+            self.stop_activity()
+            self.tools.clear()
             total = data["usage"].get("total_tokens")
             suffix = data.get("reason") or ""
             label = (

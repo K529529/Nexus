@@ -113,7 +113,7 @@ async def predict(tasks: Path, output: Path, environment_record: Path) -> None:
                     patch, error = None, "patch_contains_configured_secret"
             except Exception as exc:
                 error = f"patch_collection:{type(exc).__name__}"
-            conversation.close()
+            await conversation.close()
             if patch is not None:
                 append_json(
                     output / "predictions.jsonl",

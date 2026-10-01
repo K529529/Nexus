@@ -4,6 +4,64 @@
 
 工作区清理记录（2026-10-01）：关键原始证据已归档到 [Next Phase 2 验收档案](../../artifacts/next-v0-phase2-evidence.zip)，包含 132 个证据文件及 SHA-256 清单。下文 `.pytest-tmp/` 是执行时的历史路径，可在压缩包中按同名查找；该临时目录、临时安装环境、单元测试生成目录和旧 Day8 目录已从工作区删除。SWE-bench prediction、官方任务行和评分日志已保留，后续可解压到独立临时目录继续评分。
 
+## 终端 UX 与交互性能优化（基于 004d1d8）
+
+本轮按用户附加要求实施，不改变冻结架构。分支 `refactor/lean-agent-core`，起始提交 `004d1d8 nexus-next V0 第一版`；`core/agent.py`、native registry、model adapter、ToolResult、session 格式、依赖与 packaging 均未改。未 commit/push/merge，用户模型配置未改。
+
+### 改动与生命周期
+
+- `src/nexus/app/tui.py`：不永久打印 model_started；普通成功工具合并为一行摘要、状态和秒数；支持的终端在工具执行期间显示可擦除活动行，重定向和 dumb terminal 无临时输出。Read/Search/Test/Inspect git 仅做 UI 分类，复杂或长命令显示 Run shell command。失败、partial、truncated 和 patch 有界预览仍可见，assistant streaming/final 不裁剪。
+- `src/nexus/app/bootstrap.py`：ChatModel、native registry、MCP 连接与发现结果从每 turn 重建改为首次任务惰性建立、Conversation 跨 turn 复用；`close()` 变为 awaitable，释放连接/client 后关闭 writer。
+- `src/nexus/app/cli.py`：`/new`、选择 resume、退出均 await 旧 Conversation.close；MCP 上下文在同一 async task 内打开/关闭。SIGINT 取消当前 turn，回合结束后的延迟取消回调不会误伤下一次输入；异常退出也移除临时活动行。
+- `src/nexus/tools/mcp.py`：取消中的请求具有未知副作用，和调用阶段连接故障一样停用该 server，当前 Conversation 内不重新连接；新 Conversation 才重新发现。没有 reconnect/pool/manager 层。
+- `src/nexus/core/context.py`：只增加独立只读探索可 batch 到一次有界 exec_command 的短提示，以及命令可读、不合并副作用的限制。未自动合并调用或新增 workflow。
+- `scripts/swebench_v0.py`：仅将已有清理调用改为 `await conversation.close()`，未处理 Docker、未修改评测设计。
+- `tests/test_conversation.py`、`tests/test_mcp_tui.py`、`tests/fixtures/mcp_server.py`：覆盖 UI 分类/限幅/临时行/JSON 完整性、client 复用、MCP 一次连接、真实 stdio 跨回合与 SIGINT、disabled 不重连、new/resume 释放、关闭与迟到取消。同步双语 README、本开发设计与本证据页。
+
+### 同题仓库解释的真实前后对照
+
+任务固定为“解释当前仓库的核心结构和 Agent 执行流程”。两组分析相同的 `004d1d8` 源码副本，45 个文件在运行后均与预先保存的 SHA-256 清单一致；仅用于验证仓库存在的临时 Git 初始化无 commit。优化前使用保存的旧实现，优化后使用本轮实现。相同百炼 endpoint、`deepseek-v4.1-flash/high`、1,000,000 context、32,768 output、40 max_steps、32 KiB tool output；独立新会话，终端宽度 100。耗时包含 Conversation 初始化、模型、工具与关闭，不包含准备副本的时间。
+
+| 指标 | 优化前 | 优化后 |
+| --- | ---: | ---: |
+| outcome | completed | completed |
+| wall clock | 252.164 s | 62.223 s |
+| model_calls | 26 | 10 |
+| tool_calls | 42 | 18 |
+| reported input/output/total tokens | 1,236,945 / 11,033 / 1,247,978 | 262,912 / 5,711 / 268,623 |
+| transcript 总行数（含回答） | 380 | 135 |
+| 工具摘要行 | 42 | 18 |
+| 额外独立工具状态行 | 42 | 0 |
+| 永久 generating 行 | 26 | 0 |
+
+这是每组一次的观察，不是稳定性能比率。旧版主动执行安装/测试并修复环境错误（4 次 exec 非零）；新版仅进行只读解释。因此耗时差异同时受到模型探索/验证选择、服务延迟和缓存影响，不能全部归因于连接复用或 batching hint。两次均检查实际源码并说明单一循环、两个工具、会话与执行路径；没有以模型自称 completed 证明代码测试通过。
+
+额外用**同一份优化前事件**重放新 TUI，回答、工具结果和调用数完全相同：380 → 195 行，42 个工具摘要保持 42，26 个 generating → 0。这单独验证渲染噪声减少，不依赖模型少读文件。
+
+### reasoning_effort A/B 实验
+
+复用初次 Windows 产品验收的 A（mean 空输入修复）和 B（slugify + 新测试 + README）的原题及初始文件，不为 low 改题。两种 effort 均使用本轮实现、同一 endpoint/model/预算、20 max_steps；顺序 A-high → B-low → A-low → B-high，每格一次。原有测试全文均保留；外部 unittest 与固定行为断言分别执行。以下 token 全为 provider reported，非估算。
+
+| Case / effort | 整体任务结果 | wall clock | model / tool calls | input / output / total tokens | 额外修复证据 |
+| --- | --- | ---: | ---: | ---: | --- |
+| A / high | PASS | 19.603 s | 7 / 7 | 17,717 / 1,377 / 19,094 | 有：1 次失败补丁后修复 |
+| A / low | PASS | 12.908 s | 6 / 7 | 14,322 / 710 / 15,032 | 无；任务要求的初始红测试不算修复失误 |
+| B / high | PASS | 40.332 s | 12 / 11 | 43,608 / 4,039 / 47,647 | 有：1 次 shell 失败、3 次补丁失败后修复 |
+| B / low | FAIL / limited(max_steps) | 74.388 s | 20 / 21 | 96,852 / 7,961 / 104,813 | 有：2 次 shell 失败、14 次补丁失败，预算耗尽 |
+
+B-high 完成实现、4 个新测试和 README，完整 suite 与行为断言均通过。B-low 的函数通过外部固定断言，但新测试文件只有 `import unittest`、没有测试方法，README 缺失，模型未运行修改后的完整 suite、未正常给出 final；不能因为外部函数断言通过就算完整任务 PASS。A 两组都实际展示初始失败、修复并运行原测试；high 的额外错误是 unified diff 格式，low 没有额外补丁失败。
+
+**建议：当前 V0 百炼配置继续使用 high 作为默认。** low 在简单 A 上更快，但 B 明显降低交付完整性、增加 repair 与 token 成本，尚无证据支持整体切低。用户若为简单单点工作手动试用 low，遇到多文件修改、补丁格式/上下文连续失败或需要补齐测试与文档时应手动切回 high。此结论只基于这两个小案例，不代表普遍胜率；未实现自动 effort selector，也未改变现有 configurable 行为。C live 本轮未追加，生命周期和 resume 由离线/真实本地 MCP 测试验证。
+
+### 验证、证据与边界
+
+- Windows 全量 pytest：**114 passed，23.11 s**；Ruff：PASS；mypy：PASS（30 source files）；diff-check：PASS。
+- packaging 未改，按本轮要求未重跑 build；Linux/远端 CI/PyPI 未执行。本轮未继续处理 SWE-bench Docker 阻塞。
+- 保留两次前期探索记录但**不纳入正式前后比较**：`repo-before` 使用实验 20 步上限，limited；`repo-before-40` 的复制脚本遗漏 Git `--full-tree`，工作副本为空，模型转而读父仓库，属于实验准备错误。修正后加入 README/core 文件存在断言，并保存正式两组 45 文件的 hash 验证。
+- [本轮原始证据档案](../../artifacts/terminal-ux-evidence.zip)：121 个文件加 archive-manifest，包含脚本、原题、前后文件、全部尝试、公开事件、session JSONL、结果与同事件 UI 重放。ZIP 完整性通过，已扫描确认不含本次配置的 API key；归档仅在本地 ignored artifacts 中。SHA-256：`5063cc9f1ee1d19dfda4eaadc8ee587d9caa15932f47146e77dbbbdc546de00c`。
+
+无需新的架构裁决；保持 high 即可。以下章节保留初次 Phase 2 交付与随后第一轮 TUI 收缩的历史验收，不把本轮 Windows 结果冒充旧 Linux/build/live/SWE gate 的重跑。
+
 ## 交付状态
 
 S1–S4 实现与验收通过。S5 的代码、回归、安装和文档检查通过；官方 SWE-bench 测试未执行，镜像准备阻塞，collector 为 `unknown`。**本次交付是实现候选，不能宣称 V0 全部验收完成。**

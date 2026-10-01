@@ -38,10 +38,17 @@ class Conversation:
         self.events: Events | None = None
         self.warnings: list[str] = []
         self.resumed = resume is not None
+        self.model: ChatModel | None = None
+        self.registry = native_tools()
+        self.resources = AsyncExitStack()
+        self.unavailable: list[str] = []
+        self.closed = False
         if resume:
             self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
 
     async def turn(self, text: str) -> RunResult:
+        if self.closed:
+            raise RuntimeError("Conversation is closed")
         self.session.run_id = None
         prefix = instructions(self.workspace, self.config.limits.shell)
         secret_values = [self.config.model.key()]
@@ -71,54 +78,66 @@ class Conversation:
             self.session.messages = [Message("system", prefix, seq=seq)] + [
                 m for m in self.session.messages if m.role != "system"
             ]
-        model = ChatModel(self.config.model)
         try:
-            async with AsyncExitStack() as stack:
-                stack.push_async_callback(model.close)
-                registry = native_tools()
-                unavailable = await connect_servers(
-                    self.config.mcp_servers, registry, stack, self.events
-                )
-                fingerprint = hashlib.sha256(
-                    json_text(
-                        {
-                            "model": asdict(self.config.model),
-                            "tools": [asdict(t.spec) for t in registry.values()],
-                        }
-                    ).encode()
-                ).hexdigest()
-                if self.resumed:
-                    await self.events(
-                        "warning",
-                        {
-                            "detail": "Resumed with current model and tool schemas; "
-                            "old calls remain history and are never replayed."
-                        },
+            if self.model is None:
+                self.model = ChatModel(self.config.model)
+                self.resources.push_async_callback(self.model.close)
+                try:
+                    self.unavailable = await connect_servers(
+                        self.config.mcp_servers, self.registry, self.resources, self.events
                     )
-                    self.resumed = False
+                except BaseException:
+                    # A partially opened conversation must not leak client/process handles.
+                    await self.resources.aclose()
+                    self.model = None
+                    self.registry = native_tools()
+                    raise
+            fingerprint = hashlib.sha256(
+                json_text(
+                    {
+                        "model": asdict(self.config.model),
+                        "tools": [asdict(t.spec) for t in self.registry.values()],
+                    }
+                ).encode()
+            ).hexdigest()
+            if self.resumed:
                 await self.events(
-                    "configuration",
-                    {"fingerprint": fingerprint, "model": asdict(self.config.model)},
+                    "warning",
+                    {
+                        "detail": "Resumed with current model and tool schemas; "
+                        "old calls remain history and are never replayed."
+                    },
                 )
-                if unavailable:
-                    await append_message(
-                        self.session,
-                        Message(
-                            "user",
-                            "[Environment fact] MCP servers "
-                            + ", ".join(unavailable)
-                            + " are unavailable this turn; their tools did not run.",
-                        ),
-                        self.events,
-                    )
-                return await run_turn(
-                    self.session, text, model, registry, self.events, self.config.limits
+                self.resumed = False
+            await self.events(
+                "configuration",
+                {"fingerprint": fingerprint, "model": asdict(self.config.model)},
+            )
+            if self.unavailable:
+                await append_message(
+                    self.session,
+                    Message(
+                        "user",
+                        "[Environment fact] MCP servers "
+                        + ", ".join(self.unavailable)
+                        + " are unavailable in this conversation; their tools did not run.",
+                    ),
+                    self.events,
                 )
+            return await run_turn(
+                self.session, text, self.model, self.registry, self.events, self.config.limits
+            )
         except asyncio.CancelledError:
             result = RunResult("aborted", reason="startup_cancelled")
             await self.events("run_finished", asdict(result))
             return result
 
-    def close(self) -> None:
-        if self.writer:
-            self.writer.close()
+    async def close(self) -> None:
+        if self.closed:
+            return
+        self.closed = True
+        try:
+            await self.resources.aclose()
+        finally:
+            if self.writer:
+                self.writer.close()

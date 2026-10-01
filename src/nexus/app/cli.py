@@ -22,21 +22,35 @@ from nexus.core.types import RunResult
 
 async def drive(conversation: Conversation, text: str) -> RunResult:
     loop = asyncio.get_running_loop()
-    task = asyncio.create_task(conversation.turn(text))
+    # MCP async contexts must be opened and closed in the same owning task.
+    # Keep turns in the CLI task across prompts; SIGINT still cancels the active turn.
+    task = asyncio.current_task()
+    assert task is not None
     cancelled = False
+    active = True
+    cancel_delivered = False
+
+    def cancel_turn() -> None:
+        nonlocal cancel_delivered
+        if active:
+            task.cancel()
+            cancel_delivered = True
 
     def interrupt(signum: int, frame: object) -> None:
         nonlocal cancelled
         if not cancelled:
             cancelled = True
             # Wake the selector/proactor even when the signal interrupts an idle wait.
-            loop.call_soon_threadsafe(task.cancel)
+            loop.call_soon_threadsafe(cancel_turn)
 
     previous = signal.signal(signal.SIGINT, interrupt)
     try:
-        return await task
+        return await conversation.turn(text)
     finally:
+        active = False
         signal.signal(signal.SIGINT, previous)
+        if cancel_delivered:
+            task.uncancel()
 
 
 async def application(args: argparse.Namespace) -> int:
@@ -58,7 +72,11 @@ async def application(args: argparse.Namespace) -> int:
             result = await drive(conversation, args.task)
             return {"completed": 0, "failed": 1, "limited": 3, "aborted": 130}[result.outcome]
         finally:
-            conversation.close()
+            try:
+                await conversation.close()
+            finally:
+                if isinstance(consumer, Transcript):
+                    consumer.stop_activity()
     assert prompt is not None
     transcript = Transcript(console)
     conversation = Conversation(workspace, config, transcript)
@@ -70,7 +88,7 @@ async def application(args: argparse.Namespace) -> int:
                 path = await select_session(list_sessions(workspace))
                 select = False
                 if path is not None:
-                    conversation.close()
+                    await conversation.close()
                     conversation = Conversation(workspace, load_config(), transcript, resume=path)
                     for message in conversation.session.messages[-6:]:
                         if message.role in {"user", "assistant"} and message.content:
@@ -91,7 +109,7 @@ async def application(args: argparse.Namespace) -> int:
                     "Ctrl+C aborts the current turn; at the prompt it clears input."
                 )
             elif text == "/new":
-                conversation.close()
+                await conversation.close()
                 conversation = Conversation(workspace, load_config(), transcript)
             elif text == "/resume":
                 select = True
@@ -101,7 +119,10 @@ async def application(args: argparse.Namespace) -> int:
                     console.print("Session cannot continue; restart and resume the saved history.")
                     return 1
     finally:
-        conversation.close()
+        try:
+            await conversation.close()
+        finally:
+            transcript.stop_activity()
 
 
 def main() -> None:

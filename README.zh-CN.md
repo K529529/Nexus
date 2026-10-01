@@ -68,10 +68,17 @@ nexus resume
 和状态；上下键选择，Enter 确认，Esc 取消。运行中 Ctrl+C 取消当前轮次并回收进程，
 空闲时清空输入。无终端时应使用 `exec`，不会等待不可见输入。
 
-默认终端只显示简短操作摘要和状态，不展开 shell/MCP 返回的文件正文；失败显示最多四行
+默认终端不再逐轮打印 generating，普通成功工具只留一行操作摘要、状态和耗时；支持的
+终端在工具运行期间显示临时活动行。Read/Search/Test/Git 分类只影响显示，复杂或过长命令
+显示为 Run shell command。不展开 shell/MCP 返回的文件正文；失败显示最多四行
 错误摘录，patch 显示最多三个文件的路径、行数和简短 diff。模型进度说明与最终回答正常
 显示。此收缩仅影响终端：模型和会话日志仍保留工具输出预算内的结果；需要查看详细事件
 时可使用 `nexus exec "任务" --json`。
+
+同一 Conversation 跨回合复用模型 client、工具 registry 和 MCP 连接；`/new`、选中恢复会话
+或退出时释放，新的 Conversation 在首次任务时连接。失败或被中断的 MCP server 在当前
+Conversation 内不自动重连。配置在新 Conversation 中重载，不做热更新。内部调用者须在
+执行 turn 的同一异步任务中 `await Conversation.close()`。
 
 退出码：0 completed、1 failed、2 配置/参数错误、3 limited、130 aborted。
 

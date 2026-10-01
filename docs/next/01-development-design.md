@@ -265,7 +265,9 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 
 ## 8. MCP 是工具来源
 
-`tools/mcp.py` 使用官方 `mcp` SDK 2.x 的 `Client` / `StdioServerParameters`，由 `app/bootstrap.py` 的 AsyncExitStack 管理生命周期。逐个连接用户级 TOML 配置的 server，遍历 `list_tools` 所有分页，将 description/input schema 转为 ToolSpec。server 级无效配置、缺失环境变量、连接/发现超时、分页 cursor 重复或无效定义按该服务器失败处理，不无限等待；整份 TOML 语法损坏仍属于配置错误。
+`tools/mcp.py` 使用官方 `mcp` SDK 2.x 的 `Client` / `StdioServerParameters`，由 `app/bootstrap.py` 的 AsyncExitStack 管理 Conversation 生命周期。首次任务惰性建立 ChatModel client、MCP 连接及发现结果，与 native registry 一起跨 turn 复用；不逐轮 spawn/handshake/discover。逐个连接用户级 TOML 配置的 server，遍历 `list_tools` 所有分页，将 description/input schema 转为 ToolSpec。server 级无效配置、缺失环境变量、连接/发现超时、分页 cursor 重复或无效定义按该服务器失败处理，不无限等待；整份 TOML 语法损坏仍属于配置错误。
+
+`/new`、选择 resume、新启动进程建立新的 Conversation，显式 `await close()` 释放旧连接和模型 client，最后关闭 session writer。MCP 异步上下文在同一拥有者任务中打开和关闭；CLI 在该任务顺序执行 turn，SIGINT 仍通过取消当前 turn 交还 prompt。每轮更新项目指令、配置指纹和 session 事件，不增加配置热更新或连接管理层。调用阶段失败或取消的 server 在当前 Conversation 内持续停用，不自动重连；新的 Conversation 才重新发现。
 
 公开工具名由 `(server_id, remote_name)` 生成稳定的 ASCII function name，满足 provider 长度/字符限制：可读前缀 + 原始二元组的短 hash，保留反向映射并检查冲突；不依赖 `mcp.server.tool` 中的点号被服务接受。native 工具名不能覆盖。
 
@@ -295,7 +297,9 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 
 TUI 用 prompt_toolkit 的 async 输入和 Rich 文本/diff 渲染；只使用一个 asyncio loop。运行时暂停接受新任务，仅保留 Ctrl+C；空闲 Ctrl+C 清空输入，`/exit`/EOF 退出。先支持可靠顺序交互，不实现运行中 steering、后台任务或 full-screen 面板。
 
-Transcript 始终可滚动：用户输入 → assistant streaming → 简短命令摘要与状态/exit code → patch 路径与差异预览 → 最终答复 + tokens/耗时。按 Phase 2 用户实测反馈，默认不展开 shell/MCP 的工具正文或输出 delta；失败显示最多四行错误摘录，patch 最多展示三个文件、每文件六行 diff，长行限宽，省略明确标记。该收缩仅属于展示层，模型 tool message、会话日志和 `--json` 继续保留原工具预算内结果；不展示私有 reasoning。色彩只区分角色与状态；尊重 NO_COLOR、窄终端和重定向。工具控制字符过滤后再显示，避免覆盖终端提示；正文流与最终正文不能重复打印。
+Transcript 始终可滚动：用户输入 → assistant streaming → 单行工具摘要、状态与耗时 → patch 路径与差异预览 → 最终答复 + tokens/耗时。model_started 不留永久行；普通工具只在结果到达后留一行，支持的 TTY 在执行期间显示可擦除活动行，无后台刷新线程，重定向/dumb terminal 不显示临时行。轻量 Read/Search/Test/Inspect git 分类只服务 UI，复杂/过长命令统一 Run shell command，不解析 shell、不影响执行。默认不展开 shell/MCP 的工具正文或输出 delta；失败显示最多四行错误摘录，patch 最多展示三个文件、每文件六行 diff，长行限宽，省略明确标记。该收缩仅属于展示层，模型 tool message、会话日志和 `--json` 继续保留原工具预算内结果；不展示私有 reasoning。色彩只区分角色与状态；尊重 NO_COLOR、窄终端和重定向。工具控制字符过滤后再显示，避免覆盖终端提示；正文流与最终正文不能重复打印。
+
+短 System Prompt 仅增加独立、只读探索可合并到一次有界 exec_command 的行为提示，并要求命令可读、不合并副作用操作。Runtime 不自动合并调用、不增加 batch 子系统或改变顺序执行语义。reasoning_effort 继续由用户配置，不增加自动路由。
 
 UI 不读取文件猜工具结果，不自己判测试通过；只消费事件。输出刷新节流到约 20 次/秒；不能在内存里累积整段无限原始输出。输入处理方式参考 [prompt_toolkit asyncio 文档](https://python-prompt-toolkit.readthedocs.io/en/stable/pages/advanced_topics/asyncio.html)。
 

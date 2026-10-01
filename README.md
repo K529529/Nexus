@@ -96,11 +96,21 @@ aborts the active turn with bounded process cleanup; at an idle prompt it clears
 input. Non-interactive callers must use `exec`. Exit codes are 0 completed,
 1 failed, 2 configuration/arguments, 3 limited, and 130 aborted.
 
-The default transcript shows short operation summaries and status, without dumping
-shell/MCP output. Failures show up to four excerpt lines; patches show at most three
+The default transcript omits per-round model-start messages. Ordinary successful tools
+leave one summary line with status and duration; a terminal shows a temporary activity
+line while a tool runs. Read/search/test/Git labels are display hints only; compound or
+long commands use "Run shell command". No shell/MCP output is dumped. Failures show up
+to four excerpt lines; patches show at most three
 file summaries with short diff previews. Assistant progress and final answers remain
 visible. This only changes presentation: model observations and session records retain
 the tool-budgeted results. Use `nexus exec "task" --json` for detailed public events.
+
+One conversation reuses its model client, tool registry, and MCP connections across
+turns. `/new`, selecting a resumed conversation, or exiting closes those resources;
+a new conversation connects lazily on its first task. Failed or interrupted MCP servers
+stay disabled until a new conversation. Configuration is reloaded for new conversations,
+not hot-reloaded between turns. Internal callers must await `Conversation.close()` in
+the same async task that runs its turns.
 
 Sessions are append-only JSONL under `~/.nexus/sessions/<workspace-key>/` with one
 writer per session. Resume restores conversation and waits for a new user request.
