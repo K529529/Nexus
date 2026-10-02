@@ -1,0 +1,7 @@
+id = "pvlib__pvlib-python-1707"
+source = "swe-bench-lite/dev"
+repo = "pvlib/pvlib-python"
+base_commit = "40e9e978c170bdde4eeee1547729417665dbc34c"
+task_file = "task.md"
+image = "sha256:2888c3e2a07507677081161630001dc78da24f64c2333aef365807115280e997"
+validator = "../../validators/pvlib__pvlib-python-1707/validator.toml"

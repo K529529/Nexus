@@ -1,0 +1,7 @@
+id = "rich__double-width-wrap"
+source = "curated"
+repo = "Textualize/rich"
+base_commit = "e76f3c3ea78481342e21a7b3328075462ab69c2b"
+task_file = "task.md"
+image = "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa"
+validator = "../../validators/rich__double-width-wrap/validator.toml"

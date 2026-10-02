@@ -1,0 +1,1 @@
+Wrapping or folding mixed CJK and ASCII text can lose characters when a terminal-cell boundary falls inside a double-width character. Investigate the repository and fix this without breaking ordinary ASCII wrapping. Cover character preservation, double-width boundaries and mixed-width text in relevant regression tests.

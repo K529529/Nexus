@@ -1,0 +1,13 @@
+test_patch = "test.patch"
+targets_file = "targets.json"
+timeout_seconds = 600
+
+[[checks]]
+name = "tests"
+kind = "tests"
+argv = ["python", "-m", "pytest", "-q", "-rA", "--color=no", "-p", "_nexus_eval_results", "tests/test_types/test_Path.py"]
+
+[[checks]]
+name = "typing"
+kind = "exit"
+argv = ["python", "-m", "mypy", "--config-file", "/validator/mypy.ini", "--no-incremental", "tests/typing/typing_path.py"]

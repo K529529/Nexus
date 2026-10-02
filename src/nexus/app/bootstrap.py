@@ -16,7 +16,7 @@ from nexus.app.session import SessionLog, resume_session
 from nexus.core.agent import run_turn
 from nexus.core.context import instructions
 from nexus.core.model import ChatModel
-from nexus.core.types import Message, RunResult, RuntimeEvent, Session, json_text
+from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
 from nexus.tools.registry import native_tools
 
@@ -30,6 +30,8 @@ class Conversation:
         *,
         home: Path | None = None,
         resume: Path | None = None,
+        registry: dict[str, Tool] | None = None,
+        environment_display: tuple[str, str] | None = None,
     ) -> None:
         self.workspace = workspace.resolve()
         self.config, self.consumer, self.home = config, consumer, home
@@ -39,7 +41,9 @@ class Conversation:
         self.warnings: list[str] = []
         self.resumed = resume is not None
         self.model: ChatModel | None = None
-        self.registry = native_tools()
+        self.base_registry = dict(registry) if registry is not None else native_tools()
+        self.registry = dict(self.base_registry)
+        self.environment_display = environment_display
         self.resources = AsyncExitStack()
         self.unavailable: list[str] = []
         self.closed = False
@@ -50,7 +54,9 @@ class Conversation:
         if self.closed:
             raise RuntimeError("Conversation is closed")
         self.session.run_id = None
-        prefix = instructions(self.workspace, self.config.limits.shell)
+        prefix = instructions(
+            self.workspace, self.config.limits.shell, display=self.environment_display
+        )
         secret_values = [self.config.model.key()]
         for raw in self.config.mcp_servers.values():
             if isinstance(raw, dict) and isinstance(raw.get("env_from"), dict):
@@ -90,7 +96,7 @@ class Conversation:
                     # A partially opened conversation must not leak client/process handles.
                     await self.resources.aclose()
                     self.model = None
-                    self.registry = native_tools()
+                    self.registry = dict(self.base_registry)
                     raise
             fingerprint = hashlib.sha256(
                 json_text(

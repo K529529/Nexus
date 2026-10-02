@@ -1,0 +1,60 @@
+diff --git a/tests/test_types/test_Path.py b/tests/test_types/test_Path.py
+index 7461cde8a..09df7bcc4 100644
+--- a/tests/test_types/test_Path.py
++++ b/tests/test_types/test_Path.py
+@@ -4,6 +4,7 @@
+ import subprocess
+ import sys
+ import tempfile
++import typing as t
+ 
+ import pytest
+ 
+@@ -183,3 +184,7 @@ def test_path_type(runner, cls, expect):
+     result = runner.invoke(cli, ["a/b/c.txt"], standalone_mode=False)
+     assert result.exception is None
+     assert result.return_value == expect
++
++
++def test_path_converted_type_parameter_at_runtime():
++    assert t.get_args(click.Path[pathlib.Path]) == (pathlib.Path,)
+diff --git a/tests/typing/typing_path.py b/tests/typing/typing_path.py
+new file mode 100644
+index 000000000..f12a5d9b0
+--- /dev/null
++++ b/tests/typing/typing_path.py
+@@ -0,0 +1,34 @@
++import os
++import pathlib
++
++from typing_extensions import assert_type
++
++import click
++
++# Without ``path_type``, ``convert`` returns the value it was given.
++assert_type(click.Path().convert("a/b.txt", None, None), str | bytes | os.PathLike[str])
++assert_type(click.prompt("File", type=click.Path()), str | bytes | os.PathLike[str])
++
++# ``path_type`` narrows the converted value's type for ``convert`` and ``prompt``.
++assert_type(click.Path(path_type=str).convert("a/b.txt", None, None), str)
++assert_type(click.Path(path_type=bytes).convert("a/b.txt", None, None), bytes)
++assert_type(
++    click.Path(path_type=pathlib.Path).convert("a/b.txt", None, None), pathlib.Path
++)
++assert_type(click.prompt("File", type=click.Path(path_type=str)), str)
++assert_type(click.prompt("File", type=click.Path(path_type=pathlib.Path)), pathlib.Path)
++
++assert_type(click.Path(path_type=pathlib.Path)("a/b.txt"), pathlib.Path)
++assert_type(click.Path(path_type=pathlib.Path)(None), None)
++
++# The class can be parameterized explicitly.
++param_type: click.Path[pathlib.Path] = click.Path(exists=True, path_type=pathlib.Path)
++assert_type(param_type.convert("a/b.txt", None, None), pathlib.Path)
++assert_type(param_type.coerce_path_result("a/b.txt"), pathlib.Path)
++
++general: click.ParamType[str | bytes | os.PathLike[str]] = click.Path()
++specific: click.ParamType[pathlib.Path] = click.Path(path_type=pathlib.Path)
++
++assert_type(
++    click.Path(path_type=pathlib.Path)(pathlib.PurePosixPath("a/b.txt")), pathlib.Path
++)

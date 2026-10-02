@@ -1,0 +1,7 @@
+id = "click__path-generic-type"
+source = "curated"
+repo = "pallets/click"
+base_commit = "7944461a80b780d060899c8835acab3c273a04a6"
+task_file = "task.md"
+image = "sha256:67e973fe31f33221c1462f48ac87a7a3d991170aecdb902ecc5b39563244c39e"
+validator = "../../validators/click__path-generic-type/validator.toml"

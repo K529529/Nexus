@@ -1,0 +1,7 @@
+id = "sphinx-doc__sphinx-10323"
+source = "swe-bench-verified/test"
+repo = "sphinx-doc/sphinx"
+base_commit = "31eba1a76dd485dc633cae48227b46879eda5df4"
+task_file = "task.md"
+image = "sha256:d4923b1a7b44c15cec293e8e800cc6a190ea4b58c8b22c2dd928a567ae468cf6"
+validator = "../../validators/sphinx-doc__sphinx-10323/validator.toml"

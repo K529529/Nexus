@@ -1,0 +1,7 @@
+id = "psf__requests-6028"
+source = "swe-bench-verified/test"
+repo = "psf/requests"
+base_commit = "0192aac24123735b3eaf9b08df46429bb770c283"
+task_file = "task.md"
+image = "sha256:7f1bbc5e6f0c02a72329d92664a6fa859a53af6d0d70f5061e3810540ac61cc5"
+validator = "../../validators/psf__requests-6028/validator.toml"

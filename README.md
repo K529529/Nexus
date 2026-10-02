@@ -242,3 +242,15 @@ configured credential is not exported, and the run records a collection error.
 
 Old Day workflows, graph nodes, Plan authorization, databases, retrieval, Skills
 and the old evaluation platform have been removed from this development branch.
+
+
+## Fixed development evaluation
+
+From this source checkout, with Docker Desktop using Linux containers and the existing model configuration:
+
+```sh
+nexus eval pvlib__pvlib-python-1707
+nexus eval --all
+```
+
+Evaluation automatically collects Profile metrics and prints a compact aggregate report including `FinalCtx` and `ToolResultBytes`. Artifacts live under `~/.nexus/evaluation/results/`. These are local Next Dev Set checks, not official SWE-bench scores. See [Evaluation V0](evaluation/next-dev-v0/README.md) for frozen environments and limitations, and [actual acceptance evidence](docs/next/evaluation-v0-evidence.md) for results.

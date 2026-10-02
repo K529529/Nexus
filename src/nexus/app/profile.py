@@ -306,3 +306,35 @@ class ProfileConsumer:
                 console.print("Run Profile unavailable (diagnostic error); see session JSONL.")
             except Exception:
                 pass
+
+
+def profile_metrics(profile: RunProfile) -> dict[str, object]:
+    """Pure export of existing aggregation; partial reported usage stays a lower bound."""
+    first, peak, final = profile.context_inputs
+    return {
+        "available": profile.run_id is not None,
+        "unavailable_reason": None if profile.run_id else "Agent run did not start",
+        "steps": profile.steps,
+        "duration_ms": profile.duration_ms,
+        "model_calls": len(profile.models),
+        "retries": sum(m.attempt is not None and m.attempt > 1 for m in profile.models),
+        "failed_attempts": sum(profile.model_failures.values()),
+        "tool_calls": sum(t.started for t in profile.tools.values()),
+        "tool_failures": sum(t.ok is False for t in profile.tools.values()),
+        "tool_result_bytes": total([t.result_bytes for t in profile.tools.values()]),
+        "usage_coverage": profile.usage_coverage,
+        "usage_calls": len(profile.models),
+        "usage": {
+            name: {
+                "reported": profile.tokens(name),
+                "coverage": sum(getattr(m, name) is not None for m in profile.models),
+                "calls": len(profile.models),
+            }
+            for name in ("input_tokens", "output_tokens", "total_tokens")
+        },
+        "first_context": first,
+        "peak_context": peak,
+        "final_context": final,
+        "compaction_calls": sum(m.compaction for m in profile.models),
+        "compactions": profile.compactions,
+    }

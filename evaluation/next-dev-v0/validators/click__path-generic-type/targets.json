@@ -1,0 +1,15 @@
+{
+  "fail_to_pass": [
+    "tests/test_types/test_Path.py::test_path_converted_type_parameter_at_runtime"
+  ],
+  "pass_to_pass": [
+    "tests/test_types/test_Path.py::test_path_dash_no_byteswarning",
+    "tests/test_types/test_Path.py::test_path_resolve_symlink",
+    "tests/test_types/test_Path.py::test_path_surrogates",
+    "tests/test_types/test_Path.py::test_invalid_path_with_esc_sequence",
+    "tests/test_types/test_Path.py::test_path_type[None-a/b/c.txt]",
+    "tests/test_types/test_Path.py::test_path_type[str-a/b/c.txt]",
+    "tests/test_types/test_Path.py::test_path_type[bytes-a/b/c.txt]",
+    "tests/test_types/test_Path.py::test_path_type[Path-expect3]"
+  ]
+}

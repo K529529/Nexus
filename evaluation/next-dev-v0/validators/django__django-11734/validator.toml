@@ -1,0 +1,8 @@
+test_patch = "test.patch"
+targets_file = "targets.json"
+timeout_seconds = 600
+
+[[checks]]
+name = "tests"
+kind = "tests"
+argv = ["python", "/validator-support/_nexus_eval_unittest.py", "tests/runtests.py", "queries", "--settings=test_sqlite", "--parallel=1", "--verbosity=2"]

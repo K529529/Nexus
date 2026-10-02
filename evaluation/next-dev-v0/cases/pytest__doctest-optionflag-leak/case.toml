@@ -1,0 +1,7 @@
+id = "pytest__doctest-optionflag-leak"
+source = "curated"
+repo = "pytest-dev/pytest"
+base_commit = "f8ad1f6f95307ed5b7da9b73f1c585695bf2b51a"
+task_file = "task.md"
+image = "sha256:5377942c004dcf865b2d9a9e57aca3471c7aec0275aa58b5119adac2113e18d7"
+validator = "../../validators/pytest__doctest-optionflag-leak/validator.toml"

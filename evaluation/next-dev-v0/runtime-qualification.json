@@ -1,0 +1,129 @@
+[
+  {
+    "case_id": "pvlib__pvlib-python-1707",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 2.5929999999934807
+      }
+    ],
+    "duration_s": 18.25
+  },
+  {
+    "case_id": "matplotlib__matplotlib-22835",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 9.28200000000652
+      }
+    ],
+    "duration_s": 42.40700000000652
+  },
+  {
+    "case_id": "django__django-11734",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 8.59399999998277
+      }
+    ],
+    "duration_s": 66.89000000001397
+  },
+  {
+    "case_id": "psf__requests-6028",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 1.125
+      }
+    ],
+    "duration_s": 4.60899999999674
+  },
+  {
+    "case_id": "sphinx-doc__sphinx-10323",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 6.5
+      }
+    ],
+    "duration_s": 21.0
+  },
+  {
+    "case_id": "click__path-generic-type",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 1.172000000020489
+      },
+      {
+        "name": "typing",
+        "status": "passed",
+        "reason": "Check passed",
+        "exit_code": 0,
+        "duration_s": 3.7969999999622814
+      }
+    ],
+    "duration_s": 9.25
+  },
+  {
+    "case_id": "pytest__doctest-optionflag-leak",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 8.702999999979511
+      }
+    ],
+    "duration_s": 39.0
+  },
+  {
+    "case_id": "rich__double-width-wrap",
+    "status": "passed",
+    "reason": "All checks passed",
+    "checks": [
+      {
+        "name": "tests",
+        "status": "passed",
+        "reason": "All required tests and retention checks passed",
+        "exit_code": 0,
+        "duration_s": 1.4369999999762513
+      }
+    ],
+    "duration_s": 10.76600000000326
+  }
+]

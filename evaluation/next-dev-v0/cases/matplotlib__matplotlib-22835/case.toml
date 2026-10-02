@@ -1,0 +1,7 @@
+id = "matplotlib__matplotlib-22835"
+source = "swe-bench-lite/test"
+repo = "matplotlib/matplotlib"
+base_commit = "c33557d120eefe3148ebfcf2e758ff2357966000"
+task_file = "task.md"
+image = "sha256:2fd6dcf3e140c658b59e9c4aae41c6fbbde81e7da73b9174f907080ddcf93eea"
+validator = "../../validators/matplotlib__matplotlib-22835/validator.toml"

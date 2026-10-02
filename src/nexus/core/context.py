@@ -34,7 +34,9 @@ SYSTEM = (
 )
 
 
-def instructions(workspace: Path, shell: str) -> str:
+def instructions(
+    workspace: Path, shell: str, *, display: tuple[str, str] | None = None
+) -> str:
     path = workspace / "AGENTS.md"
     project = ""
     if path.exists():
@@ -46,9 +48,10 @@ def instructions(workspace: Path, shell: str) -> str:
             project = "\n\nProject instructions (root AGENTS.md):\n" + raw.decode("utf-8")
         except UnicodeError:
             raise ValueError("Root AGENTS.md must be UTF-8") from None
+    os_name, directory = display or (platform.system(), str(workspace.resolve()))
     return (
-        SYSTEM + project + f"\n\nEnvironment: OS={platform.system()}; shell={shell}; "
-        f"workspace={workspace.resolve()}. Start repository exploration in this workspace."
+        SYSTEM + project + f"\n\nEnvironment: OS={os_name}; shell={shell}; "
+        f"workspace={directory}. Start repository exploration in this workspace."
     )
 
 

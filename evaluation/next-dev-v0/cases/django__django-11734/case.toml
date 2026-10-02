@@ -1,0 +1,7 @@
+id = "django__django-11734"
+source = "swe-bench-verified/test"
+repo = "django/django"
+base_commit = "999891bd80b3d02dd916731a7a239e1036174885"
+task_file = "task.md"
+image = "sha256:221a943944b673c247110ecb250970be2d985640ea766e0a60d4a5fe11a75c53"
+validator = "../../validators/django__django-11734/validator.toml"

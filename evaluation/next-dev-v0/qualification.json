@@ -1,0 +1,660 @@
+{
+  "stage": 1,
+  "all_qualified": true,
+  "evidence": [
+    "artifacts/evaluation-stage1/qualified-44269ae4",
+    "artifacts/evaluation-stage1/qualified-26bd5ad7"
+  ],
+  "cases": [
+    {
+      "case_id": "pvlib__pvlib-python-1707",
+      "image": "sha256:2888c3e2a07507677081161630001dc78da24f64c2333aef365807115280e997",
+      "base_commit": "40e9e978c170bdde4eeee1547729417665dbc34c",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 4.11
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 4.016
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "pvlib/tests/test_iam.py::test_physical_n1_L0": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 3.953
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.219
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 2.671
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "pvlib/tests/test_iam.py::test_physical_n1_L0": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "matplotlib__matplotlib-22835",
+      "image": "sha256:2fd6dcf3e140c658b59e9c4aae41c6fbbde81e7da73b9174f907080ddcf93eea",
+      "base_commit": "c33557d120eefe3148ebfcf2e758ff2357966000",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 20.219
+            },
+            {
+              "name": "generated",
+              "exit_code": 0,
+              "duration_s": 0.203
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 9.187
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "lib/matplotlib/tests/test_artist.py::test_format_cursor_data_BoundaryNorm": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 20.422
+            },
+            {
+              "name": "generated",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.219
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 8.547
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "lib/matplotlib/tests/test_artist.py::test_format_cursor_data_BoundaryNorm": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "django__django-11734",
+      "image": "sha256:221a943944b673c247110ecb250970be2d985640ea766e0a60d4a5fe11a75c53",
+      "base_commit": "999891bd80b3d02dd916731a7a239e1036174885",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 38.532
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.281
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 9.046
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "test_subquery_exclude_outerref (queries.tests.ExcludeTests)": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 38.016
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.188
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 9.312
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "test_subquery_exclude_outerref (queries.tests.ExcludeTests)": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "psf__requests-6028",
+      "image": "sha256:7f1bbc5e6f0c02a72329d92664a6fa859a53af6d0d70f5061e3810540ac61cc5",
+      "base_commit": "0192aac24123735b3eaf9b08df46429bb770c283",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 0.609
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.25
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 1.406
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_utils.py::test_prepend_scheme_if_needed[http://user:pass@example.com/path?query-http://user:pass@example.com/path?query]": "failed",
+            "tests/test_utils.py::test_prepend_scheme_if_needed[http://user@example.com/path?query-http://user@example.com/path?query]": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 0.578
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.125
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 1.25
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_utils.py::test_prepend_scheme_if_needed[http://user:pass@example.com/path?query-http://user:pass@example.com/path?query]": "passed",
+            "tests/test_utils.py::test_prepend_scheme_if_needed[http://user@example.com/path?query-http://user@example.com/path?query]": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "sphinx-doc__sphinx-10323",
+      "image": "sha256:d4923b1a7b44c15cec293e8e800cc6a190ea4b58c8b22c2dd928a567ae468cf6",
+      "base_commit": "31eba1a76dd485dc633cae48227b46879eda5df4",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 7.516
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.312
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.157
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 7.421
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_directive_code.py::test_LiteralIncludeReader_dedent_and_append_and_prepend": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 7.469
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.219
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 6.562
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_directive_code.py::test_LiteralIncludeReader_dedent_and_append_and_prepend": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "click__path-generic-type",
+      "image": "sha256:67e973fe31f33221c1462f48ac87a7a3d991170aecdb902ecc5b39563244c39e",
+      "base_commit": "7944461a80b780d060899c8835acab3c273a04a6",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 0.688
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 1.312
+            },
+            {
+              "name": "typing",
+              "exit_code": 1,
+              "duration_s": 3.688
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_types/test_Path.py::test_path_converted_type_parameter_at_runtime": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 0.672
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.218
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 1.063
+            },
+            {
+              "name": "typing",
+              "exit_code": 0,
+              "duration_s": 3.843
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_types/test_Path.py::test_path_converted_type_parameter_at_runtime": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pytest__doctest-optionflag-leak",
+      "image": "sha256:5377942c004dcf865b2d9a9e57aca3471c7aec0275aa58b5119adac2113e18d7",
+      "base_commit": "f8ad1f6f95307ed5b7da9b73f1c585695bf2b51a",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 2.844
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.218
+            },
+            {
+              "name": "install",
+              "exit_code": 0,
+              "duration_s": 3.188
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.14
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 9.219
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[False-skip]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[False-xfail]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[True-skip]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[True-xfail]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-number-0.-False]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-number-1 / 0-False]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-ellipsis-0.-False]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-ellipsis-1 / 0-False]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[disable-ellipsis-0.-False]": "failed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[disable-ellipsis-1 / 0-False]": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 2.781
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "install",
+              "exit_code": 0,
+              "duration_s": 2.844
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.156
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.125
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 8.672
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[False-skip]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[False-xfail]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[True-skip]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_restored_after_outcome[True-xfail]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-number-0.-False]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-number-1 / 0-False]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-ellipsis-0.-False]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[enable-ellipsis-1 / 0-False]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[disable-ellipsis-0.-False]": "passed",
+            "testing/test_doctest.py::TestDoctests::test_optionflags_do_not_leak_between_docstrings[disable-ellipsis-1 / 0-False]": "passed"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "rich__double-width-wrap",
+      "image": "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa",
+      "base_commit": "e76f3c3ea78481342e21a7b3328075462ab69c2b",
+      "controls": {
+        "base": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 2.266
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.234
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "tests",
+              "exit_code": 1,
+              "duration_s": 1.515
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_nexus_wrap.py::test_wrap_regression[123\\u3042\\u308a\\u304c\\u3068\\u3046\\u3054\\u3056\\u3044\\u307e\\u3057\\u305f-8-expected0]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-2]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-4]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-5]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-8]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-2]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-3]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-4]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-5]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-6]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-7]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-8]": "failed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-9]": "failed"
+          }
+        },
+        "reference": {
+          "accepted": true,
+          "checks": [
+            {
+              "name": "extract",
+              "exit_code": 0,
+              "duration_s": 2.61
+            },
+            {
+              "name": "init",
+              "exit_code": 0,
+              "duration_s": 0.203
+            },
+            {
+              "name": "reference-patch",
+              "exit_code": 0,
+              "duration_s": 0.141
+            },
+            {
+              "name": "test-patch",
+              "exit_code": 0,
+              "duration_s": 0.125
+            },
+            {
+              "name": "tests",
+              "exit_code": 0,
+              "duration_s": 1.312
+            }
+          ],
+          "missing": [],
+          "p2p_not_passed": [],
+          "f2p": {
+            "tests/test_nexus_wrap.py::test_wrap_regression[123\\u3042\\u308a\\u304c\\u3068\\u3046\\u3054\\u3056\\u3044\\u307e\\u3057\\u305f-8-expected0]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-2]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-4]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-5]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u30421\\u308a234\\u304c5\\u30686\\u304678-8]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-2]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-3]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-4]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-5]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-6]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-7]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-8]": "passed",
+            "tests/test_nexus_wrap.py::test_characters_survive_wrap[\\u4e2d\\u6587\\u5b57\\u6bcd123ABC\\u6f22\\u5b57-9]": "passed"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+diff --git a/tests/test_nexus_wrap.py b/tests/test_nexus_wrap.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_nexus_wrap.py
+@@ -0,0 +1,25 @@
++import pytest
++from rich.console import Console
++from rich.text import Text
++from rich.cells import cell_len
++
++
++@pytest.mark.parametrize("text,width,expected", [
++    ("123ありがとうございました", 8, ["123あり", "がとうご", "ざいまし", "た"]),
++    ("ありがとう", 3, ["あ", "り", "が", "と", "う"]),
++    ("abcdefghijk", 3, ["abc", "def", "ghi", "jk"]),
++])
++def test_wrap_regression(text, width, expected):
++    assert [line.plain for line in Text(text).wrap(Console(), width)] == expected
++
++
++@pytest.mark.parametrize("width", range(2, 10))
++@pytest.mark.parametrize("text", ["あ1り234が5と6う78", "中文字母123ABC漢字"])
++def test_characters_survive_wrap(text, width):
++    lines = Text(text).wrap(Console(), width)
++    assert "".join(line.plain for line in lines) == text
++    assert all(cell_len(line.plain) <= width for line in lines)
++
++
++def test_width_smaller_than_glyph():
++    assert [line.plain for line in Text("\u4e2dA\u6587").wrap(Console(), 1)] == [" ", "A", " "]

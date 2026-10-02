@@ -1,0 +1,8 @@
+test_patch = "test.patch"
+targets_file = "targets.json"
+timeout_seconds = 600
+
+[[checks]]
+name = "tests"
+kind = "tests"
+argv = ["python", "-m", "pytest", "-q", "-rA", "--color=no", "-p", "_nexus_eval_results", "testing/test_doctest.py"]

@@ -5,3 +5,9 @@
 *.toml text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+
+# Frozen evaluation identities hash exact asset bytes across Windows/Linux checkouts.
+evaluation/next-dev-v0/** -text whitespace=cr-at-eol
+# Upstream problem statements and unified-diff context retain their original whitespace.
+evaluation/next-dev-v0/cases/*/task.md -whitespace
+evaluation/next-dev-v0/validators/*/test.patch -whitespace

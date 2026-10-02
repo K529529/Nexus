@@ -159,3 +159,15 @@ collect，具体准备、官方命令、原始 base_commit diff 和报告关联�
 - [实施与验收标准](docs/next/02-delivery-and-acceptance.md)
 
 审核记录只描述迁移历史，不建立额外 ADR 审批体系。
+
+
+## 固定八项开发评测
+
+从本源码 checkout 启动 Docker Desktop（Linux containers），沿用现有模型配置和环境变量：
+
+```powershell
+.\.venv\Scripts\nexus.exe eval pvlib__pvlib-python-1707
+.\.venv\Scripts\nexus.exe eval --all
+```
+
+评测自动收集 Profile，终端只显示逐项进度与汇总。结果写入 `~/.nexus/evaluation/results/`，包括 `FinalCtx`、`ToolResultBytes`、候选 patch、轨迹和独立验证证据。这是固定 Next Dev Set 的本地验证，不是官方 SWE-bench 评分。环境身份、运行条件和限制见 [Evaluation V0](evaluation/next-dev-v0/README.md)；真实结果见 [验收记录](docs/next/evaluation-v0-evidence.md)。

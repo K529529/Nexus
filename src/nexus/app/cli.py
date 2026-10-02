@@ -55,6 +55,14 @@ async def drive(conversation: Conversation, text: str) -> RunResult:
 
 
 async def application(args: argparse.Namespace) -> int:
+    if args.command == "eval":
+        from nexus.evaluation.cases import CASE_IDS, load_case
+        from nexus.evaluation.runner import evaluate
+
+        selected = list(CASE_IDS) if args.all else [args.case]
+        for case_id in selected:
+            load_case(case_id)
+        return await evaluate(selected, load_config())
     workspace = Path.cwd().resolve()
     interactive = args.command != "exec"
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
@@ -153,6 +161,9 @@ def main() -> None:
         "--profile", action="store_true", help="Show a developer report after each run"
     )
     subparsers = parser.add_subparsers(dest="command")
+    evaluation = subparsers.add_parser("eval", help="Run fixed Next Dev Set V0 cases")
+    evaluation.add_argument("case", nargs="?")
+    evaluation.add_argument("--all", action="store_true", help="Run all eight cases sequentially")
     execute = subparsers.add_parser("exec", help="Run one coding task")
     execute.add_argument("task")
     output = execute.add_mutually_exclusive_group()
@@ -171,6 +182,8 @@ def main() -> None:
         help="Show a developer report after each run",
     )
     args = parser.parse_args()
+    if args.command == "eval" and bool(args.case) == args.all:
+        parser.error("eval requires either a case ID or --all")
     if args.command == "exec" and args.profile and args.json:
         parser.error("--profile and --json are mutually exclusive")
     try:

@@ -1,0 +1,49 @@
+{
+  "fail_to_pass": [
+    "lib/matplotlib/tests/test_artist.py::test_format_cursor_data_BoundaryNorm"
+  ],
+  "pass_to_pass": [
+    "lib/matplotlib/tests/test_artist.py::test_None_zorder",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_aliases",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[*arg : int-int]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[-unknown]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[.. ACCEPTS: Some description.-Some description.]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[ACCEPTS: Some description.-Some description.]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[ACCEPTS: [ '-' | '--' | '-.' ]-[ '-' | '--' | '-.' ]]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[arg : int-int]",
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[arg : int\\nACCEPTS: Something else.-Something else. ]",
+    "lib/matplotlib/tests/test_artist.py::test_callbacks",
+    "lib/matplotlib/tests/test_artist.py::test_clipping[pdf]",
+    "lib/matplotlib/tests/test_artist.py::test_clipping[png]",
+    "lib/matplotlib/tests/test_artist.py::test_clipping_zoom[png]",
+    "lib/matplotlib/tests/test_artist.py::test_collection_transform_of_none",
+    "lib/matplotlib/tests/test_artist.py::test_cull_markers",
+    "lib/matplotlib/tests/test_artist.py::test_default_edges[png]",
+    "lib/matplotlib/tests/test_artist.py::test_hatching[pdf]",
+    "lib/matplotlib/tests/test_artist.py::test_hatching[png]",
+    "lib/matplotlib/tests/test_artist.py::test_patch_transform_of_none",
+    "lib/matplotlib/tests/test_artist.py::test_properties",
+    "lib/matplotlib/tests/test_artist.py::test_remove",
+    "lib/matplotlib/tests/test_artist.py::test_set_alpha",
+    "lib/matplotlib/tests/test_artist.py::test_set_alpha_for_array",
+    "lib/matplotlib/tests/test_artist.py::test_set_is_overwritten",
+    "lib/matplotlib/tests/test_artist.py::test_set_signature",
+    "lib/matplotlib/tests/test_artist.py::test_setp"
+  ],
+  "benchmark_aliases": {
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[ACCEPTS:": [
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[ACCEPTS: Some description.-Some description.]",
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[ACCEPTS: [ '-' | '--' | '-.' ]-[ '-' | '--' | '-.' ]]"
+    ],
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[..": [
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[.. ACCEPTS: Some description.-Some description.]"
+    ],
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[arg": [
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[arg : int-int]",
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[arg : int\\nACCEPTS: Something else.-Something else. ]"
+    ],
+    "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[*arg": [
+      "lib/matplotlib/tests/test_artist.py::test_artist_inspector_get_valid_values[*arg : int-int]"
+    ]
+  }
+}
