@@ -15,6 +15,7 @@ from rich.text import Text
 from nexus import __version__
 from nexus.app.bootstrap import Conversation
 from nexus.app.config import ConfigError, config_path, load_config, read_toml
+from nexus.app.profile import ProfileConsumer
 from nexus.app.session import SessionError, list_sessions
 from nexus.app.tui import Transcript, json_consumer, select_session, setup, terminal_text
 from nexus.core.types import RunResult
@@ -67,9 +68,16 @@ async def application(args: argparse.Namespace) -> int:
     config = load_config()
     if not interactive:
         consumer = json_consumer if args.json else Transcript(console)
-        conversation = Conversation(workspace, config, consumer)
+        profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
+        conversation = Conversation(workspace, config, profile or consumer)
         try:
             result = await drive(conversation, args.task)
+            if profile:
+                profile.render(
+                    console,
+                    conversation.config.limits,
+                    conversation.writer.path if conversation.writer else None,
+                )
             return {"completed": 0, "failed": 1, "limited": 3, "aborted": 130}[result.outcome]
         finally:
             try:
@@ -79,7 +87,8 @@ async def application(args: argparse.Namespace) -> int:
                     consumer.stop_activity()
     assert prompt is not None
     transcript = Transcript(console)
-    conversation = Conversation(workspace, config, transcript)
+    profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
+    conversation = Conversation(workspace, config, profile or transcript)
     select = args.command == "resume"
     console.print("Nexus · trusted local execution · /help for commands")
     try:
@@ -89,7 +98,9 @@ async def application(args: argparse.Namespace) -> int:
                 select = False
                 if path is not None:
                     await conversation.close()
-                    conversation = Conversation(workspace, load_config(), transcript, resume=path)
+                    conversation = Conversation(
+                        workspace, load_config(), profile or transcript, resume=path
+                    )
                     for message in conversation.session.messages[-6:]:
                         if message.role in {"user", "assistant"} and message.content:
                             console.print(Text(f"{message.role}: {terminal_text(message.content)}"))
@@ -112,11 +123,19 @@ async def application(args: argparse.Namespace) -> int:
                 )
             elif text == "/new":
                 await conversation.close()
-                conversation = Conversation(workspace, load_config(), transcript)
+                conversation = Conversation(workspace, load_config(), profile or transcript)
             elif text == "/resume":
                 select = True
             else:
+                if profile:
+                    profile.reset()
                 result = await drive(conversation, text)
+                if profile:
+                    profile.render(
+                        console,
+                        conversation.config.limits,
+                        conversation.writer.path if conversation.writer else None,
+                    )
                 if result.reason and "session_write_failed" in result.reason:
                     console.print("Session cannot continue; restart and resume the saved history.")
                     return 1
@@ -130,12 +149,30 @@ async def application(args: argparse.Namespace) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="nexus", description="Nexus Next local coding agent")
     parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument(
+        "--profile", action="store_true", help="Show a developer report after each run"
+    )
     subparsers = parser.add_subparsers(dest="command")
     execute = subparsers.add_parser("exec", help="Run one coding task")
     execute.add_argument("task")
-    execute.add_argument("--json", action="store_true", help="Public JSONL runtime events")
-    subparsers.add_parser("resume", help="Select a local conversation in this workspace")
+    output = execute.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="Public JSONL runtime events")
+    output.add_argument(
+        "--profile",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Show a developer run report",
+    )
+    resume = subparsers.add_parser("resume", help="Select a local conversation in this workspace")
+    resume.add_argument(
+        "--profile",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Show a developer report after each run",
+    )
     args = parser.parse_args()
+    if args.command == "exec" and args.profile and args.json:
+        parser.error("--profile and --json are mutually exclusive")
     try:
         code = asyncio.run(application(args))
     except (ConfigError, SessionError, OSError, ValueError) as exc:

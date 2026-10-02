@@ -153,6 +153,24 @@ without retained reasoning. The model adapter handles protocol fields, not the l
 
 ## Develop and inspect
 
+Opt in to a developer report after each run:
+
+```sh
+nexus --profile
+nexus exec "Explain the repository structure" --profile
+```
+
+With the existing Windows development environment, use
+`.\.venv\Scripts\nexus.exe --profile` or
+`.\.venv\Scripts\nexus.exe exec "Explain the repository structure" --profile`.
+The normal TUI is unchanged without the flag; `--profile` and `--json` are mutually
+exclusive. The report is a derived human-readable summary; JSONL remains the canonical
+full trajectory, and the report prints its actual path. Cumulative tokens include all
+model calls, while active-context first/peak/final input uses successful normal calls
+and excludes compaction calls. Missing provider usage is `unknown`. Metrics reset for
+each run, including a resumed execution. See the
+[offline example and metric definitions](docs/next/developer-run-profiler-v0.1-evidence.md).
+
 ```sh
 uv run --frozen ruff check .
 uv run --frozen mypy src tests

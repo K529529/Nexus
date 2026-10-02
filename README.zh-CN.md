@@ -110,6 +110,26 @@ workspace 边界不是整个运行环境的沙箱。stdout/stderr 共用 head/ta
 
 ## 验证与阅读代码
 
+开发调试时可启用每轮结束后的统计报告：
+
+```sh
+nexus --profile
+nexus exec "解释当前项目结构" --profile
+```
+
+当前 Windows 开发环境可直接使用：
+
+```powershell
+.\.venv\Scripts\nexus.exe --profile
+.\.venv\Scripts\nexus.exe exec "解释当前项目结构" --profile
+```
+
+不带参数时默认 TUI 不变；`--profile` 与 `--json` 互斥，不新增 `/profile` 聊天命令。
+报告是派生的人类可读摘要，完整轨迹仍以 JSONL 为准，报告末尾显示实际日志路径。
+累计 tokens 包含所有模型请求；活动上下文 first/peak/final 只取成功的普通请求输入，
+排除压缩请求。服务商未返回的 usage 显示 `unknown`。每轮（包括恢复执行段）重新统计，
+不会累加上一轮数据。参见[离线示例与指标口径](docs/next/developer-run-profiler-v0.1-evidence.md)。
+
 ```sh
 uv run --frozen ruff check .
 uv run --frozen mypy src tests

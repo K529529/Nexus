@@ -65,6 +65,8 @@ async def run_turn(
     usages: list[Usage] = []
 
     async def observed(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
+        if kind in {"model_started", "model_finished", "tool_started", "tool_finished"}:
+            data = {**data, "step": result.steps}
         if kind == "model_started":
             result.model_calls += 1
         if kind == "model_finished" and "usage" in data:
@@ -72,7 +74,8 @@ async def run_turn(
         return await emit(kind, data, protocol_data=protocol_data)
 
     async def record_tool(value: ToolResult) -> None:
-        await append_message(session, value.message(), observed)
+        message = value.message()
+        await append_message(session, message, observed)
         await observed(
             "tool_finished",
             {
@@ -81,6 +84,9 @@ async def run_turn(
                 "error_code": value.error_code,
                 "duration_ms": value.duration_ms,
                 "message_seq": session.messages[-1].seq,
+                "result_bytes": len(message.content.encode("utf-8")),
+                "exit_code": value.data.get("exit_code"),
+                "truncated": value.truncated,
             },
         )
 

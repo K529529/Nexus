@@ -247,6 +247,12 @@ canonical messages 与边界事件持久化；高频 text/output delta 只展示
 | tool_started、tool_finished | 保存 call_id、状态、耗时；tool_finished 引用对应 tool message，避免重复正文 |
 | context_compacted、warning | 保存 run 活动投影或异常事实；TUI 给出简短提示。原始消息继续保留 |
 
+Developer Run Profiler V0.1：Agent 在 `model_started`、`model_finished`、`tool_started`、
+`tool_finished` 的 data 增加当前 `step`，保留 `attempt` 和 `purpose="compaction"`。
+工具结果的统一记录边界在 `tool_finished` 增加 `result_bytes`（模型可见 ToolResult
+message.content 序列化正文的 UTF-8 字节数）、`exit_code`（结果 data 中的值或 null）与
+`truncated`。这些字段只进入事件，不进入模型请求；完整工具正文仍只保留在 tool message。
+
 `app/events.py` 的 `emit` 顺序写 JSONL，再通知公开消费者，不建立消息总线、订阅管理器或后台 exporter。持久化 message 时可通过仅内部使用的可选参数附带 protocol_data，writer 将其放入同一条本地记录；TUI、`--json`、普通日志、eval 可分享导出和未来 OTel 只得到不含该字段的 RuntimeEvent。无需另一套事件平台，测试直接验证公开消费者从未收到私有载荷。
 
 JSONL 保持单写者追加，按执行顺序写 message/tool_started/结果。建议每条完整记录写后 flush、正常退出 flush/close；是否及何时 fsync 由实现选择并记录，不固定逐执行边界 fsync，不承诺耐断电事务或 exactly-once。写入/flush 错误必须可见，停止派发下一副作用并说明当前运行不可完整恢复；正常退出和进程中断恢复需要实测。日志缺项不能证明副作用未发生。
@@ -299,10 +305,17 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 | `nexus` | 未配置时先进行最小配置引导；就绪后开启当前 workspace 交互会话，首次任务提交才创建 session 日志 |
 | `nexus exec "任务"` | 同一 runtime 的一次任务；适合自动化，不打开 resume selector |
 | `nexus exec "任务" --json` | stdout 每行一个公开 RuntimeEvent（不含 protocol_data）；诊断写 stderr，最后一行 run_finished |
+| `nexus --profile`、`nexus exec "任务" --profile` | 可选开发诊断；每次 drive 返回后打印该轮统计，与 `--json` 互斥 |
 | `nexus resume` | 当前 workspace 会话选择器 |
 | `/resume`、`/new`、`/exit`、`/help` | 只在空闲输入阶段处理；不发给模型 |
 
 一次性退出码：0=completed，1=failed，2=配置/参数错误，3=limited，130=aborted。0 不代表 benchmark resolved。无 TTY 的普通 `nexus`/`nexus resume` 返回可操作提示，自动化应使用 exec；不挂起等待不可见输入。`--help`/`--version` 不要求 API key 或模型连接。
+
+`app/profile.py` 的小型事件消费者与 Transcript 接收同一公开事件流，不参与 Agent 决策。
+`run_started` 重置指标，恢复执行段也独立统计；报告使用实际 writer.path。累计 token
+成本包含重试/压缩请求，活动上下文和逐步时间线取成功普通请求，缺失 usage 不估算。
+时间线最多展示前 3 + 后 7 步。采集或渲染失败只降级诊断，不改变 RunResult。
+不带 `--profile` 时保留原终端输出；不增加聊天命令、后台 worker 或遥测后端。
 
 TUI 用 prompt_toolkit 的 async 输入和 Rich 文本/diff 渲染；只使用一个 asyncio loop。运行时暂停接受新任务，仅保留 Ctrl+C；空闲 Ctrl+C 清空输入，`/exit`/EOF 退出。先支持可靠顺序交互，不实现运行中 steering、后台任务或 full-screen 面板。
 
