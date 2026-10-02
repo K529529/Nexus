@@ -206,7 +206,10 @@ class Context:
             return await emit(kind, {**data, "purpose": "compaction"})
 
         try:
-            reply = await model.complete(prefix + candidates + [request], [], summary_events)
+            # Preserve chronology when protected resume inputs interleave with old groups.
+            summary_seqs = {m.seq for m in prefix + candidates}
+            summary_input = [m for m in active if m.seq in summary_seqs]
+            reply = await model.complete(summary_input + [request], [], summary_events)
             if (
                 reply.finish_reason != "stop"
                 or reply.message.tool_calls

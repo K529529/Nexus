@@ -125,6 +125,30 @@ async def test_threshold_compaction_is_non_destructive_and_run_scoped(history: H
     assert session.messages[: len(original)] == original
 
 
+async def test_summary_input_preserves_interleaved_resume_message_order(history: History) -> None:
+    session, _, events = history
+    resume_request = Message("user", "Continue, but inspect the new failure first")
+    await append_message(session, resume_request, events)
+    await add_tools(session, events, "after_resume", 1)
+    await add_tools(session, events, "latest1", 1)
+    await add_tools(session, events, "latest2", 1)
+    before = active(session)
+    original_history = deepcopy(session.messages)
+
+    model = await compact(session, events)
+
+    # Only the last two complete tool groups are excluded from summary input.
+    # The resume request must remain between the earlier and later tool history.
+    summary_history = model.requests[0][:-1]
+    assert summary_history == before[:-4]
+    assert summary_history.index(resume_request) == before.index(resume_request)
+    assert summary_history[-2].tool_calls[0].id == "after_resume"
+    assert model.requests[0][-1].content.startswith("Summarize the earlier conversation")
+    groups(model.requests[0])
+    assert session.messages == original_history
+    assert resume_request in active(session)
+
+
 @pytest.mark.parametrize("input_tokens,attempted", [(8499, False), (8500, True)])
 async def test_exact_threshold_uses_reported_input_not_cumulative_usage(
     history: History, input_tokens: int, attempted: bool
