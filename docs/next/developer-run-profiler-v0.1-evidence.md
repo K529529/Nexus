@@ -1,4 +1,4 @@
-# Developer Run Profiler V0.1 — implementation evidence
+# Developer Run Profiler V0.1.1 — implementation evidence
 
 ## 范围与入口
 
@@ -22,6 +22,7 @@
 | `src/nexus/app/cli.py` | 参数解析、消费者包装、drive 返回后输出、实际 SessionLog 路径 |
 | `src/nexus/core/agent.py` | 四类模型/工具边界事件增加 step；tool_finished 增加字节数、exit_code、truncated |
 | `tests/test_profile.py` | 离线聚合、等价性、CLI、多轮隔离、诊断失败与边界测试 |
+| `src/nexus/core/model.py`、`tests/test_model.py` | V0.1.1 补齐失败请求 duration_ms 及回归测试，不改重试或错误分类 |
 | 两份 README、`01-development-design.md`、本文 | 启用方式、事件字段和验收证据 |
 
 - `step` 由 Agent Loop 给出，仅为 RuntimeEvent 元数据，保留 attempt 和 compaction purpose。
@@ -29,8 +30,18 @@
   含 JSON 包装；衡量已有输出预算处理后的 observation，不是原始进程无限输出或 token 数。
   `tool_finished` 不重复正文。
 - Model calls 包含每次重试和摘要请求；Compaction calls 单列摘要请求。
-  Compactions 统计成功的 `context_compacted` 事件。累计 tokens 使用所有请求 reported usage；
-  任一请求该字段缺失时，对应累计值为 unknown，不假设失败请求免费。
+  Compactions 统计成功的 `context_compacted` 事件。
+- V0.1.1 累计 tokens 按 input/output/total 分别求和已知 reported 字段，缺失值仍为 None。
+  Usage coverage 为三个字段都已报告的请求数 / model_started 总数，包含重试/压缩请求。
+  覆盖不完整时，有已知小计的字段统一标 `≥`，表示报告下界而非估算；覆盖完整不带标记。
+  某字段完全无已知值（包括零请求）显示 unknown，明确报告的 0 才参与求和。
+- Successful calls 是无 error 的 model_finished；Failed attempts 包括带 error 的结束和
+  没有结束的请求。分类沿用事件 error；无结束标 unfinished。Retries 仅统计 attempt > 1，
+  不用 model_calls - steps 推断，因此 attempt=1 的 context fallback 不算 adapter retry。
+  仅失败时显示紧凑分类表，不展开每次失败记录。
+- ChatModel 所有已产生的 model_finished 都带本次请求单调时钟 duration_ms，包括连接、
+  HTTP、超时、ModelError 和取消路径；现有 stream_interrupted 分类及异常传播不变。
+  失败耗时保留在事件/聚合数据中，逐步表仍优先成功普通请求的耗时。
 - Active context 仅取成功普通请求的输入。若其中有未知输入，峰值也显示 unknown。
   预算为 `context_window - max_output_tokens - 1024`，并非已消耗总 tokens。
 - 逐步表取该步成功普通请求的 input/output/latency；没有成功请求则展示最近尝试的已知事实。
@@ -44,16 +55,15 @@
 
 ## 验证
 
-2026-10-02，Windows 当前 `.venv`：
+2026-10-02，Windows 当前 `.venv`；V0.1 的基线为 163 个测试。
 
 | 检查 | 结果 |
 | --- | --- |
-| pytest 全量 | PASS：163 passed；其中 profiler 新增 24 个测试用例 |
+| pytest 全量 | PASS：171 passed；本轮新增 8 个用例并补强已有断言 |
 | ruff check . | PASS |
 | ruff format --check src tests | PASS：34 files |
 | mypy src tests | PASS：34 source files |
 | git diff --check | PASS |
-| 本地 nexus.exe --help / exec --help | PASS：暴露 profile 参数和 json 互斥用法 |
 | 真实云模型任务 | NOT RUN：本轮明确不执行 |
 
 等价性测试对照模型请求、会话消息、工具派发、RunResult 和公开事件；额外用真实
@@ -61,8 +71,11 @@ Context.prepare 安全压缩路径对比开关前后的压缩投影和请求，�
 CLI 测试覆盖普通模式不输出报告、报告在任务结束后输出、真实日志路径、两轮独立统计、
 参数互斥和采集/渲染故障降级。全部采用离线脚本模型和工具，不调用付费/云模型。
 
-V0.1 只提供当前执行段的事件派生统计，不做历史 JSONL 汇总或计费金额计算。
-提供方缺失 usage、未完成请求、缺失耗时保留 unknown；不新增后台采样或 Context Runtime V0.2。
+V0.1.1 只提供当前执行段的事件派生统计，不做历史 JSONL 汇总或计费金额计算。
+未知 usage 不估算，累计小计显示报告下界；缺失耗时仍为 unknown。
+本次新增 8 个测试用例，并补强已有回归断言：部分/完整 usage、字段缺失与显式零、
+模型尝试和错误分组，以及连接/超时/模型错误/取消耗时；原 HTTP 错误与流中断测试也核对耗时。
+普通模式、Agent、Context Runtime 和 TUI 时间线边界不变，不新增后台采样或 Context Runtime V0.2。
 
 ## 离线报告示例
 
@@ -77,12 +90,16 @@ Failure reason                       -
 Duration                             10.0s
 Steps                                2
 Model calls                          4
+Successful calls                     3
+Failed attempts                      1
+Retries                              1
 Compaction calls                     1
 Tool calls                           2
 Tokens (cumulative)
-  Input total                        1,200
-  Output total                       60
-  Total                              1,260
+  Reported input                     ≥ 1,200
+  Reported output                    ≥ 60
+  Reported total                     ≥ 1,260
+  Usage coverage                     3 / 4 calls
 Active context (normal completions)
   First input                        100
   Peak input                         200
@@ -94,6 +111,8 @@ Tools
   Result bytes                       3.0 KiB
   Failed results                     1
   Slowest observed                   exec_command · 4.2s
+ Model failure breakdown  Count
+ model_transport          1
  Failure breakdown     Count  exec exit codes
  command_exit_nonzero  1      7 ×1
  Step  Input  Output  Model latency  Tools  Tool bytes

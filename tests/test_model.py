@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
 import pytest
-from openai import AsyncOpenAI
+from openai import APIConnectionError, AsyncOpenAI
 
 from nexus.app.config import ConfigError, ModelConfig, load_config
+from nexus.core import model as model_module
 from nexus.core.model import ChatModel
 from nexus.core.types import Json, Message, ModelError, ToolCall, ToolSpec
 
@@ -138,7 +141,9 @@ async def test_stream_tool_fragments_usage_and_private_reasoning() -> None:
 
 
 @pytest.mark.parametrize("status,expected", [(429, 2), (500, 2), (401, 1), (400, 1)])
-async def test_retry_before_delta_only(status: int, expected: int) -> None:
+async def test_retry_before_delta_only(status: int, expected: int, monkeypatch: Any) -> None:
+    ticks = iter([10.0, 11.25, 20.0, 22.5])
+    monkeypatch.setattr(model_module, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
     attempts = 0
 
     def handle(request: httpx.Request) -> httpx.Response:
@@ -153,11 +158,16 @@ async def test_retry_before_delta_only(status: int, expected: int) -> None:
             await model.complete([Message("user", "test")], [], emit)
         assert attempts == expected
         assert "test-secret" not in str(error.value)
+        finishes = [data for kind, data in emit.events if kind == "model_finished"]
+        assert [data["duration_ms"] for data in finishes] == [1250, 2500][:expected]
+        assert [data["error"] for data in finishes] == [f"model_http_{status}"] * expected
     finally:
         await model.close()
 
 
-async def test_partial_stream_not_retried_or_returned() -> None:
+async def test_partial_stream_not_retried_or_returned(monkeypatch: Any) -> None:
+    ticks = iter([10.0, 11.25])
+    monkeypatch.setattr(model_module, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
     attempts = 0
 
     def handle(request: httpx.Request) -> httpx.Response:
@@ -184,12 +194,59 @@ async def test_partial_stream_not_retried_or_returned() -> None:
         )
 
     model = model_for(handle)
+    emit = Recorder()
     try:
         with pytest.raises(ModelError, match="incomplete_stream"):
-            await model.complete([Message("user", "test")], [], Recorder())
+            await model.complete([Message("user", "test")], [], emit)
         assert attempts == 1
+        assert emit.events[-1] == (
+            "model_finished",
+            {"error": "stream_interrupted", "attempt": 1, "duration_ms": 1250},
+        )
     finally:
         await model.close()
+
+
+@pytest.mark.parametrize("failure", ["connection", "timeout", "model", "cancel"])
+async def test_failed_request_duration_preserves_retries_and_errors(
+    failure: str, monkeypatch: Any
+) -> None:
+    ticks = iter([10.0, 11.25, 20.0, 22.5])
+    monkeypatch.setattr(model_module, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    requests: list[Json] = []
+
+    async def create(**request: Any) -> None:
+        requests.append(request)
+        if failure == "connection":
+            raise APIConnectionError(request=httpx.Request("POST", "https://example.invalid"))
+        if failure == "timeout":
+            raise TimeoutError("private exception detail")
+        if failure == "model":
+            raise ModelError("incomplete_stream")
+        raise asyncio.CancelledError()
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    model = ChatModel(ModelConfig("test", 32768), client=client)
+    emit = Recorder()
+    with pytest.raises(asyncio.CancelledError if failure == "cancel" else ModelError) as caught:
+        await model.complete([Message("user", "test")], [], emit)
+    retryable = failure in {"connection", "timeout"}
+    expected = 2 if retryable else 1
+    assert len(requests) == expected
+    if retryable:
+        assert requests[0] == requests[1]
+        assert str(caught.value) == "model_transport"
+    elif failure == "model":
+        assert str(caught.value) == "incomplete_stream"
+    starts = [data for kind, data in emit.events if kind == "model_started"]
+    finishes = [data for kind, data in emit.events if kind == "model_finished"]
+    assert len(starts) == len(finishes) == expected
+    assert [data["duration_ms"] for data in finishes] == [1250, 2500][:expected]
+    assert [data["attempt"] for data in finishes] == list(range(1, expected + 1))
+    assert {data["error"] for data in finishes} == {
+        "model_transport" if retryable else "stream_interrupted"
+    }
+    assert "private exception detail" not in json.dumps(emit.events)
 
 
 async def test_unknown_usage_and_optional_request_fields() -> None:

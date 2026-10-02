@@ -75,7 +75,23 @@ class RunProfile:
         return values[0], peak, values[-1]
 
     def tokens(self, field_name: str) -> int | None:
-        return total([getattr(m, field_name) for m in self.models]) if self.models else None
+        known = [value for m in self.models if (value := getattr(m, field_name)) is not None]
+        return sum(known) if known else None
+
+    @property
+    def usage_coverage(self) -> int:
+        return sum(
+            m.input_tokens is not None
+            and m.output_tokens is not None
+            and m.total_tokens is not None
+            for m in self.models
+        )
+
+    @property
+    def model_failures(self) -> Counter[str]:
+        return Counter(
+            m.error or "unfinished" for m in self.models if not m.finished or m.error is not None
+        )
 
     def timeline(self) -> list[int | None]:
         steps = sorted(
@@ -168,15 +184,23 @@ def render_profile(profile: RunProfile, console: Console, budget: int, path: Pat
     row("Duration", seconds(profile.duration_ms))
     row("Steps", str(profile.steps))
     row("Model calls", str(len(profile.models)))
+    model_failures = profile.model_failures
+    failed = sum(model_failures.values())
+    row("Successful calls", str(len(profile.models) - failed))
+    row("Failed attempts", str(failed))
+    row("Retries", str(sum(m.attempt is not None and m.attempt > 1 for m in profile.models)))
     row("Compaction calls", str(sum(m.compaction for m in profile.models)))
     row("Tool calls", str(sum(t.started for t in profile.tools.values())))
     row("Tokens (cumulative)", "")
     for label, key in [
-        ("Input total", "input_tokens"),
-        ("Output total", "output_tokens"),
-        ("Total", "total_tokens"),
+        ("Reported input", "input_tokens"),
+        ("Reported output", "output_tokens"),
+        ("Reported total", "total_tokens"),
     ]:
-        row(f"  {label}", count(profile.tokens(key)))
+        value = profile.tokens(key)
+        marker = "≥ " if value is not None and profile.usage_coverage < len(profile.models) else ""
+        row(f"  {label}", marker + count(value))
+    row("  Usage coverage", f"{profile.usage_coverage} / {len(profile.models)} calls")
     first, peak, final = profile.context_inputs
     row("Active context (normal completions)", "")
     for label, value in [
@@ -199,6 +223,12 @@ def render_profile(profile: RunProfile, console: Console, budget: int, path: Pat
         f"{slowest.name} · {seconds(slowest.duration_ms)}" if slowest else "unknown",
     )
     console.print(summary)
+
+    if model_failures:
+        table = Table("Model failure breakdown", "Count", box=None)
+        for error, amount in sorted(model_failures.items()):
+            table.add_row(Text(terminal_text(error)), str(amount))
+        console.print(table)
 
     failures = Counter(t.error_code or "unknown" for t in tools if t.ok is False)
     if failures:

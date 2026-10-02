@@ -314,6 +314,9 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 `app/profile.py` 的小型事件消费者与 Transcript 接收同一公开事件流，不参与 Agent 决策。
 `run_started` 重置指标，恢复执行段也独立统计；报告使用实际 writer.path。累计 token
 成本包含重试/压缩请求，活动上下文和逐步时间线取成功普通请求，缺失 usage 不估算。
+Profiler V0.1.1 在 usage 不完整时按字段累计已知值，以 `≥` 标明下界，并显示完整 reported
+usage 请求数 / 总请求数；无已知值仍为 unknown。模型失败按已有 error 分类，未收到 finish
+记为 unfinished，重试仅按 attempt > 1 计数；ChatModel 失败结束事件也记录 duration_ms。
 时间线最多展示前 3 + 后 7 步。采集或渲染失败只降级诊断，不改变 RunResult。
 不带 `--profile` 时保留原终端输出；不增加聊天命令、后台 worker 或遥测后端。
 

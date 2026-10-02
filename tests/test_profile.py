@@ -87,13 +87,12 @@ def fixture_profiler() -> RunProfiler:
         ),
         event("context_compacted"),
         event("model_started", step=2, attempt=1),
-        # Zero is explicitly reported here, never assumed for a failed request.
+        # The failed first attempt has no reported usage; totals remain lower bounds.
         event(
             "model_finished",
             step=2,
             attempt=1,
             error="model_transport",
-            usage=usage(0, 0),
             duration_ms=50,
         ),
         event("model_started", step=2, attempt=2),
@@ -179,13 +178,99 @@ def test_missing_usage_and_failed_step_are_unknown_not_zero() -> None:
     profiler.consume(event("model_finished", step=3, error="model_transport"))
     profiler.consume(event("run_finished", outcome="failed", reason="model_transport", steps=3))
     p = profiler.profile
-    assert all(p.tokens(key) is None for key in ("input_tokens", "output_tokens", "total_tokens"))
+    assert [p.tokens(key) for key in ("input_tokens", "output_tokens", "total_tokens")] == [
+        200,
+        20,
+        220,
+    ]
+    assert p.usage_coverage == 1
     assert p.context_inputs == (None, None, 200)
     assert p.completion(3) is p.models[-1] and p.models[-1].duration_ms is None
     out = StringIO()
     render_profile(p, Console(file=out, width=120), 1000, None)
     assert "unknown (model_transport)" in out.getvalue()
     assert "Trajectory: unknown" in out.getvalue()
+    assert "≥ 220" in out.getvalue() and "1 / 3 calls" in out.getvalue()
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_token_subtotals_and_complete_usage_coverage(missing: bool) -> None:
+    profiler = RunProfiler()
+    profiler.consume(event("run_started"))
+    for step in range(1, 17):
+        profiler.consume(event("model_started", step=step, attempt=1))
+        profiler.consume(
+            event("model_finished", step=step, usage={} if missing and step == 16 else usage())
+        )
+    p = profiler.profile
+    reported = 15 if missing else 16
+    assert p.usage_coverage == reported
+    assert [p.tokens(key) for key in ("input_tokens", "output_tokens", "total_tokens")] == [
+        reported * 100,
+        reported * 10,
+        reported * 110,
+    ]
+    out = StringIO()
+    render_profile(p, Console(file=out, width=120), 5000, None)
+    text = out.getvalue()
+    assert f"{reported} / 16 calls" in text
+    assert ("≥ " in text) is missing
+    assert "Model failure breakdown" not in text
+    assert p.models[-1].input_tokens == (None if missing else 100)
+
+
+def test_partial_fields_unknown_and_reported_zero_remain_distinct() -> None:
+    profiler = RunProfiler()
+    profiler.consume(event("run_started"))
+    assert profiler.profile.tokens("total_tokens") is None
+    profiler.consume(event("model_started", step=1))
+    profiler.consume(event("model_finished", usage={"source": "estimated", "input_tokens": 999}))
+    assert profiler.profile.tokens("input_tokens") is None  # Never use estimated usage.
+    profiler.consume(event("model_started", step=2))
+    profiler.consume(event("model_finished", usage={"source": "reported", "input_tokens": 0}))
+    p = profiler.profile
+    assert p.tokens("input_tokens") == 0 and p.tokens("output_tokens") is None
+    assert p.usage_coverage == 0 and p.context_inputs == (None, None, 0)
+    out = StringIO()
+    render_profile(p, Console(file=out, width=120), 5000, None)
+    text = " ".join(out.getvalue().split())
+    assert "Reported input ≥ 0" in text and "Reported output unknown" in text
+    assert "0 / 2 calls" in text
+
+
+def test_attempt_counts_failure_breakdown_and_successful_step_latency() -> None:
+    profiler = fixture_profiler()
+    # Context fallback can start another attempt=1; it is not an adapter retry.
+    for error in ["model_transport", "context_limit"]:
+        profiler.consume(event("model_started", step=3, attempt=1))
+        profiler.consume(event("model_finished", error=error, duration_ms=1750))
+    profiler.consume(event("model_started", step=3, attempt=1))  # Interrupted without finish.
+    profiler.consume(event("run_finished", outcome="aborted", reason="user_abort", steps=3))
+    p = profiler.profile
+    assert len(p.models) == 7 and p.model_failures == {
+        "model_transport": 2,
+        "context_limit": 1,
+        "unfinished": 1,
+    }
+    assert p.models[2].duration_ms == 50 and p.models[4].duration_ms == 1750
+    completion = p.completion(2)
+    assert completion is not None and completion.duration_ms == 2300
+    out = StringIO()
+    render_profile(p, Console(file=out, width=120), 5000, None)
+    text = " ".join(out.getvalue().split())
+    for value in [
+        "Model calls 7",
+        "Successful calls 3",
+        "Failed attempts 4",
+        "Retries 1",
+        "Compaction calls 1",
+        "Model failure breakdown Count",
+        "model_transport 2",
+        "context_limit 1",
+        "unfinished 1",
+        "2.3s",
+    ]:
+        assert value in text
 
 
 @pytest.mark.parametrize("profiled", [False, True])

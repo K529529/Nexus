@@ -176,14 +176,28 @@ class ChatModel:
                         "context_length_error",
                     }:
                         code = "context_limit"
-                await emit("model_finished", {"error": code, "attempt": attempt})
+                await emit(
+                    "model_finished",
+                    {
+                        "error": code,
+                        "attempt": attempt,
+                        "duration_ms": int((time.monotonic() - started) * 1000),
+                    },
+                )
                 transient = status is None or status == 429 or status >= 500
                 if attempt == 1 and not seen_delta and transient:
                     await asyncio.sleep(0.25)
                     continue
                 raise ModelError(code) from None
             except (ModelError, asyncio.CancelledError):
-                await emit("model_finished", {"error": "stream_interrupted", "attempt": attempt})
+                await emit(
+                    "model_finished",
+                    {
+                        "error": "stream_interrupted",
+                        "attempt": attempt,
+                        "duration_ms": int((time.monotonic() - started) * 1000),
+                    },
+                )
                 raise
             finally:
                 if stream is not None:

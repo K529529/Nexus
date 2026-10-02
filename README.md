@@ -167,7 +167,9 @@ The normal TUI is unchanged without the flag; `--profile` and `--json` are mutua
 exclusive. The report is a derived human-readable summary; JSONL remains the canonical
 full trajectory, and the report prints its actual path. Cumulative tokens include all
 model calls, while active-context first/peak/final input uses successful normal calls
-and excludes compaction calls. Missing provider usage is `unknown`. Metrics reset for
+and excludes compaction calls. With incomplete usage, known token subtotals show `≥`
+and usage coverage; a field with no reported values stays `unknown`. Successes, failed
+attempts and explicit retries are counted separately. Metrics reset for
 each run, including a resumed execution. See the
 [offline example and metric definitions](docs/next/developer-run-profiler-v0.1-evidence.md).
 
