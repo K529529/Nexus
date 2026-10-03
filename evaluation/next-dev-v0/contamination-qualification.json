@@ -1,0 +1,384 @@
+{
+  "schema_version": 1,
+  "scope": "Prepared Agent container; no model calls. Raw frozen images are not sanitized.",
+  "source": "artifacts/evaluation-contamination/",
+  "cases": [
+    {
+      "case_id": "pvlib__pvlib-python-1707",
+      "image": "sha256:2888c3e2a07507677081161630001dc78da24f64c2333aef365807115280e997",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 7,
+          "files": 70528
+        },
+        "target": "pvlib"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/pvlib/__init__.py",
+        "stderr": ""
+      },
+      "tree": "e6a4d8eef0a196421bafd5e04a64f157b6f25f91",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pvlib-0.9.6.dev21+g40e9e97.dist-info"
+      ],
+      "controls": {
+        "base_f2p_failed": 1,
+        "base_p2p_passed": 30,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 2.48499999998603
+            }
+          ],
+          "duration_s": 24.07799999997951
+        }
+      }
+    },
+    {
+      "case_id": "matplotlib__matplotlib-22835",
+      "image": "sha256:2fd6dcf3e140c658b59e9c4aae41c6fbbde81e7da73b9174f907080ddcf93eea",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 8,
+          "files": 74750
+        },
+        "target": "matplotlib"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/lib/matplotlib/__init__.py",
+        "stderr": ""
+      },
+      "tree": "e7299aa0b60bae02d2fe60aa52595b9eeb94173e",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/opt/miniconda3/envs/testbed/bin/matplotlib",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/matplotlib",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/matplotlib-3.9.4.dist-info",
+        "/opt/miniconda3/pkgs/pandas-2.2.3-py39h6a678d5_0/bin/matplotlib",
+        "/opt/nexus-generated/lib/matplotlib"
+      ],
+      "controls": {
+        "base_f2p_failed": 1,
+        "base_p2p_passed": 26,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 9.125
+            }
+          ],
+          "duration_s": 48.40599999995902
+        }
+      }
+    },
+    {
+      "case_id": "django__django-11734",
+      "image": "sha256:221a943944b673c247110ecb250970be2d985640ea766e0a60d4a5fe11a75c53",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 9,
+          "files": 78569
+        },
+        "target": "django"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/django/__init__.py",
+        "stderr": ""
+      },
+      "tree": "5bc06ca2beefc0a3dd022d170b4074514c729be2",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/plugins/__pycache__/django.cpython-39.pyc",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/plugins/django.py",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/third_party/django-stubs"
+      ],
+      "controls": {
+        "base_f2p_failed": 1,
+        "base_p2p_passed": 275,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 8.547000000020489
+            }
+          ],
+          "duration_s": 74.89000000001397
+        }
+      }
+    },
+    {
+      "case_id": "psf__requests-6028",
+      "image": "sha256:7f1bbc5e6f0c02a72329d92664a6fa859a53af6d0d70f5061e3810540ac61cc5",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 5,
+          "files": 72158
+        },
+        "target": "requests"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/requests/__init__.py",
+        "stderr": ""
+      },
+      "tree": "94369dd609f8ae984d2397ca8bde82369e348a60",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/opt/eval/lib/python3.9/site-packages/pip/_vendor/requests",
+        "/opt/miniconda3/conda-meta/requests-2.31.0-py311h06a4308_0.json",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/third_party/django-stubs/django-stubs/contrib/sites/requests.pyi",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/third_party/typeshed/third_party/2and3/requests",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/requests",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/requests",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/requests-2.32.3.dist-info",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/sphinx/util/__pycache__/requests.cpython-39.pyc",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/sphinx/util/requests.py",
+        "/opt/miniconda3/lib/python3.11/site-packages/pip/_vendor/requests",
+        "/opt/miniconda3/lib/python3.11/site-packages/requests",
+        "/opt/miniconda3/lib/python3.11/site-packages/requests-2.31.0.dist-info",
+        "/opt/miniconda3/pkgs/pip-23.3.1-py311h06a4308_0/lib/python3.11/site-packages/pip/_vendor/requests",
+        "/opt/miniconda3/pkgs/pip-25.1-pyhc872135_2/site-packages/pip/_vendor/requests",
+        "/opt/miniconda3/pkgs/requests-2.31.0-py311h06a4308_0",
+        "/opt/miniconda3/pkgs/requests-2.31.0-py311h06a4308_0.conda",
+        "/usr/lib/python3/dist-packages/pip/_vendor/requests"
+      ],
+      "controls": {
+        "base_f2p_failed": 2,
+        "base_p2p_passed": 193,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 1.125
+            }
+          ],
+          "duration_s": 10.48499999998603
+        }
+      }
+    },
+    {
+      "case_id": "sphinx-doc__sphinx-10323",
+      "image": "sha256:d4923b1a7b44c15cec293e8e800cc6a190ea4b58c8b22c2dd928a567ae468cf6",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 7,
+          "files": 74604
+        },
+        "target": "sphinx"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/sphinx/__init__.py",
+        "stderr": ""
+      },
+      "tree": "221989e45dffcf98538e72da2ced67bbad548cd6",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/opt/miniconda3/envs/testbed/bin/sphinx-apidoc",
+        "/opt/miniconda3/envs/testbed/bin/sphinx-autogen",
+        "/opt/miniconda3/envs/testbed/bin/sphinx-build",
+        "/opt/miniconda3/envs/testbed/bin/sphinx-quickstart",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/Sphinx-4.5.0.dist-info",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/jedi/third_party/typeshed/third_party/2and3/deprecated/sphinx.pyi",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pydata_sphinx_theme/theme/pydata_sphinx_theme/_templates/sphinx-version.html",
+        "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/sphinx"
+      ],
+      "controls": {
+        "base_f2p_failed": 1,
+        "base_p2p_passed": 40,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 6.437000000034459
+            }
+          ],
+          "duration_s": 26.25
+        }
+      }
+    },
+    {
+      "case_id": "click__path-generic-type",
+      "image": "sha256:67e973fe31f33221c1462f48ac87a7a3d991170aecdb902ecc5b39563244c39e",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 1,
+          "files": 10313
+        },
+        "target": "click"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/src/click/__init__.py",
+        "stderr": ""
+      },
+      "tree": "014c6c60967424c964e69a4517b1a310b38d9c54",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [],
+      "controls": {
+        "base_f2p_failed": 1,
+        "base_p2p_passed": 8,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 1.0939999999245629
+            },
+            {
+              "name": "typing",
+              "status": "passed",
+              "reason": "Check passed",
+              "exit_code": 0,
+              "duration_s": 3.719000000040978
+            }
+          ],
+          "duration_s": 9.531000000075437
+        }
+      }
+    },
+    {
+      "case_id": "pytest__doctest-optionflag-leak",
+      "image": "sha256:5377942c004dcf865b2d9a9e57aca3471c7aec0275aa58b5119adac2113e18d7",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 1,
+          "files": 11022
+        },
+        "target": "pytest"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/src/pytest/__init__.py",
+        "stderr": ""
+      },
+      "tree": "07d0e9f3c2fe5e611136a95e08f9f3ac55713ae5",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/usr/local/bin/pytest",
+        "/usr/local/lib/python3.12/site-packages/_pytest",
+        "/usr/local/lib/python3.12/site-packages/pytest",
+        "/usr/local/lib/python3.12/site-packages/pytest-8.4.2.dist-info"
+      ],
+      "controls": {
+        "base_f2p_failed": 10,
+        "base_p2p_passed": 149,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 8.76500000001397
+            }
+          ],
+          "duration_s": 39.54700000002049
+        }
+      }
+    },
+    {
+      "case_id": "rich__double-width-wrap",
+      "image": "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa",
+      "scan": {
+        "errors": [],
+        "findings": [],
+        "scanned": {
+          "archives": 0,
+          "files": 8645
+        },
+        "target": "rich"
+      },
+      "import": {
+        "exit_code": 0,
+        "origin": "/workspace/rich/__init__.py",
+        "stderr": ""
+      },
+      "tree": "e1e3e8e8b1462e55c6076a3bcd668dcf8a29c966",
+      "git_status": "",
+      "status": "passed",
+      "before_target_paths": [
+        "/usr/local/lib/python3.12/site-packages/pip/_vendor/rich"
+      ],
+      "controls": {
+        "base_f2p_failed": 13,
+        "base_p2p_passed": 113,
+        "reference": {
+          "status": "passed",
+          "reason": "All checks passed",
+          "checks": [
+            {
+              "name": "tests",
+              "status": "passed",
+              "reason": "All required tests and retention checks passed",
+              "exit_code": 0,
+              "duration_s": 1.375
+            }
+          ],
+          "duration_s": 10.436999999918044
+        }
+      }
+    }
+  ],
+  "isolation_script_sha256": "556b28c7260f8c0004a6214031f1eac2a310a71cd5c5f115de2e5f88a29f9488",
+  "all_prepared_scans_passed": true,
+  "all_controls_passed": true,
+  "model_calls": 0
+}

@@ -273,6 +273,10 @@ class Environment:
         await self.checked(["rm", "/tmp/nexus-base.tar"])
         if self.case.key == "matplotlib":
             await self.checked(["cp", "-r", "/opt/nexus-generated/.", "/workspace/"])
+        # A venv/PYTHONPATH only chooses imports; the Agent can still read every other
+        # environment, vendored package and build cache. Remove those copies first.
+        isolation = (SUITE / "environments" / "isolate_target.py").read_text(encoding="utf-8")
+        await self.checked(["python", "-c", isolation, "clean", self.case.key], 180)
         if self.case.key == "pytest":
             await self.checked(
                 [
@@ -288,6 +292,7 @@ class Environment:
                     ".",
                 ]
             )
+        await self.checked(["python", "-c", isolation, "scan", self.case.key], 180)
 
     async def checked(self, argv: list[str], seconds_budget: float = 120) -> bytes:
         return await self.docker.checked(

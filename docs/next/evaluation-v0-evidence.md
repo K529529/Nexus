@@ -2,6 +2,8 @@
 
 状态：Stage 1–5 已按批准范围完成；V0.1.1 八项真实基线已完成。V0.2.1 尚未实现，After 对照待其提供。
 
+**后续隔离审计更正：以下模型基线使用的容器存在目标项目额外副本，已确认存在 answer leakage 路径。原始结果保留，但不得再作为无污染的能力基线或 Context Before/After 对照。** 原 validator 正负对照只证明判分可工作，不能证明 Agent 环境没有答案泄漏。环境修复与无模型复验见 [contamination 隔离记录](evaluation-contamination-evidence.md)；本次未重新运行模型评测。
+
 ## Stage 1：八个实际环境与 validator
 
 全部已执行 base 负对照与 reference fix 正对照。原始证据：`artifacts/evaluation-stage1/qualified-44269ae4/`；Rich 的固定 rootdir 修正后证据：`artifacts/evaluation-stage1/qualified-26bd5ad7/`。机器可读摘要保存在 [qualification.json](../../evaluation/next-dev-v0/qualification.json)。

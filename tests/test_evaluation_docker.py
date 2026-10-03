@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 
 from nexus.core.types import ExecutionContext, ToolCancelled
-from nexus.evaluation.cases import CASE_IDS, load_case
+from nexus.evaluation.cases import CASE_IDS, SUITE, load_case
 from nexus.evaluation.environment import Docker, Environment, blob_id
 from nexus.evaluation.validation import validate
 from nexus.tools.patch import apply_patch
@@ -22,6 +22,27 @@ from nexus.tools.patch import apply_patch
 pytestmark = pytest.mark.skipif(
     os.environ.get("NEXUS_TEST_DOCKER") != "1", reason="Opt-in Docker isolation acceptance"
 )
+
+
+@pytest.mark.parametrize("case_id", CASE_IDS)
+async def test_real_target_contamination_scan(case_id: str) -> None:
+    cache = Path.home() / ".nexus" / "evaluation" / "cache"
+    case = load_case(case_id)
+    docker = await Docker.connect(cache)
+    environment = Environment(docker, case, cache)
+    try:
+        await environment.prepare()
+        script = (SUITE / "environments/isolate_target.py").read_text(encoding="utf-8")
+        scan = json.loads(
+            await environment.checked(["python", "-c", script, "scan", case.key], 180)
+        )
+        assert not scan["errors"] and not scan["findings"], scan
+        origin = await environment.checked(
+            ["python", "-c", f"import {case.key} as target; print(target.__file__)"]
+        )
+        assert origin.decode().strip().startswith("/workspace/"), origin
+    finally:
+        await environment.close()
 
 
 async def test_real_docker_snapshot_patch_timeout_cancel_and_isolation(tmp_path: Path) -> None:
