@@ -20,7 +20,7 @@ from nexus.app.session import (
     session_directory,
 )
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import ContextBuilder, estimate, groups, instructions
+from nexus.core.context import SYSTEM, ContextBuilder, estimate, groups, instructions
 from nexus.core.types import Limits, Message, RuntimeEvent, Session, ToolResult, ToolSpec
 from nexus.tools.registry import native_tools
 from tests.conftest import Recorder, ScriptedModel, call, reply
@@ -290,39 +290,75 @@ async def test_safe_short_delta_is_not_delayed(tmp_path: Path) -> None:
         writer.close()
 
 
-def test_instructions_include_convergence_policy(tmp_path: Path) -> None:
+def test_instructions_preserve_system_sections(tmp_path: Path) -> None:
+    (tmp_path / "AGENTS.md").write_text("root rules", encoding="utf-8")
     text = instructions(tmp_path, "shell")
+    assert text.startswith(SYSTEM)
+    headings = ["# Task execution", "# Validation", "# Tool use", "# Final response"]
+    assert [line for line in SYSTEM.splitlines() if line.startswith("# ")] == headings
+    for heading in headings:
+        assert f"\n\n{heading}\n\n" in text
+    assert "concrete evidence.\nReproduce or otherwise verify" in text
+    assert "root rules" in text
+
+
+def test_instructions_include_task_execution_policy(tmp_path: Path) -> None:
+    text = " ".join(instructions(tmp_path, "shell").split())
     for principle in (
-        "requested outcome as the global objective",
-        "form or discriminate actionable hypotheses",
-        "prefer the lowest-cost experiment",
+        "Work toward the user's requested outcome end-to-end",
+        "Inspect the relevant code and use tools to gather concrete evidence",
+        "Reproduce or otherwise verify the problem when useful",
+        "If the user asks you to build, modify, or fix something, carry the task through "
+        "implementation instead of stopping at analysis once you have enough information to act",
+        "When you have enough information for a focused, reversible change, "
         "make the smallest useful edit and test it",
         "Editing and testing are part of investigation and do not require certainty",
-        "If evidence is still insufficient, continue investigating",
-        "directly tied to choosing or validating a fix",
-        "receiving decisive evidence, re-evaluate the original task",
-        "change the experiment rather than repeatedly refining the same uninformative path",
-        "unless that information is necessary to choose or validate the fix",
+        "Keep changes minimal and focused on the task",
+        "Do not expand into dependency internals, repository history, alternate installations, "
+        "caches, or broader research unless the current task actually requires that information",
+        "Use tools as needed to complete the task",
+        "Treat successful tool results as evidence",
+        "Avoid repeating reads, searches, or checks without a concrete reason",
     ):
         assert principle in text
 
 
-def test_instructions_include_completion_policy(tmp_path: Path) -> None:
-    text = instructions(tmp_path, "shell")
+def test_instructions_include_validation_policy(tmp_path: Path) -> None:
+    text = " ".join(instructions(tmp_path, "shell").split())
     for principle in (
-        "completion as a decision, not as the exhaustion of all possible investigation",
-        "requested behavior is implemented",
-        "appropriate targeted coverage or direct validation",
-        "relevant checks pass, and no known unresolved failure remains",
-        "Do not continue researching, testing, or inspecting merely to gain additional confidence",
-        "Run additional checks only when they could materially change",
-        "whether the solution is correct or complete",
-        "completion evidence only when it is relevant to the changed behavior",
-        "do not stop merely because an unrelated or overly narrow check passes",
-        "When sufficient completion evidence exists, "
-        "stop using tools and provide the final response",
+        "After changing code, start with checks that directly exercise the behavior you changed",
+        "Fix failures caused by your change",
+        "Broaden validation when the scope or risk of the change warrants it",
+        "When the changed behavior is verified and no concrete task-related problem remains, "
+        "finish the task instead of continuing to investigate or test "
+        "merely for additional confidence",
     ):
         assert principle in text
+
+
+def test_instructions_omit_superseded_meta_policy(tmp_path: Path) -> None:
+    text = " ".join(instructions(tmp_path, "shell").split()).lower()
+    for obsolete in (
+        "actionable hypotheses",
+        "plausible explanations",
+        "decisive evidence",
+        "appropriate targeted coverage",
+        "sufficient completion evidence",
+        "overly narrow",
+        "materially change whether the solution is correct or complete",
+        "evidence is still insufficient",
+        "exhaustion of all possible investigation",
+    ):
+        assert obsolete not in text
+
+
+def test_instructions_use_neutral_workspace_suffix(tmp_path: Path) -> None:
+    text = instructions(tmp_path, "/bin/sh", display=("Linux", "/workspace"))
+    assert text.endswith(
+        "Environment: OS=Linux; shell=/bin/sh; workspace=/workspace.\n"
+        "Use this workspace as the repository root."
+    )
+    assert "Start repository exploration in this workspace" not in text
 
 
 def test_only_root_agents_and_schema_protocol_budget(tmp_path: Path) -> None:
