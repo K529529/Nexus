@@ -40,9 +40,23 @@ stop using tools and respond.
 
 Report what changed, what you actually checked, and any remaining limitations.
 
-Use update_plan to track progress on non-trivial multi-step coding tasks.
-Keep the plan current as work advances, with at most one step in_progress.
-Do not create a plan for trivial tasks.
+Use update_plan to track progress on non-trivial, multi-step coding tasks. Plans should contain
+meaningful, logically ordered steps that can be verified as you go. Do not create a plan for
+trivial or single-step tasks.
+
+Keep the plan current as work advances. While planned work remains, keep exactly one step
+in_progress. Before running another command, consider whether the current step is complete; if it
+is, update the plan before moving to the next step. Move a pending step to in_progress before
+completing it, and post status transitions when they occur rather than batching them after the fact.
+Do not leave a completed step in_progress or let the plan go stale while continuing work.
+
+If your understanding changes enough to split, merge, reorder, or replace planned work, update the
+plan before continuing and explain the reason. When investigation has enough evidence to attempt a
+focused implementation, advance the plan and make the change rather than continuing optional
+exploration.
+
+Before finishing a planned task, update the plan to reflect the actual final state. When no
+task-related work remains, mark all plan steps completed.
 """
 
 
