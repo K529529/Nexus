@@ -290,6 +290,23 @@ async def test_safe_short_delta_is_not_delayed(tmp_path: Path) -> None:
         writer.close()
 
 
+def test_instructions_include_convergence_policy(tmp_path: Path) -> None:
+    text = instructions(tmp_path, "shell")
+    for principle in (
+        "requested outcome as the global objective",
+        "form or discriminate actionable hypotheses",
+        "prefer the lowest-cost experiment",
+        "make the smallest useful edit and test it",
+        "Editing and testing are part of investigation and do not require certainty",
+        "If evidence is still insufficient, continue investigating",
+        "directly tied to choosing or validating a fix",
+        "receiving decisive evidence, re-evaluate the original task",
+        "change the experiment rather than repeatedly refining the same uninformative path",
+        "unless that information is necessary to choose or validate the fix",
+    ):
+        assert principle in text
+
+
 def test_only_root_agents_and_schema_protocol_budget(tmp_path: Path) -> None:
     (tmp_path / "AGENTS.md").write_text("root rules", encoding="utf-8")
     (tmp_path / "nested").mkdir()
