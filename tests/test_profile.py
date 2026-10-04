@@ -380,13 +380,16 @@ async def test_profile_preserves_real_safety_compaction(tmp_path: Path, monkeypa
             for i in range(3):
                 ident = f"read-{i}"
                 await agent.append_message(
-                    session, reply(call("exec_command", {}, ident)).message, events
+                    session,
+                    reply(
+                        call("exec_command", {}, ident),
+                        text="observation " * 500 if i == 0 else "",
+                    ).message,
+                    events,
                 )
                 await agent.append_message(
                     session,
-                    ToolResult(
-                        ident, True, {"stdout": "observation " * (500 if i == 0 else 1)}
-                    ).message(),
+                    ToolResult(ident, True, {"stdout": "observation "}).message(),
                     events,
                 )
             original = deepcopy(session.messages)

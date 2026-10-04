@@ -98,20 +98,30 @@ async def run_turn(
         await append_message(session, Message("user", user_text), observed)
         context = Context(limits)
         builder = ContextBuilder()
+
+        def projected_context() -> tuple[list[Message], Json]:
+            assert session.run_id is not None
+            logical = builder.build_active_context(session, session.run_id)
+            projection = context.project(session, logical)
+            return projection.messages, projection.diagnostics
+
         for step in range(1, limits.max_steps + 1):
             result.steps = step
             specs = [t.spec for t in registry.values()]
-            active_context = builder.build_active_context(session, session.run_id)
+            active_context, _ = projected_context()
             attempted = await context.prepare(session, active_context, specs, model, observed)
-            active_context = builder.build_active_context(session, session.run_id)
+            active_context, diagnostics = projected_context()
             context.check(active_context, specs)
+            await observed("context_projection", {**diagnostics, "step": step})
             try:
                 reply = await model.complete(active_context, specs, observed)
             except ModelError as exc:
                 if exc.code != "context_limit" or attempted:
                     raise
                 await context.prepare(session, active_context, specs, model, observed, force=True)
-                active_context = builder.build_active_context(session, session.run_id)
+                active_context, diagnostics = projected_context()
+                context.check(active_context, specs)
+                await observed("context_projection", {**diagnostics, "step": step})
                 reply = await model.complete(active_context, specs, observed)
             context.observe(reply, active_context, specs)
             valid_reply(reply.message, reply.finish_reason)

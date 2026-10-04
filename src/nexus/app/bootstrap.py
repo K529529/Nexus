@@ -16,6 +16,7 @@ from nexus.app.session import SessionLog, resume_session
 from nexus.core.agent import run_turn
 from nexus.core.context import instructions
 from nexus.core.model import ChatModel
+from nexus.core.observations import provenance
 from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
 from nexus.tools.registry import native_tools
@@ -103,6 +104,7 @@ class Conversation:
                     {
                         "model": asdict(self.config.model),
                         "tools": [asdict(t.spec) for t in self.registry.values()],
+                        **provenance(),
                     }
                 ).encode()
             ).hexdigest()
@@ -121,7 +123,7 @@ class Conversation:
                 self.resumed = False
             await self.events(
                 "configuration",
-                {"fingerprint": fingerprint, "model": asdict(self.config.model)},
+                {"fingerprint": fingerprint, "model": asdict(self.config.model), **provenance()},
             )
             environment = (
                 "[Environment fact] MCP servers "

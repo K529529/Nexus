@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from nexus.app.tui import terminal_text
-from nexus.core.types import Limits, RuntimeEvent
+from nexus.core.types import Json, Limits, RuntimeEvent
 
 
 def integer(value: object) -> int | None:
@@ -59,6 +59,7 @@ class RunProfile:
     models: list[ModelCall] = field(default_factory=list)
     tools: dict[str, ToolCall] = field(default_factory=dict)
     compactions: int = 0
+    projections: list[Json] = field(default_factory=list)
 
     @property
     def normal_completions(self) -> list[ModelCall]:
@@ -151,6 +152,8 @@ class RunProfiler:
             tool.truncated = data.get("truncated")
         elif kind == "context_compacted":
             profile.compactions += 1
+        elif kind == "context_projection":
+            profile.projections.append(dict(data))
         elif kind == "run_finished":
             profile.outcome = data["outcome"]
             profile.reason = data.get("reason")
@@ -337,4 +340,15 @@ def profile_metrics(profile: RunProfile) -> dict[str, object]:
         "final_context": final,
         "compaction_calls": sum(m.compaction for m in profile.models),
         "compactions": profile.compactions,
+        # Request-local estimates, never provider billing usage or execution output bytes.
+        "observation_projection": {
+            "requests": len(profile.projections),
+            "last": profile.projections[-1] if profile.projections else None,
+            "cumulative_full_estimated_tokens": sum(
+                p["observation_full_estimated_tokens"] for p in profile.projections
+            ),
+            "cumulative_projected_estimated_tokens": sum(
+                p["observation_projected_estimated_tokens"] for p in profile.projections
+            ),
+        },
     }

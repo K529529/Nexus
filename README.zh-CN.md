@@ -87,11 +87,14 @@ writer。普通输入每次开启独立 run，模型只接收当前 system/仓�
 的消息；之前 run 的完整历史仍保留在 JSONL。使用 `/resume` 或 `nexus resume` 选择最近
 run 未完成的会话（中断、aborted、failed、limited），下一次输入会续接这个 run 的上下文。
 已完成会话的下一次输入开启新 run；run_id 仍是内部元数据，选择器只恢复最近的未完成 run。
-Context Runtime V0.1.1 保留 run 隔离并恢复安全压缩：活动输入达到预算的 85% 时，对当前
+Context Runtime V0.2.1 保留 run 隔离和安全压缩：投影后的活动输入达到预算的 85% 时，对当前
 run 的旧完整消息组生成摘要，目标约为预算的 60%。只替换活动上下文，Session 历史和 JSONL
 仍保留原消息；resume 会重建已保存的投影。若服务端报超限且本请求边界尚未尝试压缩，
-则压缩并最多重试一次；仍无法容纳时返回 `limited/context_limit`。安全压缩不等于长任务
-成本优化：工具 observation 生命周期管理、软压缩和进一步历史缩减仍是后续工作，本轮不实现。
+则压缩并最多重试一次；仍无法容纳时返回 `limited/context_limit`。工具结果在后续有效 assistant
+消息写入前保持 FULL；已消费且掉出 token 工作集的结果，在请求时派生 `compact-v1` preview。
+Session/JSONL 保留原文，snapshot 保留逻辑引用；HOT 所属工具组不能被摘要替换。
+投影统计进入 JSONL/profile metrics，不扩常驻 TUI。软压缩和进一步历史缩减仍是后续工作，
+详见 [V0.2.1 实测记录](docs/next/context-runtime-v0.2.1-evidence.md)。
 恢复后等待用户输入，不重新执行旧命令。崩溃后的缺失结果标为
 `interrupted_unknown`，需要先检查实际文件/进程状态。损坏尾行恢复到新文件并保留原文件；
 中间损坏拒绝恢复。逐记录 flush 不等于耐断电事务，也不保证副作用恰好执行一次。

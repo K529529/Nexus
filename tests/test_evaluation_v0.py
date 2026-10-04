@@ -119,6 +119,11 @@ async def test_injected_tool_and_environment_reach_real_loop(
         assert "workspace=/workspace." in model.requests[0][0].content
     finally:
         await convo.close()
+    log = next((tmp_path / "history").rglob("*.jsonl"))
+    records = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
+    configuration = next(r["data"] for r in records if r["kind"] == "configuration")
+    assert configuration["context_policy"] == "Context Runtime V0.2.1"
+    assert configuration["observation_projection"]["version"] == "compact-v1"
     assert str(tmp_path) in instructions(tmp_path, cfg.limits.shell)
 
 
@@ -306,6 +311,15 @@ async def test_suite_sequential_persistence_and_stop(
     code = await runner.evaluate(list(CASE_IDS), cfg, tmp_path)
     assert code == (130 if stop_after else 2)
     summary_path = next((tmp_path / "results").glob("*/summary.json"))
+    manifest = json.loads((summary_path.parent / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["context_policy"] == "Context Runtime V0.2.1"
+    assert manifest["observation_projection"] == {
+        "version": "compact-v1",
+        "working_set_tokens": 16384,
+        "working_set_fraction": 0.25,
+        "success_max_bytes": 1024,
+        "failure_max_bytes": 2048,
+    }
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert len(summary["cases"]) == 8
     assert calls == list(CASE_IDS[:stop_after] if stop_after else CASE_IDS)

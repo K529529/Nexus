@@ -35,11 +35,13 @@ async def ignore(event: RuntimeEvent) -> None:
 
 async def add_tools(session: Session, events: Events, name: str, repetitions: int) -> None:
     assistant = reply(call("exec_command", {}, name)).message
+    # Exercise safety compaction with narrative that observation projection cannot shrink.
+    assistant.content = f"{name} observation " * repetitions if repetitions > 1 else ""
     assistant.protocol_data = {"continuation": name}
     await append_message(session, assistant, events)
     await append_message(
         session,
-        ToolResult(name, True, {"stdout": f"{name} observation " * repetitions}).message(),
+        ToolResult(name, True, {"stdout": f"{name} observation "}).message(),
         events,
     )
 

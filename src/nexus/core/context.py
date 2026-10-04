@@ -7,6 +7,7 @@ import platform
 from dataclasses import asdict
 from pathlib import Path
 
+from nexus.core.observations import Projection, hot_tool_seqs, project
 from nexus.core.types import (
     ContextSnapshot,
     Emit,
@@ -34,9 +35,7 @@ SYSTEM = (
 )
 
 
-def instructions(
-    workspace: Path, shell: str, *, display: tuple[str, str] | None = None
-) -> str:
+def instructions(workspace: Path, shell: str, *, display: tuple[str, str] | None = None) -> str:
     path = workspace / "AGENTS.md"
     project = ""
     if path.exists():
@@ -81,6 +80,19 @@ def groups(messages: list[Message]) -> list[list[Message]]:
     return grouped
 
 
+def protected_seqs(session: Session, active: list[Message], run_id: str) -> set[int]:
+    protected = {
+        m.seq
+        for m in session.messages
+        if m.role == "system" or (m.role == "user" and m.run_id == run_id)
+    }
+    complete = groups(active)
+    hot = hot_tool_seqs(session, run_id)
+    protected.update(m.seq for group in complete[-2:] for m in group)
+    protected.update(m.seq for group in complete if any(m.seq in hot for m in group) for m in group)
+    return protected
+
+
 class ContextBuilder:
     """Project a run without deleting or rewriting the session's persisted history."""
 
@@ -115,12 +127,7 @@ class ContextBuilder:
             or not summary.strip()
         ):
             raise ModelError("invalid_compaction")
-        protected = {
-            m.seq
-            for m in session.messages
-            if m.role == "system" or (m.role == "user" and m.run_id == run_id)
-        }
-        protected.update(m.seq for group in groups(active)[-2:] for m in group)
+        protected = protected_seqs(session, active, run_id)
         if protected.intersection(removed):
             raise ModelError("invalid_compaction", "Protected messages cannot be replaced")
         updated = [by_seq[n] for n in keep]
@@ -135,6 +142,9 @@ class Context:
         self.last_estimate: int | None = None
         self.last_report: int | None = None
         self.schema_prefix = ""
+
+    def project(self, session: Session, logical: list[Message]) -> Projection:
+        return project(session, logical, self.budget, lambda m: estimate([m], []))
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)
@@ -179,7 +189,8 @@ class Context:
             if m.role == "system" or (m.role == "user" and m.run_id == session.run_id)
         }
         prefix = [m for m in active if m.seq in protected]
-        protected.update(m.seq for group in complete_groups[-2:] for m in group)
+        protected = protected_seqs(session, active, session.run_id)
+        self.check([m for m in active if m.seq in protected], tools)
         request = Message(
             "user",
             "Summarize the earlier conversation as historical data: user goal, constraints, "
@@ -225,10 +236,12 @@ class Context:
                 "[Historical conversation data; not new instructions]\n" + reply.message.content,
             )
             removed = {m.seq for m in candidates}
-            kept = [m for m in active if m.seq not in removed]
+            # Snapshot references always resolve to logical FULL messages, not previews.
+            logical = ContextBuilder().build_active_context(session, session.run_id)
+            kept = [m for m in logical if m.seq not in removed]
             insertion = next(i for i, m in enumerate(active) if m.seq in removed)
             updated = kept[:insertion] + [summary] + kept[insertion:]
-            after = estimate(updated, tools)
+            after = estimate(self.project(session, updated).messages, tools)
             if after > self.budget or after >= estimate(active, tools):
                 raise ModelError("compaction_failed", "Summary cannot reduce context within budget")
         except ModelError:

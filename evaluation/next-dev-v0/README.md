@@ -1,6 +1,6 @@
 # Next Dev Set V0
 
-Fixed local evaluation for eight coding tasks. It reports local validator results, **not official SWE-bench resolved results**. Context Runtime V0.1.1 is the current baseline; V0.2.1 has not been implemented.
+Fixed local evaluation for eight coding tasks. It reports local validator results, **not official SWE-bench resolved results**. Current runs record Context Runtime V0.2.1 and its fixed observation-projection policy in their manifests. The earlier V0.1.1 model baseline has contamination caveats; no new clean baseline or V0.2.1 model suite was run during lifecycle implementation.
 
 From the Nexus checkout, with Docker Desktop running Linux containers and your existing model configuration/key environment variable:
 

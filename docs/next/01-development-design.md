@@ -161,7 +161,7 @@ Windows 默认优先 `pwsh`，没有则 `powershell.exe`，固定 `-NoProfile -N
 可靠性约束：
 
 - stdout/stderr 共用 `execution.output_limit_bytes` 总预算；初始默认建议 32 KiB，S2 用真实读源码/测试输出检验后可调整，无需修改架构契约。仅 stdout 有输出时可使用全部额度，stderr 同理，不永久预留一半空额度。
-- 一个带 stream 标记的有界 head/tail 缓冲保存头尾，再还原 stdout/stderr 字段；超限仍持续 drain，并分别记录 truncated/discarded bytes。使用增量解码，非法字节替换并标记。TUI delta 同样有界，不以 streaming 绕开限额；不再做旧 Observation 式二次内容投影。
+- 一个带 stream 标记的有界 head/tail 缓冲保存头尾，再还原 stdout/stderr 字段；超限仍持续 drain，并分别记录 truncated/discarded bytes。使用增量解码，非法字节替换并标记。TUI delta 同样有界，不以 streaming 绕开限额。V0.2.1 在请求层对已消费的 COLD 结果派生 preview，不改变此处执行输出预算或原始持久化结果。
 - timeout/cancel 覆盖启动、等待和管道收尾；管道收尾最多再等 2 秒。输出超限不会提前杀命令，也不会无限占用内存。模型可以用更窄的命令再次读取需要的结果。
 - POSIX 创建进程组，取消时先 TERM 再 KILL；Windows 创建进程组，父进程仍存活时用系统 `taskkill /PID ... /T /F` 清理子树；实现与测试都检查普通子进程回收。
 - 若无法确认清理，结果明确 `cleanup_incomplete` 并停止当前 run，不能显示已干净取消。主动 daemonize/脱离进程组的任务不属于 V0 支持对象；这不是 OS 安全隔离保证。
@@ -195,15 +195,15 @@ workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文
 
 ### 6.2 预算算法（单一实现）
 
-`model.context_window` 由用户按服务配置给定，不从模型名猜；`max_output_tokens` 默认 8,192，必须小于 context_window。每次请求计算输入预算 `B = context_window - max_output_tokens - 1,024`，B 必须为正。工具 schema、消息包装、AGENTS、工具结果及实际回传的 protocol_data 全部计入。工具文字输出统一使用可配置的总预算；保持一处截断，不叠加 Observation 投影或多级裁剪系统。
+`model.context_window` 由用户按服务配置给定，不从模型名猜；`max_output_tokens` 默认 8,192，必须小于 context_window。每次请求计算输入预算 `B = context_window - max_output_tokens - 1,024`，B 必须为正。工具 schema、消息包装、AGENTS、工具结果及实际回传的 protocol_data 全部计入。工具执行文字输出预算不变；V0.2.1 的 request-time Observation Projection 先于活动输入估算，不修改原文或 execution truncated 标记。
 
 本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run、成功压缩或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
 
 Context Runtime V0.1.1 修复 V0.1 误移除安全压缩的回归。预算只计算当前 run 的活动上下文；估算达到 `0.85 * B` 时，在模型请求边界尝试一次安全压缩，目标约为 `0.60 * B`。若 provider 报 context-length 错误且本边界尚未尝试压缩，则强制压缩并最多重试一次；已经尝试压缩、压缩后仍超限或受保护内容无法容纳时返回 `limited/context_limit`。现有工具输出预算不变。
 
-### 6.3 Run 上下文投影与安全压缩（Context Runtime V0.1.1）
+### 6.3 Run 上下文投影与安全压缩（Context Runtime V0.2.1）
 
-`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回新的列表：当前 system/仓库指令 + 该 run 的活动消息。已有压缩时使用最近投影快照，再追加快照 seq 之后属于该 run 的原消息。`run_turn` 每次请求前先投影、检查压缩阈值，必要时生成摘要并重新投影，再调用模型；绝不把完整 Session 历史直接发给模型。
+`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回逻辑活动上下文：当前 system/仓库指令 + 该 run 的活动消息。已有压缩时使用最近逻辑快照，再追加快照 seq 之后属于该 run 的原消息。每次请求按 logical context → Observation Projection → estimate/prepare 执行；生成新 snapshot 后 rebuild logical → re-project → check → model.complete。provider 超限 fallback 使用相同顺序，observe 使用实际发送的那份 projected context。
 
 普通输入创建新的 run_id；以前 run 的用户输入、assistant、工具结果和环境事实不自动带入。当前 MCP 不可用事实在 run 开始后写入该 run，并保持模型可见。跨 run 的 tool call id 可以重复，同一 run 内仍拒绝重复；完整 assistant/tool 配对校验保留。
 
@@ -211,13 +211,15 @@ Context Runtime V0.1.1 修复 V0.1 误移除安全压缩的回归。预算只计
 
 Message 的内存 run_id 来自已有事件 envelope，不进入 message.public() 或 provider payload。V0.1.1 的 `context_compacted` 事件增加 `data.scope="run"`，其 envelope run_id 标识所属 run；data 保存摘要、插入位置、kept/replaced seq 引用、估算和 usage。只解析该 run 当前活动消息的引用；旧版不带 scope 的跨 run 压缩事件仍仅作历史审计，不重新带入旧摘要。JSONL schema_version 仍为 1。
 
-安全压缩保留当前 system/仓库指令、该 run 的全部原始用户消息（包括原请求和恢复后的补充输入/环境事实）与最近两个完整交互组。旧的完整 assistant/tool 组可整体总结；protocol_data 随原消息一起保留或离开活动上下文，不单独摘要或截断。摘要只描述可观察的目标、约束、已读取/修改文件、工具/测试结果和未完成工作，不要求私有推理。使用同一 model、禁用 tools，摘要正文最多 2,048 estimated tokens，摘要流不直接展示；请求 usage 正常计入总账单。
+安全压缩保留当前 system/仓库指令、该 run 的全部原始用户消息（包括原请求和恢复后的补充输入/环境事实）、最近两个完整交互组，以及每个 HOT ToolResult 所属的完整工具组。HOT 与必要保护内容本身超 B 时返回 context_limit。旧的完整 assistant/tool 组可整体总结，summary 读取 projected history，不展开 COLD 原文；protocol_data 随原消息一起保留或离开活动上下文，不单独摘要或截断。摘要只描述可观察事实。使用同一 model、禁用 tools，摘要正文最多 2,048 estimated tokens，摘要流不直接展示；请求 usage 正常计入总账单。
 
 每次只做一个有界摘要请求，不拆组填预算，不构造摘要树。摘要必须实际减少上下文并使其落到 B 内；受保护内容或剩余历史导致仍高于 60% 目标但未超 B 时给出警告。普通阈值压缩失败、原上下文仍在 B 内时可警告后继续原上下文；原上下文已经超 B 或因 provider 超限强制压缩失败时停止，不循环重试。
 
 成功压缩先追加 context_compacted 事件，再更新 `Session.compactions[run_id]` 的小型投影快照（活动消息引用、summary message、through_seq）。不删除或覆盖 `Session.messages`，不重写旧 JSONL。后续每次请求继续使用该投影，不重新带回已替代的旧结果；再次压缩可替换旧摘要。resume 按事件顺序重建相同投影、恢复必要协议数据，再补齐未知工具结果；损坏尾行恢复复制有效事件，仍可重建投影。
 
-V0.1.1 仅恢复接近容量上限时的 safety compaction，不是 soft/economic compaction。长任务在触发阈值前仍可能产生较高累计输入成本。后续版本将引入工具 observation 生命周期管理、软压缩与进一步历史缩减；本轮不实现这些能力，也不引入记忆/检索框架。
+V0.2.1 增加 Tool Observation Lifecycle。consumed 仅由同 run 原始 Session 中后续成功 append 的有效普通 assistant 推导。HOT 全部 FULL；以 `W=min(16384,floor(0.25*B))` 和 `estimate([tool_message], [])` 选择 consumed 的连续最新后缀为 RECENT/FULL，第一条放不下即停止，其余 COLD 尝试 compact-v1。成功/失败的完整 compact JSON 分别不超过 1024/2048 UTF-8 bytes；不节省或不能可靠解析时保持 FULL。每次从原文创建新 Message，不递归压缩，不持久化 preview 或 consumed 状态。
+
+`context_projection` 事件记录本轮 logical context 内工具结果的 FULL/实际 projected bytes 与估算 tokens、HOT/RECENT/COLD 数量。事件进入 JSONL/diagnostics，不进入 Session.messages 或模型输入，不替代 provider reported usage。configuration 与 evaluation manifest 记录策略版本和固定参数。实现细节与离线证据见 [V0.2.1 记录](context-runtime-v0.2.1-evidence.md)。不增加检索、artifact store、长期记忆、soft compaction 或新 Agent node。
 
 ## 7. JSONL、事件与恢复
 

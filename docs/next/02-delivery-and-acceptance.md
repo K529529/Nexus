@@ -8,6 +8,8 @@ Context Runtime V0.1 增加 run 投影与隔离，但误移除了安全压缩。
 
 ## 1. 实施顺序
 
+V0.2.1 在请求边界增加 Tool Observation Lifecycle；原始 Session/JSONL 与执行输出预算不变，HOT 完整工具组加入 safety protection，压缩后及 provider fallback 均 rebuild/re-project/check。离线验证与本轮未运行项见 [V0.2.1 实测记录](context-runtime-v0.2.1-evidence.md)。
+
 采用六个可验证增量，不再套用旧 Day 1–10，不承诺未验证的工期。设计获批后可以连续推进；每步只报告实际证据，出现设计停止线才暂停裁决。
 
 | 阶段 | 交付范围 | 进入下一步的证据 |

@@ -13,6 +13,7 @@ from nexus.app.bootstrap import Conversation
 from nexus.app.config import Config
 from nexus.app.events import redact
 from nexus.app.profile import RunProfiler, profile_metrics
+from nexus.core.observations import CONTEXT_POLICY, provenance
 from nexus.core.types import Json, RuntimeEvent
 from nexus.evaluation.cases import SUITE, EvalCase, load_case
 from nexus.evaluation.environment import CleanupError, Docker, Environment, EnvironmentError
@@ -204,13 +205,13 @@ async def evaluate(selected: list[str], config: Config, home: Path | None = None
         nexus=implementation_identity(SUITE.parents[1]),
         model=model,
         limits=asdict(replace(config.limits, shell="/bin/sh")),
-        context_policy="Context Runtime V0.1.1",
+        **provenance(),
         cases=[case.identity() for case in cases],
     )
     write_json(directory / "manifest.json", manifest)
     results = [empty_result(case, run_id) for case in cases]
     save_report(directory, results, selected)
-    print(f"Evaluation {run_id} · {len(cases)} case(s) · Context V0.1.1", flush=True)
+    print(f"Evaluation {run_id} · {len(cases)} case(s) · {CONTEXT_POLICY}", flush=True)
     stop = False
     try:
         docker = await Docker.connect(cache)
