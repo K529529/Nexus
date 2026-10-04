@@ -100,6 +100,7 @@ class ChatModel:
                 async with asyncio.timeout(120):
                     stream = await self.client.chat.completions.create(**request)
                     content: list[str] = []
+                    reasoning: list[str] = []
                     calls: dict[int, Json] = {}
                     finish: str | None = None
                     usage = Usage()
@@ -121,13 +122,16 @@ class ChatModel:
                             seen_delta = True
                         if delta.refusal:
                             raise ModelError("model_refusal")
-                        if finish is not None and (delta.content or delta.tool_calls):
+                        fragment = getattr(delta, "reasoning_content", None)
+                        if fragment is not None and not isinstance(fragment, str):
+                            raise ModelError("invalid_reasoning_content")
+                        if finish is not None and (delta.content or delta.tool_calls or fragment):
                             raise ModelError("delta_after_finish")
+                        if fragment:
+                            reasoning.append(fragment)
                         if delta.content:
                             content.append(delta.content)
                             await emit("assistant_delta", {"text": delta.content})
-                        # reasoning_content is private. The initial compatible profile does
-                        # not retain it; a live-required continuation must be verified first.
                         for call in delta.tool_calls or []:
                             if call.index < 0 or (call.type and call.type != "function"):
                                 raise ModelError("invalid_tool_delta")
@@ -150,6 +154,13 @@ class ChatModel:
                                 ToolCall(item["id"], item["name"], item["args"])
                                 for _, item in sorted(calls.items())
                             ],
+                            protocol_data={
+                                "format": "chat-v1",
+                                "binding": self.binding,
+                                "fields": {"reasoning_content": "".join(reasoning)},
+                            }
+                            if reasoning
+                            else None,
                         ),
                         finish,
                         usage,

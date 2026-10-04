@@ -354,12 +354,10 @@ async def test_real_mcp_sigint_then_another_turn_and_close(
     assert current is not None and current.cancelling() == 0
 
 
-def test_batching_is_only_a_prompt_hint_with_two_native_tools() -> None:
+def test_prompt_describes_two_native_tools() -> None:
     text = " ".join(SYSTEM.split())
-    assert (
-        "batch independent read-only repository exploration into one bounded exec_command" in text
-    )
-    assert "do not batch side-effecting operations" in SYSTEM
+    assert "Use exec_command to inspect and run checks" in text
+    assert "unified-diff apply_patch to edit" in text
     assert set(native_tools()) == {"exec_command", "apply_patch"}
 
 

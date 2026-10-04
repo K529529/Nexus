@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -12,9 +12,23 @@ import pytest
 from openai import APIConnectionError, AsyncOpenAI
 
 from nexus.app.config import ConfigError, ModelConfig, load_config
+from nexus.app.events import Events
+from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core import model as model_module
+from nexus.core.agent import append_message
+from nexus.core.context import Context, ContextBuilder, estimate
 from nexus.core.model import ChatModel
-from nexus.core.types import Json, Message, ModelError, ToolCall, ToolSpec
+from nexus.core.types import (
+    Json,
+    Limits,
+    Message,
+    ModelError,
+    RuntimeEvent,
+    Session,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
+)
 
 
 class Recorder:
@@ -126,16 +140,244 @@ async def test_stream_tool_fragments_usage_and_private_reasoning() -> None:
         assert reply.message.content == "Checking files."
         assert reply.usage.total_tokens == 120
         assert reply.usage.source == "reported"
-        assert reply.message.protocol_data is None
+        assert reply.message.protocol_data == {
+            "format": "chat-v1",
+            "binding": model.binding,
+            "fields": {"reasoning_content": "PRIVATE_REASONING"},
+        }
+        assert "PRIVATE_REASONING" not in json.dumps(reply.message.public())
         assert "PRIVATE_REASONING" not in json.dumps(emit.events)
         assert requests[0]["reasoning_effort"] == "high"
         assert requests[0]["max_tokens"] == 8192
-        assert "temperature" not in requests[0] and "extra_body" not in requests[0]
+        assert set(requests[0]) == {
+            "model",
+            "messages",
+            "stream",
+            "n",
+            "max_tokens",
+            "tools",
+            "reasoning_effort",
+            "stream_options",
+        }
+        assert requests[0]["stream"] is True and requests[0]["n"] == 1
+        assert requests[0]["stream_options"] == {"include_usage": True}
         assert "strict" not in requests[0]["tools"][0]["function"]
-        history = [reply.message, Message("tool", "{}", tool_call_id="call_1")]
+        history = [
+            reply.message,
+            Message("tool", "{}", tool_call_id="call_1"),
+            Message("tool", "{}", tool_call_id="call_2"),
+        ]
         wire = model.wire_messages(history)
         assert wire[0]["tool_calls"][0]["function"]["name"] == "exec_command"
+        assert wire[0]["reasoning_content"] == "PRIVATE_REASONING"
         assert wire[1]["tool_call_id"] == "call_1"
+    finally:
+        await model.close()
+
+
+async def test_fragmented_reasoning_session_resume_and_next_request(tmp_path: Path) -> None:
+    requests: list[Json] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        if len(requests) == 2:
+            return httpx.Response(200, content=sse([chunk({"content": "done"}, "stop")]))
+        return httpx.Response(
+            200,
+            content=sse(
+                [
+                    chunk({"reasoning_content": "PRIVATE_"}),
+                    chunk({"reasoning_content": ""}),
+                    chunk({"reasoning_content": "REASONING"}),
+                    chunk(
+                        {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "id": "call_1",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "exec_command",
+                                        "arguments": '{"command":"pwd"}',
+                                    },
+                                }
+                            ]
+                        },
+                        "tool_calls",
+                    ),
+                ]
+            ),
+        )
+
+    model = model_for(handle)
+    session = Session(tmp_path, run_id="run")
+    writer = SessionLog.create(session, "test", {}, tmp_path)
+    public: list[RuntimeEvent] = []
+
+    async def consumer(event: RuntimeEvent) -> None:
+        public.append(event)
+
+    events = Events(session, writer, consumer)
+    try:
+        await events("run_started", {})
+        await append_message(session, Message("user", "inspect"), events)
+        reply = await model.complete(session.messages, [], events)
+        expected = {
+            "format": "chat-v1",
+            "binding": model.binding,
+            "fields": {"reasoning_content": "PRIVATE_REASONING"},
+        }
+        assert reply.message.protocol_data == expected
+        assert reply.message.content == ""
+        assert not any(event.kind == "assistant_delta" for event in public)
+        await append_message(session, reply.message, events)
+        await append_message(
+            session, ToolResult("call_1", True, {"stdout": "output " * 2000}).message(), events
+        )
+        records, _ = read_records(writer.stream)
+        assert "PRIVATE_REASONING" not in json.dumps([r["data"] for r in records])
+        assert [r["protocol_data"] for r in records if "protocol_data" in r] == [expected]
+        path = writer.path
+        writer.close()
+        restored, writer, warnings = resume_session(path, tmp_path, tmp_path)
+        events = Events(restored, writer, consumer)
+        assert not warnings
+        assert restored.resume_run_id == "run"
+        logical = ContextBuilder().build_active_context(restored, "run")
+        assistant = next(m for m in logical if m.role == "assistant")
+        assert assistant.protocol_data == expected
+        assert "PRIVATE_REASONING" not in json.dumps(assistant.public())
+        assert estimate([assistant], []) > estimate([replace(assistant, protocol_data=None)], [])
+        context = Context(Limits(context_window=32768))
+        projected = context.project(restored, logical).messages
+        final = await model.complete(projected, [], events)
+        wire = requests[1]["messages"]
+        assert wire[1]["reasoning_content"] == "PRIVATE_REASONING"
+        assert wire[1]["tool_calls"][0]["id"] == wire[2]["tool_call_id"] == "call_1"
+        assert final.message.content == "done" and final.message.protocol_data is None
+        await append_message(restored, final.message, events)
+        # Once consumed and outside W, the observation shrinks but its assistant stays intact.
+        logical = ContextBuilder().build_active_context(restored, "run")
+        cold_projection = Context(Limits(context_window=4096, max_output_tokens=512)).project(
+            restored, logical
+        )
+        assert cold_projection.diagnostics["cold_compacted_count"] == 1
+        assert cold_projection.messages[1] is assistant
+        assert cold_projection.messages[1].protocol_data == expected
+        assert "PRIVATE_REASONING" not in json.dumps([asdict(event) for event in public])
+    finally:
+        writer.close()
+        await model.close()
+
+
+async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> None:
+    requests: list[Json] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            content=sse(
+                [
+                    chunk({"reasoning_content": "PRIVATE_REASONING"}),
+                    chunk({"content": "Inspected code; work remains."}, "stop"),
+                ]
+            ),
+        )
+
+    model = model_for(handle)
+    session = Session(tmp_path, run_id="run")
+    writer = SessionLog.create(session, "test", {}, tmp_path)
+    public: list[RuntimeEvent] = []
+
+    async def consumer(event: RuntimeEvent) -> None:
+        public.append(event)
+
+    events = Events(session, writer, consumer)
+    continuation = {
+        "format": "chat-v1",
+        "binding": model.binding,
+        "fields": {"reasoning_content": "PRIVATE_REASONING"},
+    }
+    try:
+        await events("run_started", {})
+        await append_message(session, Message("user", "inspect"), events)
+        for index in range(3):
+            ident = f"call_{index}"
+            await append_message(
+                session,
+                Message(
+                    "assistant",
+                    "observed code " * (1000 if index == 0 else 1),
+                    [ToolCall(ident, "exec_command", "{}")],
+                    protocol_data=continuation,
+                ),
+                events,
+            )
+            await append_message(session, ToolResult(ident, True, {}).message(), events)
+        context = Context(Limits(context_window=8192, max_output_tokens=512))
+        builder = ContextBuilder()
+        projected = context.project(session, builder.build_active_context(session, "run"))
+        assert await context.prepare(session, projected.messages, [], model, events, force=True)
+        assert requests[0]["messages"][1]["reasoning_content"] == "PRIVATE_REASONING"
+        active = context.project(session, builder.build_active_context(session, "run")).messages
+        assistants = [m for m in active if m.role == "assistant"]
+        assert len(assistants) == 2
+        assert all(m.protocol_data == continuation for m in assistants)
+        assert all("PRIVATE_REASONING" not in m.content for m in active)
+        assert all(m.protocol_data is None for m in active if m.role == "user")
+        records, _ = read_records(writer.stream)
+        assert "PRIVATE_REASONING" not in json.dumps([r["data"] for r in records])
+        assert "PRIVATE_REASONING" not in json.dumps([asdict(event) for event in public])
+        restored = replay(records, tmp_path)
+        assert builder.build_active_context(restored, "run") == active
+    finally:
+        writer.close()
+        await model.close()
+
+
+@pytest.mark.parametrize(
+    "malformed", [123, False, [], {}, ["PRIVATE_REASONING"], {"text": "PRIVATE_REASONING"}]
+)
+async def test_malformed_reasoning_fails_privately(malformed: Any) -> None:
+    model = model_for(
+        lambda request: httpx.Response(
+            200,
+            content=sse(
+                [
+                    chunk({"reasoning_content": "PRIVATE_REASONING"}),
+                    chunk({"reasoning_content": malformed}, "stop"),
+                ]
+            ),
+        )
+    )
+    emit = Recorder()
+    try:
+        with pytest.raises(ModelError, match="^invalid_reasoning_content$"):
+            await model.complete([Message("user", "test")], [], emit)
+        assert "PRIVATE_REASONING" not in json.dumps(emit.events)
+        assert len([e for e in emit.events if e[0] == "model_started"]) == 1
+    finally:
+        await model.close()
+
+
+async def test_reasoning_after_finish_is_rejected() -> None:
+    model = model_for(
+        lambda request: httpx.Response(
+            200,
+            content=sse(
+                [
+                    chunk({"content": "done"}, "stop"),
+                    chunk({"reasoning_content": "PRIVATE_REASONING"}),
+                ]
+            ),
+        )
+    )
+    emit = Recorder()
+    try:
+        with pytest.raises(ModelError, match="delta_after_finish"):
+            await model.complete([Message("user", "test")], [], emit)
+        assert "PRIVATE_REASONING" not in json.dumps(emit.events)
     finally:
         await model.close()
 
@@ -249,18 +491,21 @@ async def test_failed_request_duration_preserves_retries_and_errors(
     assert "private exception detail" not in json.dumps(emit.events)
 
 
-async def test_unknown_usage_and_optional_request_fields() -> None:
+@pytest.mark.parametrize("extra", [{}, {"reasoning_content": None}, {"reasoning_content": ""}])
+async def test_unknown_usage_and_optional_request_fields(extra: Json) -> None:
     requests: list[Json] = []
 
     def handle(request: httpx.Request) -> httpx.Response:
         requests.append(json.loads(request.content))
-        return httpx.Response(200, content=sse([chunk({"content": "done"}, "stop")]))
+        return httpx.Response(200, content=sse([chunk({"content": "done", **extra}, "stop")]))
 
     model = model_for(handle)
     model.config.reasoning_effort = None
     model.config.include_usage = False
     try:
         reply = await model.complete([Message("user", "test")], [], Recorder())
+        assert reply.message.content == "done"
+        assert reply.message.protocol_data is None
         assert reply.usage.total_tokens is None
         assert not {"tools", "reasoning_effort", "stream_options"} & requests[0].keys()
     finally:
