@@ -307,6 +307,24 @@ def test_instructions_include_convergence_policy(tmp_path: Path) -> None:
         assert principle in text
 
 
+def test_instructions_include_completion_policy(tmp_path: Path) -> None:
+    text = instructions(tmp_path, "shell")
+    for principle in (
+        "completion as a decision, not as the exhaustion of all possible investigation",
+        "requested behavior is implemented",
+        "appropriate targeted coverage or direct validation",
+        "relevant checks pass, and no known unresolved failure remains",
+        "Do not continue researching, testing, or inspecting merely to gain additional confidence",
+        "Run additional checks only when they could materially change",
+        "whether the solution is correct or complete",
+        "completion evidence only when it is relevant to the changed behavior",
+        "do not stop merely because an unrelated or overly narrow check passes",
+        "When sufficient completion evidence exists, "
+        "stop using tools and provide the final response",
+    ):
+        assert principle in text
+
+
 def test_only_root_agents_and_schema_protocol_budget(tmp_path: Path) -> None:
     (tmp_path / "AGENTS.md").write_text("root rules", encoding="utf-8")
     (tmp_path / "nested").mkdir()
