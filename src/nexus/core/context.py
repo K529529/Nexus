@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from nexus.core.observations import Projection, hot_tool_seqs, project
+from nexus.core.plan import project_plan
 from nexus.core.types import (
     ContextSnapshot,
     Emit,
@@ -38,6 +39,10 @@ Once that behavior works, relevant checks pass, and no known task-related proble
 stop using tools and respond.
 
 Report what changed, what you actually checked, and any remaining limitations.
+
+Use update_plan to track progress on non-trivial multi-step coding tasks.
+Keep the plan current as work advances, with at most one step in_progress.
+Do not create a plan for trivial tasks.
 """
 
 
@@ -150,7 +155,9 @@ class Context:
         self.schema_prefix = ""
 
     def project(self, session: Session, logical: list[Message]) -> Projection:
-        return project(session, logical, self.budget, lambda m: estimate([m], []))
+        projection = project(session, logical, self.budget, lambda m: estimate([m], []))
+        projection.messages = project_plan(session, projection.messages)
+        return projection
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)
@@ -183,6 +190,7 @@ class Context:
         force: bool = False,
     ) -> bool:
         """Attempt safety compaction once at this boundary; return whether attempted."""
+        active = self.project(session, active).messages
         original = self.tokens(active, tools)
         if not force and original < self.budget * 0.85:
             return False

@@ -9,6 +9,7 @@ from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
 from nexus.core.context import ContextBuilder
+from nexus.core.plan import project_plan
 from nexus.core.types import (
     ExecutionContext,
     Json,
@@ -65,9 +66,9 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         )
         assert session.run_id != first_run
         assert session.messages[: len(history)] == history
-        assert [m.content for m in model.requests[2]] == [
-            "system + root repository rules",
-            "Task B",
+        assert model.requests[2] == [
+            project_plan(session, [session.messages[0]])[0],
+            session.messages[len(history)],
         ]
         assert all("Task A" not in m.content for m in model.requests[3])
         assert "Task B observation" in model.requests[3][-1].content

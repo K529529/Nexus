@@ -19,7 +19,7 @@ from nexus.core.model import ChatModel
 from nexus.core.observations import provenance
 from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
-from nexus.tools.registry import native_tools
+from nexus.tools.registry import default_tools
 
 
 class Conversation:
@@ -31,7 +31,7 @@ class Conversation:
         *,
         home: Path | None = None,
         resume: Path | None = None,
-        registry: dict[str, Tool] | None = None,
+        registry: dict[str, Tool] | Callable[[Session], dict[str, Tool]] | None = None,
         environment_display: tuple[str, str] | None = None,
     ) -> None:
         self.workspace = workspace.resolve()
@@ -42,14 +42,15 @@ class Conversation:
         self.warnings: list[str] = []
         self.resumed = resume is not None
         self.model: ChatModel | None = None
-        self.base_registry = dict(registry) if registry is not None else native_tools()
-        self.registry = dict(self.base_registry)
         self.environment_display = environment_display
         self.resources = AsyncExitStack()
         self.unavailable: list[str] = []
         self.closed = False
         if resume:
             self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
+        resolved = registry(self.session) if callable(registry) else registry
+        self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
+        self.registry = dict(self.base_registry)
 
     async def turn(self, text: str) -> RunResult:
         if self.closed:

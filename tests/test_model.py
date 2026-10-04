@@ -330,7 +330,8 @@ async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> Non
         assert "PRIVATE_REASONING" not in json.dumps([r["data"] for r in records])
         assert "PRIVATE_REASONING" not in json.dumps([asdict(event) for event in public])
         restored = replay(records, tmp_path)
-        assert builder.build_active_context(restored, "run") == active
+        restored_context = builder.build_active_context(restored, "run")
+        assert context.project(restored, restored_context).messages == active
     finally:
         writer.close()
         await model.close()

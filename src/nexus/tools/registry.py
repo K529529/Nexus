@@ -1,8 +1,9 @@
-"""Two native tools and explicitly configured MCP tools share one dictionary."""
+"""Coding tools, session progress and configured MCP tools share one dictionary."""
 
-from nexus.core.types import Tool, ToolSpec
+from nexus.core.types import Session, Tool, ToolSpec
 from nexus.tools.execution import execute
 from nexus.tools.patch import apply_patch
+from nexus.tools.plan import create_update_plan_tool
 
 EXEC_SPEC = ToolSpec(
     "exec_command",
@@ -39,3 +40,11 @@ PATCH_SPEC = ToolSpec(
 
 def native_tools() -> dict[str, Tool]:
     return {"exec_command": Tool(EXEC_SPEC, execute), "apply_patch": Tool(PATCH_SPEC, apply_patch)}
+
+
+def default_tools(session: Session, coding_tools: dict[str, Tool] | None = None) -> dict[str, Tool]:
+    """Shared assembly for local and eval execution environments."""
+    return {
+        **(native_tools() if coding_tools is None else coding_tools),
+        "update_plan": create_update_plan_tool(session),
+    }

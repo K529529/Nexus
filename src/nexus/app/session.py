@@ -13,7 +13,17 @@ from typing import BinaryIO
 
 from nexus import __version__
 from nexus.core.context import ContextBuilder
-from nexus.core.types import Json, Message, ModelError, RuntimeEvent, Session, ToolResult, json_text
+from nexus.core.plan import plan_data, validate_plan
+from nexus.core.types import (
+    Json,
+    Message,
+    ModelError,
+    PlanState,
+    RuntimeEvent,
+    Session,
+    ToolResult,
+    json_text,
+)
 
 
 class SessionError(RuntimeError):
@@ -87,6 +97,8 @@ def replay(records: list[Json], workspace: Path) -> Session:
     if header["data"].get("workspace") != workspace_path(workspace):
         raise SessionError("Session belongs to another workspace")
     session = Session(workspace.resolve(), header["session_id"])
+    committed_plans: set[tuple[str, str]] = set()
+    started_tool: tuple[str | None, object, object] | None = None
     try:
         for record in records[1:]:
             data = record["data"]
@@ -94,7 +106,10 @@ def replay(records: list[Json], workspace: Path) -> Session:
             if run_id is not None and (not isinstance(run_id, str) or not run_id):
                 raise SessionError("Invalid run id")
             if record["kind"] == "run_started":
+                if run_id != session.run_id:
+                    session.plan = None
                 session.run_id = session.resume_run_id = run_id
+                started_tool = None
             elif record["kind"] == "run_finished" and run_id == session.run_id:
                 if data.get("outcome") == "completed":
                     session.resume_run_id = None
@@ -118,6 +133,46 @@ def replay(records: list[Json], workspace: Path) -> Session:
                 session.messages = [Message("system", data["content"], seq=record["seq"])] + [
                     m for m in session.messages if m.role != "system"
                 ]
+            elif record["kind"] == "tool_started":
+                started_tool = (run_id, data.get("call_id"), data.get("name"))
+            elif record["kind"] == "tool_finished":
+                started_tool = None
+            elif record["kind"] == "plan_updated":
+                call_id = data.get("call_id")
+                if (
+                    run_id is None
+                    or run_id != session.run_id
+                    or run_id != session.resume_run_id
+                    or not isinstance(call_id, str)
+                    or not call_id
+                    or type(data.get("step")) is not int
+                    or data["step"] < 1
+                    or "explanation" not in data
+                    or started_tool != (run_id, call_id, "update_plan")
+                    or (run_id, call_id) in committed_plans
+                ):
+                    raise SessionError("Invalid plan_updated run/call/step")
+                # Match the next unpaired call in the current sequential batch.
+                pending = []
+                for message in session.messages:
+                    if message.run_id != run_id:
+                        continue
+                    if message.tool_calls:
+                        pending = list(message.tool_calls)
+                    elif message.role == "tool" and pending:
+                        pending.pop(0)
+                if not pending or pending[0].id != call_id or pending[0].name != "update_plan":
+                    raise SessionError("Invalid plan_updated tool association")
+                try:
+                    items, _ = validate_plan(
+                        {"plan": data.get("plan"), "explanation": data["explanation"]}
+                    )
+                except ValueError as exc:
+                    raise SessionError(f"Invalid plan_updated: {exc}") from None
+                if plan_data(items) != data["plan"]:
+                    raise SessionError("Invalid plan_updated: plan is not normalized")
+                session.plan = PlanState(run_id, items)
+                committed_plans.add((run_id, call_id))
             elif record["kind"] == "context_compacted" and data.get("scope") == "run":
                 if run_id is None or run_id != session.run_id:
                     raise SessionError("Invalid compaction run")
@@ -241,6 +296,7 @@ def resume_session(
                 run_id=session.run_id,
                 resume_run_id=session.resume_run_id,
                 compactions=session.compactions,
+                plan=session.plan,
             )
             writer = SessionLog.create(
                 fresh,

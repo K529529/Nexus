@@ -12,6 +12,7 @@ from nexus.app.events import Events
 from nexus.app.session import SessionError, SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
 from nexus.core.context import Context, ContextBuilder, estimate, groups
+from nexus.core.plan import project_plan
 from nexus.core.types import (
     Emit,
     Limits,
@@ -123,7 +124,8 @@ async def test_threshold_compaction_is_non_destructive_and_run_scoped(history: H
     new = ScriptedModel([reply(text="New independent answer")])
     result = await run_turn(session, "New independent task", new, {}, events, Limits())
     assert result.outcome == "completed"
-    assert [m.content for m in new.requests[0]] == ["repository rules", "New independent task"]
+    assert new.requests[0][0] == project_plan(session, [session.messages[0]])[0]
+    assert [m.content for m in new.requests[0][1:]] == ["New independent task"]
     assert session.messages[: len(original)] == original
 
 
@@ -142,7 +144,7 @@ async def test_summary_input_preserves_interleaved_resume_message_order(history:
     # Only the last two complete tool groups are excluded from summary input.
     # The resume request must remain between the earlier and later tool history.
     summary_history = model.requests[0][:-1]
-    assert summary_history == before[:-4]
+    assert summary_history == project_plan(session, before[:-4])
     assert summary_history.index(resume_request) == before.index(resume_request)
     assert summary_history[-2].tool_calls[0].id == "after_resume"
     assert model.requests[0][-1].content.startswith("Summarize the earlier conversation")
@@ -157,7 +159,7 @@ async def test_exact_threshold_uses_reported_input_not_cumulative_usage(
 ) -> None:
     session, _, events = history
     context = Context(Limits(context_window=11524, max_output_tokens=500))
-    messages = active(session)
+    messages = context.project(session, active(session)).messages
     context.tokens(messages, [])  # Establish the schema/prefix before calibration.
     response = reply(text="earlier reply")
     response.usage = Usage(input_tokens, 20, 1_000_000, "reported")
@@ -206,7 +208,7 @@ async def test_repeated_compaction_and_interrupted_resume(
             restored, "Continue", model, {}, Events(restored, recovered_writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
-        assert model.requests[0][:-1] == recovered
+        assert model.requests[0][:-1] == project_plan(restored, recovered)
         assert "old observation " * 500 not in str([m.public() for m in model.requests[0]])
         records, _ = read_records(recovered_writer.stream)
         assert active(replay(records, session.workspace)) == active(restored)

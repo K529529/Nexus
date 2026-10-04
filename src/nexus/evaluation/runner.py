@@ -19,6 +19,7 @@ from nexus.evaluation.cases import SUITE, EvalCase, load_case
 from nexus.evaluation.environment import CleanupError, Docker, Environment, EnvironmentError
 from nexus.evaluation.report import implementation_identity, public_url, save_report, write_json
 from nexus.evaluation.validation import validate
+from nexus.tools.registry import default_tools
 
 
 def empty_result(case: EvalCase, run_id: str) -> Json:
@@ -70,7 +71,7 @@ async def run_case(
             evaluation_config,
             consume,
             home=output / "session",
-            registry=env.registry(),
+            registry=lambda session: default_tools(session, env.registry()),
             environment_display=("Linux", "/workspace"),
         )
         outcome = await conversation.turn(case.task.read_text(encoding="utf-8"))

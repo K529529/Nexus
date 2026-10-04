@@ -11,6 +11,7 @@ from uuid import uuid4
 
 Json = dict[str, Any]
 Outcome = Literal["completed", "limited", "aborted", "failed"]
+PlanStatus = Literal["pending", "in_progress", "completed"]
 
 
 def json_text(value: Any) -> str:
@@ -157,6 +158,19 @@ class Session:
     # Set only by explicit resume; ordinary turns always start an independent run.
     resume_run_id: str | None = None
     compactions: dict[str, ContextSnapshot] = field(default_factory=dict)
+    plan: PlanState | None = None
+
+
+@dataclass(frozen=True)
+class PlanItem:
+    step: str
+    status: PlanStatus
+
+
+@dataclass(frozen=True)
+class PlanState:
+    run_id: str
+    items: tuple[PlanItem, ...]
 
 
 @dataclass

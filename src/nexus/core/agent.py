@@ -58,6 +58,8 @@ async def run_turn(
 ) -> RunResult:
     started = time.monotonic()
     session.run_id = session.resume_run_id or uuid4().hex
+    if session.plan is not None and session.plan.run_id != session.run_id:
+        session.plan = None
     result = RunResult("failed")
     pending: list[ToolCall] = []
     active: ToolCall | None = None
@@ -65,7 +67,13 @@ async def run_turn(
     usages: list[Usage] = []
 
     async def observed(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
-        if kind in {"model_started", "model_finished", "tool_started", "tool_finished"}:
+        if kind in {
+            "model_started",
+            "model_finished",
+            "tool_started",
+            "tool_finished",
+            "plan_updated",
+        }:
             data = {**data, "step": result.steps}
         if kind == "model_started":
             result.model_calls += 1

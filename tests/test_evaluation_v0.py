@@ -208,6 +208,10 @@ async def test_runner_disables_mcp_and_keeps_limited_separate_from_pass(
             pass
 
     class Model(ScriptedModel):
+        async def complete(self, messages: Any, tools: Any, emit: Any) -> Any:
+            assert "update_plan" in {tool.name for tool in tools}
+            return await super().complete(messages, tools, emit)
+
         async def close(self) -> None:
             if cleanup_failure == "conversation":
                 raise RuntimeError("fixture cleanup failure")
