@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 import platform
-from dataclasses import asdict
+from copy import deepcopy
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from nexus.core.observations import Projection, hot_tool_seqs, project
@@ -161,6 +162,19 @@ class ContextBuilder:
         session.compactions[run_id] = ContextSnapshot(updated, seq)
 
 
+def project_guidance(messages: list[Message], guidance: str | None) -> list[Message]:
+    """Append request-only guidance to a copy; callers rebuild from logical history."""
+    if not guidance:
+        return list(messages)
+    anchor = next((m for m in messages if m.role == "system"), None)
+    if anchor is None:
+        anchor = next((m for m in messages if m.role == "user"), None)
+    return [
+        replace(deepcopy(m), content=m.content + "\n\n" + guidance) if m is anchor else m
+        for m in messages
+    ]
+
+
 class Context:
     def __init__(self, limits: Limits) -> None:
         self.budget = limits.context_window - limits.max_output_tokens - 1024
@@ -202,10 +216,13 @@ class Context:
         emit: Emit,
         *,
         force: bool = False,
+        guidance: str | None = None,
     ) -> bool:
         """Attempt safety compaction once at this boundary; return whether attempted."""
         active = self.project(session, active).messages
-        original = self.tokens(active, tools)
+        # Capacity uses the task request, while summary input below stays guidance-free.
+        task_context = project_guidance(active, guidance)
+        original = self.tokens(task_context, tools)
         if not force and original < self.budget * 0.85:
             return False
         assert session.run_id is not None
@@ -218,7 +235,7 @@ class Context:
         }
         prefix = [m for m in active if m.seq in protected]
         protected = protected_seqs(session, active, session.run_id)
-        self.check([m for m in active if m.seq in protected], tools)
+        self.check(project_guidance([m for m in active if m.seq in protected], guidance), tools)
         request = Message(
             "user",
             "Summarize the earlier conversation as historical data: user goal, constraints, "
@@ -269,8 +286,10 @@ class Context:
             kept = [m for m in logical if m.seq not in removed]
             insertion = next(i for i, m in enumerate(active) if m.seq in removed)
             updated = kept[:insertion] + [summary] + kept[insertion:]
-            after = estimate(self.project(session, updated).messages, tools)
-            if after > self.budget or after >= estimate(active, tools):
+            after = estimate(
+                project_guidance(self.project(session, updated).messages, guidance), tools
+            )
+            if after > self.budget or after >= estimate(task_context, tools):
                 raise ModelError("compaction_failed", "Summary cannot reduce context within budget")
         except ModelError:
             if original > self.budget or force:

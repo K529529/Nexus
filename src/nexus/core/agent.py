@@ -8,7 +8,8 @@ import time
 from dataclasses import asdict
 from uuid import uuid4
 
-from nexus.core.context import Context, ContextBuilder
+from nexus.core.context import Context, ContextBuilder, project_guidance
+from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -60,6 +61,8 @@ async def run_turn(
     session.run_id = session.resume_run_id or uuid4().hex
     if session.plan is not None and session.plan.run_id != session.run_id:
         session.plan = None
+    detector = StagnationDetector(session)
+    pending_guidance: str | None = None
     result = RunResult("failed")
     pending: list[ToolCall] = []
     active: ToolCall | None = None
@@ -73,6 +76,7 @@ async def run_turn(
             "tool_started",
             "tool_finished",
             "plan_updated",
+            "stagnation_nudge",
         }:
             data = {**data, "step": result.steps}
         if kind == "model_started":
@@ -80,6 +84,11 @@ async def run_turn(
         if kind == "model_finished" and "usage" in data:
             usages.append(Usage(**data["usage"]))
         return await emit(kind, data, protocol_data=protocol_data)
+
+    async def task_events(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
+        if kind == "model_started" and pending_guidance:
+            data = {**data, "stagnation_nudge_included": True}
+        return await observed(kind, data, protocol_data=protocol_data)
 
     async def record_tool(value: ToolResult) -> None:
         message = value.message()
@@ -117,20 +126,33 @@ async def run_turn(
             result.steps = step
             specs = [t.spec for t in registry.values()]
             active_context, _ = projected_context()
-            attempted = await context.prepare(session, active_context, specs, model, observed)
+            attempted = await context.prepare(
+                session, active_context, specs, model, observed, guidance=pending_guidance
+            )
             active_context, diagnostics = projected_context()
+            active_context = project_guidance(active_context, pending_guidance)
             context.check(active_context, specs)
             await observed("context_projection", {**diagnostics, "step": step})
             try:
-                reply = await model.complete(active_context, specs, observed)
+                reply = await model.complete(active_context, specs, task_events)
             except ModelError as exc:
                 if exc.code != "context_limit" or attempted:
                     raise
-                await context.prepare(session, active_context, specs, model, observed, force=True)
+                normal_context, _ = projected_context()
+                await context.prepare(
+                    session,
+                    normal_context,
+                    specs,
+                    model,
+                    observed,
+                    force=True,
+                    guidance=pending_guidance,
+                )
                 active_context, diagnostics = projected_context()
+                active_context = project_guidance(active_context, pending_guidance)
                 context.check(active_context, specs)
                 await observed("context_projection", {**diagnostics, "step": step})
-                reply = await model.complete(active_context, specs, observed)
+                reply = await model.complete(active_context, specs, task_events)
             context.observe(reply, active_context, specs)
             valid_reply(reply.message, reply.finish_reason)
             prior_ids = {
@@ -138,11 +160,13 @@ async def run_turn(
             }
             if any(call.id in prior_ids for call in reply.message.tool_calls):
                 raise ModelError("duplicate_tool_id")
+            pending_guidance = None
             await append_message(session, reply.message, observed)
             if not reply.message.tool_calls:
                 result.outcome, result.final_text = "completed", reply.message.content
                 break
             pending = list(reply.message.tool_calls)
+            batch: list[tuple[ToolCall, ToolResult]] = []
             while pending:
                 active = pending.pop(0)
                 await observed(
@@ -178,10 +202,17 @@ async def run_turn(
                 if value.call_id != active.id:
                     raise RuntimeError("Tool returned mismatched call_id")
                 await record_tool(value)
+                batch.append((active, value))
                 active = None
                 if value.error_code == "cleanup_incomplete":
                     raise RuntimeError("cleanup_incomplete")
             pending = []
+            nudge = detector.observe_completed_step(
+                session, batch, step=step, max_steps=limits.max_steps
+            )
+            if nudge is not None:
+                await observed("stagnation_nudge", nudge)
+                pending_guidance = GUIDANCE
         else:
             result.outcome, result.reason = "limited", "max_steps"
     except ToolCancelled as exc:
