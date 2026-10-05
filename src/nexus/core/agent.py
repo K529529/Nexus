@@ -8,7 +8,7 @@ import time
 from dataclasses import asdict
 from uuid import uuid4
 
-from nexus.core.context import Context, ContextBuilder, project_guidance
+from nexus.core.context import Context, ContextBuilder, execution_budget
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
@@ -124,13 +124,14 @@ async def run_turn(
 
         for step in range(1, limits.max_steps + 1):
             result.steps = step
+            context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
             active_context, _ = projected_context()
             attempted = await context.prepare(
                 session, active_context, specs, model, observed, guidance=pending_guidance
             )
             active_context, diagnostics = projected_context()
-            active_context = project_guidance(active_context, pending_guidance)
+            active_context = context.task_request(active_context, pending_guidance)
             context.check(active_context, specs)
             await observed("context_projection", {**diagnostics, "step": step})
             try:
@@ -149,7 +150,7 @@ async def run_turn(
                     guidance=pending_guidance,
                 )
                 active_context, diagnostics = projected_context()
-                active_context = project_guidance(active_context, pending_guidance)
+                active_context = context.task_request(active_context, pending_guidance)
                 context.check(active_context, specs)
                 await observed("context_projection", {**diagnostics, "step": step})
                 reply = await model.complete(active_context, specs, task_events)

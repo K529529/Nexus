@@ -12,7 +12,14 @@ from nexus.app.events import Events
 from nexus.app.profile import RunProfiler, profile_metrics
 from nexus.app.session import SessionLog, read_records, replay
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, ContextBuilder, estimate, groups, protected_seqs
+from nexus.core.context import (
+    Context,
+    ContextBuilder,
+    estimate,
+    execution_budget,
+    groups,
+    protected_seqs,
+)
 from nexus.core.observations import compact, hot_tool_seqs, provenance
 from nexus.core.types import (
     Emit,
@@ -403,6 +410,7 @@ async def test_final_context_rebuilt_projected_checked_observed_and_profiled(
     # Narrative forces safety compaction even after COLD tools have been projected.
     session.messages[2].content = "earlier narrative " * 700
     ctx = context(9000)
+    ctx.execution_budget = execution_budget(1, 40)
     limits = Limits(context_window=(9000 if fallback else 5500) + 1524, max_output_tokens=500)
     captured = recorder(session)
     original = deepcopy(session.messages)
@@ -436,7 +444,7 @@ async def test_final_context_rebuilt_projected_checked_observed_and_profiled(
             if fallback and len(requests) == 1:
                 raise ModelError("context_limit")
             assert any(m.content.startswith("[Historical") for m in messages)
-            assert messages == ctx.project(session, active(session)).messages
+            assert messages == ctx.task_request(ctx.project(session, active(session)).messages)
             return reply(text="done")
 
     result = await run_turn(session, "continue", Provider(), {}, captured, limits)

@@ -10,7 +10,7 @@ import pytest
 
 from nexus.app.session import read_records, replay
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, ContextBuilder, estimate, groups
+from nexus.core.context import Context, ContextBuilder, estimate, execution_budget, groups
 from nexus.core.plan import SNAPSHOT_HEADER, plan_data
 from nexus.core.types import (
     Emit,
@@ -184,6 +184,10 @@ async def test_safety_summary_rebuild_fallback_and_budget_share_plan(
         assert session.plan is plan and session.messages[: len(original)] == original
         summary_input, final_input = model.requests[-2:]
         assert summary_input[-1].content.startswith("Summarize the earlier conversation")
+        assert all("Execution budget" not in m.content for m in summary_input)
+        assert execution_budget(1, 40) in final_input[0].content
+        if fallback:
+            assert execution_budget(1, 40) in model.requests[0][0].content
         for request in model.requests:
             groups(request)
             assert estimate(request, []) <= Context(limits).budget
@@ -196,6 +200,7 @@ async def test_safety_summary_rebuild_fallback_and_budget_share_plan(
             assert compacted["before_estimate"] > size
         assert compacted["after_estimate"] == estimate(final_input, [])
         assert SNAPSHOT_HEADER not in json.dumps(records)
+        assert "Execution budget" not in json.dumps(records)
         restored = replay(records, tmp_path)
         assert restored.plan == plan
         for message in final_input:

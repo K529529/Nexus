@@ -11,7 +11,14 @@ import pytest
 from nexus.app.events import Events
 from nexus.app.session import SessionError, SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, ContextBuilder, estimate, groups
+from nexus.core.context import (
+    Context,
+    ContextBuilder,
+    estimate,
+    execution_budget,
+    groups,
+    project_guidance,
+)
 from nexus.core.plan import project_plan
 from nexus.core.types import (
     Emit,
@@ -124,7 +131,12 @@ async def test_threshold_compaction_is_non_destructive_and_run_scoped(history: H
     new = ScriptedModel([reply(text="New independent answer")])
     result = await run_turn(session, "New independent task", new, {}, events, Limits())
     assert result.outcome == "completed"
-    assert new.requests[0][0] == project_plan(session, [session.messages[0]])[0]
+    assert (
+        new.requests[0][0]
+        == project_guidance(project_plan(session, [session.messages[0]]), execution_budget(1, 40))[
+            0
+        ]
+    )
     assert [m.content for m in new.requests[0][1:]] == ["New independent task"]
     assert session.messages[: len(original)] == original
 
@@ -208,7 +220,9 @@ async def test_repeated_compaction_and_interrupted_resume(
             restored, "Continue", model, {}, Events(restored, recovered_writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
-        assert model.requests[0][:-1] == project_plan(restored, recovered)
+        assert model.requests[0][:-1] == project_guidance(
+            project_plan(restored, recovered), execution_budget(1, 40)
+        )
         assert "old observation " * 500 not in str([m.public() for m in model.requests[0]])
         records, _ = read_records(recovered_writer.stream)
         assert active(replay(records, session.workspace)) == active(restored)

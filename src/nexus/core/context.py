@@ -36,6 +36,12 @@ Investigate beyond the relevant code only to answer a concrete question needed f
 or its tests.
 
 After editing, run checks for the requested behavior and fix problems caused by your changes.
+After relevant checks pass, repeat or expand validation only for subsequent edits, new failures,
+an unmet requirement, or a concrete regression risk.
+Preserve test exit status when filtering output, and distinguish code failures from missing test
+infrastructure.
+If required checks are blocked by unavailable infrastructure, use a relevant local check if
+possible, then report the limitation instead of repeatedly investigating the environment.
 Once that behavior works, relevant checks pass, and no known task-related problem remains,
 stop using tools and respond.
 
@@ -175,12 +181,27 @@ def project_guidance(messages: list[Message], guidance: str | None) -> list[Mess
     ]
 
 
+def execution_budget(step: int, max_steps: int) -> str:
+    return (
+        "Execution budget (current execution window):\n"
+        f"Current model turn: {step} / {max_steps}\n"
+        f"Remaining model turns, including this one: {max_steps - step + 1}\n"
+        "Tool calls need a subsequent model turn to inspect their results and respond.\n"
+        "This is a limit, not a target; finish earlier when the task is done."
+    )
+
+
 class Context:
     def __init__(self, limits: Limits) -> None:
         self.budget = limits.context_window - limits.max_output_tokens - 1024
         self.last_estimate: int | None = None
         self.last_report: int | None = None
         self.schema_prefix = ""
+        self.execution_budget: str | None = None
+
+    def task_request(self, messages: list[Message], guidance: str | None = None) -> list[Message]:
+        extra = "\n\n".join(text for text in (guidance, self.execution_budget) if text)
+        return project_guidance(messages, extra)
 
     def project(self, session: Session, logical: list[Message]) -> Projection:
         projection = project(session, logical, self.budget, lambda m: estimate([m], []))
@@ -189,9 +210,13 @@ class Context:
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)
-        key = json_text([asdict(t) for t in tools]) + json_text(
-            [m.public() for m in messages if m.role == "system"]
-        )
+        prefix = [m.public() for m in messages if m.role == "system"]
+        if self.execution_budget:
+            # The changing counter must not invalidate calibration every turn. Only the exact
+            # generated suffix is excluded from the cache key; its full cost is estimated above.
+            for message in prefix:
+                message["content"] = message["content"].removesuffix("\n\n" + self.execution_budget)
+        key = json_text([asdict(t) for t in tools]) + json_text(prefix)
         if key != self.schema_prefix:
             self.last_estimate = self.last_report = None
             self.schema_prefix = key
@@ -221,7 +246,7 @@ class Context:
         """Attempt safety compaction once at this boundary; return whether attempted."""
         active = self.project(session, active).messages
         # Capacity uses the task request, while summary input below stays guidance-free.
-        task_context = project_guidance(active, guidance)
+        task_context = self.task_request(active, guidance)
         original = self.tokens(task_context, tools)
         if not force and original < self.budget * 0.85:
             return False
@@ -235,7 +260,7 @@ class Context:
         }
         prefix = [m for m in active if m.seq in protected]
         protected = protected_seqs(session, active, session.run_id)
-        self.check(project_guidance([m for m in active if m.seq in protected], guidance), tools)
+        self.check(self.task_request([m for m in active if m.seq in protected], guidance), tools)
         request = Message(
             "user",
             "Summarize the earlier conversation as historical data: user goal, constraints, "
@@ -287,7 +312,7 @@ class Context:
             insertion = next(i for i, m in enumerate(active) if m.seq in removed)
             updated = kept[:insertion] + [summary] + kept[insertion:]
             after = estimate(
-                project_guidance(self.project(session, updated).messages, guidance), tools
+                self.task_request(self.project(session, updated).messages, guidance), tools
             )
             if after > self.budget or after >= estimate(task_context, tools):
                 raise ModelError("compaction_failed", "Summary cannot reduce context within budget")

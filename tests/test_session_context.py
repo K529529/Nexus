@@ -354,6 +354,12 @@ def test_instructions_include_validation_policy(tmp_path: Path) -> None:
     for principle in (
         "After editing, run checks for the requested behavior "
         "and fix problems caused by your changes",
+        "repeat or expand validation only for subsequent edits, new failures, "
+        "an unmet requirement, or a concrete regression risk",
+        "Preserve test exit status when filtering output",
+        "distinguish code failures from missing test infrastructure",
+        "If required checks are blocked by unavailable infrastructure, use a relevant local "
+        "check if possible, then report the limitation",
         "Once that behavior works, relevant checks pass, "
         "and no known task-related problem remains, stop using tools and respond",
         "Report what changed, what you actually checked, and any remaining limitations",

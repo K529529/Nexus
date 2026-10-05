@@ -12,7 +12,7 @@ import pytest
 from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, estimate, groups, project_guidance
+from nexus.core.context import Context, estimate, execution_budget, groups, project_guidance
 from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.stagnation import (
     GUIDANCE,
@@ -381,8 +381,10 @@ async def test_budget_compaction_retry_delivery_and_calibration(
         tool_result.run_id, tool_result.seq = "run", len(expected.messages) + 1
         expected.messages.append(tool_result)
     normal = Context(Limits()).project(expected, expected.messages).messages
-    base = estimate(normal, specs)
-    with_nudge = estimate(project_guidance(normal, GUIDANCE), specs)
+    context = Context(Limits())
+    context.execution_budget = execution_budget(9, 40)
+    base = estimate(context.task_request(normal), specs)
+    with_nudge = estimate(context.task_request(normal, GUIDANCE), specs)
     budget = with_nudge * 3 if fallback else (base + with_nudge) // 2
     assert fallback or base < budget < with_nudge
 
@@ -435,15 +437,18 @@ async def test_budget_compaction_retry_delivery_and_calibration(
         ms for ms in model.requests if ms[-1].content.startswith("Summarize the earlier")
     ]
     assert len(summary_requests) == 1 and not has_guidance(summary_requests[0])
+    assert all("Execution budget" not in m.content for m in summary_requests[0])
     task_requests = [ms for ms in model.requests if ms not in summary_requests]
     nudged_requests = [ms for ms in task_requests if has_guidance(ms)]
     assert len(nudged_requests) == 1 + int(fallback)
     for request in nudged_requests:
         assert sum(m.content.count(GUIDANCE) for m in request) == 1
         assert sum(m.content.count(SNAPSHOT_HEADER) for m in request) == 1
+        assert sum(m.content.count(execution_budget(9, 40)) for m in request) == 1
         groups(request)
     assert len(observed) == 10 and observed[8] == nudged_requests[-1]
     assert not has_guidance(observed[9])
+    assert execution_budget(10, 40) in observed[9][0].content
     assert estimate(nudged_requests[-1], specs) <= budget
     assert not has_guidance(session.messages)
     assert all(not has_guidance(snapshot.messages) for snapshot in session.compactions.values())
@@ -498,6 +503,8 @@ async def test_actual_mock_api_request_preserves_reasoning_and_consumes_nudge(
         content = request["messages"][0]["content"]
         assert content.count(GUIDANCE) == int(index == 9)
         assert content.count(SNAPSHOT_HEADER) == 1
+        assert content.count("Execution budget") == 1
+        assert execution_budget(index, 40) in content
     assistants = [m for m in requests[8]["messages"] if m["role"] == "assistant"]
     assert [m["reasoning_content"] for m in assistants] == [f"PRIVATE_{i}" for i in range(1, 9)]
     assert not has_guidance(session.messages)
@@ -548,8 +555,10 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
         .project(session, session.messages + [Message("user", "continue", seq=2, run_id="run")])
         .messages
     )
-    base = estimate(projected, specs)
-    total = estimate(project_guidance(projected, GUIDANCE), specs)
+    context = Context(Limits())
+    context.execution_budget = execution_budget(9, 40)
+    base = estimate(context.task_request(projected), specs)
+    total = estimate(context.task_request(projected, GUIDANCE), specs)
     budget = (base + total) // 2
     model = ScriptedModel(reads(8) + [reply(text="must not request")])
     result = await run_turn(

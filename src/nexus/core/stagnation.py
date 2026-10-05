@@ -17,6 +17,10 @@ If the task is analysis-only and you have enough evidence to answer, stop option
 exploration and respond.
 If more investigation is genuinely necessary, identify the concrete unresolved blocker
 before continuing.
+Treat a proposed cause as a hypothesis; test it against the observed behavior with the
+smallest distinguishing local check.
+If external references or the exact test environment are unavailable, use a local check
+of the same behavior rather than repeating failed lookups without a new lead.
 Avoid optional exploration that does not advance the task."""
 
 
