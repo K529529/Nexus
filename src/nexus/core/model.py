@@ -106,11 +106,21 @@ class ChatModel:
                     usage = Usage()
                     async for chunk in stream:
                         if chunk.usage is not None:
+                            details = getattr(chunk.usage, "prompt_tokens_details", None)
+                            cached = getattr(details, "cached_tokens", None)
+                            if (
+                                type(cached) is not int
+                                or cached < 0
+                                or type(chunk.usage.prompt_tokens) is not int
+                                or cached > chunk.usage.prompt_tokens
+                            ):
+                                cached = None
                             usage = Usage(
                                 chunk.usage.prompt_tokens,
                                 chunk.usage.completion_tokens,
                                 chunk.usage.total_tokens,
                                 "reported",
+                                cached,
                             )
                         if not chunk.choices:
                             continue

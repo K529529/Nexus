@@ -259,7 +259,7 @@ async def run_turn(
                 if complete_usage and all(getattr(u, field) is not None for u in usages)
                 else None
             )
-            for field in ("input_tokens", "output_tokens", "total_tokens")
+            for field in ("input_tokens", "output_tokens", "total_tokens", "cached_input_tokens")
         },
         source="reported"
         if complete_usage and all(u.source == "reported" for u in usages)

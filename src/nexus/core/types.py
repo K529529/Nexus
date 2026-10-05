@@ -90,6 +90,8 @@ class Usage:
     output_tokens: int | None = None
     total_tokens: int | None = None
     source: str = "unknown"
+    # A subset of input_tokens, not additional usage. Missing is unknown, not zero.
+    cached_input_tokens: int | None = None
 
 
 @dataclass

@@ -80,7 +80,7 @@ def test_profile_export_uses_existing_unknown_semantics() -> None:
             "coverage": sum(getattr(m, name) is not None for m in profile.models),
             "calls": 4,
         }
-        for name in ("input_tokens", "output_tokens", "total_tokens")
+        for name in ("input_tokens", "output_tokens", "total_tokens", "cached_input_tokens")
     }
     assert data["retries"] == 1 and data["compaction_calls"] == 1
 

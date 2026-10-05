@@ -34,6 +34,7 @@ class ModelCall:
     output_tokens: int | None = None
     total_tokens: int | None = None
     duration_ms: int | None = None
+    cached_input_tokens: int | None = None
 
 
 @dataclass
@@ -138,6 +139,9 @@ class RunProfiler:
                 call.input_tokens = integer(usage.get("input_tokens"))
                 call.output_tokens = integer(usage.get("output_tokens"))
                 call.total_tokens = integer(usage.get("total_tokens"))
+                cached = integer(usage.get("cached_input_tokens"))
+                if cached is not None and call.input_tokens is not None:
+                    call.cached_input_tokens = cached if cached <= call.input_tokens else None
             self.pending = None
         elif kind == "tool_started":
             profile.tools[data["call_id"]] = ToolCall(step, data["name"], started=True)
@@ -204,6 +208,11 @@ def render_profile(profile: RunProfile, console: Console, budget: int, path: Pat
         marker = "≥ " if value is not None and profile.usage_coverage < len(profile.models) else ""
         row(f"  {label}", marker + count(value))
     row("  Usage coverage", f"{profile.usage_coverage} / {len(profile.models)} calls")
+    cached_coverage = sum(m.cached_input_tokens is not None for m in profile.models)
+    cached = profile.tokens("cached_input_tokens")
+    marker = "≥ " if cached is not None and cached_coverage < len(profile.models) else ""
+    row("  Cached input (subset)", marker + count(cached))
+    row("  Cache coverage", f"{cached_coverage} / {len(profile.models)} calls")
     first, peak, final = profile.context_inputs
     row("Active context (normal completions)", "")
     for label, value in [
@@ -333,7 +342,7 @@ def profile_metrics(profile: RunProfile) -> dict[str, object]:
                 "coverage": sum(getattr(m, name) is not None for m in profile.models),
                 "calls": len(profile.models),
             }
-            for name in ("input_tokens", "output_tokens", "total_tokens")
+            for name in ("input_tokens", "output_tokens", "total_tokens", "cached_input_tokens")
         },
         "first_context": first,
         "peak_context": peak,
