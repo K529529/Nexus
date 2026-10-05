@@ -357,7 +357,7 @@ async def test_real_mcp_sigint_then_another_turn_and_close(
 def test_prompt_describes_two_native_tools() -> None:
     text = " ".join(SYSTEM.split())
     assert "Use exec_command to inspect and run checks" in text
-    assert "unified-diff apply_patch to edit" in text
+    assert "and apply_patch to edit" in text
     assert set(native_tools()) == {"exec_command", "apply_patch"}
 
 

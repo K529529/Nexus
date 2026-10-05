@@ -23,12 +23,22 @@ EXEC_SPEC = ToolSpec(
 )
 PATCH_SPEC = ToolSpec(
     "apply_patch",
-    "Apply a UTF-8 unified diff inside workspace. Use --- a/path and +++ b/path, "
-    "with @@ -old,count +new,count @@ hunks; /dev/null for add/delete. No rename, "
-    "binary, mode changes or Codex Begin Patch syntax. Example:\n"
-    "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n"
-    "New file example (no extra blank lines outside hunks):\n"
-    "--- /dev/null\n+++ b/new.py\n@@ -0,0 +1 @@\n+pass\n",
+    "Edit UTF-8 text files inside the workspace with Nexus patch format.\n\n"
+    "Example:\n"
+    "*** Begin Patch\n"
+    "*** Update File: src/app.py\n@@ def run():\n-old()\n+new()\n"
+    "*** Add File: tests/new_case.txt\n+fixture\n"
+    "*** Delete File: obsolete.txt\n*** End Patch\n\n"
+    "Use workspace-relative paths. Each path may appear only once; for multiple edits "
+    "in one file, use multiple @@ chunks under one Update File.\n\n"
+    "Update body lines start with one space for unchanged context, '-' for removed text, "
+    "or '+' for added text. A bare blank line inside an Update chunk is empty unchanged "
+    "context.\n\n"
+    "An @@ anchor only sets where searching begins; it does not define a function/class "
+    "scope. Include enough unchanged/removed context to identify the intended old block "
+    "uniquely. For later chunks use bare @@ or a later anchor.\n\n"
+    "Do not provide line numbers or hunk counts. No rename, binary, mode-change, or "
+    "absolute-path edits.",
     {
         "type": "object",
         "properties": {"patch": {"type": "string"}},

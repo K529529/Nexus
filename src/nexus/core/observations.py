@@ -112,7 +112,7 @@ def compact(message: Message, tool: str) -> Message:
             if not isinstance(files, list) or type(omitted) is not int or omitted < 0:
                 return message
             facts["omitted_files"] = omitted + len(files)
-            for key in ("changed_files", "no_changes", "failed_file", "detail"):
+            for key in ("changed_files", "no_changes", "failed_file", "failed_hunk", "detail"):
                 if key in data:
                     put(key, data[key])
             visible: list[Json] = []

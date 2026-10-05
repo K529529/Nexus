@@ -1,4 +1,4 @@
-"""Strict workspace-confined unified diffs; atomic per file, not per batch."""
+"""Workspace-confined Nexus/legacy patches; atomic per file, not per batch."""
 
 from __future__ import annotations
 
@@ -13,15 +13,17 @@ from dataclasses import dataclass, field
 from pathlib import Path, PureWindowsPath
 
 from nexus.core.types import Emit, ExecutionContext, Json, ToolResult, json_text
+from nexus.tools.patch_format import (
+    MAX_ERROR_DETAIL_BYTES,
+    FilePatch,
+    PatchError,
+    bounded_text,
+    parse_nexus_patch,
+    resolve_update,
+)
 
 MAX_BYTES = 1024 * 1024
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)$")
-
-
-class PatchError(ValueError):
-    def __init__(self, code: str, detail: str) -> None:
-        self.code = code
-        super().__init__(detail)
 
 
 @dataclass
@@ -40,6 +42,7 @@ class Change:
     before: bytes | None = None
     after: bytes | None = None
     mode: int | None = None
+    nexus: FilePatch | None = None
 
 
 def _name(header: str, prefix: str) -> str | None:
@@ -56,6 +59,18 @@ def parse_patch(patch: str) -> list[Change]:
         raise PatchError("unsupported_patch", "Binary patch content")
     if len(patch.encode("utf-8")) > MAX_BYTES:
         raise PatchError("patch_too_large", "Patch exceeds 1 MiB")
+    leading = patch.splitlines(keepends=True)
+    first_nonblank = next((i for i, line in enumerate(leading) if line.strip()), len(leading))
+    patch = "".join(leading[first_nonblank:])
+    first = patch.split("\n", 1)[0].removesuffix("\r")
+    if first == "*** Begin Patch":
+        return [Change(file.path, file.kind, nexus=file) for file in parse_nexus_patch(patch)]
+    if not first.startswith(("diff --git ", "--- ")):
+        raise PatchError("unsupported_patch", "Unknown patch protocol")
+    return parse_legacy_patch(patch)
+
+
+def parse_legacy_patch(patch: str) -> list[Change]:
     lines = patch.splitlines(keepends=True)
     changes: list[Change] = []
     seen: set[str] = set()
@@ -242,6 +257,7 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
     error: str | None = None
     detail = ""
     failed_file: str | None = None
+    failed_hunk: int | None = None
     try:
         if set(arguments) != {"patch"} or not isinstance(arguments["patch"], str):
             raise PatchError("invalid_arguments", "Expected only patch: string")
@@ -263,8 +279,19 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
                 if b"\0" in change.before:
                     raise PatchError("unsupported_patch", "Binary target")
                 change.mode = stat.S_IMODE(path.stat().st_mode)
-            change.after = apply_hunks(change.before or b"", change.hunks)
-            if change.kind == "deleted":
+            if change.nexus is None:
+                change.after = apply_hunks(change.before or b"", change.hunks)
+            elif change.kind == "modified":
+                change.after = resolve_update(change.before or b"", change.nexus)
+            elif change.kind == "added":
+                change.after = "".join(line + "\n" for line in change.nexus.added).encode("utf-8")
+            else:
+                # Delete still validates text, even though it needs no old-side body.
+                (change.before or b"").decode("utf-8")
+                change.after = None
+            if change.after is not None and len(change.after) > MAX_BYTES:
+                raise PatchError("file_too_large", "Result exceeds 1 MiB")
+            if change.kind == "deleted" and change.nexus is None:
                 if change.after:
                     raise PatchError("patch_conflict", "Deletion does not remove the whole file")
                 change.after = None
@@ -290,6 +317,8 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         failed_file = None
     except PatchError as exc:
         error, detail = exc.code, str(exc)
+        failed_file = exc.path if exc.path is not None else failed_file
+        failed_hunk = exc.hunk
     except UnicodeError:
         error, detail = "unsupported_patch", "Patch and target must be UTF-8 text"
     except OSError as exc:
@@ -318,7 +347,8 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         "partial": bool(error and (facts or created)),
         "no_changes": not error and not facts,
         "failed_file": failed_file,
-        "detail": detail,
+        "failed_hunk": failed_hunk,
+        "detail": bounded_text(detail, MAX_ERROR_DETAIL_BYTES),
     }
     return ToolResult(
         context.call_id,

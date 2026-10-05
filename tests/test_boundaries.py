@@ -54,7 +54,6 @@ async def test_patch_concurrent_change_and_mode_preservation(
 @pytest.mark.parametrize(
     "patch",
     [
-        "*** Begin Patch\n",
         "new file mode 100755\n",
         "--- a/a\n+++ b/b\n@@ -1 +1 @@\n-x\n+y\n",
         "GIT binary patch\n",
