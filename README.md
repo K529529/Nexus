@@ -3,7 +3,8 @@
 [中文](README.zh-CN.md)
 
 A small local coding agent: one hand-written message loop, native function calling,
-and two native tools, `exec_command` and `apply_patch`. The model explores, edits,
+and two native coding tools, `exec_command` and `apply_patch`, plus `update_plan`
+for progress tracking. The model explores, edits,
 runs tests, repairs failures, and decides when to finish. No database or repository
 index is required. Explicitly configured stdio MCP servers can supply additional tools.
 
@@ -43,6 +44,7 @@ api_key_env = "NEXUS_MODEL_API_KEY"
 context_window = 32768
 max_output_tokens = 8192
 include_usage = true
+# request_timeout_seconds = 120  # Entire model response, 1..600 seconds
 # reasoning_effort = "high"
 
 [runtime]
@@ -76,10 +78,16 @@ only the corresponding model fields. Repository `.env` and `.nexus/config.toml`
 are never loaded. Old Nexus configuration sections (including `observability`)
 are unsupported: preserve a backup and remove those sections before using Next.
 
-The tested cloud profile is Alibaba Cloud's direct `deepseek-v4.1-flash`, Chat
+The initial small-task acceptance used `deepseek-v4.1-flash`, Chat
 Completions, `reasoning_effort = "high"`, `context_window = 1000000`, and
 `max_output_tokens = 32768`. Configure the Base URL for your account/region and
 `api_key_env = "DASHSCOPE_API_KEY"`; no endpoint or key is hard-coded into the runtime.
+This historical profile is not a general reliability recommendation. Later Requests/Sphinx
+runs used different output/reasoning settings and exposed edit/finish failures; see
+[execution-budget evidence](docs/next/execution-budget-evidence.md).
+The [subsequent model comparison](docs/next/model-delivery-evidence.md) records Qwen's
+Requests PASS with autonomous completion and a Sphinx PASS interrupted by service access denial.
+The candidate profile remains pending service access and further acceptance.
 
 ## Work and resume
 
@@ -144,15 +152,26 @@ head/tail budget, and timeout/nonzero exit/patch conflicts are observations for 
 model. `exit_code` is the shell's exit code (PowerShell does not always return its
 child process's numeric code). A cleanup failure stops the turn visibly.
 
-`apply_patch` accepts UTF-8 unified diffs only, with `a/` and `b/` file headers and
-`/dev/null` for create/delete. No rename, binary or mode changes. All hunks are
-preflighted; individual replacement is atomic, but a multi-file I/O failure can
-leave an explicitly reported partial result.
+`apply_patch` uses the Nexus `*** Begin Patch` format with Add/Update/Delete File
+operations and context-based `@@` chunks, without line numbers or hunk counts.
+Legacy UTF-8 unified diffs remain accepted. No rename, binary or mode changes.
+Ambiguous context is rejected. All files are preflighted; individual replacement
+is atomic, but a multi-file I/O failure can leave an explicitly reported partial result.
+
+`update_plan` replaces a run's progress list with pending/in_progress/completed items;
+at most one item can be in progress, and an empty list clears it. The committed list
+is restored on resume and projected into each request without accumulating history.
+Plan completion does not prove correctness or end the Agent. The stagnation detector
+can send one progress reminder per execution window; it does not force an edit.
+The request also shows the remaining model-turn budget. These are model guidance,
+not guarantees of progress or timely completion.
 
 Public JSON events omit private continuation fields and redact configured known
 credentials. Local session history contains user input and source/tool content;
-it is not a general secret detector. Current tested provider continuation works
-without retained reasoning. The model adapter handles protocol fields, not the loop.
+it is not a general secret detector. When a provider returns `reasoning_content`,
+the adapter retains it as private, service/model-bound continuation data in the local
+session and sends it on subsequent requests. Public events omit it; changing the
+service/model requires a fresh session rather than reusing those private fields.
 
 ## Develop and inspect
 
@@ -191,6 +210,8 @@ tests are separate from paid CI. Read `src/nexus/core/agent.py` for the loop,
 `core/model.py` for the wire adapter, `tools/` for execution, and `app/` for local
 sessions and terminal consumers. Four direct runtime dependencies: OpenAI SDK,
 MCP SDK, prompt_toolkit and Rich. SDK transitive dependencies are listed in `uv.lock`.
+For a code-based explanation of the design, tradeoffs and evidence boundaries, see
+the [engineering walkthrough](docs/next/engineering-walkthrough.md).
 
 ## Official SWE-bench integration
 
@@ -257,3 +278,5 @@ nexus eval --all
 ```
 
 Evaluation automatically collects Profile metrics and prints a compact aggregate report including `FinalCtx` and `ToolResultBytes`. Artifacts live under `~/.nexus/evaluation/results/`. These are local Next Dev Set checks, not official SWE-bench scores. See [Evaluation V0](evaluation/next-dev-v0/README.md) for frozen environments and limitations, and [actual acceptance evidence](docs/next/evaluation-v0-evidence.md) for results.
+
+[Current autonomous hardening results and cost evidence (in progress)](docs/next/suite-hardening-evidence.md).

@@ -1,0 +1,20 @@
+# Candidate tested on Requests (PASS + completed/34) and Sphinx (PASS, then HTTP 403).
+# Confirm model access before using. This is not the active user configuration.
+# Merge model settings while preserving your execution and MCP configuration.
+# Paid API calls: see model-delivery-evidence.md for rates and measured usage.
+[model]
+name = "qwen3.8-max"
+base_url = "https://maas.qianwenaiapi.com/compatible-mode/v1"
+api_key_env = "DASHSCOPE_API_KEY"
+context_window = 1000000
+max_output_tokens = 8192
+request_timeout_seconds = 300
+include_usage = true
+# reasoning_effort was unset in the evaluated profile.
+
+[runtime]
+max_steps = 40
+
+[execution]
+output_limit_bytes = 32768
+# Omit shell to use the host default. The evaluator selects /bin/sh in Docker.

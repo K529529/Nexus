@@ -2,8 +2,9 @@
 
 [English / 完整配置与评测命令](README.md)
 
-一个小型本地 Coding Agent：单个手写消息循环，仅有 `exec_command` 与
-`apply_patch` 两个原生工具。模型负责探索、规划、修改、运行检查、修复和决定结束。
+一个小型本地 Coding Agent：单个手写消息循环，`exec_command` 与
+`apply_patch` 两个原生编码工具，加上记录进度的 `update_plan`。
+模型负责探索、规划、修改、运行检查、修复和决定结束。
 无需数据库、仓库索引或工作流引擎；用户显式配置的 stdio MCP server 可提供额外工具。
 
 当前是 `0.2.0` 本地候选实现，未发布 PyPI。实际交付状态见
@@ -36,6 +37,7 @@ context_window = 1000000
 max_output_tokens = 32768
 reasoning_effort = "high"
 include_usage = true
+# request_timeout_seconds = 120  # 一次完整模型响应的期限，1..600 秒
 
 [runtime]
 max_steps = 40
@@ -54,6 +56,12 @@ nexus
 Linux 使用 `export DASHSCOPE_API_KEY='<key>'`。引导只询问变量名，不收集密钥。
 旧配置中的 `observability` 等段落不再支持；先备份旧配置再移除淘汰字段，程序不会
 自动改写旧配置。不会读取仓库 `.env` 或 `.nexus/config.toml`。
+
+上面的模型配置来自早期小任务验收，不代表已经验证普遍稳定。后续 Requests/Sphinx
+使用不同的输出/reasoning 设置，仍出现编辑或结束不收敛，见
+[执行预算实测记录](docs/next/execution-budget-evidence.md)。
+[后续模型对照](docs/next/model-delivery-evidence.md) 中，Qwen 已实现 Requests PASS 并自主结束；
+Sphinx 修复也 PASS，但服务访问权限错误中断了收尾。候选配置仍待权限恢复和进一步验收。
 
 ## 使用与恢复
 
@@ -104,12 +112,21 @@ workspace 边界不是整个运行环境的沙箱。stdout/stderr 共用 head/ta
 非零退出码、超时、patch 冲突都会作为 observation 返回模型。无法确认进程清理时停止当前
 轮次并明确报告。退出码记录的是实际 shell 的退出码。
 
-`apply_patch` 只接受 UTF-8 unified diff，使用 `--- a/path`、`+++ b/path` 和 `@@` hunks；
-创建/删除用 `/dev/null`。不支持 Codex Begin Patch 格式、rename、二进制或模式变更。
-整批预检失败不写文件；仅单文件替换原子性，多文件 I/O 故障会如实返回 partial。
+`apply_patch` 主格式为 Nexus `*** Begin Patch`，使用 Add/Update/Delete File 和基于上下文
+匹配的 `@@` chunks，不需要行号或 hunk 行数。兼容旧 UTF-8 unified diff；不支持 rename、
+二进制或模式变更。有歧义的匹配会被拒绝。整批预检失败不写文件；仅单文件替换原子性，
+多文件 I/O 故障会如实返回 partial。
+
+`update_plan` 完整替换当前 run 的 pending/in_progress/completed 清单，最多一个
+in_progress，空数组清空。同 run 恢复已提交清单，每次请求投影最新状态，不逐轮追加历史。
+清单 completed 不代表修复正确，也不会结束 Agent。Stagnation Detector 每个执行窗口最多
+提供一次进度提醒，不强制编辑；请求还显示剩余模型轮次预算。这些机制提供提示，不能保证
+模型持续推进或及时结束。
 
 公开事件不包含私有 protocol_data，并脱敏已配置的已知凭据。会话可能包含源码和用户
-输入；这不是通用秘密识别系统。当前百炼实测无需保留 reasoning 续接字段。
+输入；这不是通用秘密识别系统。服务返回 `reasoning_content` 时，adapter 将其作为绑定
+service/model 的私有续接数据保存在本地会话，并随后续请求发送；公开事件不含该字段。
+更换 service/model 应使用新会话，不能复用原有私有续接字段。
 
 ## 验证与阅读代码
 
@@ -151,7 +168,9 @@ CI 使用 Windows/Linux、Python 3.12，不需要云凭据或数据库。评测 
 `app/session.py` 的恢复语义。这里的 completed 是模型本轮正常结束，测试事实来自工具输出，
 benchmark verdict 则来自官方 grader，三者分别记录。
 
-仅四个直接运行依赖：`openai`、`mcp`、`prompt-toolkit`、`rich`。没有旧 Graph/Plan/数据库/
+可用于面试的代码入口、设计取舍和证据边界见[工程讲解](docs/next/engineering-walkthrough.md)。
+
+仅四个直接运行依赖：`openai`、`mcp`、`prompt-toolkit`、`rich`。没有旧 Graph/Plan 授权/数据库/
 RAG/Skills/评测平台的兼容入口。官方 SWE-bench 使用 `scripts/swebench_v0.py` 的 predict 与
 collect，具体准备、官方命令、原始 base_commit diff 和报告关联方法见英文说明。
 
@@ -174,3 +193,5 @@ collect，具体准备、官方命令、原始 base_commit diff 和报告关联�
 ```
 
 评测自动收集 Profile，终端只显示逐项进度与汇总。结果写入 `~/.nexus/evaluation/results/`，包括 `FinalCtx`、`ToolResultBytes`、候选 patch、轨迹和独立验证证据。这是固定 Next Dev Set 的本地验证，不是官方 SWE-bench 评分。环境身份、运行条件和限制见 [Evaluation V0](evaluation/next-dev-v0/README.md)；真实结果见 [验收记录](docs/next/evaluation-v0-evidence.md)。
+
+[自主 hardening 的运行结果与成本证据（进行中）](docs/next/suite-hardening-evidence.md).
