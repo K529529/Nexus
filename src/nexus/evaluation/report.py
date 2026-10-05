@@ -76,8 +76,17 @@ def save_report(directory: Path, results: list[Json], selected: list[str]) -> st
         for status in ("PASS", "FAIL", "ERROR", "ABORTED", "NOT_RUN")
     }
     totals: Json = {}
-    for field in ("input_tokens", "output_tokens", "total_tokens"):
-        values = [r["metrics"]["usage"][field] for r in results if r["metrics"].get("available")]
+    for field in ("input_tokens", "output_tokens", "total_tokens", "cached_input_tokens"):
+        values = [
+            r["metrics"]["usage"].get(
+                field,
+                dict(
+                    reported=None, coverage=0, calls=r["metrics"]["usage"]["input_tokens"]["calls"]
+                ),
+            )
+            for r in results
+            if r["metrics"].get("available")
+        ]
         known = [v["reported"] for v in values if v["reported"] is not None]
         totals[field] = dict(
             reported=sum(known) if known else None,
@@ -104,6 +113,11 @@ def save_report(directory: Path, results: list[Json], selected: list[str]) -> st
         f"Model calls {number(totals['model_calls'])}  "
         f"Tool calls {number(totals['tool_calls'])}  "
         f"Agent time {number(totals['duration_ms'])} ms"
+    )
+    cached = totals["cached_input_tokens"]
+    console.print(
+        f"Cached input (subset) {usage(cached)}  "
+        f"Cache usage coverage {cached['coverage']}/{cached['calls']}"
     )
     table = Table(
         "Case",
@@ -246,7 +260,7 @@ def render_html(summary: Json, manifest: Json) -> str:
             f"<small>{text(agent.get('reason') or '—')}</small></td>"
             + "".join(f'<td class="num">{text(cell)}</td>' for cell in cells)
             + '<td class="num">'
-            f'{byte_size(metrics.get("tool_result_bytes") if available else None)}'
+            f"{byte_size(metrics.get('tool_result_bytes') if available else None)}"
             f'</td><td class="num">{text(number(metrics.get("tool_calls") if available else None))}'
             f'</td><td class="num">{duration(metrics.get("duration_ms"))}</td></tr>'
         )

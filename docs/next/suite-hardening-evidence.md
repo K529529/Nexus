@@ -115,3 +115,9 @@ A clean isolated environment installed the wheel with exported locked runtime
 dependencies (offline cache was incomplete, so registry access was needed).
 From outside the source checkout, isolated import resolved request_context.py
 under site-packages and `nexus --help` succeeded. No package was published.
+
+Docker opt-in acceptance after reboot: all 10 existing tests passed in 240.99s,
+including target contamination scans across all eight frozen environments and
+owned snapshot/patch/timeout/cancel/isolation and validator boundary checks.
+No model calls were involved. An additive cache aggregation fix passed 32 focused
+report/cache tests plus Ruff and mypy; old reports remain unknown for cache usage.

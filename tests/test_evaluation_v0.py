@@ -328,3 +328,25 @@ async def test_suite_sequential_persistence_and_stop(
     assert len(summary["cases"]) == 8
     assert calls == list(CASE_IDS[:stop_after] if stop_after else CASE_IDS)
     assert summary["counts"]["NOT_RUN"] == (6 if stop_after else 0)
+
+
+def test_report_cache_aggregation_includes_old_reports_as_unknown(tmp_path: Path) -> None:
+    results = [runner.empty_result(load_case(cid), "run") for cid in CASE_IDS[:3]]
+    for result, cached in zip(results, (None, 0, 80), strict=True):
+        result["metrics"] = profile_metrics(
+            RunProfile(
+                run_id="run",
+                models=[
+                    ModelCall(
+                        1, False, 1, finished=True, input_tokens=100, cached_input_tokens=cached
+                    )
+                ],
+            )
+        )
+    del results[0]["metrics"]["usage"]["cached_input_tokens"]  # Pre-telemetry report.
+    report = save_report(tmp_path, results, list(CASE_IDS[:3]))
+    summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    assert summary["totals"]["cached_input_tokens"] == dict(reported=80, coverage=2, calls=3)
+    assert summary["totals"]["input_tokens"]["reported"] == 300
+    assert "Cached input (subset) >=80" in report and "Cache usage coverage 2/3" in report
+    assert summary["counts"]["NOT_RUN"] == 3  # Usage never changes a verdict.

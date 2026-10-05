@@ -54,3 +54,7 @@ passed 448 tests (10 opt-in Docker tests skipped). Ruff and mypy passed. One ear
 full run saw the pre-existing Windows child-process exit probe fail intermittently;
 the focused timeout/cancel tests and the subsequent full run passed without a
 runtime cleanup change. This is retained as a test reliability limitation.
+
+Aggregate evaluation reports also preserve cached-input totals and coverage,
+including pre-telemetry reports as unknown rather than zero. The existing verdict
+and validation logic is unchanged. 32 focused report/cache tests, Ruff and mypy pass.
