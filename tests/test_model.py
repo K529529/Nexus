@@ -15,7 +15,7 @@ from nexus.app.config import ConfigError, ModelConfig, load_config
 from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core import model as model_module
-from nexus.core.agent import append_message
+from nexus.core.agent import append_message, run_turn
 from nexus.core.context import Context, ContextBuilder, estimate
 from nexus.core.model import ChatModel
 from nexus.core.types import (
@@ -25,6 +25,7 @@ from nexus.core.types import (
     ModelError,
     RuntimeEvent,
     Session,
+    Tool,
     ToolCall,
     ToolResult,
     ToolSpec,
@@ -450,6 +451,102 @@ async def test_partial_stream_not_retried_or_returned(monkeypatch: Any) -> None:
         await model.close()
 
 
+@pytest.mark.parametrize("empty_text", ["", " \n\t"])
+async def test_complete_empty_stop_retries_without_replaying_tools(
+    tmp_path: Path, empty_text: str
+) -> None:
+    requests: list[Json] = []
+    executions: list[str] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        if len(requests) == 1:
+            items = [chunk({"content": empty_text, "reasoning_content": "PRIVATE"}, "stop")]
+        elif len(requests) == 2:
+            items = [
+                chunk(
+                    {
+                        "tool_calls": [
+                            {
+                                "index": 0,
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {"name": "inspect", "arguments": "{}"},
+                            }
+                        ]
+                    },
+                    "tool_calls",
+                )
+            ]
+        else:
+            items = [chunk({"content": "done"}, "stop")]
+        items.append(
+            {
+                "id": "test",
+                "created": 1,
+                "model": "test",
+                "object": "chat.completion.chunk",
+                "choices": [],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+            }
+        )
+        return httpx.Response(200, content=sse(items))
+
+    async def execute(arguments: Any, context: Any, emit: Any) -> ToolResult:
+        executions.append(context.call_id)
+        return ToolResult(context.call_id, True, {})
+
+    model, emit = model_for(handle), Recorder()
+    session = Session(tmp_path)
+    tool = Tool(ToolSpec("inspect", "Inspect", {"type": "object"}), execute)
+    try:
+        result = await run_turn(session, "inspect", model, {"inspect": tool}, emit, Limits())
+        assert result.outcome == "completed"
+        assert result.steps == 2 and result.model_calls == 3 and result.tool_calls == 1
+        assert result.usage.total_tokens == 360
+        assert executions == ["call_1"]
+        assert requests[0] == requests[1]
+        assert "PRIVATE" not in json.dumps(requests)
+        assert [m.content for m in session.messages if m.role == "assistant"] == ["", "done"]
+        assert all(m.protocol_data is None for m in session.messages)
+        finishes = [data for kind, data in emit.events if kind == "model_finished"]
+        assert [d["attempt"] for d in finishes] == [1, 2, 1]
+        assert finishes[0]["error"] == "empty_or_invalid_final"
+        assert sum(d["usage"]["total_tokens"] for d in finishes) == 360
+        assert "PRIVATE" not in json.dumps(emit.events)
+    finally:
+        await model.close()
+
+
+@pytest.mark.parametrize("first_status", [200, 500])
+async def test_empty_stop_shares_retry_limit_and_remains_failed(
+    tmp_path: Path, first_status: int
+) -> None:
+    requests: list[Json] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        if len(requests) == 1 and first_status != 200:
+            return httpx.Response(first_status, json={"error": {"message": "unavailable"}})
+        return httpx.Response(200, content=sse([chunk({"reasoning_content": "PRIVATE"}, "stop")]))
+
+    model, emit = model_for(handle), Recorder()
+    session = Session(tmp_path)
+    try:
+        result = await run_turn(session, "inspect", model, {}, emit, Limits())
+        assert result.outcome == "failed" and result.reason == "empty_or_invalid_final"
+        assert result.steps == 1 and result.model_calls == 2 and result.tool_calls == 0
+        assert len(requests) == 2 and requests[0] == requests[1]
+        assert not any(m.role == "assistant" for m in session.messages)
+        finishes = [data for kind, data in emit.events if kind == "model_finished"]
+        assert len(finishes) == 2
+        assert finishes[-1]["error"] == "empty_or_invalid_final"
+        assert finishes[-1]["usage"]["source"] == "unknown"
+        assert "PRIVATE" not in json.dumps(emit.events)
+    finally:
+        await model.close()
+
+
 @pytest.mark.parametrize("failure", ["connection", "timeout", "model", "cancel"])
 async def test_failed_request_duration_preserves_retries_and_errors(
     failure: str, monkeypatch: Any
@@ -533,6 +630,65 @@ async def test_continuation_bound_to_service_and_model() -> None:
             model.wire_messages([message])
     finally:
         await model.close()
+
+
+async def test_request_timeout_applies_to_sdk_and_whole_stream(monkeypatch: Any) -> None:
+    deadline = asyncio.timeout
+    observed: list[float | None] = []
+
+    def timed(seconds: float | None) -> Any:
+        observed.append(seconds)
+        return deadline(seconds)
+
+    def client(**kwargs: Any) -> AsyncOpenAI:
+        return AsyncOpenAI(
+            **kwargs,
+            http_client=httpx.AsyncClient(
+                transport=httpx.MockTransport(
+                    lambda request: httpx.Response(
+                        200, content=sse([chunk({"content": "done"}, "stop")])
+                    )
+                )
+            ),
+        )
+
+    monkeypatch.setenv("TEST_MODEL_KEY", "test-secret")
+    monkeypatch.setattr(model_module, "AsyncOpenAI", client)
+    monkeypatch.setattr(asyncio, "timeout", timed)
+    model = ChatModel(
+        ModelConfig("test", 32768, api_key_env="TEST_MODEL_KEY", request_timeout_seconds=300)
+    )
+    try:
+        assert model.client.timeout == 300
+        reply = await model.complete([Message("user", "test")], [], Recorder())
+        assert reply.message.content == "done"
+        assert observed == [300]
+    finally:
+        await model.close()
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "601", "true", '"300"', "1.5"])
+def test_invalid_request_timeout_config(tmp_path: Path, value: str) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[model]\nname="test"\ncontext_window=32768\nrequest_timeout_seconds=' + value,
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="model.request_timeout_seconds"):
+        load_config(path, require_key=False)
+
+
+@pytest.mark.parametrize("value,expected", [("", 120), ("1", 1), ("300", 300), ("600", 600)])
+def test_request_timeout_config_default_and_bounds(
+    tmp_path: Path, value: str, expected: int
+) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[model]\nname="test"\ncontext_window=32768\n'
+        + ("request_timeout_seconds=" + value if value else ""),
+        encoding="utf-8",
+    )
+    assert load_config(path, require_key=False).model.request_timeout_seconds == expected
 
 
 def test_config_env_validation_and_no_repo_config(tmp_path: Path, monkeypatch: Any) -> None:

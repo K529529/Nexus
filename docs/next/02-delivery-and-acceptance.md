@@ -41,7 +41,7 @@ T01–T17 是行为清单，不要求建立 17 套测试基础设施，也不按
 | T02 | 同批多工具与失败恢复 | 顺序、每 call 一 result；第一工具失败不会丢第二个；后续模型能修复 |
 | T03 | 终止与计数 | 正常 final、max steps、空输出、length、坏/重复 call id、模型故障分别对应正确 outcome；usage unknown 不变成 0 |
 | T04 | Provider streaming/续接 | 参数跨 chunk、多个 call index、usage-only/reasoning-only delta、流中断；半截工具不执行；必要协议字段正确回传/恢复，不需要时不保存，不进公开输出 |
-| T05 | Provider 配置与重试 | name/base_url/key env/high 注入；SDK 无隐式额外重试；无 delta 的临时错误只重试一次；工具不重试 |
+| T05 | Provider 配置与重试 | name/base_url/key env/high 注入；SDK 无隐式额外重试；无 delta 的临时错误或完整空 stop 最多重试一次，共享两次 attempt 上限；空响应用量保留，部分流和工具不重试 |
 | T06 | Shell 实际行为 | 临时目录、显式 workdir、stdout/stderr、非零退出、Unicode/空格路径、stdin 关闭；Windows 与 Linux 各测 |
 | T07 | 共享输出预算与回收 | 单路可用总额度，两路大量输出仍有界；head/tail、截断标记、持续 drain 正确；真实读源码/测试输出检验默认值；timeout/Ctrl+C 回收普通子进程，cleanup 失败可见 |
 | T08 | Patch 正常行为 | 新增/修改/删除、多文件、CRLF、无末尾换行、权限保留；实际 diff/hash 与磁盘一致 |

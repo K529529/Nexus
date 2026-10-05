@@ -27,6 +27,7 @@ class ModelConfig:
     max_output_tokens: int = 8192
     reasoning_effort: str | None = None
     include_usage: bool = True
+    request_timeout_seconds: int = 120
 
     def key(self) -> str:
         value = os.environ.get(self.api_key_env, "")
@@ -104,6 +105,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
                 "max_output_tokens",
                 "reasoning_effort",
                 "include_usage",
+                "request_timeout_seconds",
             },
         )
     )
@@ -130,7 +132,14 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     include_usage = model.get("include_usage", True)
     if type(include_usage) is not bool:
         raise ConfigError("model.include_usage: expected boolean")
-    settings = ModelConfig(name, window, base, key_env, maximum, effort, include_usage)
+    request_timeout = _integer(
+        model.get("request_timeout_seconds", 120), "model.request_timeout_seconds"
+    )
+    if request_timeout > 600:
+        raise ConfigError("model.request_timeout_seconds: expected integer <= 600")
+    settings = ModelConfig(
+        name, window, base, key_env, maximum, effort, include_usage, request_timeout
+    )
     runtime = _table(data, "runtime", {"max_steps"})
     execution = _table(data, "execution", {"shell", "output_limit_bytes"})
     mcp = _table(data, "mcp", {"servers"})

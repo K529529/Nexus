@@ -20,7 +20,7 @@ class ChatModel:
         self.client: Any = client or AsyncOpenAI(
             api_key=config.key(),
             base_url=config.base_url,
-            timeout=120,
+            timeout=config.request_timeout_seconds,
             max_retries=0,
         )
         self.binding = hashlib.sha256(
@@ -97,7 +97,7 @@ class ChatModel:
             stream = None
             await emit("model_started", {"model": self.config.name, "attempt": attempt})
             try:
-                async with asyncio.timeout(120):
+                async with asyncio.timeout(self.config.request_timeout_seconds):
                     stream = await self.client.chat.completions.create(**request)
                     content: list[str] = []
                     reasoning: list[str] = []
@@ -165,6 +165,12 @@ class ChatModel:
                         finish,
                         usage,
                     )
+                    if (
+                        finish == "stop"
+                        and not reply.message.tool_calls
+                        and not reply.message.content.strip()
+                    ):
+                        raise ModelError("empty_or_invalid_final")
                 await emit(
                     "model_finished",
                     {
@@ -200,15 +206,21 @@ class ChatModel:
                     await asyncio.sleep(0.25)
                     continue
                 raise ModelError(code) from None
-            except (ModelError, asyncio.CancelledError):
+            except (ModelError, asyncio.CancelledError) as exc:
+                # A fully received empty stop has no action to replay. Keep partial streams,
+                # malformed tool calls and visible answers outside this narrow retry case.
+                empty = isinstance(exc, ModelError) and exc.code == "empty_or_invalid_final"
                 await emit(
                     "model_finished",
                     {
-                        "error": "stream_interrupted",
+                        "error": "empty_or_invalid_final" if empty else "stream_interrupted",
                         "attempt": attempt,
                         "duration_ms": int((time.monotonic() - started) * 1000),
+                        **({"finish_reason": finish, "usage": asdict(usage)} if empty else {}),
                     },
                 )
+                if empty and attempt == 1:
+                    continue
                 raise
             finally:
                 if stream is not None:

@@ -115,8 +115,9 @@ for step in 1..max_steps:
 - 正常工具失败后，同批其余调用仍按序执行；取消与不可恢复的 runtime 故障则停止派发，并补记剩余调用未执行的事实。
 - `max_steps=40`；step 是主循环的一次常规模型完成操作；重试记 attempt、实际 API 请求另计 model_calls，工具数量另计。末步工具可以执行，随后到限返回 limited；不额外调用模型伪造成功总结。V0.1.1 的安全压缩请求另计 model_calls/usage，不消耗常规 step；每个请求边界最多尝试一次。
 - `length`、不完整流、过滤/协议拒绝等都不能视为正常 final；默认明确 failed，不自动执行半截工具参数。用户可以通过 /resume 选择未完成会话，再输入指令续接该 run。
-- 模型网络/服务请求在尚无任何响应 delta 时，对连接失败、429、5xx 最多重试一次，短退避；SDK 自动重试关闭，避免重试层叠。401/参数错误直接失败；产生 delta 后不重试整次请求。
+- 模型网络/服务请求在尚无任何响应 delta 时，对连接失败、429、5xx 最多重试一次，短退避；SDK 自动重试关闭，避免重试层叠。401/参数错误直接失败；产生 delta 后的中断不重试整次请求。另有一个窄例外：流已完整结束、finish=stop、无 tool_calls 且正文为空白时，可用同一请求重试一次；与网络重试共享总计两次 attempt 的上限。失败的空响应不进入消息历史，已报告 usage 仍计入成本，两次空响应明确失败。它不执行/重放工具，不把推理字段作为 final，也不改变 completed/max_steps 判定。
 - 任一工具都不自动重试；无法确认副作用是否发生时记录 unknown，禁止以恢复为由再次执行。
+- `[model].request_timeout_seconds` 配置单次完整模型响应的期限，默认 120 秒，整数 1..600；SDK timeout 与外层整流 deadline 使用同一值。它不改变工具超时、max_steps、重试次数或完成判定；未配置时保留原行为。调整模型/服务时应在验收记录中同时记录此值。
 
 `completed` = 模型正常结束本轮，**不等于测试全通过或需求已由外部验证**。系统提示要求最终答复简述修改、实际运行的检查及尚未完成事项；Nexus 不新增 validation 节点来强制任务验收。官方 benchmark verdict 独立保存。
 
@@ -198,6 +199,8 @@ workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文
 `model.context_window` 由用户按服务配置给定，不从模型名猜；`max_output_tokens` 默认 8,192，必须小于 context_window。每次请求计算输入预算 `B = context_window - max_output_tokens - 1,024`，B 必须为正。工具 schema、消息包装、AGENTS、工具结果及实际回传的 protocol_data 全部计入。工具执行文字输出预算不变；V0.2.1 的 request-time Observation Projection 先于活动输入估算，不修改原文或 execution truncated 标记。
 
 本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run、成功压缩或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
+
+常规模型请求在当前 Plan 和一次性 runtime guidance 之后，附加 request-only 执行预算：本次执行窗口的当前 step / max_steps、包含本轮的剩余轮次，以及工具结果需要后续一轮才能检查并回复的说明。它沿用已有 step，resume 的新执行窗口从 1 开始；重试不扣新 step，摘要请求不带执行预算。此提示不写入消息或 safety snapshot，不强制结束或改变完成判定。容量检查、fallback 重建和 usage 校准均包含实际发送的完整提示；校准缓存键仅排除运行时生成的轮次预算后缀，避免计数变化使每轮校准失效，其他 schema/前缀变化仍重置校准。
 
 Context Runtime V0.1.1 修复 V0.1 误移除安全压缩的回归。预算只计算当前 run 的活动上下文；估算达到 `0.85 * B` 时，在模型请求边界尝试一次安全压缩，目标约为 `0.60 * B`。若 provider 报 context-length 错误且本边界尚未尝试压缩，则强制压缩并最多重试一次；已经尝试压缩、压缩后仍超限或受保护内容无法容纳时返回 `limited/context_limit`。现有工具输出预算不变。
 
