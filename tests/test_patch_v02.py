@@ -379,7 +379,8 @@ async def test_registry_agent_chain_and_detector(execution: ExecutionContext) ->
     assert result.outcome == "completed" and (execution.workspace / "a").read_bytes() == b"new\n"
     assert sum(kind == "tool_started" for kind, _ in events.events) == 2
     assert sum(kind == "tool_finished" for kind, _ in events.events) == 2
-    assert json.loads(model.requests[1][-1].content)["data"]["changed_files"] == 1
+    tool_message = [m for m in model.requests[1] if m.role == "tool"][-1]
+    assert json.loads(tool_message.content)["data"]["changed_files"] == 1
     success = await apply_patch({"patch": update("@@\n-new\n+changed")}, execution, Recorder())
     detector = StagnationDetector(session)
     for step in range(1, 40):

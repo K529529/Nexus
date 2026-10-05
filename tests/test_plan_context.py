@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -77,7 +78,7 @@ async def test_actual_api_plan_updates_clear_and_reasoning_continuation(
     try:
         result = await run_turn(
             session,
-            "task",
+            "task\n" + "Stable source context.\n" * 800,
             model,
             {"update_plan": create_update_plan_tool(session)},
             events,
@@ -87,10 +88,20 @@ async def test_actual_api_plan_updates_clear_and_reasoning_continuation(
         await model.close()
     assert result.outcome == "completed" and result.model_calls == 3 and result.tool_calls == 2
     assert len(observed) == len(requests) == 3
+    # Plan and budget changes must leave the entire previous logical wire prefix intact.
+    # Only the previous ephemeral suffix is replaced before appending new history.
+    for previous, following in zip(requests, requests[1:], strict=False):
+        prefix = previous["messages"][:-1]
+        assert following["messages"][: len(prefix)] == prefix
+        assert len(json.dumps(prefix)) > 16000
+    for request in requests:
+        assert request["messages"][-1]["role"] == "user"
+        assert sum(SNAPSHOT_HEADER in m["content"] for m in request["messages"]) == 1
+        assert "sections" not in request["messages"][-1]
     for index, (request, messages) in enumerate(zip(requests, observed, strict=True)):
         assert request["messages"][0]["content"] == messages[0].content
         assert snapshot(messages) == {"plan": [item("Next visible")] if index == 1 else []}
-        assert messages[0].content.startswith("SYSTEM\nproject\nenvironment\n\n")
+        assert messages[0].content == "SYSTEM\nproject\nenvironment"
         assert "PRIVATE" not in messages[0].content
         assert request["tools"][0]["function"]["parameters"] == PLAN_SPEC.input_schema
     assistant = next(m for m in requests[1]["messages"] if m["role"] == "assistant")
@@ -183,11 +194,11 @@ async def test_safety_summary_rebuild_fallback_and_budget_share_plan(
         assert result.outcome == "completed" and len(model.requests) == (3 if fallback else 2)
         assert session.plan is plan and session.messages[: len(original)] == original
         summary_input, final_input = model.requests[-2:]
-        assert summary_input[-1].content.startswith("Summarize the earlier conversation")
+        assert summary_input[-2].content.startswith("Summarize the earlier conversation")
         assert all("Execution budget" not in m.content for m in summary_input)
-        assert execution_budget(1, 40) in final_input[0].content
+        assert execution_budget(1, 40) in final_input[-1].content
         if fallback:
-            assert execution_budget(1, 40) in model.requests[0][0].content
+            assert execution_budget(1, 40) in model.requests[0][-1].content
         for request in model.requests:
             groups(request)
             assert estimate(request, []) <= Context(limits).budget
@@ -235,7 +246,9 @@ def test_plan_counts_toward_capacity_and_calibration(tmp_path: Path) -> None:
     session.plan = PlanState("run", ())
     cleared = context.project(session, projected).messages
     assert snapshot(cleared) == {"plan": []}
-    assert context.tokens(cleared, []) == estimate(cleared, [])
+    assert context.tokens(cleared, []) == math.ceil(
+        estimate(cleared, []) * 12345 / estimate(projected, [])
+    )
 
 
 async def test_protected_plan_limits_without_summary_or_truncation(tmp_path: Path) -> None:

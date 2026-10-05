@@ -67,15 +67,12 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         assert session.run_id != first_run
         assert session.messages[: len(history)] == history
         assert model.requests[2] == project_guidance(
-            [
-                project_plan(session, [session.messages[0]])[0],
-                session.messages[len(history)],
-            ],
+            project_plan(session, [session.messages[0], session.messages[len(history)]]),
             execution_budget(1, 40),
         )
         assert all("Task A" not in m.content for m in model.requests[3])
-        assert "Task B observation" in model.requests[3][-1].content
-        assert "Task A source and test logs" in model.requests[1][-1].content
+        assert "Task B observation" in model.requests[3][-2].content
+        assert "Task A source and test logs" in model.requests[1][-2].content
         assert saved_bytes(writer).startswith(before)
 
         raw = saved_bytes(writer)
@@ -202,9 +199,16 @@ async def test_resume_restores_only_interrupted_run(
         assert resumed_records[0]["kind"] == "run_started"
         assert all(r["run_id"] == "interrupted-run" for r in resumed_records)
         active = model.requests[0]
-        assert execution_budget(1, 40) in active[0].content
+        assert execution_budget(1, 40) in active[-1].content
         assert b"Execution budget" not in saved_bytes(writer)
-        assert [m.role for m in active] == ["system", "user", "assistant", "tool", "tool", "user"]
+        assert [m.role for m in active[:-1]] == [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "tool",
+            "user",
+        ]
         assert active[1].content == "Unfinished task"
         assert active[2].protocol_data == {"continuation": "required"}
         assert "previous result" in active[3].content

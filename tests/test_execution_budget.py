@@ -26,11 +26,10 @@ def test_request_copy_preserves_source_and_metadata(role: Literal["system", "use
     for step in (1, 9, 40):
         context.execution_budget = execution_budget(step, 40)
         request = context.task_request(logical, GUIDANCE)
-        assert request[0].content == (
-            logical[0].content + "\n\n" + GUIDANCE + "\n\n" + execution_budget(step, 40)
-        )
-        assert request[0].content.count("Execution budget") == 1
-        assert f"Remaining model turns, including this one: {41 - step}\n" in request[0].content
+        assert request[0].content == logical[0].content
+        assert request[-1].content == GUIDANCE + "\n\n" + execution_budget(step, 40)
+        assert request[-1].content.count("Execution budget") == 1
+        assert f"Remaining model turns, including this one: {41 - step}\n" in request[-1].content
         assert (request[0].seq, request[0].run_id) == (3, "r")
         assert request[0].protocol_data == {"x": [1]}
         assert request[0].protocol_data is not None
@@ -62,8 +61,14 @@ def test_counter_changes_keep_calibration_but_other_prefix_changes_reset_it() ->
             tools = [ToolSpec("new", "new tool", {})]
         else:
             following = context.task_request(logical, GUIDANCE)
-        assert context.tokens(following, tools) == estimate(following, tools)
-        assert context.last_report is None
+        if change == "nudge":
+            assert context.tokens(following, tools) == math.ceil(
+                estimate(following, tools) * 1234 / estimate(request, [])
+            )
+            assert context.last_report == 1234
+        else:
+            assert context.tokens(following, tools) == estimate(following, tools)
+            assert context.last_report is None
 
 
 async def test_protected_budget_overflow_is_honest_and_does_not_call_model(tmp_path: Path) -> None:
@@ -106,8 +111,8 @@ async def test_counts_turns_not_tools_and_keeps_last_turn_semantics(
     assert result.outcome == ("limited" if final_tool else "completed")
     assert result.reason == ("max_steps" if final_tool else None)
     for step, request in enumerate(model.requests, 1):
-        assert execution_budget(step, 2) in request[0].content
-        assert request[0].content.count("Execution budget") == 1
+        assert execution_budget(step, 2) in request[-1].content
+        assert request[-1].content.count("Execution budget") == 1
         groups(request)
     assert model.requests[1][2].protocol_data == first.message.protocol_data
     assert all("Execution budget" not in m.content for m in session.messages)

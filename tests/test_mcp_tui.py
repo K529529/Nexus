@@ -66,7 +66,7 @@ async def test_real_stdio_and_failed_server_same_loop(tmp_path: Path) -> None:
         session = Session(tmp_path)
         result = await run_turn(session, "add", model, registry, events, Limits())
         assert result.outcome == "completed"
-        value = json.loads(model.requests[-1][-1].content)
+        value = json.loads([m for m in model.requests[-1] if m.role == "tool"][-1].content)
         assert value["ok"] and value["data"]["structured_content"]["sum"] == 7
 
 
@@ -387,7 +387,8 @@ async def test_compact_transcript_preserves_model_observation_and_session(tmp_pa
     finally:
         writer.close()
     assert result.outcome == "completed"
-    assert json.loads(model.requests[-1][-1].content)["data"]["stdout"] == body
+    tool_message = [m for m in model.requests[-1] if m.role == "tool"][-1]
+    assert json.loads(tool_message.content)["data"]["stdout"] == body
     assert "important source line" not in output.getvalue()
     assert output.getvalue().count("Final explanation") == 1
     with writer.path.open("rb") as stream:

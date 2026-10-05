@@ -137,10 +137,10 @@ async def test_resume_unfinished_conversation_and_refresh_current_environment(
         assert "updated root rules" in active[0].content
         assert "initial root rules" not in active[0].content
         assert any(m.content == "Interrupted task" for m in active)
-        assert active[-1].content == "Continue"
+        assert active[-2].content == "Continue"
         assert (await resumed.turn("Unrelated question")).outcome == "completed"
         active = clients[1].requests[1]
-        assert len(active) == 3
+        assert len(active) == 4
         assert "offline-server" in active[1].content
         assert active[1].run_id == resumed.session.run_id != run_id
         assert active[2].content == "Unrelated question"

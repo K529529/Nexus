@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import math
 import platform
-from copy import deepcopy
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 
 from nexus.core.observations import Projection, hot_tool_seqs, project
 from nexus.core.plan import project_plan
+from nexus.core.request_context import logical_messages, project_context
 from nexus.core.types import (
     ContextSnapshot,
     Emit,
@@ -169,16 +169,8 @@ class ContextBuilder:
 
 
 def project_guidance(messages: list[Message], guidance: str | None) -> list[Message]:
-    """Append request-only guidance to a copy; callers rebuild from logical history."""
-    if not guidance:
-        return list(messages)
-    anchor = next((m for m in messages if m.role == "system"), None)
-    if anchor is None:
-        anchor = next((m for m in messages if m.role == "user"), None)
-    return [
-        replace(deepcopy(m), content=m.content + "\n\n" + guidance) if m is anchor else m
-        for m in messages
-    ]
+    """Keep changing runtime guidance after the stable instructions and history."""
+    return project_context(messages, "guidance", guidance)
 
 
 def execution_budget(step: int, max_steps: int) -> str:
@@ -204,18 +196,15 @@ class Context:
         return project_guidance(messages, extra)
 
     def project(self, session: Session, logical: list[Message]) -> Projection:
-        projection = project(session, logical, self.budget, lambda m: estimate([m], []))
+        projection = project(
+            session, logical_messages(logical), self.budget, lambda m: estimate([m], [])
+        )
         projection.messages = project_plan(session, projection.messages)
         return projection
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)
         prefix = [m.public() for m in messages if m.role == "system"]
-        if self.execution_budget:
-            # The changing counter must not invalidate calibration every turn. Only the exact
-            # generated suffix is excluded from the cache key; its full cost is estimated above.
-            for message in prefix:
-                message["content"] = message["content"].removesuffix("\n\n" + self.execution_budget)
         key = json_text([asdict(t) for t in tools]) + json_text(prefix)
         if key != self.schema_prefix:
             self.last_estimate = self.last_report = None
@@ -244,9 +233,9 @@ class Context:
         guidance: str | None = None,
     ) -> bool:
         """Attempt safety compaction once at this boundary; return whether attempted."""
-        active = self.project(session, active).messages
+        active = logical_messages(self.project(session, active).messages)
         # Capacity uses the task request, while summary input below stays guidance-free.
-        task_context = self.task_request(active, guidance)
+        task_context = self.task_request(project_plan(session, active), guidance)
         original = self.tokens(task_context, tools)
         if not force and original < self.budget * 0.85:
             return False
@@ -260,7 +249,12 @@ class Context:
         }
         prefix = [m for m in active if m.seq in protected]
         protected = protected_seqs(session, active, session.run_id)
-        self.check(self.task_request([m for m in active if m.seq in protected], guidance), tools)
+        self.check(
+            self.task_request(
+                project_plan(session, [m for m in active if m.seq in protected]), guidance
+            ),
+            tools,
+        )
         request = Message(
             "user",
             "Summarize the earlier conversation as historical data: user goal, constraints, "
@@ -273,7 +267,10 @@ class Context:
                 if all(m in prefix for m in group):
                     continue
                 break
-            if estimate(prefix + candidates + group + [request], []) > self.budget:
+            if (
+                estimate(project_plan(session, prefix + candidates + group + [request]), [])
+                > self.budget
+            ):
                 break
             candidates.extend(group)
         if not candidates:
@@ -293,7 +290,9 @@ class Context:
             # Preserve chronology when protected resume inputs interleave with old groups.
             summary_seqs = {m.seq for m in prefix + candidates}
             summary_input = [m for m in active if m.seq in summary_seqs]
-            reply = await model.complete(summary_input + [request], [], summary_events)
+            reply = await model.complete(
+                project_plan(session, summary_input + [request]), [], summary_events
+            )
             if (
                 reply.finish_reason != "stop"
                 or reply.message.tool_calls

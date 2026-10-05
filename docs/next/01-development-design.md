@@ -200,13 +200,13 @@ workspace = 启动 cwd 的规范化绝对路径；V0 不向上搜 Git root。文
 
 本地估算采用序列化 UTF-8 bytes / 3 向上取整，加每条消息固定开销；明确标成 estimate。存在上次 provider input usage 时，用其与上次估算的比例校准，并估算新增内容；新 run、成功压缩或 schema/前缀变化时回到本地估算。账单/累计 usage 与当前窗口占用分开，不能把多次请求 token 总和当成当前 context。
 
-常规模型请求在当前 Plan 和一次性 runtime guidance 之后，附加 request-only 执行预算：本次执行窗口的当前 step / max_steps、包含本轮的剩余轮次，以及工具结果需要后续一轮才能检查并回复的说明。它沿用已有 step，resume 的新执行窗口从 1 开始；重试不扣新 step，摘要请求不带执行预算。此提示不写入消息或 safety snapshot，不强制结束或改变完成判定。容量检查、fallback 重建和 usage 校准均包含实际发送的完整提示；校准缓存键仅排除运行时生成的轮次预算后缀，避免计数变化使每轮校准失效，其他 schema/前缀变化仍重置校准。
+常规模型请求在当前 Plan 和一次性 runtime guidance 之后，附加 request-only 执行预算：本次执行窗口的当前 step / max_steps、包含本轮的剩余轮次，以及工具结果需要后续一轮才能检查并回复的说明。它沿用已有 step，resume 的新执行窗口从 1 开始；重试不扣新 step，摘要请求不带执行预算。此提示不写入消息或 safety snapshot，不强制结束或改变完成判定。容量检查、fallback 重建和 usage 校准均包含实际发送的完整提示；Plan、一次性 guidance 和执行预算合并为请求末尾唯一的临时 user 消息；system/AGENTS/环境与未变化的历史前缀保持原样，使服务端能够复用相同前缀。临时消息用内部 RequestContext 类型区分，不进入 Session.messages、安全快照引用或最近交互组/HOT 保护计算。每次从逻辑历史重建，仅 provider 序列化与完整请求估算包含该消息；不按文本标记删除真实用户输入。校准键使用稳定 system 和工具 schema，动态状态变化保留 usage 比例校准，真实 schema/system 变化仍重置。摘要请求仅带当前 Plan，且计入其输入预算。
 
 Context Runtime V0.1.1 修复 V0.1 误移除安全压缩的回归。预算只计算当前 run 的活动上下文；估算达到 `0.85 * B` 时，在模型请求边界尝试一次安全压缩，目标约为 `0.60 * B`。若 provider 报 context-length 错误且本边界尚未尝试压缩，则强制压缩并最多重试一次；已经尝试压缩、压缩后仍超限或受保护内容无法容纳时返回 `limited/context_limit`。现有工具输出预算不变。
 
 ### 6.3 Run 上下文投影与安全压缩（Context Runtime V0.2.1）
 
-`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回逻辑活动上下文：当前 system/仓库指令 + 该 run 的活动消息。已有压缩时使用最近逻辑快照，再追加快照 seq 之后属于该 run 的原消息。每次请求按 logical context → Observation Projection → estimate/prepare 执行；生成新 snapshot 后 rebuild logical → re-project → check → model.complete。provider 超限 fallback 使用相同顺序，observe 使用实际发送的那份 projected context。
+`Session.messages` 保留消息历史，`ContextBuilder.build_active_context(session, run_id)` 返回逻辑活动上下文：当前 system/仓库指令 + 该 run 的活动消息。已有压缩时使用最近逻辑快照，再追加快照 seq 之后属于该 run 的原消息。每次请求按 logical context → Observation Projection → 当前 Plan/运行时提示投影 → estimate/prepare 执行；生成新 snapshot 后 rebuild logical → re-project → check → model.complete。provider 超限 fallback 使用相同顺序，observe 使用实际发送的那份 projected context。
 
 普通输入创建新的 run_id；以前 run 的用户输入、assistant、工具结果和环境事实不自动带入。当前 MCP 不可用事实在 run 开始后写入该 run，并保持模型可见。跨 run 的 tool call id 可以重复，同一 run 内仍拒绝重复；完整 assistant/tool 配对校验保留。
 

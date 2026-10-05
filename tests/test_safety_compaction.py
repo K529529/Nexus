@@ -137,7 +137,7 @@ async def test_threshold_compaction_is_non_destructive_and_run_scoped(history: H
             0
         ]
     )
-    assert [m.content for m in new.requests[0][1:]] == ["New independent task"]
+    assert [m.content for m in new.requests[0][1:-1]] == ["New independent task"]
     assert session.messages[: len(original)] == original
 
 
@@ -155,11 +155,11 @@ async def test_summary_input_preserves_interleaved_resume_message_order(history:
 
     # Only the last two complete tool groups are excluded from summary input.
     # The resume request must remain between the earlier and later tool history.
-    summary_history = model.requests[0][:-1]
-    assert summary_history == project_plan(session, before[:-4])
+    summary_history = model.requests[0][:-2]
+    assert summary_history == before[:-4]
     assert summary_history.index(resume_request) == before.index(resume_request)
     assert summary_history[-2].tool_calls[0].id == "after_resume"
-    assert model.requests[0][-1].content.startswith("Summarize the earlier conversation")
+    assert model.requests[0][-2].content.startswith("Summarize the earlier conversation")
     groups(model.requests[0])
     assert session.messages == original_history
     assert resume_request in active(session)
@@ -220,8 +220,8 @@ async def test_repeated_compaction_and_interrupted_resume(
             restored, "Continue", model, {}, Events(restored, recovered_writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
-        assert model.requests[0][:-1] == project_guidance(
-            project_plan(restored, recovered), execution_budget(1, 40)
+        assert model.requests[0] == project_guidance(
+            project_plan(restored, recovered + [restored.messages[-2]]), execution_budget(1, 40)
         )
         assert "old observation " * 500 not in str([m.public() for m in model.requests[0]])
         records, _ = read_records(recovered_writer.stream)
@@ -250,7 +250,7 @@ async def test_provider_limit_compacts_at_most_once_per_boundary(
             self, messages: list[Message], tools: list[ToolSpec], emit: Emit
         ) -> ModelReply:
             await emit("model_started", {})
-            if messages[-1].content.startswith("Summarize the earlier"):
+            if any(m.content.startswith("Summarize the earlier") for m in messages):
                 self.summaries += 1
                 assert not tools
                 await emit("assistant_delta", {"text": "SUMMARY_MUST_NOT_STREAM"})

@@ -400,7 +400,7 @@ async def test_profile_preserves_real_safety_compaction(tmp_path: Path, monkeypa
             assert result.outcome == "completed" and result.model_calls == 2
             assert session.messages[: len(original)] == original
             assert len(session.compactions) == 1
-            assert model.requests[0][-1].content.startswith("Summarize the earlier")
+            assert any(m.content.startswith("Summarize the earlier") for m in model.requests[0])
             assert not any(m.tool_call_id == "read-0" for m in model.requests[1])
             model_events = [e for e in captured if e.kind in {"model_started", "model_finished"}]
             assert all(e.data["step"] == 1 for e in model_events)

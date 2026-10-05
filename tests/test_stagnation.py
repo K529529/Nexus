@@ -36,6 +36,7 @@ from nexus.core.types import (
     Tool,
     ToolResult,
     ToolSpec,
+    Usage,
 )
 from nexus.tools.plan import create_update_plan_tool
 from tests.conftest import Recorder, ScriptedModel, call, reply
@@ -346,10 +347,8 @@ def test_projection_is_a_copy_and_task_neutral() -> None:
     for role in ("system", "user"):
         anchor.role = role
         projected = project_guidance([anchor], GUIDANCE)
-        assert (
-            projected[0] is not anchor
-            and projected[0].content == anchor.content + "\n\n" + GUIDANCE
-        )
+        assert projected[0] is not anchor and projected[0].content == anchor.content
+        assert projected[-1].content == GUIDANCE
         assert (projected[0].seq, projected[0].run_id) == (2, "run")
         assert projected[0].protocol_data == anchor.protocol_data
         assert projected[0].protocol_data is not None
@@ -367,6 +366,8 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     events = Recorder()
     await append_message(session, Message("system", "root rules"), events)
     responses = reads(8)
+    for response in responses:
+        response.usage = Usage()  # Capacity test uses estimates, not the fake 10-token usage.
     responses[0].message.content = "old inspection evidence " * 60
     responses[0].message.protocol_data = {"reasoning_content": "private continuation"}
     tools = registry(session)
@@ -385,8 +386,8 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     context.execution_budget = execution_budget(9, 40)
     base = estimate(context.task_request(normal), specs)
     with_nudge = estimate(context.task_request(normal, GUIDANCE), specs)
-    budget = with_nudge * 3 if fallback else (base + with_nudge) // 2
-    assert fallback or base < budget < with_nudge
+    budget = with_nudge * 3 if fallback else int((base + with_nudge) / (2 * 0.85))
+    assert fallback or base < budget * 0.85 < with_nudge
 
     class Model(ScriptedModel):
         failed = False
@@ -434,7 +435,9 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     assert result.model_calls == 11 + int(fallback)
     assert len(model.requests) == 11 + int(fallback)
     summary_requests = [
-        ms for ms in model.requests if ms[-1].content.startswith("Summarize the earlier")
+        ms
+        for ms in model.requests
+        if any(m.content.startswith("Summarize the earlier") for m in ms)
     ]
     assert len(summary_requests) == 1 and not has_guidance(summary_requests[0])
     assert all("Execution budget" not in m.content for m in summary_requests[0])
@@ -448,7 +451,7 @@ async def test_budget_compaction_retry_delivery_and_calibration(
         groups(request)
     assert len(observed) == 10 and observed[8] == nudged_requests[-1]
     assert not has_guidance(observed[9])
-    assert execution_budget(10, 40) in observed[9][0].content
+    assert execution_budget(10, 40) in observed[9][-1].content
     assert estimate(nudged_requests[-1], specs) <= budget
     assert not has_guidance(session.messages)
     assert all(not has_guidance(snapshot.messages) for snapshot in session.compactions.values())
@@ -500,7 +503,7 @@ async def test_actual_mock_api_request_preserves_reasoning_and_consumes_nudge(
         await model.client.close()
     assert result.outcome == "completed" and len(requests) == 10
     for index, request in enumerate(requests, 1):
-        content = request["messages"][0]["content"]
+        content = request["messages"][-1]["content"]
         assert content.count(GUIDANCE) == int(index == 9)
         assert content.count(SNAPSHOT_HEADER) == 1
         assert content.count("Execution budget") == 1
@@ -560,7 +563,11 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
     base = estimate(context.task_request(projected), specs)
     total = estimate(context.task_request(projected, GUIDANCE), specs)
     budget = (base + total) // 2
-    model = ScriptedModel(reads(8) + [reply(text="must not request")])
+    responses = reads(8) + [reply(text="must not request")]
+    # Provider calibration reveals insufficient protected capacity at the boundary
+    # where the nudge is scheduled, even though earlier requests fit.
+    responses[7].usage = Usage(100_000, 5, 100_005, "reported")
+    model = ScriptedModel(responses)
     result = await run_turn(
         session,
         "continue",

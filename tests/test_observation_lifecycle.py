@@ -80,7 +80,7 @@ def test_hot_batch_and_working_set_priority(tmp_path: Path) -> None:
     add(session, Message("user", "resume does not consume"))
     projected = context(4000).project(session, active(session))
     assert hot_tool_seqs(session, "run") == {first.seq, second.seq}
-    assert projected.messages[-3] is first and projected.messages[-2] is second
+    assert projected.messages[-4] is first and projected.messages[-3] is second
     assert projected.diagnostics["hot_full_count"] == 2
     assert projected.diagnostics["recent_full_count"] == 0
     assert projected.diagnostics["cold_compacted_count"] == 1
@@ -135,7 +135,7 @@ async def test_only_valid_appended_assistant_consumes(tmp_path: Path, mode: str)
         async def complete(
             self, messages: list[Message], tools: list[ToolSpec], emit: Emit
         ) -> ModelReply:
-            assert messages[-2] is original  # Resume input does not consume it.
+            assert messages[-3] is original  # Resume input and request suffix do not consume it.
             await emit("model_started", {})
             await emit("model_finished", {"usage": {}})
             if mode == "transport":
@@ -436,7 +436,7 @@ async def test_final_context_rebuilt_projected_checked_observed_and_profiled(
         async def complete(
             self, messages: list[Message], tools: list[ToolSpec], emit: Emit
         ) -> ModelReply:
-            if messages[-1].content.startswith("Summarize the earlier"):
+            if any(m.content.startswith("Summarize the earlier") for m in messages):
                 assert any('"projection":"compact-v1"' in m.content for m in messages)
                 return reply(text="Prior inspection facts.")
             assert any(messages is item for item in checked)

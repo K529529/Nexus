@@ -51,7 +51,7 @@ async def test_real_read_patch_test_loop(tmp_path: Path) -> None:
     results = [json.loads(m.content) for m in session.messages if m.role == "tool"]
     assert all(r["ok"] for r in results)
     assert "1 passed" in results[-1]["data"]["stdout"]
-    assert model.requests[1][-1].tool_call_id == "c1"
+    assert [m for m in model.requests[1] if m.role == "tool"][-1].tool_call_id == "c1"
 
 
 async def test_same_batch_failure_continues_and_model_repairs(tmp_path: Path) -> None:
