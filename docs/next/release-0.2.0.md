@@ -1,7 +1,7 @@
 # Nexus 0.2.0 — Next release
 
-Status: release preparation; not yet published by this change.
-Package: `nexus-coding-agent`; command: `nexus`; planned tag: `v0.2.0`.
+Status: published on GitHub and PyPI, with public-index installation verified (2026-10-06).
+Package: `nexus-coding-agent`; command: `nexus`; release tag: `v0.2.0` at `677fc997dcdc2f369fa8d4a667d400de99e35f84`.
 The existing `v0.1.0` release and `pre-skills-2026-10-06` recovery tag remain unchanged.
 
 ## What ships
@@ -29,7 +29,7 @@ index is required.
 ## Install and migrate
 
 Requires Python 3.12+. The project targets Windows PowerShell and Linux `/bin/sh`.
-After publication:
+Install the published version:
 
 ```sh
 uv tool install --force "nexus-coding-agent==0.2.0"
@@ -38,7 +38,7 @@ nexus --version
 
 Alternatively use a dedicated virtual environment and
 `python -m pip install --upgrade "nexus-coding-agent==0.2.0"`.
-Before publication, use the locally built wheel as described in the README.
+For source development, use the locally built wheel as described in the README.
 
 Back up `~/.nexus/config.toml` before upgrading from 0.1.0 and replace old sections
 with the minimal configuration in the README. Old graph/database sessions and the
@@ -79,11 +79,11 @@ Review logs before sharing.
 - [x] Complete the current offline suite, Ruff, mypy and lockfile checks.
 - [x] Build and inspect wheel/sdist; install outside the source checkout.
 - [ ] Finish development scratch cleanup: 30 pytest directories removed; nine remain inaccessible due to Windows ACLs. They are ignored and absent from the distribution.
-- [ ] Commit release preparation, push `next`, and confirm Windows/Linux CI.
-- [ ] Merge the reviewed release commit into `main` and confirm its CI.
-- [ ] Verify the existing PyPI Trusted Publisher configuration and `pypi` environment.
-- [ ] Create `v0.2.0` on the final commit and publish the GitHub Release.
-- [ ] Confirm PyPI upload and install the published version in a fresh environment.
+- [x] Commit release preparation, push `next`, and confirm Windows/Linux CI.
+- [x] Merge the reviewed release commit into `main` and confirm its CI.
+- [x] Verify the existing PyPI Trusted Publisher configuration and `pypi` environment.
+- [x] Create `v0.2.0` on the final commit and publish the GitHub Release.
+- [x] Confirm PyPI upload and install the published version in a fresh environment.
 
 The existing release workflow starts when a GitHub Release is **published**. A
 normal branch push does not publish to PyPI. Release publication and PyPI upload
@@ -140,3 +140,26 @@ replacement decoding. Runtime environment inheritance and shell semantics remain
 unchanged; no assertion was removed or test skipped. Local targeted checks:
 22 passed; Ruff and mypy (62 files) PASS. A fresh Windows/Linux CI is required
 before publishing this revision.
+
+## Publication verification (2026-10-06)
+
+The following results supersede the preparation-stage NOT RUN entries above.
+The immutable `v0.2.0` tag stays at `677fc99`; subsequent documentation updates
+record outcomes without replacing published files or moving the tag.
+
+- [Next CI](https://github.com/K529529/Nexus/actions/runs/37460893376) and
+  [main CI](https://github.com/K529529/Nexus/actions/runs/37461169186): PASS on
+  Windows and Linux. Each platform: **498 passed, 10 opt-in Docker checks skipped**.
+- [Release workflow](https://github.com/K529529/Nexus/actions/runs/37461414058):
+  build, offline checks, outside-checkout installation and Trusted Publishing PASS.
+- [GitHub Release](https://github.com/K529529/Nexus/releases/tag/v0.2.0) includes
+  the workflow-built wheel, source archive and SHA256SUMS.txt.
+- [PyPI 0.2.0](https://pypi.org/project/nexus-coding-agent/0.2.0/): wheel and sdist
+  SHA256 values match the downloaded release-workflow artifacts exactly.
+- Fresh Windows Python 3.12 environment installed `nexus-coding-agent==0.2.0`
+  from `https://pypi.org/simple` with `--no-cache`, outside this checkout.
+  `nexus --version`, `python -I -m nexus --help`, Skill imports, package/runtime
+  version agreement and dependency checks all PASS. The user's existing global
+  installation was not replaced. No live model request was made.
+- The nine local Windows-ACL scratch directories listed above remain a local
+  cleanup limitation; they are absent from Git and both published distributions.

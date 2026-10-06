@@ -18,7 +18,7 @@ for changes, migration and verification boundaries. The release checklist record
 
 Python 3.12+; Windows PowerShell or Linux `/bin/sh`.
 
-After 0.2.0 is available on PyPI, install it as an isolated command:
+Install the published 0.2.0 release as an isolated command:
 
 ```sh
 uv tool install "nexus-coding-agent==0.2.0"
@@ -26,7 +26,7 @@ nexus --version
 ```
 
 Alternatively, use `python -m pip install "nexus-coding-agent==0.2.0"` in a dedicated
-virtual environment. Before publication, build and install the local wheel:
+virtual environment. To install from source, build and install the local wheel:
 
 ```sh
 uv build

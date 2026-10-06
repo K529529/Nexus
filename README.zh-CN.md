@@ -16,7 +16,7 @@ SWE-bench resolved。
 
 要求 Python 3.12+；支持 Windows PowerShell 与 Linux `/bin/sh`。
 
-0.2.0 在 PyPI 发布后，推荐隔离安装为命令行工具：
+0.2.0 已发布到 PyPI，推荐隔离安装为命令行工具：
 
 ```sh
 uv tool install "nexus-coding-agent==0.2.0"
@@ -24,7 +24,7 @@ nexus --version
 ```
 
 也可在独立虚拟环境中运行 `python -m pip install "nexus-coding-agent==0.2.0"`。
-正式发布前，可从源码构建并安装：
+也可从源码构建并安装：
 
 ```sh
 uv build
