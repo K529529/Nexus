@@ -125,3 +125,18 @@ are `.pytest-tmp-completion-v01-static`, `.pytest-tmp-convergence-v01`,
 `.pytest-tmp-reasoning-targeted`, `.pytest-tmp-reasoning-targeted-final`,
 `.pytest-tmp-system-v2-static`. Cleanup requires an account with access to them;
 this does not prevent a clean Git checkout or distribution.
+
+## Windows CI encoding follow-up
+
+The first release-preparation CI (`37460115022`, commit `66a185e`) passed Linux
+but failed one Windows shell test (496 passed, 10 skipped). Its Python fixture
+printed a Chinese working-directory name before `hello`, implicitly relying on
+the child's locale encoding. A local cp1252 probe reproduced empty stdout and
+`UnicodeEncodeError`; the UTF-8 counterpart produced the expected output.
+
+The fixture now explicitly configures stdout/stderr as UTF-8, exercises inherited
+cp1252 and UTF-8 settings, and asserts the actual Chinese path and absence of
+replacement decoding. Runtime environment inheritance and shell semantics remain
+unchanged; no assertion was removed or test skipped. Local targeted checks:
+22 passed; Ruff and mypy (62 files) PASS. A fresh Windows/Linux CI is required
+before publishing this revision.

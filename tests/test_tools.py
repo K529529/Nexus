@@ -15,13 +15,20 @@ from nexus.tools.patch import apply_patch
 from tests.conftest import Recorder, python_command
 
 
-async def test_shell_output_cwd_unicode_stdin_and_nonzero(execution: ExecutionContext) -> None:
+@pytest.mark.parametrize("python_encoding", ["cp1252", "utf-8"])
+async def test_shell_output_cwd_unicode_stdin_and_nonzero(
+    execution: ExecutionContext, monkeypatch: pytest.MonkeyPatch, python_encoding: str
+) -> None:
+    # A piped Python child otherwise uses its inherited locale on Windows. This
+    # fixture emits UTF-8 explicitly to exercise the executor's UTF-8 contract.
+    monkeypatch.setenv("PYTHONIOENCODING", python_encoding)
     folder = execution.workspace / "space 中文"
     folder.mkdir()
     result = await execute(
         {
             "command": python_command(
-                "import os,sys; print(os.getcwd()); print('hello'); "
+                "import os,sys; sys.stdout.reconfigure(encoding='utf-8'); "
+                "sys.stderr.reconfigure(encoding='utf-8'); print(os.getcwd()); print('hello'); "
                 "print('error',file=sys.stderr); assert sys.stdin.read()==''; raise SystemExit(7)"
             ),
             "workdir": str(folder),
@@ -32,7 +39,9 @@ async def test_shell_output_cwd_unicode_stdin_and_nonzero(execution: ExecutionCo
     # PowerShell -Command returns the shell's exit code, not the child's LASTEXITCODE.
     assert not result.ok and result.data["exit_code"] == (1 if os.name == "nt" else 7)
     assert result.data["cwd"] == str(folder)
-    assert "hello" in result.data["stdout"] and "error" in result.data["stderr"]
+    assert "hello" in result.data["stdout"] and "error" in result.data["stderr"], result.data
+    assert result.data["stdout"].splitlines()[0] == str(folder)
+    assert not result.data["decode_replaced"]
 
 
 @pytest.mark.parametrize("stream", ["stdout", "stderr", "both"])
