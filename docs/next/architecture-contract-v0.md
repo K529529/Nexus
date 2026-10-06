@@ -467,7 +467,13 @@ MCP servers must be explicitly configured by the user.
 
 Do not automatically trust repository-provided MCP configuration.
 
-## Skills: Not Included
+## Skills: Original V0 exclusion
+
+2026-10-06 user-approved extension: [Lightweight Skills V0.1](skills-v0.1.md)
+adds local Markdown discovery/loading and session selection through the existing loop.
+The original V0 scope below is retained for historical context; it is superseded only
+for that explicitly bounded extension. No old Skill routing architecture is restored.
+
 
 V0 does not implement Skills / `SKILL.md`.
 

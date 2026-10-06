@@ -10,6 +10,7 @@ from pathlib import Path
 from nexus.core.observations import Projection, hot_tool_seqs, project
 from nexus.core.plan import project_plan
 from nexus.core.request_context import logical_messages, project_context
+from nexus.core.skills import project_skills
 from nexus.core.types import (
     ContextSnapshot,
     Emit,
@@ -186,6 +187,11 @@ def execution_budget(step: int, max_steps: int) -> str:
     )
 
 
+def project_state(session: Session, messages: list[Message]) -> list[Message]:
+    """The same current state participates in every request and capacity check."""
+    return project_skills(session, project_plan(session, messages))
+
+
 class Context:
     def __init__(self, limits: Limits) -> None:
         self.budget = limits.context_window - limits.max_output_tokens - 1024
@@ -202,7 +208,7 @@ class Context:
         projection = project(
             session, logical_messages(logical), self.budget, lambda m: estimate([m], [])
         )
-        projection.messages = project_plan(session, projection.messages)
+        projection.messages = project_state(session, projection.messages)
         return projection
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
@@ -238,7 +244,7 @@ class Context:
         """Attempt safety compaction once at this boundary; return whether attempted."""
         active = logical_messages(self.project(session, active).messages)
         # Capacity uses the task request, while summary input below stays guidance-free.
-        task_context = self.task_request(project_plan(session, active), guidance)
+        task_context = self.task_request(project_state(session, active), guidance)
         original = self.tokens(task_context, tools)
         if not force and original < self.budget * 0.85:
             return False
@@ -254,7 +260,7 @@ class Context:
         protected = protected_seqs(session, active, session.run_id)
         self.check(
             self.task_request(
-                project_plan(session, [m for m in active if m.seq in protected]), guidance
+                project_state(session, [m for m in active if m.seq in protected]), guidance
             ),
             tools,
         )
@@ -271,7 +277,7 @@ class Context:
                     continue
                 break
             if (
-                estimate(project_plan(session, prefix + candidates + group + [request]), [])
+                estimate(project_state(session, prefix + candidates + group + [request]), [])
                 > self.budget
             ):
                 break
@@ -294,7 +300,7 @@ class Context:
             summary_seqs = {m.seq for m in prefix + candidates}
             summary_input = [m for m in active if m.seq in summary_seqs]
             reply = await model.complete(
-                project_plan(session, summary_input + [request]), [], summary_events
+                project_state(session, summary_input + [request]), [], summary_events
             )
             if (
                 reply.finish_reason != "stop"

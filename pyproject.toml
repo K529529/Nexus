@@ -15,6 +15,7 @@ dependencies = [
     "mcp>=2,<3",
     "prompt-toolkit>=3,<4",
     "rich>=14,<15",
+    "pyyaml>=6,<7",
 ]
 
 [project.urls]
@@ -31,6 +32,7 @@ dev = [
     "pytest>=8.3,<10",
     "pytest-asyncio>=0.25,<2",
     "ruff>=0.11,<1",
+    "types-pyyaml>=6,<7",
 ]
 
 [tool.hatch.build.targets.wheel]

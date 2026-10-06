@@ -161,6 +161,24 @@ class Session:
     resume_run_id: str | None = None
     compactions: dict[str, ContextSnapshot] = field(default_factory=dict)
     plan: PlanState | None = None
+    skill_catalog: tuple[SkillInfo, ...] = ()
+    selected_skill: SkillSnapshot | None = None
+    loaded_skills: tuple[SkillSnapshot, ...] = ()
+    skills_run_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SkillInfo:
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
+class SkillSnapshot:
+    name: str
+    description: str
+    body: str
+    digest: str
 
 
 @dataclass(frozen=True)

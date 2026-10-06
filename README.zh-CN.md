@@ -81,8 +81,9 @@ nexus exec "分析测试失败" --json
 nexus resume
 ```
 
-交互命令：`/new`、`/resume`、`/help`、`/exit`。恢复列表展示任务标题、项目、更新时间
-和状态；上下键选择，Enter 确认，Esc 取消。运行中 Ctrl+C 取消当前轮次并回收进程，
+交互命令：`/new`、`/resume`、`/skills`、`/skill <名称>`、`/skill off`、`/help`、`/exit`。
+恢复列表按最近更新时间排序，展示最后一次用户输入摘要、UTC 时间和状态，每屏九条；
+上下键浏览，Enter 确认，数字 1–9 直接打开当前屏幕的条目，Esc 取消。运行中 Ctrl+C 取消当前轮次并回收进程，
 空闲时清空输入。无终端时应使用 `exec`，不会等待不可见输入。
 
 默认终端不再逐轮打印 generating，普通成功工具只留一行操作摘要、状态和耗时；支持的
@@ -204,3 +205,28 @@ collect，具体准备、官方命令、原始 base_commit diff 和报告关联�
 评测自动收集 Profile，终端只显示逐项进度与汇总。结果写入 `~/.nexus/evaluation/results/`，包括 `FinalCtx`、`ToolResultBytes`、候选 patch、轨迹和独立验证证据。这是固定 Next Dev Set 的本地验证，不是官方 SWE-bench 评分。环境身份、运行条件和限制见 [Evaluation V0](evaluation/next-dev-v0/README.md)；真实结果见 [验收记录](docs/next/evaluation-v0-evidence.md)。
 
 [自主 hardening 阶段结果与成本证据](docs/next/suite-hardening-evidence.md).
+
+## 轻量 Skill
+
+将可信的独立 `SKILL.md` 放到 `~/.nexus/skills/<名称>/SKILL.md`；
+[pytest 回归示例](docs/next/skills/pytest-regression/SKILL.md) 可手动复制到该目录。
+不会自动安装示例或读取项目中的 Skill。
+
+```text
+# 系统终端
+nexus skills list
+nexus --skill pytest-regression
+nexus exec "修复缺陷并补充回归测试" --skill pytest-regression
+
+# Nexus 的 You 提示符内
+/skills
+/skill pytest-regression
+/skill off
+```
+
+`/skills` 刷新并展示可用及启用状态；显式选择在当前 Session 的连续任务中保留，
+再次选择会替换，`/skill off` 取消显式指定并恢复自动选择模式，`/new` 清除旧选择。
+模型也可通过普通 `load_skill` 工具按需加载，自动加载只影响当前 run。
+恢复使用保存的正文快照，文件变化不会悄悄改变旧任务；再次显式选择才读取新版。
+目录、正文都计入 Context 预算；固定 eval 默认不读取个人 Skill 目录。
+范围、上限、持久化与回退 tag 见 [实现说明](docs/next/skills-v0.1.md)。

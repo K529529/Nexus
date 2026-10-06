@@ -14,6 +14,7 @@ from typing import BinaryIO
 from nexus import __version__
 from nexus.core.context import ContextBuilder
 from nexus.core.plan import plan_data, validate_plan
+from nexus.core.skills import active_skills, check_active, restore_skill
 from nexus.core.types import (
     Json,
     Message,
@@ -98,6 +99,7 @@ def replay(records: list[Json], workspace: Path) -> Session:
         raise SessionError("Session belongs to another workspace")
     session = Session(workspace.resolve(), header["session_id"])
     committed_plans: set[tuple[str, str]] = set()
+    committed_skills: set[tuple[str, str]] = set()
     started_tool: tuple[str | None, object, object] | None = None
     try:
         for record in records[1:]:
@@ -108,6 +110,8 @@ def replay(records: list[Json], workspace: Path) -> Session:
             if record["kind"] == "run_started":
                 if run_id != session.run_id:
                     session.plan = None
+                    session.loaded_skills = ()
+                    session.skills_run_id = run_id
                 session.run_id = session.resume_run_id = run_id
                 started_tool = None
             elif record["kind"] == "run_finished" and run_id == session.run_id:
@@ -137,6 +141,50 @@ def replay(records: list[Json], workspace: Path) -> Session:
                 started_tool = (run_id, data.get("call_id"), data.get("name"))
             elif record["kind"] == "tool_finished":
                 started_tool = None
+            elif record["kind"] == "skill_selected":
+                if run_id is not None or set(data) != {"skill"}:
+                    raise SessionError("Invalid skill_selected scope/fields")
+                session.selected_skill = (
+                    restore_skill(data["skill"]) if data["skill"] is not None else None
+                )
+                check_active(active_skills(session))
+            elif record["kind"] == "skill_loaded":
+                call_id = data.get("call_id")
+                if (
+                    not run_id
+                    or run_id != session.run_id
+                    or run_id != session.resume_run_id
+                    or not isinstance(call_id, str)
+                    or not call_id
+                    or type(data.get("step")) is not int
+                    or data["step"] < 1
+                    or started_tool != (run_id, call_id, "load_skill")
+                    or (run_id, call_id) in committed_skills
+                ):
+                    raise SessionError("Invalid skill_loaded run/call/step")
+                pending_calls = []
+                for message in session.messages:
+                    if message.run_id != run_id:
+                        continue
+                    if message.tool_calls:
+                        pending_calls = list(message.tool_calls)
+                    elif message.role == "tool" and pending_calls:
+                        pending_calls.pop(0)
+                if (
+                    not pending_calls
+                    or pending_calls[0].id != call_id
+                    or pending_calls[0].name != "load_skill"
+                ):
+                    raise SessionError("Invalid skill_loaded tool association")
+                value = restore_skill(data["skill"])
+                if json.loads(pending_calls[0].arguments_json) != {"name": value.name}:
+                    raise SessionError("Invalid skill_loaded arguments")
+                if value.name in {s.name for s in active_skills(session)}:
+                    raise SessionError("Duplicate skill_loaded activation")
+                check_active((*active_skills(session), value))
+                session.loaded_skills = (*session.loaded_skills, value)
+                session.skills_run_id = run_id
+                committed_skills.add((run_id, call_id))
             elif record["kind"] == "plan_updated":
                 call_id = data.get("call_id")
                 if (
@@ -297,6 +345,9 @@ def resume_session(
                 resume_run_id=session.resume_run_id,
                 compactions=session.compactions,
                 plan=session.plan,
+                selected_skill=session.selected_skill,
+                loaded_skills=session.loaded_skills,
+                skills_run_id=session.skills_run_id,
             )
             writer = SessionLog.create(
                 fresh,
@@ -381,13 +432,21 @@ def list_sessions(workspace: Path, home: Path | None = None) -> list[Json]:
                 ),
                 None,
             )
-            status = "interrupted"
+            status = "idle" if last_run is None and not truncated else "interrupted"
             if not truncated and last_run and last_run["kind"] == "run_finished":
                 status = last_run["data"]["outcome"]
             items.append(
                 {
                     "path": str(path),
-                    "title": header["title"],
+                    "title": next(
+                        (
+                            r["data"]["content"][:100]
+                            for r in reversed(records)
+                            if r["kind"] == "message" and r["data"].get("role") == "user"
+                        ),
+                        header["title"],
+                    ),
+                    "session_id": records[0]["session_id"],
                     "project": workspace.name,
                     "updated": records[-1]["timestamp"],
                     "status": status,

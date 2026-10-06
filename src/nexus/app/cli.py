@@ -17,8 +17,16 @@ from nexus.app.bootstrap import Conversation
 from nexus.app.config import ConfigError, config_path, load_config, read_toml
 from nexus.app.profile import ProfileConsumer
 from nexus.app.session import SessionError, list_sessions
-from nexus.app.tui import Transcript, json_consumer, select_session, setup, terminal_text
-from nexus.core.types import RunResult
+from nexus.app.skills import SkillCatalog
+from nexus.app.tui import (
+    Transcript,
+    json_consumer,
+    select_session,
+    setup,
+    show_skills,
+    terminal_text,
+)
+from nexus.core.types import RunResult, Session
 
 
 async def drive(conversation: Conversation, text: str) -> RunResult:
@@ -55,6 +63,15 @@ async def drive(conversation: Conversation, text: str) -> RunResult:
 
 
 async def application(args: argparse.Namespace) -> int:
+    if args.command == "skills":
+        listing = SkillCatalog(Path.home() / ".nexus" / "skills")
+        show_skills(
+            Session(Path.cwd(), skill_catalog=listing.items),
+            listing.root,
+            listing.warnings,
+            Console(highlight=False),
+        )
+        return 0
     if args.command == "eval":
         from nexus.evaluation.cases import CASE_IDS, load_case
         from nexus.evaluation.runner import evaluate
@@ -79,6 +96,8 @@ async def application(args: argparse.Namespace) -> int:
         profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
         conversation = Conversation(workspace, config, profile or consumer)
         try:
+            if getattr(args, "skill", None):
+                await conversation.select_skill(args.skill)
             result = await drive(conversation, args.task)
             if profile:
                 profile.render(
@@ -100,15 +119,39 @@ async def application(args: argparse.Namespace) -> int:
     select = args.command == "resume"
     console.print("Nexus · trusted local execution · /help for commands")
     try:
+        if getattr(args, "skill", None):
+            await conversation.select_skill(args.skill)
+            console.print(Text(f"Skill selected for this session: {args.skill}"))
         while True:
             if select:
                 path = await select_session(list_sessions(workspace))
                 select = False
                 if path is not None:
+                    # Opening another history must not discard the current session on failure.
+                    same = getattr(conversation, "writer", None)
+                    same = same is not None and same.path.resolve() == path.resolve()
+                    if same:
+                        await conversation.close()
+                    try:
+                        candidate = Conversation(
+                            workspace, load_config(), profile or transcript, resume=path
+                        )
+                    except (SessionError, OSError, ValueError) as exc:
+                        console.print(Text(terminal_text(str(exc)), style="yellow"))
+                        if same:
+                            conversation = Conversation(
+                                workspace, load_config(), profile or transcript
+                            )
+                        continue
                     await conversation.close()
-                    conversation = Conversation(
-                        workspace, load_config(), profile or transcript, resume=path
+                    conversation = candidate
+                    console.print(
+                        "Session opened. Enter a task or continuation; no saved tool is replayed."
                     )
+                    if conversation.session.selected_skill:
+                        console.print(
+                            Text(f"Restored Skill: {conversation.session.selected_skill.name}")
+                        )
                     for message in conversation.session.messages[-6:]:
                         if message.role in {"user", "assistant"} and message.content:
                             console.print(Text(f"{message.role}: {terminal_text(message.content)}"))
@@ -124,7 +167,8 @@ async def application(args: argparse.Namespace) -> int:
                 return 0
             if text == "/help":
                 console.print(
-                    "/resume select a session · /new new conversation · /exit quit. "
+                    "/skills list skills · /skill <name> select · /skill off cancel selection. "
+                    "/resume recent sessions · /new new conversation · /exit quit. "
                     "Each ordinary input starts an isolated run; /resume continues the "
                     "selected session's unfinished run. "
                     "Ctrl+C aborts the current turn; at the prompt it clears input."
@@ -134,6 +178,32 @@ async def application(args: argparse.Namespace) -> int:
                 conversation = Conversation(workspace, load_config(), profile or transcript)
             elif text == "/resume":
                 select = True
+            elif text == "/skills" or text == "/skill":
+                conversation.refresh_skills()
+                catalog = conversation.catalog
+                show_skills(
+                    conversation.session,
+                    catalog.root if catalog else None,
+                    catalog.warnings if catalog else [],
+                    console,
+                )
+            elif text.startswith("/skill "):
+                name = text[len("/skill ") :].strip()
+                try:
+                    await conversation.select_skill(None if name == "off" else name)
+                    console.print(
+                        Text(
+                            "Explicit Skill selection cleared; automatic mode remains available."
+                            if name == "off"
+                            else f"Skill selected for this session: {name}"
+                        )
+                    )
+                except ValueError as exc:
+                    console.print(Text(terminal_text(str(exc)), style="yellow"))
+            elif text.startswith("/"):
+                console.print(
+                    "Unknown command. Use /help; slash commands are not sent to the model."
+                )
             else:
                 if profile:
                     profile.reset()
@@ -160,12 +230,16 @@ def main() -> None:
     parser.add_argument(
         "--profile", action="store_true", help="Show a developer report after each run"
     )
+    parser.add_argument("--skill", help="Select a local Skill for this session")
     subparsers = parser.add_subparsers(dest="command")
+    skills = subparsers.add_parser("skills", help="List local Skills without a model connection")
+    skills.add_argument("action", nargs="?", choices=["list"], default="list")
     evaluation = subparsers.add_parser("eval", help="Run fixed Next Dev Set V0 cases")
     evaluation.add_argument("case", nargs="?")
     evaluation.add_argument("--all", action="store_true", help="Run all eight cases sequentially")
     execute = subparsers.add_parser("exec", help="Run one coding task")
     execute.add_argument("task")
+    execute.add_argument("--skill", default=argparse.SUPPRESS, help="Select a Skill for this task")
     output = execute.add_mutually_exclusive_group()
     output.add_argument("--json", action="store_true", help="Public JSONL runtime events")
     output.add_argument(
@@ -182,6 +256,8 @@ def main() -> None:
         help="Show a developer report after each run",
     )
     args = parser.parse_args()
+    if args.skill and args.command in {"eval", "resume", "skills"}:
+        parser.error("--skill applies to interactive startup or exec; use /skill after resume")
     if args.command == "eval" and bool(args.case) == args.all:
         parser.error("eval requires either a case ID or --all")
     if args.command == "exec" and args.profile and args.json:

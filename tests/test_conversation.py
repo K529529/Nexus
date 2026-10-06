@@ -280,9 +280,9 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             from types import SimpleNamespace
 
-            assert not instances or instances[-1].closed
+            # The replacement opens before the old conversation closes, so failure is safe.
             self.closed = False
-            self.session = SimpleNamespace(messages=[])
+            self.session = SimpleNamespace(messages=[], selected_skill=None)
             self.resume = kwargs.get("resume")
             instances.append(self)
 

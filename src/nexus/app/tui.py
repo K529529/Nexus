@@ -23,7 +23,8 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from nexus.app.config import ConfigError, read_toml
-from nexus.core.types import Json, RuntimeEvent, json_text
+from nexus.core.skills import active_skills
+from nexus.core.types import Json, RuntimeEvent, Session, SkillInfo, json_text
 
 ANSI = re.compile(r"\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]")
 
@@ -193,6 +194,33 @@ async def json_consumer(event: RuntimeEvent) -> None:
     print(json_text(asdict(event)), flush=True)
 
 
+def show_skills(session: Session, root: Path | None, warnings: list[str], console: Console) -> None:
+    selected = session.selected_skill
+    console.print(Text(f"Skills: {root}" if root else "Skills disabled for this environment"))
+    console.print(
+        Text("Explicit selection: " + (selected.name if selected else "off (automatic mode)"))
+    )
+    active = {s.name: s for s in active_skills(session)}
+    catalog = {s.name: s for s in session.skill_catalog}
+    for value in active.values():
+        catalog.setdefault(value.name, SkillInfo(value.name, value.description))
+    if not catalog:
+        console.print("No skills installed. Add <name>/SKILL.md to the directory above.")
+    for name, info in catalog.items():
+        state = (
+            "selected for session"
+            if selected and name == selected.name
+            else ("loaded in last/current run" if name in active else "available")
+        )
+        if name in active and name not in {s.name for s in session.skill_catalog}:
+            state += "; saved snapshot, source unavailable"
+        console.print(Text(f"  {name} [{state}] - {short_line(info.description)}"))
+    for warning in warnings:
+        console.print(Text(terminal_text(warning), style="yellow"))
+    console.print("/skill <name> select or replace; /skill off cancel selection; /skills refresh.")
+    console.print("Off restores automatic selection; model-loaded skills apply only to their run.")
+
+
 async def select_session(items: list[Json]) -> Path | None:
     if not items:
         Console().print("No sessions in this workspace.")
@@ -201,17 +229,31 @@ async def select_session(items: list[Json]) -> Path | None:
     bindings = KeyBindings()
 
     def text() -> str:
-        start = max(0, selected - 6)
-        rows = ["Resume · ↑/↓ select · Enter open · Esc cancel"]
-        for i in range(start, min(len(items), start + 12)):
+        start = (selected // 9) * 9
+        rows = [
+            "Recent sessions (newest first) · 1-9 open · up/down browse · Enter open · Esc cancel",
+            "Completed/idle: new task; interrupted/limited/failed/aborted: continue saved run.",
+        ]
+        for i in range(start, min(len(items), start + 9)):
             item = items[i]
             rows.append(
                 ("› " if i == selected else "  ")
                 + terminal_text(
-                    f"{item['title']} · {item['project']} · {item['updated']} · {item['status']}"
+                    f"{i - start + 1}. {short_line(item['title'], 64)} | "
+                    f"{item['updated'][:19].replace('T', ' ')} UTC | {item['status']} | "
+                    f"{Path(item['path']).stem[:8]}"
                 )
             )
+        rows.append(f"Showing {start + 1}-{min(len(items), start + 9)} of {len(items)} sessions")
         return "\n".join(rows)
+
+    for digit in "123456789":
+
+        @bindings.add(digit)
+        def numbered(event: KeyPressEvent) -> None:
+            index = (selected // 9) * 9 + int(event.data) - 1
+            if index < len(items):
+                event.app.exit(result=Path(items[index]["path"]))
 
     @bindings.add("up")
     def up(event: KeyPressEvent) -> None:

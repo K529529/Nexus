@@ -116,7 +116,7 @@ nexus exec "Explain this test failure" --json
 nexus resume
 ```
 
-Interactive commands: `/new`, `/resume`, `/help`, `/exit`. The selector shows
+Interactive commands: `/new`, `/resume`, `/skills`, `/skill <name>`, `/skill off`, `/help`, `/exit`. The selector shows
 task title, project, update time and status; use arrows/Enter or Esc. Ctrl+C
 aborts the active turn with bounded process cleanup; at an idle prompt it clears
 input. Non-interactive callers must use `exec`. Exit codes are 0 completed,
@@ -298,3 +298,27 @@ nexus eval --all
 Evaluation automatically collects Profile metrics and prints a compact aggregate report including `FinalCtx` and `ToolResultBytes`. Artifacts live under `~/.nexus/evaluation/results/`. These are local Next Dev Set checks, not official SWE-bench scores. See [Evaluation V0](evaluation/next-dev-v0/README.md) for frozen environments and limitations, and [actual acceptance evidence](docs/next/evaluation-v0-evidence.md) for results.
 
 [Autonomous hardening stage results and cost evidence](docs/next/suite-hardening-evidence.md).
+
+## Lightweight Skills
+
+Install trusted, self-contained Markdown at `~/.nexus/skills/<name>/SKILL.md`.
+The [pytest regression example](docs/next/skills/pytest-regression/SKILL.md) can be
+copied manually; examples are not automatically installed or activated.
+
+```text
+nexus skills list
+nexus --skill pytest-regression
+nexus exec "Fix the bug with regression coverage" --skill pytest-regression
+```
+
+Inside the prompt, `/skills` refreshes availability and shows selection/loading status;
+`/skill <name>` selects or replaces the session default; `/skill off` clears that explicit
+selection and restores automatic mode; `/new` clears the old session's selection.
+The model can use the ordinary `load_skill` tool for task-specific loading. Automatic
+loads last only for their run. Resume restores saved bodies, even if files change.
+Skills do not execute scripts or grant permissions; their input cost is budgeted.
+Fixed evaluation does not discover personal Skills.
+
+The resume selector displays nine recent entries per page, showing the latest user
+input, UTC update time and outcome. Use arrows/Enter or digits 1-9; Esc cancels.
+See [Skills design, limits and rollback](docs/next/skills-v0.1.md).

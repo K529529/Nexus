@@ -61,6 +61,9 @@ async def run_turn(
     session.run_id = session.resume_run_id or uuid4().hex
     if session.plan is not None and session.plan.run_id != session.run_id:
         session.plan = None
+    if session.skills_run_id != session.run_id:
+        session.loaded_skills = ()
+        session.skills_run_id = session.run_id
     detector = StagnationDetector(session)
     pending_guidance: str | None = None
     result = RunResult("failed")
@@ -76,6 +79,7 @@ async def run_turn(
             "tool_started",
             "tool_finished",
             "plan_updated",
+            "skill_loaded",
             "stagnation_nudge",
         }:
             data = {**data, "step": result.steps}
