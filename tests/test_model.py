@@ -712,3 +712,49 @@ def test_config_env_validation_and_no_repo_config(tmp_path: Path, monkeypatch: A
     path.write_text('[model]\napi_key="secret"\n', encoding="utf-8")
     with pytest.raises(ConfigError, match="unknown"):
         load_config(path)
+
+
+@pytest.mark.parametrize("parameter", [None, "max_tokens", "max_completion_tokens"])
+async def test_output_limit_config_reaches_wire_and_context(
+    tmp_path: Path, parameter: str | None
+) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[model]\nname="test"\ncontext_window=32768\nmax_output_tokens=1234\n'
+        + (f'output_token_parameter="{parameter}"\n' if parameter else ""),
+        encoding="utf-8",
+    )
+    config = load_config(path, require_key=False)
+    selected = parameter or "max_tokens"
+    assert config.model.output_token_parameter == selected
+    assert Context(config.limits).budget == 32768 - 1234 - 1024
+    requests: list[Json] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, content=sse([chunk({"content": "done"}, "stop")]))
+
+    model = model_for(handle)
+    model.config = config.model
+    try:
+        await model.complete([Message("user", "task")], [], Recorder())
+        request = requests[0]
+        assert request[selected] == config.limits.max_output_tokens == 1234
+        other = "max_completion_tokens" if selected == "max_tokens" else "max_tokens"
+        assert other not in request
+        assert "extra_body" not in request
+    finally:
+        await model.close()
+
+
+@pytest.mark.parametrize(
+    "value", ['"unknown"', '""', '"MAX_TOKENS"', '" max_tokens "', "1", "true"]
+)
+def test_invalid_output_token_parameter(tmp_path: Path, value: str) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[model]\nname="test"\ncontext_window=32768\noutput_token_parameter=' + value,
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="model.output_token_parameter"):
+        load_config(path, require_key=False)

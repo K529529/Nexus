@@ -30,14 +30,15 @@ uv tool install dist/nexus_coding_agent-0.2.0-py3-none-any.whl
 
 ```toml
 [model]
-name = "deepseek-v4.1-flash"
+name = "qwen3.8-flash"
 base_url = "https://<你的百炼账户endpoint>/compatible-mode/v1"
 api_key_env = "DASHSCOPE_API_KEY"
 context_window = 1000000
-max_output_tokens = 32768
-reasoning_effort = "high"
+max_output_tokens = 16384
+reasoning_effort = "low"
 include_usage = true
-# request_timeout_seconds = 120  # 一次完整模型响应的期限，1..600 秒
+request_timeout_seconds = 300  # 一次完整模型响应的期限，1..600 秒
+output_token_parameter = "max_completion_tokens"  # 本服务已验证限制推理与回答总量
 
 [runtime]
 max_steps = 40
@@ -45,6 +46,12 @@ max_steps = 40
 [execution]
 output_limit_bytes = 32768
 ```
+
+`output_token_parameter` 可选 `max_tokens`（兼容默认值）或 `max_completion_tokens`。
+部分服务的 `max_tokens` 不包含推理；服务支持时选择总 completion 参数，使限制覆盖推理与回答。
+`max_output_tokens` 同时用于该参数和 Context 预留。Nexus 不根据模型名猜测，也不在参数被拒绝后
+自动换参数重试。服务接受参数不等于上限生效，需用小额受限探针验证；见
+[真实参数证据](docs/next/cost-hardening.md)。
 
 Base URL 必须替换成账户对应的真实地址。API key 只从指定环境变量读取：
 
@@ -57,11 +64,13 @@ Linux 使用 `export DASHSCOPE_API_KEY='<key>'`。引导只询问变量名，不
 旧配置中的 `observability` 等段落不再支持；先备份旧配置再移除淘汰字段，程序不会
 自动改写旧配置。不会读取仓库 `.env` 或 `.nexus/config.toml`。
 
-上面的模型配置来自早期小任务验收，不代表已经验证普遍稳定。后续 Requests/Sphinx
-使用不同的输出/reasoning 设置，仍出现编辑或结束不收敛，见
+上面的百炼 Flash low 配置是本轮成本优先的日常候选：完整八例为 6/8 PASS、8/8 completed，
+已报告费用约 ¥1.54，不代表已验证长期稳定。早期 Requests/Sphinx 使用不同的配置，
+曾出现编辑或结束不收敛，见
 [执行预算实测记录](docs/next/execution-budget-evidence.md)。
 [后续模型对照](docs/next/model-delivery-evidence.md) 中，Qwen 已实现 Requests PASS 并自主结束；
-Sphinx 修复也 PASS，但服务访问权限错误中断了收尾。候选配置仍待权限恢复和进一步验收。
+Sphinx 修复也 PASS，但当时服务权限错误中断了收尾。权限恢复后的低成本模型与完整八例对照见
+[当前结果与限制](docs/next/suite-hardening-evidence.md)；早期 Max 候选不代表当前默认选择或稳定性保证。
 
 ## 使用与恢复
 
@@ -194,4 +203,4 @@ collect，具体准备、官方命令、原始 base_commit diff 和报告关联�
 
 评测自动收集 Profile，终端只显示逐项进度与汇总。结果写入 `~/.nexus/evaluation/results/`，包括 `FinalCtx`、`ToolResultBytes`、候选 patch、轨迹和独立验证证据。这是固定 Next Dev Set 的本地验证，不是官方 SWE-bench 评分。环境身份、运行条件和限制见 [Evaluation V0](evaluation/next-dev-v0/README.md)；真实结果见 [验收记录](docs/next/evaluation-v0-evidence.md)。
 
-[自主 hardening 的运行结果与成本证据（进行中）](docs/next/suite-hardening-evidence.md).
+[自主 hardening 阶段结果与成本证据](docs/next/suite-hardening-evidence.md).

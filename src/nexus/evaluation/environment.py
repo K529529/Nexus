@@ -11,12 +11,13 @@ import posixpath
 import tarfile
 import time
 import urllib.request
+from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from nexus.core.types import Emit, ExecutionContext, Json, Tool, ToolCancelled, ToolResult
 from nexus.evaluation.cases import SUITE, EvalCase
-from nexus.tools.execution import OutputBuffer
+from nexus.tools.execution import COMMAND_ARGUMENTS_DETAIL, OutputBuffer
 from nexus.tools.registry import native_tools
 
 
@@ -301,7 +302,14 @@ class Environment:
 
     def registry(self) -> dict[str, Tool]:
         registry = native_tools()
-        registry["exec_command"] = Tool(registry["exec_command"].spec, self.execute)
+        spec = registry["exec_command"].spec
+        spec = replace(
+            spec,
+            description=(
+                spec.description + " Internet access is disabled in this command environment."
+            ),
+        )
+        registry["exec_command"] = Tool(spec, self.execute)
         return registry
 
     async def _kill_group(self, pidfile: str) -> bool:
@@ -345,7 +353,7 @@ class Environment:
             return ToolResult(
                 context.call_id,
                 False,
-                {"detail": "Invalid exec_command arguments"},
+                {"detail": COMMAND_ARGUMENTS_DETAIL},
                 "invalid_arguments",
             )
         cwd = posixpath.normpath(posixpath.join("/workspace", cwd))

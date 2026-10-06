@@ -64,7 +64,8 @@ def parse_nexus_patch(patch: str) -> list[FilePatch]:
         if chunk is not None and not any(tag in "+-" for tag, _ in chunk.lines):
             raise _error(
                 "invalid_patch",
-                "Chunk requires '+' or '-'",
+                "Chunk requires '+' or '-'. Each @@ starts a new chunk; "
+                "keep its anchor/context and edit lines together before the next @@.",
                 current,
                 len(current.chunks) if current else None,
             )

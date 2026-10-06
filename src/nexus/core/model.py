@@ -73,7 +73,7 @@ class ChatModel:
             "messages": self.wire_messages(messages),
             "stream": True,
             "n": 1,
-            "max_tokens": self.config.max_output_tokens,
+            self.config.output_token_parameter: self.config.max_output_tokens,
         }
         if tools:
             request["tools"] = [

@@ -67,6 +67,42 @@ async def test_invalid_protocol_never_writes(
     assert path.read_bytes() == b"old\n"
 
 
+async def test_missing_boundaries_feedback_supports_safe_retry(execution: ExecutionContext) -> None:
+    path = execution.workspace / "a"
+    path.write_bytes(b"old\n")
+    body = "*** Update File: a\n@@\n-old\n+new"
+    bad = await apply_patch({"patch": body}, execution, Recorder())
+    assert not bad.ok and bad.error_code == "unsupported_patch"
+    assert bad.data["changed_files"] == 0 and not bad.data["partial"]
+    assert "*** Begin Patch and *** End Patch" in bad.data["detail"]
+    assert path.read_bytes() == b"old\n"
+    fixed = await apply_patch({"patch": wrapped(body)}, execution, Recorder())
+    assert fixed.ok and fixed.data["changed_files"] == 1
+    assert path.read_bytes() == b"new\n"
+
+
+@pytest.mark.parametrize("heading", ["@@ def run():", "@@\n def run():"])
+async def test_empty_seek_chunk_feedback_supports_safe_retry(
+    execution: ExecutionContext, heading: str
+) -> None:
+    path = execution.workspace / "a"
+    original = b"def run():\nold\n"
+    path.write_bytes(original)
+    bad = await apply_patch(
+        {"patch": update(heading + "\n@@\n-old\n+new")}, execution, Recorder()
+    )
+    assert not bad.ok and bad.error_code == "invalid_patch"
+    assert bad.data["failed_hunk"] == 1 and bad.data["changed_files"] == 0
+    assert "Each @@ starts a new chunk" in bad.data["detail"]
+    assert "before the next @@" in bad.data["detail"]
+    assert path.read_bytes() == original
+    fixed = await apply_patch(
+        {"patch": update("@@ def run():\n-old\n+new")}, execution, Recorder()
+    )
+    assert fixed.ok and fixed.data["changed_files"] == 1
+    assert path.read_bytes() == b"def run():\nnew\n"
+
+
 @pytest.mark.parametrize("prefix", ["", "diff --git a/a b/a\n", "\n \t\n"])
 async def test_legacy_dispatch_and_mixed_format_unchanged(
     execution: ExecutionContext, prefix: str

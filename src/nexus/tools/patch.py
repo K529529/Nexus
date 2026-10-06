@@ -66,7 +66,11 @@ def parse_patch(patch: str) -> list[Change]:
     if first == "*** Begin Patch":
         return [Change(file.path, file.kind, nexus=file) for file in parse_nexus_patch(patch)]
     if not first.startswith(("diff --git ", "--- ")):
-        raise PatchError("unsupported_patch", "Unknown patch protocol")
+        raise PatchError(
+            "unsupported_patch",
+            "Unknown patch protocol. Enclose Nexus file sections between exact "
+            "*** Begin Patch and *** End Patch lines (no Markdown fences).",
+        )
     return parse_legacy_patch(patch)
 
 

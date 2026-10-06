@@ -28,6 +28,7 @@ class ModelConfig:
     reasoning_effort: str | None = None
     include_usage: bool = True
     request_timeout_seconds: int = 120
+    output_token_parameter: str = "max_tokens"
 
     def key(self) -> str:
         value = os.environ.get(self.api_key_env, "")
@@ -106,6 +107,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
                 "reasoning_effort",
                 "include_usage",
                 "request_timeout_seconds",
+                "output_token_parameter",
             },
         )
     )
@@ -137,8 +139,16 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     )
     if request_timeout > 600:
         raise ConfigError("model.request_timeout_seconds: expected integer <= 600")
+    output_parameter = _text(
+        model.get("output_token_parameter", "max_tokens"), "model.output_token_parameter"
+    )
+    if output_parameter not in {"max_tokens", "max_completion_tokens"}:
+        raise ConfigError(
+            "model.output_token_parameter: expected max_tokens or max_completion_tokens"
+        )
     settings = ModelConfig(
-        name, window, base, key_env, maximum, effort, include_usage, request_timeout
+        name, window, base, key_env, maximum, effort, include_usage, request_timeout,
+        output_parameter,
     )
     runtime = _table(data, "runtime", {"max_steps"})
     execution = _table(data, "execution", {"shell", "output_limit_bytes"})

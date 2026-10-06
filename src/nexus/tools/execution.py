@@ -14,6 +14,11 @@ from pathlib import Path
 
 from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult
 
+COMMAND_ARGUMENTS_DETAIL = (
+    "Expected a non-empty 'command' string, optional 'workdir' string and "
+    "'timeout_ms' integer (1..600000); no other fields."
+)
+
 
 class OutputBuffer:
     """Byte-bounded head/tail, shared by both pipes (not split per stream)."""
@@ -120,7 +125,7 @@ async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> Too
         return ToolResult(
             context.call_id,
             False,
-            {"detail": "Invalid exec_command arguments"},
+            {"detail": COMMAND_ARGUMENTS_DETAIL},
             "invalid_arguments",
         )
     cwd = (context.workspace / Path(workdir)).resolve()

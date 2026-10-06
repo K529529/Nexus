@@ -12,13 +12,24 @@ import pytest
 from nexus.app import bootstrap, cli
 from nexus.app.profile import ModelCall, RunProfile, ToolCall, profile_metrics
 from nexus.core.context import instructions
-from nexus.core.types import ExecutionContext, Json, Tool, ToolResult
+from nexus.core.types import (
+    Emit,
+    ExecutionContext,
+    Json,
+    Message,
+    ModelReply,
+    Tool,
+    ToolResult,
+    ToolSpec,
+)
 from nexus.evaluation import runner
 from nexus.evaluation.cases import CASE_IDS, load_case, validator_spec
 from nexus.evaluation.environment import CleanupError, Docker, Environment
 from nexus.evaluation.report import public_url, render_html, save_report
 from nexus.evaluation.validation import grade, hidden_paths
-from tests.conftest import ScriptedModel, call, reply
+from nexus.tools.execution import execute as native_execute
+from nexus.tools.registry import native_tools
+from tests.conftest import Recorder, ScriptedModel, call, reply
 from tests.test_conversation import config, ignore
 
 
@@ -95,6 +106,16 @@ async def test_injected_tool_and_environment_reach_real_loop(
         return ToolResult(context.call_id, True, {"stdout": "container"})
 
     class Model(ScriptedModel):
+        async def complete(
+            self, messages: list[Message], tools: list[ToolSpec], emit: Emit
+        ) -> ModelReply:
+            spec = next(t for t in tools if t.name == "exec_command")
+            native = native_tools()["exec_command"].spec
+            assert spec.input_schema == native.input_schema
+            assert "Internet access is disabled" in spec.description
+            assert "Internet access is disabled" not in native.description
+            return await super().complete(messages, tools, emit)
+
         async def close(self) -> None:
             pass
 
@@ -350,3 +371,23 @@ def test_report_cache_aggregation_includes_old_reports_as_unknown(tmp_path: Path
     assert summary["totals"]["input_tokens"]["reported"] == 300
     assert "Cached input (subset) >=80" in report and "Cache usage coverage 2/3" in report
     assert summary["counts"]["NOT_RUN"] == 3  # Usage never changes a verdict.
+
+
+@pytest.mark.parametrize("container", [False, True])
+async def test_wrong_command_field_is_rejected_before_execution(
+    tmp_path: Path, monkeypatch: Any, container: bool
+) -> None:
+    async def forbidden(*args: Any, **kwargs: Any) -> None:
+        pytest.fail("Invalid tool arguments must not start a process")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", forbidden)
+    env = Environment(Docker([]), load_case(CASE_IDS[-1]), tmp_path)
+    execute = env.execute if container else native_execute
+    recorder = Recorder()
+    result = await execute(
+        {"cmd": "echo should-not-run"}, ExecutionContext(tmp_path, "invalid", "/bin/sh"), recorder
+    )
+    assert not result.ok and result.error_code == "invalid_arguments"
+    assert "non-empty 'command' string" in result.data["detail"]
+    assert "no other fields" in result.data["detail"]
+    assert recorder.events == []

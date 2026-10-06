@@ -58,3 +58,42 @@ runtime cleanup change. This is retained as a test reliability limitation.
 Aggregate evaluation reports also preserve cached-input totals and coverage,
 including pre-telemetry reports as unknown rather than zero. The existing verdict
 and validation logic is unchanged. 32 focused report/cache tests, Ruff and mypy pass.
+
+
+## Explicit total-completion limits
+
+Failure pattern: Bailian Qwen Flash interprets max_tokens as answer-only, while
+Nexus reserves max_output_tokens in its input budget. A live suite response
+reported 16,550 output tokens despite max_output_tokens=8192. This difference
+affects general reasoning-model requests, not any task or repository.
+
+The optional model.output_token_parameter chooses max_tokens (unchanged default)
+or max_completion_tokens. Configuration validates those exact two spellings,
+then the adapter sends exactly one selected parameter with max_output_tokens;
+Context reserves that same number. No model-name dispatch, extra_body flag,
+automatic parameter fallback or replay is added. Users must select a parameter
+supported by their service. Existing profiles keep their prior wire format.
+
+Real Nexus adapter probe on Qwen3.8-Flash low, using a synthetic arithmetic prompt
+and a limit of 32: max_tokens returned stop and 1756 output tokens;
+max_completion_tokens returned length and 32 output tokens. Only usage and finish
+status were saved to artifacts/hardening/output-limit-wire-probe.json. Truncated
+responses still fail honestly and never become successful task completions.
+This is budget enforcement evidence, not a quality improvement claim.
+
+86 targeted model/context/compaction tests and the full offline suite passed
+(461 passed, 10 previously verified Docker opt-in tests skipped), plus Ruff and
+mypy. Wire tests cover default compatibility, both explicit choices, invalid
+values, mutual exclusivity, and the matching Context output reserve.
+
+Source: [Bailian Chat API output parameters](https://platform.qianwenai.com/docs/api-reference/chat/openai-chat).
+
+
+A second live probe after the user enabled ZHIPU/GLM-5.3-Flash showed the reverse
+compatibility boundary: with a limit of 32, max_tokens returned length with 32
+output tokens, but max_completion_tokens was accepted and returned stop with
+3552 output tokens. The direct-provider exception in Bailian's documentation
+therefore matters. HTTP acceptance alone is not evidence that a cap is enforced.
+The GLM comparison explicitly uses max_tokens; no automatic model-name mapping
+or extra provider flags were introduced. Synthetic usage/finish evidence is in
+artifacts/hardening/glm-output-limit-probe.json; no real reasoning was exported.

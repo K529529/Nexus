@@ -45,6 +45,7 @@ context_window = 32768
 max_output_tokens = 8192
 include_usage = true
 # request_timeout_seconds = 120  # Entire model response, 1..600 seconds
+# output_token_parameter = "max_completion_tokens"  # Opt in if supported by your service
 # reasoning_effort = "high"
 
 [runtime]
@@ -72,11 +73,26 @@ export NEXUS_MODEL_API_KEY='<key>'
 nexus
 ```
 
+`output_token_parameter` selects `max_tokens` (compatible default) or
+`max_completion_tokens`. For services where `max_tokens` excludes reasoning,
+select a supported total-completion parameter so the provider cap includes both
+reasoning and the answer. `max_output_tokens` supplies the same value to that
+parameter and the Context reserve. Nexus does not guess from the model name or
+retry with another parameter when a service rejects it. Verify enforcement with a
+bounded provider probe: an accepted but ignored parameter is not a working cap.
+See [live parameter evidence](docs/next/cost-hardening.md).
+
 Use your service's actual context limit. `context_window` must exceed
 `max_output_tokens + 1024`. `NEXUS_MODEL_NAME` and `NEXUS_MODEL_BASE_URL` override
 only the corresponding model fields. Repository `.env` and `.nexus/config.toml`
 are never loaded. Old Nexus configuration sections (including `observability`)
 are unsupported: preserve a backup and remove those sections before using Next.
+
+The current cost-first Bailian candidate is `qwen3.8-flash`, reasoning `low`,
+16,384 total completion tokens, a 300-second request deadline, and 40 model steps.
+One full round achieved 6/8 PASS and 8/8 autonomous completions at about CNY 1.54
+in reported-token cost; this is not evidence of stable 8/8. Exact settings and
+remaining failures are in the [hardening report](docs/next/suite-hardening-evidence.md).
 
 The initial small-task acceptance used `deepseek-v4.1-flash`, Chat
 Completions, `reasoning_effort = "high"`, `context_window = 1000000`, and
@@ -87,7 +103,9 @@ runs used different output/reasoning settings and exposed edit/finish failures; 
 [execution-budget evidence](docs/next/execution-budget-evidence.md).
 The [subsequent model comparison](docs/next/model-delivery-evidence.md) records Qwen's
 Requests PASS with autonomous completion and a Sphinx PASS interrupted by service access denial.
-The candidate profile remains pending service access and further acceptance.
+After service access was restored, broader low-cost model comparisons continued;
+see [current eight-case results and limitations](docs/next/suite-hardening-evidence.md).
+The earlier Max candidate is not the selected default or a reliability guarantee.
 
 ## Work and resume
 
@@ -279,4 +297,4 @@ nexus eval --all
 
 Evaluation automatically collects Profile metrics and prints a compact aggregate report including `FinalCtx` and `ToolResultBytes`. Artifacts live under `~/.nexus/evaluation/results/`. These are local Next Dev Set checks, not official SWE-bench scores. See [Evaluation V0](evaluation/next-dev-v0/README.md) for frozen environments and limitations, and [actual acceptance evidence](docs/next/evaluation-v0-evidence.md) for results.
 
-[Current autonomous hardening results and cost evidence (in progress)](docs/next/suite-hardening-evidence.md).
+[Autonomous hardening stage results and cost evidence](docs/next/suite-hardening-evidence.md).

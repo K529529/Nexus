@@ -32,6 +32,9 @@ When asked to change code, read the relevant code, make a focused change, and te
 do not stop at analysis.
 Use exec_command to inspect and run checks, and apply_patch to edit.
 Use small, reversible edits and tests to resolve uncertainty.
+Derive expected results from the task and existing contracts, not from the new implementation.
+For a bug fix, prefer a focused regression test that fails before the fix and passes after it;
+assert the intended behavior and preserve behavior outside the requested change.
 Investigate beyond the relevant code only to answer a concrete question needed for the change
 or its tests.
 

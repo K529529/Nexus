@@ -362,6 +362,10 @@ def test_instructions_include_validation_policy(tmp_path: Path) -> None:
         "check if possible, then report the limitation",
         "Once that behavior works, relevant checks pass, "
         "and no known task-related problem remains, stop using tools and respond",
+        "Derive expected results from the task and existing contracts, "
+        "not from the new implementation",
+        "prefer a focused regression test that fails before the fix and passes after it",
+        "assert the intended behavior and preserve behavior outside the requested change",
         "Report what changed, what you actually checked, and any remaining limitations",
     ):
         assert principle in text
