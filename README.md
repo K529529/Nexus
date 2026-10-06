@@ -1,29 +1,43 @@
-# Nexus Next V0
+# Nexus 0.2.0 (Next)
 
 [中文](README.zh-CN.md)
 
 A small local coding agent: one hand-written message loop, native function calling,
 and two native coding tools, `exec_command` and `apply_patch`, plus `update_plan`
-for progress tracking. The model explores, edits,
+for progress tracking and `load_skill` for optional local guidance. The model explores, edits,
 runs tests, repairs failures, and decides when to finish. No database or repository
 index is required. Explicitly configured stdio MCP servers can supply additional tools.
 
-This branch implements the approved Next V0 design. See
+The Next rewrite keeps the `nexus-coding-agent` package name and `nexus` command. See
 [acceptance evidence](docs/next/acceptance-evidence.md) for actual PASS/FAIL/NOT RUN
 results. A model's `completed` outcome is not proof that tests passed or that a
-benchmark instance was resolved. Version `0.2.0` is a local candidate, not a claim
-that this version has been published to PyPI.
+benchmark instance was resolved. See the [0.2.0 release notes](docs/next/release-0.2.0.md)
+for changes, migration and verification boundaries. The release checklist records publication status.
 
 ## Install
 
 Python 3.12+; Windows PowerShell or Linux `/bin/sh`.
 
+After 0.2.0 is available on PyPI, install it as an isolated command:
+
+```sh
+uv tool install "nexus-coding-agent==0.2.0"
+nexus --version
+```
+
+Alternatively, use `python -m pip install "nexus-coding-agent==0.2.0"` in a dedicated
+virtual environment. Before publication, build and install the local wheel:
+
 ```sh
 uv build
-python -m pip install dist/nexus_coding_agent-0.2.0-py3-none-any.whl
-# Or install the same wheel as an isolated command:
 uv tool install dist/nexus_coding_agent-0.2.0-py3-none-any.whl
 ```
+
+When upgrading an existing uv tool installation, add `--force`. Check `Get-Command nexus -All`
+(PowerShell) or `command -v nexus` (Linux) if an older installation shadows the new command.
+Back up `~/.nexus/config.toml` before upgrading from 0.1.0; use the minimal configuration
+below. Old database sessions and legacy Skills are not migrated. Model API calls are billed
+by your provider; installing Nexus does not include API credits.
 
 For development: `uv sync --frozen --dev`, then `uv run --frozen nexus`.
 Start in the project root: the starting directory is the workspace. Nexus only
@@ -226,8 +240,8 @@ CI runs offline behavior tests on Windows/Linux with Python 3.12. Git is needed
 for the evaluation collector tests, not for ordinary Nexus startup. Cloud live
 tests are separate from paid CI. Read `src/nexus/core/agent.py` for the loop,
 `core/model.py` for the wire adapter, `tools/` for execution, and `app/` for local
-sessions and terminal consumers. Four direct runtime dependencies: OpenAI SDK,
-MCP SDK, prompt_toolkit and Rich. SDK transitive dependencies are listed in `uv.lock`.
+sessions and terminal consumers. Five direct runtime dependencies: OpenAI SDK,
+MCP SDK, prompt_toolkit, Rich and PyYAML (safe Skill metadata parsing). SDK transitive dependencies are listed in `uv.lock`.
 For a code-based explanation of the design, tradeoffs and evidence boundaries, see
 the [engineering walkthrough](docs/next/engineering-walkthrough.md).
 
@@ -282,8 +296,9 @@ configured credential is not exported, and the run records a collection error.
 - [Approved development design](docs/next/01-development-design.md)
 - [Delivery and acceptance checklist](docs/next/02-delivery-and-acceptance.md)
 
-Old Day workflows, graph nodes, Plan authorization, databases, retrieval, Skills
-and the old evaluation platform have been removed from this development branch.
+Old Day workflows, graph nodes, Plan authorization, databases, retrieval, the legacy
+Skill system and the old evaluation platform have been removed. The lightweight Skills
+below are implemented through the same message loop and Tool Registry.
 
 
 ## Fixed development evaluation
@@ -322,3 +337,7 @@ Fixed evaluation does not discover personal Skills.
 The resume selector displays nine recent entries per page, showing the latest user
 input, UTC update time and outcome. Use arrows/Enter or digits 1-9; Esc cancels.
 See [Skills design, limits and rollback](docs/next/skills-v0.1.md).
+
+## License
+
+[MIT](LICENSE).

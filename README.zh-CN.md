@@ -1,26 +1,40 @@
-# Nexus Next V0
+# Nexus 0.2.0（Next）
 
 [English / 完整配置与评测命令](README.md)
 
 一个小型本地 Coding Agent：单个手写消息循环，`exec_command` 与
-`apply_patch` 两个原生编码工具，加上记录进度的 `update_plan`。
+`apply_patch` 两个原生编码工具，加上记录进度的 `update_plan` 和按需加载本地指引的 `load_skill`。
 模型负责探索、规划、修改、运行检查、修复和决定结束。
 无需数据库、仓库索引或工作流引擎；用户显式配置的 stdio MCP server 可提供额外工具。
 
-当前是 `0.2.0` 本地候选实现，未发布 PyPI。实际交付状态见
-[验收证据](docs/next/acceptance-evidence.md)，模型返回 completed 不等于测试通过或
+Next 重构版沿用 `nexus-coding-agent` 包名和 `nexus` 命令。
+[0.2.0 发布说明](docs/next/release-0.2.0.md)记录功能、迁移和发布检查状态；
+[验收证据](docs/next/acceptance-evidence.md)记录历史验证。模型返回 completed 不等于测试通过或
 SWE-bench resolved。
 
 ## 安装与配置
 
 要求 Python 3.12+；支持 Windows PowerShell 与 Linux `/bin/sh`。
 
+0.2.0 在 PyPI 发布后，推荐隔离安装为命令行工具：
+
+```sh
+uv tool install "nexus-coding-agent==0.2.0"
+nexus --version
+```
+
+也可在独立虚拟环境中运行 `python -m pip install "nexus-coding-agent==0.2.0"`。
+正式发布前，可从源码构建并安装：
+
 ```sh
 uv build
-python -m pip install dist/nexus_coding_agent-0.2.0-py3-none-any.whl
-# 或
 uv tool install dist/nexus_coding_agent-0.2.0-py3-none-any.whl
 ```
+
+已有 uv tool 安装时加 `--force`。若启动了旧版，用 PowerShell 的 `Get-Command nexus -All`
+或 Linux 的 `command -v nexus` 检查命令路径。升级旧 0.1.0 前备份 `~/.nexus/config.toml`，
+按下方最小配置重新配置；不迁移旧数据库会话或旧版 Skill 系统。
+模型 API 按服务商规则收费，安装 Nexus 不包含 API 额度。
 
 开发环境使用 `uv sync --frozen --dev`，通过 `uv run --frozen nexus` 启动。
 先进入目标项目根目录：启动目录就是 workspace，不自动向上寻找 Git root。
@@ -180,8 +194,8 @@ benchmark verdict 则来自官方 grader，三者分别记录。
 
 可用于面试的代码入口、设计取舍和证据边界见[工程讲解](docs/next/engineering-walkthrough.md)。
 
-仅四个直接运行依赖：`openai`、`mcp`、`prompt-toolkit`、`rich`。没有旧 Graph/Plan 授权/数据库/
-RAG/Skills/评测平台的兼容入口。官方 SWE-bench 使用 `scripts/swebench_v0.py` 的 predict 与
+五个直接运行依赖：`openai`、`mcp`、`prompt-toolkit`、`rich`、`pyyaml`（安全解析 Skill 元数据）。
+没有旧 Graph/Plan 授权/数据库/RAG/旧 Skills/评测平台的兼容入口。官方 SWE-bench 使用 `scripts/swebench_v0.py` 的 predict 与
 collect，具体准备、官方命令、原始 base_commit diff 和报告关联方法见英文说明。
 
 ## 有效设计依据
@@ -230,3 +244,7 @@ nexus exec "修复缺陷并补充回归测试" --skill pytest-regression
 恢复使用保存的正文快照，文件变化不会悄悄改变旧任务；再次显式选择才读取新版。
 目录、正文都计入 Context 预算；固定 eval 默认不读取个人 Skill 目录。
 范围、上限、持久化与回退 tag 见 [实现说明](docs/next/skills-v0.1.md)。
+
+## 许可证
+
+[MIT](LICENSE)。

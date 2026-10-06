@@ -34,8 +34,30 @@ jobs:
           test "$package_version" = "$release_version"
           echo "Publishing version $package_version"
 
+      - name: Install locked development dependencies
+        run: uv sync --frozen --dev
+
+      - name: Run offline release checks
+        run: |
+          uv lock --check
+          uv run --frozen ruff check .
+          uv run --frozen mypy src tests
+          uv run --frozen pytest
+          git diff --check
+
       - name: Build sdist and wheel
         run: uv build
+
+      - name: Smoke-test installed wheel outside the checkout
+        shell: bash
+        run: |
+          wheel="$(pwd)/$(ls dist/*.whl)"
+          cd "$RUNNER_TEMP"
+          uv venv --python 3.12 nexus-release-test
+          uv pip install --python nexus-release-test "$wheel"
+          nexus-release-test/bin/python -I -m nexus --version
+          nexus-release-test/bin/python -I -m nexus --help
+          uv pip check --python nexus-release-test
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
