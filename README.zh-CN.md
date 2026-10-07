@@ -1,15 +1,23 @@
-# Nexus
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/next/assets/nexus-wordmark-dark.svg">
+  <img src="docs/next/assets/nexus-wordmark.svg" alt="Nexus" width="280">
+</picture>
 
-**在你的项目目录里，用自然语言完成编程任务。**
+### 在你的项目目录里，用自然语言完成编程任务。
 
 一个轻量的终端 Coding Agent：读取代码、修改文件、运行测试，并展示执行过程。
 单个消息驱动循环，无需数据库或仓库索引。
 
-**Python 3.12+ · Windows / Linux · MIT**
+Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
 
-[English](README.md) · [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) · [下载与发布说明](https://github.com/K529529/Nexus/releases/tag/v0.2.0) · [使用手册](docs/next/usage-guide.zh-CN.md)
+[English](README.md) / **简体中文**　 · 　[快速开始](#快速开始)　 · 　[使用手册](docs/next/usage-guide.zh-CN.md)
 
-## 快速开始
+[PyPI · v0.2.0](https://pypi.org/project/nexus-coding-agent/0.2.0/)　 · 　[发布记录](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
+
+---
+
+<a id="快速开始"></a>
+## 01 / 快速开始
 
 准备 Python 3.12+，以及一个支持工具调用的 OpenAI-compatible 模型服务账号。
 **下面两种方式任选一种。**
@@ -73,7 +81,8 @@ You › 修复空白标题仍能提交的问题，补充回归测试并运行现
 API key 填入环境变量，不填入聊天框。模型调用费用由服务商收取。
 手动配置、MCP 和模型参数见[使用手册](docs/next/usage-guide.zh-CN.md#配置)。
 
-## 日常使用
+<a id="日常使用"></a>
+## 02 / 日常使用
 
 | 你想做什么 | 操作 |
 | --- | --- |
@@ -90,7 +99,8 @@ Skill 放在 `~/.nexus/skills/<名称>/SKILL.md`，可参考 [pytest 回归测�
 `/skill off` 取消显式指定，仍允许模型按任务自动加载。会话保存在 `~/.nexus/sessions/`；
 恢复未完成任务会续接其上下文，普通新任务不会自动带入前一任务的完整历史。
 
-## 能力与验证
+<a id="能力与验证"></a>
+## 03 / 能力与验证
 
 - **编码闭环**：执行命令、应用补丁、运行检查，并根据工具结果继续修复。
 - **上下文管理**：工具结果投影、安全压缩，以及独立的 Plan/Todo 进度状态。
@@ -103,10 +113,12 @@ Skill 放在 `~/.nexus/skills/<名称>/SKILL.md`，可参考 [pytest 回归测�
 Nexus 使用你的本机权限执行命令，不是操作系统沙箱；请审查代码改动与测试结果。
 从旧 `0.1.0` 升级前，请先阅读[迁移说明](docs/next/release-0.2.0.md#install-and-migrate)。
 
-## 深入了解
+<a id="深入了解"></a>
+## 04 / 深入了解
 
 [完整使用手册](docs/next/usage-guide.zh-CN.md) · [工程设计与代码导读](docs/next/engineering-walkthrough.md) · [开发评测指南](evaluation/next-dev-v0/README.md) · [0.2.0 发布记录](docs/next/release-0.2.0.md)
 
-## 许可证
+<a id="许可证"></a>
+## 05 / 许可证
 
 [MIT](LICENSE)
