@@ -1,7 +1,6 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/next/assets/nexus-wordmark-dark.svg">
-  <img src="docs/next/assets/nexus-wordmark.svg" alt="Nexus" width="280">
-</picture>
+<p>
+  <img src="docs/next/assets/nexus-wordmark-violet.svg" alt="Nexus" width="320">
+</p>
 
 ### 在你的项目目录里，用自然语言完成编程任务。
 
@@ -10,9 +9,7 @@
 
 Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
 
-[English](README.md) / **简体中文**　 · 　[快速开始](#快速开始)　 · 　[使用手册](docs/next/usage-guide.zh-CN.md)
-
-[PyPI · v0.2.0](https://pypi.org/project/nexus-coding-agent/0.2.0/)　 · 　[发布记录](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
+[English](README.md) / **简体中文** &nbsp; · &nbsp; [快速开始](#快速开始) &nbsp; · &nbsp; [使用手册](docs/next/usage-guide.zh-CN.md) &nbsp; · &nbsp; [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) &nbsp; · &nbsp; [发布记录](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
 
 ---
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="464" height="112" viewBox="0 0 464 112" role="img" aria-labelledby="title desc">
+<title id="title">Nexus</title><desc id="desc">Nexus coding agent. A muted violet wordmark with a terminal symbol, designed for both light and dark backgrounds.</desc>
+<defs><linearGradient id="violet" x1="0" x2="1"><stop stop-color="#9370be"/><stop offset="1" stop-color="#a488ca"/></linearGradient></defs>
+<rect x="4" y="16" width="76" height="76" rx="20" fill="#241e30" stroke="#86709f" stroke-width="1.5"/>
+<path d="m23 38 17 17-17 17m24 0h16" fill="none" stroke="#cbb9e8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="101" y="79" fill="url(#violet)" font-family="Segoe UI,Arial,sans-serif" font-size="76" font-weight="600" letter-spacing="-3">Nexus</text>
+<rect x="342" y="52" width="83" height="28" rx="14" fill="#f0eaf7"/>
+<text x="383.5" y="71" fill="#685080" text-anchor="middle" font-family="Consolas,monospace" font-size="15">v0.2.0</text>
+</svg>

@@ -1,7 +1,6 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/next/assets/nexus-wordmark-dark.svg">
-  <img src="docs/next/assets/nexus-wordmark.svg" alt="Nexus" width="280">
-</picture>
+<p>
+  <img src="docs/next/assets/nexus-wordmark-violet.svg" alt="Nexus" width="320">
+</p>
 
 ### Turn a task into code, right from your project terminal.
 
@@ -10,9 +9,7 @@ One message-driven loop. No database or repository index required.
 
 Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
 
-**English** / [简体中文](README.zh-CN.md)　 · 　[Quick start](#quick-start)　 · 　[User guide](docs/next/usage-guide.md)
-
-[PyPI · v0.2.0](https://pypi.org/project/nexus-coding-agent/0.2.0/)　 · 　[Release notes](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
+**English** / [简体中文](README.zh-CN.md) &nbsp; · &nbsp; [Quick start](#quick-start) &nbsp; · &nbsp; [User guide](docs/next/usage-guide.md) &nbsp; · &nbsp; [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) &nbsp; · &nbsp; [Release notes](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
 
 ---
 
