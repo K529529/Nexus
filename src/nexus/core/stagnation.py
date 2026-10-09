@@ -1,4 +1,4 @@
-"""A pre-mutation reminder and at most one recovery after model-reported plan progress."""
+"""One bounded pre-mutation reminder per execution window, never a task scheduler."""
 
 from nexus.core.types import Json, PlanStatus, Session, ToolCall, ToolResult
 
@@ -23,21 +23,6 @@ If external references or the exact test environment are unavailable, use a loca
 of the same behavior rather than repeating failed lookups without a new lead.
 Avoid optional exploration that does not advance the task."""
 
-RECOVERY_GUIDANCE = """[Nexus runtime guidance]
-
-The plan reports more completed work than at the earlier reminder, but its remaining
-statuses have stayed unchanged for several tool-using steps. This is model-reported
-plan state, not proof that no code changed.
-
-Reassess whether the current investigation is necessary for the requested behavior.
-If a broad check is blocked by missing code outside the requested changes, use a
-focused contract check where possible and continue the remaining requirements rather
-than repairing every unrelated dependency.
-When enough evidence exists, make a focused implementation and check it. Keep the
-plan accurate and reserve the remaining budget for unfinished interfaces and final
-integration checks. If a real blocker prevents progress, report the evidence and
-limitation instead of repeating searches without a new lead."""
-
 
 def plan_signature(session: Session) -> tuple[PlanStatus, ...]:
     plan = session.plan
@@ -53,8 +38,6 @@ class StagnationDetector:
         self.pre_mutation_steps = 0
         self.mutation_seen = False
         self.nudged = False
-        self.completed_at_nudge = 0
-        self.recovery_sent = False
 
     def observe_completed_step(
         self,
@@ -64,47 +47,29 @@ class StagnationDetector:
         step: int,
         max_steps: int,
     ) -> Json | None:
-        if not batch:
+        if self.mutation_seen or not batch:
             return None
-        signature = plan_signature(session)
-        self.plan_idle_steps = (
-            self.plan_idle_steps + 1 if signature and signature == self.signature else 0
-        )
-        self.signature = signature
         for call, result in batch:
             count = result.data.get("changed_files")
             if call.name == "apply_patch" and type(count) is int and count > 0:
                 self.mutation_seen = True
-                self.plan_idle_steps = 0
                 return None
 
-        if not self.mutation_seen:
-            self.pre_mutation_steps += 1
-        if step >= max_steps:
+        signature = plan_signature(session)
+        self.pre_mutation_steps += 1
+        self.plan_idle_steps = (
+            self.plan_idle_steps + 1 if signature and signature == self.signature else 0
+        )
+        self.signature = signature
+        if self.nudged or step >= max_steps:
             return None
-        completed = signature.count("completed")
-        if self.nudged:
-            if (
-                self.recovery_sent
-                or not signature
-                or all(status == "completed" for status in signature)
-                or completed <= self.completed_at_nudge
-                or self.plan_idle_steps < PLAN_IDLE_THRESHOLD
-            ):
-                return None
-            trigger, threshold = "plan_idle_recovery", PLAN_IDLE_THRESHOLD
-            self.recovery_sent = True
+        if signature and self.plan_idle_steps >= PLAN_IDLE_THRESHOLD:
+            trigger, threshold = "plan_idle", PLAN_IDLE_THRESHOLD
+        elif self.pre_mutation_steps >= PRE_MUTATION_THRESHOLD:
+            trigger, threshold = "pre_mutation", PRE_MUTATION_THRESHOLD
         else:
-            if self.mutation_seen:
-                return None
-            if signature and self.plan_idle_steps >= PLAN_IDLE_THRESHOLD:
-                trigger, threshold = "plan_idle", PLAN_IDLE_THRESHOLD
-            elif self.pre_mutation_steps >= PRE_MUTATION_THRESHOLD:
-                trigger, threshold = "pre_mutation", PRE_MUTATION_THRESHOLD
-            else:
-                return None
-            self.nudged = True
-            self.completed_at_nudge = completed
+            return None
+        self.nudged = True
         active = (
             [item.step for item in session.plan.items if item.status == "in_progress"]
             if signature and session.plan

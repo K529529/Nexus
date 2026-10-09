@@ -9,7 +9,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
-from nexus.core.stagnation import GUIDANCE, RECOVERY_GUIDANCE, StagnationDetector
+from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -25,6 +25,17 @@ from nexus.core.types import (
     ToolCancelled,
     ToolResult,
     Usage,
+)
+
+TIMED_EVENTS = frozenset(
+    {
+        "run_started",
+        "run_finished",
+        "model_started",
+        "model_finished",
+        "tool_started",
+        "tool_finished",
+    }
 )
 
 
@@ -73,6 +84,14 @@ async def run_turn(
     usages: list[Usage] = []
 
     async def observed(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
+        if kind in TIMED_EVENTS:
+            data = {**data, "execution_elapsed_ms": int((time.monotonic() - started) * 1000)}
+        elif kind.startswith("subagent_") and (
+            kind.removeprefix("subagent_") in TIMED_EVENTS
+            or kind in {"subagent_started", "subagent_finished"}
+        ):
+            # Preserve the child's own origin; additionally locate it on the parent timeline.
+            data = {**data, "parent_execution_elapsed_ms": int((time.monotonic() - started) * 1000)}
         if kind in {
             "model_started",
             "model_finished",
@@ -220,9 +239,7 @@ async def run_turn(
             )
             if nudge is not None:
                 await observed("stagnation_nudge", nudge)
-                pending_guidance = (
-                    RECOVERY_GUIDANCE if nudge["trigger"] == "plan_idle_recovery" else GUIDANCE
-                )
+                pending_guidance = GUIDANCE
         else:
             result.outcome, result.reason = "limited", "max_steps"
     except ToolCancelled as exc:
