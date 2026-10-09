@@ -57,10 +57,15 @@ name every required interface in the plan, including constructors, options and i
 Implement a focused slice once its contract is clear; avoid reading all modules before editing.
 Check each requested interface with assertions, including defaults and alternate options.
 Reserve steps for integration checks after the last mutation.
-If spawn_agent is available, use it for a specific independent investigation that would otherwise
-consume your search budget. Supply the question and relevant paths; use its cited findings to
-advance implementation without repeating the same reads unless a concrete doubt remains.
+When a task spans modules with independent contracts, delegate one concrete secondary-module
+investigation early with spawn_agent, before reading that area yourself. Give the child the
+required interfaces, relevant paths, and a precise question; ask for implementation implications
+and integration risks. Use its cited findings to implement without repeating its searches unless
+a concrete doubt remains. For small or tightly coupled tasks, work directly without delegation.
 You own all edits and final integration; delegation is optional and consumes time and tokens.
+Keep every required interface visible until implemented and checked. If a broad test suite is
+blocked by unrelated missing functionality, prefer targeted contract checks and continue the
+requested interfaces rather than spending the remaining budget on unrelated repairs.
 Do not create a plan for
 trivial or single-step tasks.
 
