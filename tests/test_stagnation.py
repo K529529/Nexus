@@ -15,6 +15,7 @@ from nexus.core.agent import append_message, run_turn
 from nexus.core.context import Context, estimate, execution_budget, groups, project_guidance
 from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.stagnation import (
+    DELEGATION_GUIDANCE,
     GUIDANCE,
     PLAN_IDLE_THRESHOLD,
     PRE_MUTATION_THRESHOLD,
@@ -608,3 +609,31 @@ async def test_nudge_audit_write_failure_stops_further_dispatch(
         assert replay(records, tmp_path).messages == session.messages
     finally:
         writer.close()
+
+
+@pytest.mark.parametrize("available", [False, True])
+async def test_delegation_hint_is_optional_once_and_request_only(
+    tmp_path: Path, available: bool
+) -> None:
+    session = Session(tmp_path)
+    events = Recorder()
+    tools = registry(session)
+    if available:
+        tools["spawn_agent"] = Tool(ToolSpec("spawn_agent", "investigate", {}), read_tool)
+    model = ScriptedModel(reads(26) + [reply(text="done")])
+    result = await run_turn(session, "task", model, tools, events, Limits(max_steps=27))
+    assert result.outcome == "completed"
+    assert [i + 1 for i, ms in enumerate(model.requests) if has_guidance(ms)] == [25]
+    hinted = [
+        i + 1
+        for i, ms in enumerate(model.requests)
+        if any(DELEGATION_GUIDANCE in m.content for m in ms)
+    ]
+    assert hinted == ([25] if available else [])
+    assert all(DELEGATION_GUIDANCE not in m.content for m in session.messages)
+    assert all(
+        DELEGATION_GUIDANCE not in json.dumps(d) for k, d in events.events if k == "message"
+    )
+    assert not any(
+        k == "tool_started" and d.get("name") == "spawn_agent" for k, d in events.events
+    )
