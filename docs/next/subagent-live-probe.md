@@ -1,6 +1,6 @@
 # SubAgent live integration diagnosis and bounded-report candidate
 
-Status: valid dev7 component probe FAILED with `invalid_finish: length`; dev8 report-guidance candidate prepared for a fresh diagnostic. No Main autonomous delegation or official task improvement established. KEEP V0.2 remains the accepted release decision.
+Status: dev7 component probe FAILED with `invalid_finish: length`; dev8 returned a structured report, but source review is PARTIAL. No Main autonomous delegation or official task improvement established. KEEP V0.2 remains the accepted release decision.
 
 ## Why this diagnostic
 
@@ -31,3 +31,34 @@ The child prompt now requests at most four findings and two uncertainties, whole
 No output-budget increase, automatic retry, special finalizer tool, workflow graph, partial-report fabrication or workspace mutation capability is added. Relative to c1250f8, runtime changes are child report guidance and version 0.3.0.dev8 only. Model settings, six-step/150-second limits, same Agent Loop and isolation remain unchanged. The diagnostic question is unchanged and contains no task-specific solution.
 
 Preflight: Windows 5 SubAgent tests PASS; Linux 5 SubAgent tests PASS; Ruff PASS; uv lock check PASS; wheel/sdist build PASS. These do not establish behavior improvement. The new candidate must return a parseable, source-supported report within its budget; then Main utilization and real task improvement still require separate evidence. A component success will not replace the three-case release gate.
+
+
+## Completed dev8 diagnostic and independent report review
+
+Source `0d64822`, same diagnostic script/question bytes as the valid dev7 run, unchanged model and budgets. Runtime differs only in child report guidance and package version. Fresh frozen directory: `D:/WorkSpace/AgentBenchKit/.agentbenchkit/experiments/nexus-subagent-report-bounds-20261010`. No repeated execution of this candidate.
+
+| Metric | Valid dev7 probe | dev8 probe |
+| --- | --- | --- |
+| Child outcome | FAILED, invalid_finish: length | COMPLETED, parsed findings/uncertainties |
+| Child steps / model requests | 5 / 5 | 4 / 4 |
+| Read/search calls | 10 | 7 |
+| Child wall time | 79.266s | 27.511s |
+| Input / cached subset | 27,100 / 10,496 | 17,846 / 4,096 |
+| Reported output | 4,958 | 1,576 |
+| Historical estimated CNY | 0.0277194 | 0.0156648 |
+| Usable report at tool boundary | None | Four findings, two uncertainties |
+
+The dev8 final JSON is 1705 characters/bytes: below the enforced 6000-byte ceiling but **above the preferred 1200-character guidance**. No claim of strict adherence to the new instruction. The two unseeded single runs establish a useful observed difference, not causality or repeatability. Total diagnostic estimate including the invalid first harness is ¥0.0549652; none of the runs is omitted from cost accounting.
+
+Manual evidence review:
+
+- Constructor dimension insertion order/default dtype and generate_coords ij meshgrid statements match coordinate_transform.py:28-34,96-109. These are potentially useful implementation facts.
+- Adapter dims, shape and coordinate selection match indexing.py:2147,2155,2162-2163. The statement about expected forward output is an implication, not a runtime guarantee for every subclass.
+- The claim that vectorized indexing passes only 1-D positions is **incorrect**: indexing.py:526-529 explicitly permits N-D integer arrays; lines 1475-1494 preserve/reshape their dimensions. Its cited local call site does not justify the stronger claim. Main must not apply this conclusion blindly.
+- The report says RangeCoordinateTransform.forward was not observed. In fact its body at range_index.py:67-70 was included in the step-2 read. All four context projection diagnostics reconstruct exactly; those lines are present at request 3 but absent at request 4 after COLD compaction. This establishes loss of evidence from the final request, not a proven causal explanation of the report error.
+
+Protocol completion therefore PASS; source-backed report quality **PARTIAL**. Main did not consume the report, no code was implemented from it, and no official evaluator ran. This does not satisfy the SubAgent value gate. The source snapshot is the pinned image **before FeatureBench task preparation/masking**, with implementation bodies present; it is easier than the official reconstruction task. The report and reference facts must not be injected into subsequent official C17 Agent inputs.
+
+Both runtime snapshots and all 195 xarray Python file hashes stayed unchanged during their respective probes. All requests exposed only inspect_repository; frozen manifests, wire limits, read-only container configuration and cleanup were audited. The normal main source/worktree was not edited by a child.
+
+Next unresolved work: retain the source evidence needed for a bounded child synthesis without copying a full expensive Main context; distinguish supported facts from inference; then demonstrate autonomous Main delegation and actual use of a correct child finding on prepared task input. No new live task or release is justified merely by parsed JSON.

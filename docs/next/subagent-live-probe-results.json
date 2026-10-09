@@ -423,5 +423,250 @@
     ]
   },
   "estimated_cny_total": 0.0393004,
-  "price_basis": "Historical experiment formula, not invoice; all attempts retained including invalid diagnostic."
+  "price_basis": "Historical experiment formula, not invoice; all attempts retained including invalid diagnostic.",
+  "dev8": {
+    "classification": "Protocol completion PASS; source-backed report quality PARTIAL; no Main utilization evidence.",
+    "source_commit": "0d648226cf69b09438b1c1d871da3eb863559819",
+    "path": "D:\\WorkSpace\\AgentBenchKit\\.agentbenchkit\\experiments\\nexus-subagent-report-bounds-20261010",
+    "manifest_sha256": "e3eae4949dd11ae54ae65b0447751f88f332f93a3f544cc62dc8fc5d43781b75",
+    "events_sha256": "7ed8ee062686e44a488b0246c57f4714039ca7616a7426e81745170a1c322556",
+    "integrity": "PASS",
+    "source_unchanged": {
+      "files": 195,
+      "sha256": "99acefbb7d68a62324acfeb5a7b9869660b3c2fe2d84e048376152f24b7902b6",
+      "investigated_files": {
+        "core/coordinate_transform.py": "b82a5c7628daa8db682a0840514ed7612b5356f61308377d01e2ce1272b1925e",
+        "core/indexing.py": "414f89d13e8c0b668649eeeb0b313337ec4a1d21d43a5156f4a3a4153b071a4c",
+        "indexes/range_index.py": "721e7e8b00d1423ec352c87fc76aef709209805a8a2f3ae58946f5e5fdcb9959"
+      }
+    },
+    "result": {
+      "call_id": "probe-child",
+      "ok": true,
+      "data": {
+        "report": {
+          "findings": [
+            "coordinate_transform.py:22-34 __init__ coerces coord_names->tuple, dims=tuple(dim_size) so DIM ORDER is dim_size insertion order; dtype default np.float64 (33). Implication: subclass must build dim_size in axis order; consumers derive shape from it.",
+            "coordinate_transform.py:96-109 generate_coords(dims=None->self.dims) builds np.meshgrid(*[arange(dim_size[d]) for d in dims], indexing='ij'), maps dim->positions[i], returns forward(dim_positions). Output arrays thus have ij/matrix shape ordered by the passed dims. forward (36-52) is abstract: dim_positions dict[str,Any] -> dict[Hashable,Any]; NotImplementedError.",
+            "indexing.py:2147 _dims=dims or transform.dims; 2154-2155 shape=tuple(transform.dim_size.values()); 2161-2163 get_duck_array=generate_coords(dims=self._dims)[coord_name]. Implication: forward must return dict containing every coord_name and broadcastable to input grid shape; np.asarray applied to values.",
+            "indexing.py:2169-2173 _oindex_get meshgrids array_indexer in self._dims order and calls forward; 2186-2195 _vindex_get passes 1-D positions; 2214-2216 transpose reorders _dims but NOT dim_size, so shape (2155) stays in original dim_size order while _dims is permuted. Implication: forward must broadcast to the shape implied by the passed dim_positions, not assume self.dims order."
+          ],
+          "uncertainties": [
+            "range_index.py:forward implementation body was truncated; exact broadcasting/output-dtype behavior not directly observed (only import at range_index.py:9).",
+            "Whether the indexing-array shape (dim_size order) intentionally diverging from transposed _dims order is expected behavior or a latent consumer assumption."
+          ]
+        },
+        "outcome": "completed",
+        "reason": null,
+        "steps": 4,
+        "model_calls": 4,
+        "tool_calls": 7,
+        "usage": {
+          "input_tokens": 17846,
+          "output_tokens": 1576,
+          "total_tokens": 19422,
+          "source": "reported",
+          "cached_input_tokens": 4096
+        },
+        "child_session_id": "3b864b4b80e94bd8b9e946eb311a6659",
+        "workspace_access": "read_only",
+        "depth": 1,
+        "duration_ms": 27511
+      },
+      "error_code": null,
+      "duration_ms": 27511,
+      "truncated": false
+    },
+    "requests": [
+      {
+        "model": "qwen3.8-flash",
+        "max_tokens": 2048,
+        "reasoning_effort": "low",
+        "tool_names": [
+          "inspect_repository"
+        ],
+        "message_count": 3
+      },
+      {
+        "model": "qwen3.8-flash",
+        "max_tokens": 2048,
+        "reasoning_effort": "low",
+        "tool_names": [
+          "inspect_repository"
+        ],
+        "message_count": 7
+      },
+      {
+        "model": "qwen3.8-flash",
+        "max_tokens": 2048,
+        "reasoning_effort": "low",
+        "tool_names": [
+          "inspect_repository"
+        ],
+        "message_count": 10
+      },
+      {
+        "model": "qwen3.8-flash",
+        "max_tokens": 2048,
+        "reasoning_effort": "low",
+        "tool_names": [
+          "inspect_repository"
+        ],
+        "message_count": 13
+      }
+    ],
+    "model_finishes": [
+      {
+        "model": "qwen3.8-flash",
+        "attempt": 1,
+        "duration_ms": 2393,
+        "request_total_ms": 2393,
+        "ttft_ms": 902,
+        "generation_ms": 1489,
+        "timing_source": "client_stream",
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": 1538,
+          "output_tokens": 169,
+          "total_tokens": 1707,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "step": 1,
+        "parent_call_id": "probe-child",
+        "child_session_id": "3b864b4b80e94bd8b9e946eb311a6659",
+        "child_run_id": "668718f5a1b44f51a8f5d71f378fdabe",
+        "depth": 1
+      },
+      {
+        "model": "qwen3.8-flash",
+        "attempt": 1,
+        "duration_ms": 4412,
+        "request_total_ms": 4412,
+        "ttft_ms": 2966,
+        "generation_ms": 1445,
+        "timing_source": "client_stream",
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": 3915,
+          "output_tokens": 124,
+          "total_tokens": 4039,
+          "source": "reported",
+          "cached_input_tokens": 1024
+        },
+        "step": 2,
+        "parent_call_id": "probe-child",
+        "child_session_id": "3b864b4b80e94bd8b9e946eb311a6659",
+        "child_run_id": "668718f5a1b44f51a8f5d71f378fdabe",
+        "depth": 1
+      },
+      {
+        "model": "qwen3.8-flash",
+        "attempt": 1,
+        "duration_ms": 2722,
+        "request_total_ms": 2722,
+        "ttft_ms": 782,
+        "generation_ms": 1938,
+        "timing_source": "client_stream",
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": 5229,
+          "output_tokens": 166,
+          "total_tokens": 5395,
+          "source": "reported",
+          "cached_input_tokens": 1024
+        },
+        "step": 3,
+        "parent_call_id": "probe-child",
+        "child_session_id": "3b864b4b80e94bd8b9e946eb311a6659",
+        "child_run_id": "668718f5a1b44f51a8f5d71f378fdabe",
+        "depth": 1
+      },
+      {
+        "model": "qwen3.8-flash",
+        "attempt": 1,
+        "duration_ms": 17972,
+        "request_total_ms": 17972,
+        "ttft_ms": 1646,
+        "generation_ms": 16324,
+        "timing_source": "client_stream",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 7164,
+          "output_tokens": 1117,
+          "total_tokens": 8281,
+          "source": "reported",
+          "cached_input_tokens": 2048
+        },
+        "step": 4,
+        "parent_call_id": "probe-child",
+        "child_session_id": "3b864b4b80e94bd8b9e946eb311a6659",
+        "child_run_id": "668718f5a1b44f51a8f5d71f378fdabe",
+        "depth": 1
+      }
+    ],
+    "estimated_cny": 0.0156648,
+    "raw_report_characters": 1705,
+    "raw_report_utf8_bytes": 1705,
+    "preferred_1200_character_guidance_followed": false,
+    "manual_source_review": [
+      {
+        "finding": 1,
+        "status": "Supported",
+        "evidence": "coordinate_transform.py:28-34 initializes coord_names, dimension insertion order, copied size mapping, default float64."
+      },
+      {
+        "finding": 2,
+        "status": "Supported with implication qualification",
+        "evidence": "coordinate_transform.py:96-109 constructs ij grids in requested dims order and delegates forward; arbitrary subclass correctness is not runtime-enforced."
+      },
+      {
+        "finding": 3,
+        "status": "Core observations supported",
+        "evidence": "indexing.py:2147,2155,2162-2163 show adapter dims, shape and generated coordinate selection."
+      },
+      {
+        "finding": 4,
+        "status": "Partially wrong",
+        "evidence": "Transpose/_dims statements match indexing.py:2214-2216. The claim that vectorized indexing passes only 1-D positions is false: VectorizedIndexer lines 526-529 accepts N-D arrays; _arrayize_vectorized_indexer lines 1475-1494 returns or reshapes arrays without forcing 1-D."
+      },
+      {
+        "uncertainty": 1,
+        "status": "Contradicted by earlier observed source, absent from final projection",
+        "evidence": "range_index.py:67-70 forward body was present in the step-2 read, despite truncation later in the file. Reconstructed final request dropped those lines as COLD preview; step-3 request had them. This does not prove the causal reason for the report error."
+      }
+    ],
+    "projection_review": [
+      {
+        "step": 1,
+        "diagnostics_match": true,
+        "range_forward_line67_present": false,
+        "range_forward_line69_present": false,
+        "cold_count": 0
+      },
+      {
+        "step": 2,
+        "diagnostics_match": true,
+        "range_forward_line67_present": false,
+        "range_forward_line69_present": false,
+        "cold_count": 0
+      },
+      {
+        "step": 3,
+        "diagnostics_match": true,
+        "range_forward_line67_present": true,
+        "range_forward_line69_present": true,
+        "cold_count": 1
+      },
+      {
+        "step": 4,
+        "diagnostics_match": true,
+        "range_forward_line67_present": false,
+        "range_forward_line69_present": false,
+        "cold_count": 3
+      }
+    ],
+    "scope_limit": "The snapshot is the pinned image BEFORE FeatureBench task preparation/masking. It contains implementation bodies normally removed for the challenge. This is read-only integration analysis, not solving the official task. Findings must not be injected into subsequent official Agent inputs."
+  },
+  "estimated_cny_total_including_dev8": 0.0549652
 }
