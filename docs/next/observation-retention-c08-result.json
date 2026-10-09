@@ -1,5 +1,5 @@
 {
-  "status": "C08 official FAIL; C17 still running; not accepted for release",
+  "status": "Final controls completed: FAILED - KEEP V0.2; see observation-retention-final.md",
   "source_commit": "3251ba9bf6befd5d76b845693d77c94ec2746fb2",
   "baseline": {
     "run_id": "20261008T174811Z-978d9da4",

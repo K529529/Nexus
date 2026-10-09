@@ -1,6 +1,6 @@
 # Observation retention: isolated live experiment
 
-Status: C13 shows partial convergence improvement but official FAIL; C08 positive control regressed to official FAIL (20/21); C17 is running on the unchanged frozen candidate. No release acceptance. Stable V0.2 remains the accepted baseline.
+Status: COMPLETED, FAILED — KEEP V0.2. C13 has partial improvement but official FAIL; C08 regressed to FAIL (20/21); C17 failed test collection after a final syntax error. See [final three-case report](observation-retention-final.md). No merge/release.
 
 ## Intervention and comparison
 
@@ -66,3 +66,8 @@ The single official failure is `test_npmi_correlations[perfect_positive]`: candi
 All 12 public-event context projections reconstruct exactly, and none differs from the offline 16k projection. Therefore this failure cannot be attributed to the 64k cap. It still rejects this sampled candidate as a preserved positive control; fewer turns and roughly baseline latency do not override correctness. No failed Agent retry. [C08 measurements and official receipt](observation-retention-c08-result.json).
 
 C17 was already launched sequentially by the frozen runner and is being completed for the full control record. The C08 failure is not fed back into that Agent, and source, prompt, wheel and evaluator remain unchanged.
+
+
+## Completed controls
+
+C17 run `20261009T152024Z-807be2db` completed LIMITED / official FAIL. Final step 50 wrote malformed formatting code; import and all official test collections failed. No retry. Both controls passed experiment integrity audit and cleanup, not task correctness. [Final same-candidate comparison and KEEP V0.2 decision](observation-retention-final.md).

@@ -1,5 +1,5 @@
 {
-  "status": "C13 partial convergence improvement; official FAIL; controls pending; no release",
+  "status": "Final controls completed: FAILED - KEEP V0.2; see observation-retention-final.md",
   "baseline": {
     "run_id": "20261008T184931Z-a5442fc2",
     "sample": {
