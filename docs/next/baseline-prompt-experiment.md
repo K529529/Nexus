@@ -1,0 +1,13 @@
+# Restore the stable root prompt, keep the tool capability
+
+Candidate dev11, formal C17 result pending. No release recommendation.
+
+The previous optional-delegation nudge reached step 12 but no SubAgent was called and C17 correctness remained 4/14. An offline reconstruction now matches every observation diagnostic across all 50 requests: the entire 53,214-character user task stayed intact, including from_xindex. This rules out removal of that requirement by observation projection in this run; it does not prove the model attended to it. The initial plan followed file order, with broad survey first and coordinates.py methods near the end. Main spent 27 steps before its first actual write and did not reach the last two files.
+
+The visibility reconstruction counts persisted non-delta native events with the session-created header offset. ABK envelope seq is a different sequence. An initial diagnostic using ABK seq failed at the first cold projection and was corrected against Events/SessionLog behavior; no raw evidence was modified. All recorded projection diagnostics, including byte/token estimates, then matched. [Replay evidence](task-visibility-dev10.json).
+
+Intervention: restore SYSTEM exactly to stable main/V0.2 and remove dev10's optional nudge addition. Do not add another instruction. Keep V0.2 Plan/Todo and bounded detector, tool definitions with patch/shell feedback, existing observability, isolated read-only SubAgent, child report bounds and compact reads. The SubAgent description still advertises its use, limits and Main integration responsibility. No mandatory delegation, new scheduler, coverage ledger, automatic requirement extraction, or model budget change.
+
+Hypothesis: extra coverage/delegation instructions have not demonstrated benefit and may create instruction burden; restoring the stable prompt is a lower-complexity candidate worth testing. The burden hypothesis is unproven, not a diagnosis. The one fresh C17 run assesses combined removal of the root additions and optional nudge, not independent causality for each sentence. Relative to V0.2, tool implementations and descriptions still differ.
+
+Protocol: unchanged qwen3.8-flash/low, 50 Main steps, 900s, samples=1, concurrency=1, official prepared/masked task, full egress isolation and candidate freeze, no failure retry. No reference-code findings from earlier unmasked probes enter the task. C08/C13/holdout NOT RUN in this candidate unless fresh evidence justifies later work. Acceptance requires real correctness/convergence improvement and actual value if delegation occurs; fewer instructions alone is not success.

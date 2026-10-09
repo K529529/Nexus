@@ -1,0 +1,372 @@
+{
+  "run_id": "20261009T162812Z-2fe99645",
+  "scope": "Exact tool observation projections rebuilt and diagnostic fields matched; original user task remained byte-identical in every projection. Not a claim about model attention.",
+  "task_chars": 53214,
+  "task_sha256": "c69192ab0adcb1acb617ecf320d7fc1cb82c622301a7ee07551254005e33c493",
+  "projections": [
+    {
+      "step": 1,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 2,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 3,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 4,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 5,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 6,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 7,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 8,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 9,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 10,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 11,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 12,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 13,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 14,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 15,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 16,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 17,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 18,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 19,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 20,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 21,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 22,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 23,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 24,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 25,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 26,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 27,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 28,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 29,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 30,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 31,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 32,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 33,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 34,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 35,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 36,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 37,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 38,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 39,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 40,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 41,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 42,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 43,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 44,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 45,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 46,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 47,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 48,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 49,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    },
+    {
+      "step": 50,
+      "original_task_intact": true,
+      "from_xindex_visible": true
+    }
+  ],
+  "plans": [
+    {
+      "seq": 36,
+      "plan": [
+        {
+          "step": "Survey current state of all 6 target files (what exists, what is missing/stubbed)",
+          "status": "in_progress"
+        },
+        {
+          "step": "Implement coordinate_transform.py CoordinateTransform methods",
+          "status": "pending"
+        },
+        {
+          "step": "Implement indexes.py filter_indexes_from_coords, isel_indexes",
+          "status": "pending"
+        },
+        {
+          "step": "Implement utils.py dict_equiv, drop_dims_from_indexers",
+          "status": "pending"
+        },
+        {
+          "step": "Implement structure/merge.py functions",
+          "status": "pending"
+        },
+        {
+          "step": "Implement formatting.py array_repr",
+          "status": "pending"
+        },
+        {
+          "step": "Implement coordinates.py methods",
+          "status": "pending"
+        },
+        {
+          "step": "Run relevant tests to validate",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "seq": 226,
+      "plan": [
+        {
+          "step": "Survey current state of all 6 target files",
+          "status": "completed"
+        },
+        {
+          "step": "Implement coordinate_transform.py CoordinateTransform methods",
+          "status": "completed"
+        },
+        {
+          "step": "Implement indexes.py _apply_indexes, filter_indexes_from_coords, isel_indexes",
+          "status": "in_progress"
+        },
+        {
+          "step": "Implement utils.py dict_equiv, drop_dims_from_indexers",
+          "status": "pending"
+        },
+        {
+          "step": "Implement structure/merge.py functions",
+          "status": "pending"
+        },
+        {
+          "step": "Implement formatting.py array_repr",
+          "status": "pending"
+        },
+        {
+          "step": "Implement coordinates.py methods",
+          "status": "pending"
+        },
+        {
+          "step": "Run relevant tests to validate",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "seq": 262,
+      "plan": [
+        {
+          "step": "Survey current state of all 6 target files",
+          "status": "completed"
+        },
+        {
+          "step": "Implement coordinate_transform.py CoordinateTransform methods",
+          "status": "completed"
+        },
+        {
+          "step": "Implement indexes.py _apply_indexes, filter_indexes_from_coords, isel_indexes",
+          "status": "completed"
+        },
+        {
+          "step": "Implement utils.py dict_equiv, drop_dims_from_indexers",
+          "status": "in_progress"
+        },
+        {
+          "step": "Implement structure/merge.py functions",
+          "status": "pending"
+        },
+        {
+          "step": "Implement formatting.py array_repr",
+          "status": "pending"
+        },
+        {
+          "step": "Implement coordinates.py methods",
+          "status": "pending"
+        },
+        {
+          "step": "Run relevant tests to validate",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "compaction_count": 0
+}

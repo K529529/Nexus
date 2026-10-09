@@ -332,9 +332,7 @@ exploration.
 
 Before finishing a planned task, update the plan to reflect the actual final state. When no
 task-related work remains, mark all plan steps completed."""
-    assert paragraphs[5:] == expected_plan_policy.split("\n\n")[1:]
-    assert "name every required interface" in paragraphs[4]
-    assert "delegation is optional" in paragraphs[4]
+    assert paragraphs[4:] == expected_plan_policy.split("\n\n")
 
 
 def test_instructions_include_task_execution_policy(tmp_path: Path) -> None:
