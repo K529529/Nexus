@@ -11,8 +11,13 @@ from nexus.tools.skills import create_load_skill_tool
 EXEC_SPEC = ToolSpec(
     "exec_command",
     "Execute a command in the actual local shell. Use for reading/searching files, git, "
-    "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
-    "truncation. timeout_ms: 1..600000 (default 120000).",
+    "tests and builds. Default cwd is workspace; stdin is closed. "
+    "Output is already bounded with its head and tail preserved. Run tests/checks directly; "
+    "do not pipe them to head/tail just to limit output. If filtering is necessary, explicitly "
+    "preserve the check's exit status. ok and exit_code report the shell status, not whether "
+    "every command or assertion passed; a later successful command can mask an earlier failure. "
+    "Read the check output and truncation before concluding success. "
+    "timeout_ms: 1..600000 (default 120000).",
     {
         "type": "object",
         "properties": {

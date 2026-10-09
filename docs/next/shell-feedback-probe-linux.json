@@ -1,0 +1,64 @@
+{
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "shell": "/bin/sh",
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "failed_direct",
+      "ok": false,
+      "exit_code": 7,
+      "error_code": "command_exit_nonzero",
+      "truncated": true,
+      "stdout_bytes": 4124,
+      "stdout_head": "CHECK START\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "stdout_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nCHECK FAILED\n",
+      "stderr_tail": ""
+    },
+    {
+      "case": "failed_filtered",
+      "ok": true,
+      "exit_code": 0,
+      "error_code": null,
+      "truncated": false,
+      "stdout_bytes": 13,
+      "stdout_head": "CHECK FAILED\n",
+      "stdout_tail": "CHECK FAILED\n",
+      "stderr_tail": ""
+    },
+    {
+      "case": "success_with_error_text",
+      "ok": true,
+      "exit_code": 0,
+      "error_code": null,
+      "truncated": false,
+      "stdout_bytes": 35,
+      "stdout_head": "SyntaxError: expected fixture text\n",
+      "stdout_tail": "SyntaxError: expected fixture text\n",
+      "stderr_tail": ""
+    },
+    {
+      "case": "failure_explicit_exit",
+      "ok": false,
+      "exit_code": 7,
+      "error_code": "command_exit_nonzero",
+      "truncated": true,
+      "stdout_bytes": 4124,
+      "stdout_head": "CHECK START\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "stdout_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nCHECK FAILED\n",
+      "stderr_tail": ""
+    },
+    {
+      "case": "failure_then_success",
+      "ok": true,
+      "exit_code": 0,
+      "error_code": null,
+      "truncated": true,
+      "stdout_bytes": 4124,
+      "stdout_head": "CHECK START\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "stdout_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nCHECK FAILED\nfollowup",
+      "stderr_tail": ""
+    }
+  ],
+  "scope": "Real local executor behavior only; no model/benchmark improvement claim."
+}

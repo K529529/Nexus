@@ -10,7 +10,7 @@ from nexus.core.types import Json, Message, Session, json_text
 
 CONTEXT_POLICY = "Context Runtime V0.2.1"
 VERSION = "compact-v1"
-WORKING_SET_TOKENS = 65536
+WORKING_SET_TOKENS = 16384
 WORKING_SET_FRACTION = 0.25
 SUCCESS_MAX_BYTES = 1024
 FAILURE_MAX_BYTES = 2048

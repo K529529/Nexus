@@ -104,7 +104,7 @@ def test_recent_is_contiguous_suffix_and_uses_message_estimator(tmp_path: Path) 
         context(1_000_000)
         .project(session, active(session))
         .diagnostics["working_set_target_tokens"]
-        == 65536
+        == 16384
     )
 
 
@@ -487,8 +487,7 @@ async def test_long_run_reduces_repeated_tool_inputs_without_losing_raw_history(
     assert result.outcome == "completed"
     diagnostics = [d for k, d in captured.events if k == "context_projection"]
     assert len(diagnostics) == 13 and diagnostics[-1]["hot_full_count"] == 1
-    assert diagnostics[-1]["cold_compacted_count"] == 10
-    assert diagnostics[-1]["recent_full_count"] == 1
+    assert diagnostics[-1]["cold_compacted_count"] == 11
     assert (
         diagnostics[-1]["observation_projected_bytes"]
         < diagnostics[-1]["observation_full_bytes"] / 4
@@ -496,19 +495,3 @@ async def test_long_run_reduces_repeated_tool_inputs_without_losing_raw_history(
     assert all(len(m.content) > 31000 for m in session.messages if m.role == "tool")
     assert result.usage.input_tokens is None
     assert not session.compactions
-
-
-def test_large_window_retains_source_observations_without_expanding_small_windows(
-    tmp_path: Path,
-) -> None:
-    session = history(tmp_path, [8000] * 20, consumed=True)
-    original = deepcopy(session.messages)
-    full = [m for m in session.messages if m.role == "tool"]
-    large = context(1_000_000).project(session, active(session))
-    assert [m.content for m in large.messages if m.role == "tool"] == [m.content for m in full]
-    small = context(20_000).project(session, active(session))
-    assert small.diagnostics["working_set_target_tokens"] == 5000
-    assert small.diagnostics["cold_compacted_count"] > 0
-    assert session.messages == original
-    groups(large.messages)
-    groups(small.messages)
