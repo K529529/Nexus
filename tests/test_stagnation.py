@@ -18,6 +18,7 @@ from nexus.core.stagnation import (
     GUIDANCE,
     PLAN_IDLE_THRESHOLD,
     PRE_MUTATION_THRESHOLD,
+    RECOVERY_GUIDANCE,
     StagnationDetector,
 )
 from nexus.core.types import (
@@ -608,3 +609,101 @@ async def test_nudge_audit_write_failure_stops_further_dispatch(
         assert replay(records, tmp_path).messages == session.messages
     finally:
         writer.close()
+
+
+def test_recovery_needs_reported_progress_and_stability_and_is_bounded(tmp_path: Path) -> None:
+    session = Session(tmp_path, run_id="run")
+    set_plan(session, "in_progress", "pending")
+    detector = StagnationDetector(session)
+    for step in range(1, 9):
+        nudge = observe(detector, session, step=step, max_steps=80)
+    assert nudge and nudge["trigger"] == "plan_idle"
+    for step in range(9, 18):
+        set_plan(session, "in_progress", "pending", text=f"renamed {step}")
+        assert observe(detector, session, step=step, max_steps=80) is None
+    set_plan(session, "completed", "in_progress")
+    assert observe(detector, session, step=18, max_steps=80) is None
+    for step in range(19, 26):
+        assert observe(detector, session, step=step, max_steps=80) is None
+    # A partial patch write also resets the idle interval.
+    assert (
+        observe(detector, session, name="apply_patch", count=1, ok=False, step=26, max_steps=80)
+        is None
+    )
+    for step in range(27, 34):
+        assert observe(detector, session, step=step, max_steps=80) is None
+    recovery = observe(detector, session, step=34, max_steps=80)
+    assert recovery and recovery["trigger"] == "plan_idle_recovery"
+    set_plan(session, "completed", "completed", "in_progress")
+    for step in range(35, 80):
+        assert observe(detector, session, step=step, max_steps=80) is None
+
+
+@pytest.mark.parametrize("statuses", [(), ("completed",), ("in_progress",)])
+def test_recovery_does_not_fire_for_absent_complete_or_unadvanced_plan(
+    tmp_path: Path, statuses: tuple[PlanStatus, ...]
+) -> None:
+    session = Session(tmp_path, run_id="run")
+    set_plan(session, "in_progress")
+    detector = StagnationDetector(session)
+    for _ in range(8):
+        observe(detector, session)
+    assert detector.nudged
+    set_plan(session, *statuses)
+    for _ in range(25):
+        assert observe(detector, session) is None
+    assert not detector.recovery_sent
+
+
+async def test_recovery_is_request_only_and_delivered_once_after_progress(tmp_path: Path) -> None:
+    session = Session(tmp_path)
+    events = Recorder()
+    responses = [
+        reply(
+            call(
+                "update_plan",
+                {
+                    "plan": [
+                        {"step": "inspect", "status": "in_progress"},
+                        {"step": "implement", "status": "pending"},
+                    ]
+                },
+                "plan",
+            )
+        ),
+        *reads(8, prefix="first"),
+        reply(
+            call(
+                "update_plan",
+                {
+                    "plan": [
+                        {"step": "inspect", "status": "completed"},
+                        {"step": "implement", "status": "in_progress"},
+                    ]
+                },
+                "advance",
+            )
+        ),
+        *reads(17, prefix="second"),
+        reply(text="done"),
+    ]
+    model = ScriptedModel(responses)
+    result = await run_turn(session, "task", model, registry(session), events, Limits(max_steps=30))
+    assert result.outcome == "completed"
+    assert [i + 1 for i, ms in enumerate(model.requests) if has_guidance(ms)] == [10]
+    assert [
+        i + 1
+        for i, ms in enumerate(model.requests)
+        if any(RECOVERY_GUIDANCE in m.content for m in ms)
+    ] == [19]
+    assert [d["trigger"] for k, d in events.events if k == "stagnation_nudge"] == [
+        "plan_idle",
+        "plan_idle_recovery",
+    ]
+    for messages in [session.messages] + [
+        snapshot.messages for snapshot in session.compactions.values()
+    ]:
+        assert all(RECOVERY_GUIDANCE not in m.content for m in messages)
+    assert all(RECOVERY_GUIDANCE not in json.dumps(d) for k, d in events.events if k == "message")
+    for request in model.requests:
+        groups(request)
