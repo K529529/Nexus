@@ -1,0 +1,225 @@
+{
+  "status": "C08 official FAIL; C17 still running; not accepted for release",
+  "source_commit": "3251ba9bf6befd5d76b845693d77c94ec2746fb2",
+  "baseline": {
+    "run_id": "20261008T174811Z-978d9da4",
+    "sample": {
+      "sample_id": "sample-mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1-1",
+      "task_id": "mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED",
+      "verifier_status": "PASS",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": true,
+      "sample_success": true
+    },
+    "agent_seconds": 133.11488523900334,
+    "steps": 15,
+    "main": {
+      "started": 15,
+      "finished": 15,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 187749,
+        "output_tokens": 7571,
+        "cached_input_tokens": 159744
+      },
+      "estimated_cny": 0.05882010000000001,
+      "wall_seconds": 126.522,
+      "timing": {}
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.05882010000000001,
+    "first_patch_mutation": {
+      "step": 5,
+      "seq": 42,
+      "seconds": 40.054482,
+      "files": [
+        "mlflow/store/analytics/trace_correlation.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 11,
+      "seq": 85,
+      "seconds": 98.136426,
+      "files": [
+        "mlflow/store/analytics/trace_correlation.py"
+      ]
+    },
+    "patch_attempts": 6,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 4,
+        "tool": "apply_patch",
+        "error": "unsupported_patch"
+      }
+    ],
+    "tool_calls": 15,
+    "tool_wall_seconds_including_child_wait": 4.456,
+    "native_tool_wall_seconds": 4.456,
+    "subagents": [],
+    "subagent_requests": [],
+    "final_text": "The implementation is complete and verified.\n\n## What changed\n\n**`/testbed/mlflow/store/analytics/trace_correlation.py`** — added the two required functions plus two private helpers, keeping the existing `JEFFREYS_PRIOR`, `TraceCorrelationCounts`, and `NPMIResult` intact:\n\n- `_build_contingency_table(...)` — derives the 2×2 cells `n11, n10, n01, n00`; returns `None` for `total_count <= 0` or any negative cell (inconsistent counts).\n- `_npmi_from_cells(...)` — natural-log PMI `log((n11·N)/(n1·n2))`, normalized by `-(log(n11) − log(N))`; returns NaN on degenerate marginals (`n1≤0`, `n2≤0`, `n11≤0`) or zero denominator; clamps to `[-1, 1]`.\n- `calculate_smoothed_npmi(...)` — additive Jeffreys smoothing on all four cells, **no** explicit `-1.0` rule, perfect co-occurrence detected from *pre-smoothing* cells → `1.0`, NaN for invalid/degenerate input.\n- `calculate_npmi_from_counts(...)` — returns an `NPMIResult`: unsmoothed with the documented policy (NaN when `filter1_count==0` or `filter2_count==0`; `-1.0` when joint is 0 despite both having support; perfect co-occurrence → `1.0`; NaN for inconsistent/`total≤0`), and the smoothed value by delegating to `calculate_smoothed_npmi` for consistency.\n\n**`/testbed/mlflow/store/analytics/__init__.py`** — exported `calculate_npmi_from_counts` and `calculate_smoothed_npmi` alongside the existing symbols.\n\n## What I checked\n\nVerified against the documented examples and edge cases:\n- `calculate_npmi_from_counts(10,20,15,100)` → `npmi ≈ 0.5229` matching the hand-computed formula.\n- `(0,50,50,100)` → `npmi = -1.0`; `(0,0,50,100)` → `npmi = NaN`; `(50,50,50,50)` → both `1.0`.\n- `total_count <= 0` and inconsistent cells (`n00<0` from `filter2_count < joint_count`) → NaN for both fields.\n- `calculate_smoothed_npmi` standalone matches `result.npmi_smoothed` exactly.\n- Exhaustive sweep over all valid contingency tables for totals 5/10/50/100: **zero** non-NaN results outside `[-1, 1]`.\n- Imports resolve from both `mlflow.store.analytics` and the module path directly; `JEFFREYS_PRIOR == 0.5`.\n\nNo limitations: the behavior matches the interface spec and the verification ran in the provided environment.",
+    "validation_candidates_require_manual_review": []
+  },
+  "candidate": {
+    "run_id": "20261009T151303Z-e26ae64a",
+    "sample": {
+      "sample_id": "sample-mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1-1",
+      "task_id": "mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 137.90730476200042,
+    "steps": 12,
+    "main": {
+      "started": 12,
+      "finished": 12,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 201071,
+        "output_tokens": 8137,
+        "cached_input_tokens": 167680
+      },
+      "estimated_cny": 0.0654507,
+      "wall_seconds": 129.595,
+      "timing": {
+        "request_total_ms": {
+          "count": 12,
+          "sum_ms": 129595,
+          "median_ms": 8105.5
+        },
+        "ttft_ms": {
+          "count": 12,
+          "sum_ms": 10143,
+          "median_ms": 807.0
+        },
+        "generation_ms": {
+          "count": 12,
+          "sum_ms": 119439,
+          "median_ms": 7371.0
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.0654507,
+    "first_patch_mutation": {
+      "step": 7,
+      "seq": 59,
+      "seconds": 81.110929,
+      "files": [
+        "mlflow/store/analytics/trace_correlation.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 7,
+      "seq": 62,
+      "seconds": 81.112024,
+      "files": [
+        "mlflow/store/analytics/__init__.py"
+      ]
+    },
+    "patch_attempts": 2,
+    "patch_errors": 0,
+    "tool_errors": [
+      {
+        "step": 8,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 16,
+    "tool_wall_seconds_including_child_wait": 5.967,
+    "native_tool_wall_seconds": 5.967,
+    "subagents": [],
+    "subagent_requests": [],
+    "final_text": "The implementation is complete and verified.\n\n## What changed\n\n**`/testbed/mlflow/store/analytics/trace_correlation.py`** — implemented the two required interfaces plus shared helpers:\n\n- `_build_contingency_table(...)` — constructs and validates the 2×2 table (`n11=joint`, `n10=filter1−joint`, `n01=filter2−joint`, `n00=total−filter1−filter2+joint`); returns `None` for `total<=0` or any negative cell (inconsistent data).\n- `_npmi_from_cells(...)` — computes `PMI = log(n11·N) − log(n1) − log(n2)` (natural log, log-space for stability), normalizes `NPMI = PMI / −(log(n11) − log(N))`, handles perfect co-occurrence (`n10=n01=n00=0 → 1.0`), returns NaN for degenerate marginals, and clamps to `[-1, 1]`.\n- `calculate_npmi_from_counts(...) -> NPMIResult` — applies the recommended policy: NaN when zero support (`n1=0`/`n2=0`) or inconsistent; explicit `-1.0` when both have support but never co-occur; otherwise log-space NPMI; plus the Jeffreys-smoothed variant.\n- `calculate_smoothed_npmi(..., smoothing=JEFFREYS_PRIOR)` — additive smoothing on all four cells, recomputed marginals, same PMI/NPMI math, *no* explicit −1.0 rule, NaN for inconsistent/degenerate, `1.0` for pre-smoothing perfect co-occurrence, clamped to `[-1,1]`.\n\n**`/testbed/mlflow/store/analytics/__init__.py`** — exported both new functions alongside the existing `JEFFREYS_PRIOR`, `NPMIResult`, `TraceCorrelationCounts` (matching the package `__all__`).\n\n## What I checked\n- A focused regression script derived from the documented formula and the store tests: basic value, perfect positive (`8,8,8,15 → 1.0`), perfect negative (`0,50,50,100 → −1.0`), zero-support/total=0/inconsistent → NaN, independent ≈0, the base-filter expected value (`3,6,4,10`) matches `log(1.25)/−log(0.3)` to <1e-9, smoothed `>0.8` and the no-−1.0-rule behavior. All passed.\n- The real `test_calculate_trace_filter_correlation_*` suite in `tests/store/tracking/test_sqlalchemy_store.py` (the code path that calls `calculate_npmi_from_counts`): **10 passed**.\n- Import/compile checks for `mlflow.store.analytics`, the sqlalchemy store, and tracing client all succeed.\n\nNo existing generic functions were modified.",
+    "validation_candidates_require_manual_review": [
+      {
+        "step": 10,
+        "seq": 87,
+        "command": "cd /testbed && timeout 300 python -m pytest \"tests/store/tracking/test_sqlalchemy_store.py\" -k \"correlation\" -q 2>&1 | tail -30",
+        "ok": true,
+        "stdout_tail": "\u001b[1m============================= test session starts ==============================\u001b[0m\nplatform linux -- Python 3.11.14, pytest-9.0.1, pluggy-1.6.0\nrootdir: /testbed\nconfigfile: pyproject.toml\nplugins: timeout-2.4.0, anyio-4.11.0, asyncio-1.3.0, mock-3.15.1, xdist-3.8.0, cov-7.0.0\ntimeout: 1200.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 381 items / 371 deselected / 10 selected\n\ntests/store/tracking/test_sqlalchemy_store.py \u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m                 [100%]\u001b[0m\n\n============================= slowest 10 durations =============================\n0.20s setup    tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_basic\n0.04s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_negative_correlation\n0.04s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_independent_events\n0.04s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_basic\n0.04s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_with_base_filter\n0.04s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_count_expressions\n0.03s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_perfect\n0.03s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_simplified_example\n0.03s call     tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_multiple_experiments\n0.02s setup    tests/store/tracking/test_sqlalchemy_store.py::test_calculate_trace_filter_correlation_with_base_filter\n\u001b[32m====================== \u001b[32m\u001b[1m10 passed\u001b[0m, \u001b[33m371 deselected\u001b[0m\u001b[32m in 1.75s\u001b[0m\u001b[32m ======================\u001b[0m\n",
+        "stderr_tail": ""
+      }
+    ]
+  },
+  "official_counts": {
+    "FAIL_TO_PASS": {
+      "success": 20,
+      "failure": 1
+    },
+    "PASS_TO_PASS": {
+      "success": 30,
+      "failure": 0
+    }
+  },
+  "official_report_sha256": "04dab30e3618b774ef5f271050843c23404f78de8e719d918d5a201273dd6b07",
+  "evidence_hash": "18a0fcfacfcc90267b40290b52c286d0ee130e4765c878338d2f43f1e1d1981e",
+  "manual_review": {
+    "first_actual_mutation": {
+      "step": 7,
+      "seq": 59,
+      "seconds": 81.110929,
+      "files": [
+        "mlflow/store/analytics/trace_correlation.py"
+      ]
+    },
+    "last_actual_mutation": {
+      "step": 7,
+      "seq": 62,
+      "seconds": 81.112024,
+      "files": [
+        "mlflow/store/analytics/__init__.py"
+      ]
+    },
+    "validation": "Step 8 smoke SyntaxError; corrected step 9 prints checks with tolerance, all OK; step 10 existing correlation tests 10 passed; step 11 imports and py_compile passed. Official perfect_positive requires exact 1.0; candidate returns 0.9999999999999997.",
+    "subagent": "No calls or child model events.",
+    "projection": "12 reconstructed projections verified; zero changed vs offline 16k projection. Therefore this C08 regression cannot be attributed to the cap intervention. Candidate nonetheless fails positive control.",
+    "causal_limit": "One unseeded sample; source includes other dev4 differences vs V0.2; no Agent rerun."
+  }
+}

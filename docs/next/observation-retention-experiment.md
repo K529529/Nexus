@@ -1,6 +1,6 @@
 # Observation retention: isolated live experiment
 
-Status: C13 shows partial convergence improvement but official FAIL; C08/C17 controls pending. No release acceptance. Stable V0.2 remains the accepted baseline.
+Status: C13 shows partial convergence improvement but official FAIL; C08 positive control regressed to official FAIL (20/21); C17 is running on the unchanged frozen candidate. No release acceptance. Stable V0.2 remains the accepted baseline.
 
 ## Intervention and comparison
 
@@ -55,3 +55,14 @@ Cache-hit proportion rose from 67.3% to 94.1%; input and output totals did not f
 Integrity PASS: one execution, unchanged ABK/evaluator and frozen source, Candidate Freeze, raw/archive equality and cleanup. [Measurements and receipts](observation-retention-c13-result.json).
 
 Decision: the earlier core implementation, fewer turns, net additional test passes and lower observed cost justify checking C08 and C17 with the **same wheel**, without further C13 tuning. This is not enough to replace V0.2: correctness remains incomplete, some tests regressed and SubAgent value is still unproven. Controls are frozen separately at `D:/WorkSpace/AgentBenchKit/.agentbenchkit/experiments/nexus-observation-retention-controls-20261009` to preserve the completed C13 experiment.
+
+
+## C08 positive control result
+
+Run `20261009T151303Z-e26ae64a`, identical dev6 source/wheel: official **FAIL**, F2P **20/21**, P2P **30/30**. Agent COMPLETED in 12 steps / 12 model attempts, process time 137.91s (native loop 135.62s), first and last repository writes at step 7 / 81.11s. Two patches succeeded without patch errors. No SubAgent calls. Reported input 201,071 / cached 167,680 / output 8,137; historical-price cost ¥0.0654507, complete usage. Model 129.595s / native tools 5.967s.
+
+The single official failure is `test_npmi_correlations[perfect_positive]`: candidate returns `0.9999999999999997` where the contract expects exact `1.0` for joint=filter1=filter2=10, total=100. The Agent's own corrected smoke used tolerance and passed; 10 existing correlation tests and final imports/compilation also passed. These checks did not establish the exact boundary behavior. One initial smoke had a SyntaxError, then was corrected. The final mutation preceded all those checks.
+
+All 12 public-event context projections reconstruct exactly, and none differs from the offline 16k projection. Therefore this failure cannot be attributed to the 64k cap. It still rejects this sampled candidate as a preserved positive control; fewer turns and roughly baseline latency do not override correctness. No failed Agent retry. [C08 measurements and official receipt](observation-retention-c08-result.json).
+
+C17 was already launched sequentially by the frozen runner and is being completed for the full control record. The C08 failure is not fed back into that Agent, and source, prompt, wheel and evaluator remain unchanged.
