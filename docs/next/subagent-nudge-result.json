@@ -1,0 +1,390 @@
+{
+  "decision": "KEEP V0.2",
+  "candidate_acceptance": "FAILED",
+  "runtime_source": {
+    "branch": "codex/nexus-subagent-nudge",
+    "commit": "0748a72357b4e0b9017dcf6ec0b12a3476fbec5e",
+    "version": "0.3.0.dev10",
+    "wheel_sha256": "1a3356cd4ed508915a746b788498470a58caa2867e33e2d626383431902906e0",
+    "source_files": 36,
+    "intervention": "Optional independent delegation suggestion in existing one-shot stagnation guidance, conditional on spawn_agent availability. Retains dev7 shell feedback, dev8 report guidance and dev9 compact child read output.",
+    "not_causal_isolation_against_v02": true
+  },
+  "protocol": "One fresh frozen C17 development task; no retries; no C08/C13 or holdout in this candidate",
+  "baseline": {
+    "run_id": "20261008T194152Z-8947f05d",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 422.824529481004,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1676832,
+        "output_tokens": 23498,
+        "cached_input_tokens": 1252864
+      },
+      "estimated_cny": 0.5279054,
+      "wall_seconds": 415.521,
+      "timing": {}
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5279054,
+    "first_patch_mutation": {
+      "step": 23,
+      "seq": 167,
+      "seconds": 132.469643,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 38,
+      "seq": 273,
+      "seconds": 335.405542,
+      "files": [
+        "xarray/structure/merge.py"
+      ]
+    },
+    "patch_attempts": 3,
+    "patch_errors": 0,
+    "tool_errors": [
+      {
+        "step": 24,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 27,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 50,
+    "tool_wall_seconds_including_child_wait": 4.804,
+    "native_tool_wall_seconds": 4.804,
+    "subagents": [],
+    "subagent_requests": [],
+    "final_text": "",
+    "validation_candidates_require_manual_review": [],
+    "first_actual_mutation": {
+      "step": 11,
+      "seq": 81,
+      "seconds": 35.830343,
+      "tool": "exec_command",
+      "basis": "Previously manually audited baseline shell write; not first apply_patch"
+    }
+  },
+  "candidate": {
+    "run_id": "20261009T162812Z-2fe99645",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 342.52702814800074,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1646912,
+        "output_tokens": 19796,
+        "cached_input_tokens": 1184768
+      },
+      "estimated_cny": 0.5416411999999999,
+      "wall_seconds": 335.75,
+      "timing": {
+        "request_total_ms": {
+          "count": 50,
+          "sum_ms": 335750,
+          "median_ms": 4401.0
+        },
+        "ttft_ms": {
+          "count": 50,
+          "sum_ms": 81162,
+          "median_ms": 1707.5
+        },
+        "generation_ms": {
+          "count": 50,
+          "sum_ms": 254519,
+          "median_ms": 2722.0
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5416411999999999,
+    "first_patch_mutation": {
+      "step": 31,
+      "seq": 241,
+      "seconds": 209.251978,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 44,
+      "seq": 333,
+      "seconds": 302.134255,
+      "files": [
+        "xarray/structure/merge.py"
+      ]
+    },
+    "patch_attempts": 4,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 2,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 2,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 10,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 12,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 22,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 27,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 35,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 47,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 48,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 49,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 56,
+    "tool_wall_seconds_including_child_wait": 4.321,
+    "native_tool_wall_seconds": 4.321,
+    "subagents": [],
+    "subagent_requests": [],
+    "final_text": "",
+    "validation_candidates_require_manual_review": [],
+    "first_actual_mutation": {
+      "step": 28,
+      "seq": 219,
+      "seconds": 192.974449,
+      "tool": "exec_command"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 368,
+      "seconds": 336.97416,
+      "tool": "exec_command"
+    }
+  },
+  "behavior_review": {
+    "run_id": "20261009T162812Z-2fe99645",
+    "patch_sha256": "06b65442602b1dac15576ca0e5675b4743707f81cdf1d66739731b9865487395",
+    "changed_paths": [
+      "xarray/core/coordinate_transform.py",
+      "xarray/core/indexes.py",
+      "xarray/core/utils.py",
+      "xarray/structure/merge.py"
+    ],
+    "first_actual_mutation": {
+      "step": 28,
+      "seq": 219,
+      "seconds": 192.974449,
+      "tool": "exec_command"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 368,
+      "seconds": 336.97416,
+      "tool": "exec_command"
+    },
+    "nudges": [
+      {
+        "seq": 101,
+        "trigger": "plan_idle",
+        "mode": "plan",
+        "plan_idle_steps": 8,
+        "pre_mutation_steps": 11,
+        "threshold": 8,
+        "active_plan_step": "Survey current state of all 6 target files (what exists, what is missing/stubbed)",
+        "step": 11
+      }
+    ],
+    "hint_request_steps": [
+      12
+    ],
+    "subagent_calls": 0,
+    "last_validation": {
+      "step": 49,
+      "seq": 368,
+      "seconds": 336.97416,
+      "tool": "exec_command",
+      "args": {
+        "command": "cd /testbed && python - <<'PY'\ns=open('xarray/structure/merge.py').read()\ns=s.replace(\"\"\"    if compat_str in (\"broadcast_equals\", \"minimal\"):\n        from xarray.core.variable import broadcast_variables\n\n        out = broadcast_variables(*variables)[0]\n    else:\n        out = variables[0]\"\"\",\n\"\"\"    out = variables[0]\n    if compat_str in (\"broadcast_equals\", \"minimal\"):\n        try:\n            from xarray.core.variable import broadcast_variables\n\n            out = broadcast_variables(*variables)[0]\n        except NameError:\n            dims = {}\n            for var in variables:\n                for dim, size in zip(var.dims, var.shape, strict=True):\n                    dims[dim] = size\n            try:\n                out = variables[0].set_dims(dims)\n            except Exception:\n                out = variables[0]\"\"\")\nopen('xarray/structure/merge.py','w').write(s)\nPY\npython -c \"\nimport pandas as pd, xarray as xr\nds=xr.Dataset({'a':('x',[1,2,3])},coords={'x':[10,20,30]})\nds2=xr.Dataset({'b':('x',[1,2,3])},coords={'x':[10,20,30]})\nprint('merge',sorted(xr.merge([ds,ds2]).data_vars))\nmidx=pd.MultiIndex.from_product([['a','b'],[0,1]]);d=xr.Dataset(coords={'z':midx})\nprint('isel',d.isel(z=[0,1]).dims)\nprint('coords',list(ds.coords.merge(ds2.coords)))\nprint('repr ok')\nprint(repr(ds))\n\""
+      },
+      "result": {
+        "call_id": "call_aa2584d39a8349de9dac5439",
+        "ok": false,
+        "data": {
+          "command": "cd /testbed && python - <<'PY'\ns=open('xarray/structure/merge.py').read()\ns=s.replace(\"\"\"    if compat_str in (\"broadcast_equals\", \"minimal\"):\n        from xarray.core.variable import broadcast_variables\n\n        out = broadcast_variables(*variables)[0]\n    else:\n        out = variables[0]\"\"\",\n\"\"\"    out = variables[0]\n    if compat_str in (\"broadcast_equals\", \"minimal\"):\n        try:\n            from xarray.core.variable import broadcast_variables\n\n            out = broadcast_variables(*variables)[0]\n        except NameError:\n            dims = {}\n            for var in variables:\n                for dim, size in zip(var.dims, var.shape, strict=True):\n                    dims[dim] = size\n            try:\n                out = variables[0].set_dims(dims)\n            except Exception:\n                out = variables[0]\"\"\")\nopen('xarray/structure/merge.py','w').write(s)\nPY\npython -c \"\nimport pandas as pd, xarray as xr\nds=xr.Dataset({'a':('x',[1,2,3])},coords={'x':[10,20,30]})\nds2=xr.Dataset({'b':('x',[1,2,3])},coords={'x':[10,20,30]})\nprint('merge',sorted(xr.merge([ds,ds2]).data_vars))\nmidx=pd.MultiIndex.from_product([['a','b'],[0,1]]);d=xr.Dataset(coords={'z':midx})\nprint('isel',d.isel(z=[0,1]).dims)\nprint('coords',list(ds.coords.merge(ds2.coords)))\nprint('repr ok')\nprint(repr(ds))\n\"",
+          "cwd": "/testbed",
+          "shell": "/bin/sh",
+          "exit_code": 1,
+          "stdout": "merge ['a', 'b']\n",
+          "stderr": "<string>:6: FutureWarning: the `pandas.MultiIndex` object(s) passed as 'z' coordinate(s) or data variable(s) will no longer be implicitly promoted and wrapped into multiple indexed coordinates in the future (i.e., one coordinate for each multi-index level + one dimension coordinate). If you want to keep this behavior, you need to first wrap it explicitly using `mindex_coords = xarray.Coordinates.from_pandas_multiindex(mindex_obj, 'dim')` and pass it as coordinates, e.g., `xarray.Dataset(coords=mindex_coords)`, `dataset.assign_coords(mindex_coords)` or `dataarray.assign_coords(mindex_coords)`.\nTraceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n  File \"/testbed/xarray/core/dataset.py\", line 2834, in isel\n    indexers = drop_dims_from_indexers(indexers, self.dims, missing_dims)\n               ^^^^^^^^^^^^^^^^^^^^^^^\nNameError: name 'drop_dims_from_indexers' is not defined\n",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 643
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 643,
+        "truncated": false
+      }
+    },
+    "official_failures": "All 10 F2P failures: Coordinates.from_xindex missing",
+    "user_message_interface_offsets": {
+      "from_xindex": 41083,
+      "formatting.py": 37996,
+      "coordinates.py": 40324,
+      "spawn_agent": -1
+    },
+    "clock_backwards": false
+  },
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "0748a72357b4e0b9017dcf6ec0b12a3476fbec5e",
+    "manifest_sha256": "65b564ffd6854f26130bbe7b219f1bfe7d73987f0e264a56874076fe6b4eb1d8",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C17",
+        "run": "20261009T162812Z-2fe99645",
+        "sample": {
+          "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+          "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+          "execution_status": "FINISHED",
+          "agent_outcome": "LIMITED",
+          "verifier_status": "FAIL",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": false,
+          "sample_success": false
+        },
+        "evidence_hash": "08b7b4c4bf1a69ea6708ee8ec46fa6f2303e76c2f00d68acfaa643fdd95aa8e5",
+        "official_report_sha256": "f54a9b374d2d1ea3175e47f1716f2b363bc80e51352f85e0a96a39912c472494",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 4,
+            "failure": 10
+          },
+          "PASS_TO_PASS": {
+            "success": 74,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  },
+  "percent_change": {
+    "agent_seconds": -18.990738647912508,
+    "total_estimated_cny": 2.6019434542628117
+  },
+  "cost_basis": "Historical estimate only: ((input-cached)*0.8 + cached*0.1 + output*2.7)/1e6 CNY. Cached tokens are a subset. This is not a current quote or invoice. Both C17 runs have complete recorded usage.",
+  "limitations": [
+    "Single unseeded known-task run; no significance/generalization claim",
+    "V0.2 run predates stronger egress isolation",
+    "Compared with V0.2 this is a combined candidate, not a single-factor nudge ablation",
+    "Component child probes used unmasked image source; no component reference findings were supplied to this prepared task",
+    "No actual child invocation or Main integration value demonstrated"
+  ]
+}
