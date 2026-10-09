@@ -1,0 +1,321 @@
+{
+  "run_id": "20261009T180016Z-412e2b70",
+  "sample": {
+    "sample_id": "sample-mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1-1",
+    "task_id": "mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1",
+    "execution_status": "FINISHED",
+    "agent_outcome": "COMPLETED",
+    "verifier_status": "PASS",
+    "analysis_status": "NOT_RUN",
+    "cleanup_status": "COMPLETED",
+    "candidate_frozen": true,
+    "startup_retries_exhausted": false,
+    "candidate_pass": true,
+    "sample_success": true
+  },
+  "agent_seconds": 149.9860829930003,
+  "steps": 14,
+  "main": {
+    "started": 14,
+    "finished": 14,
+    "usage_complete": true,
+    "cache_usage_complete": true,
+    "missing_cache_assumption": "zero cache as in original report",
+    "usage": {
+      "input_tokens": 197251,
+      "output_tokens": 10059,
+      "cached_input_tokens": 168704
+    },
+    "estimated_cny": 0.0668673,
+    "wall_seconds": 144.19,
+    "timing": {
+      "request_total_ms": {
+        "count": 14,
+        "sum_ms": 144190,
+        "median_ms": 4836.5
+      },
+      "ttft_ms": {
+        "count": 14,
+        "sum_ms": 21963,
+        "median_ms": 1119.0
+      },
+      "generation_ms": {
+        "count": 14,
+        "sum_ms": 122216,
+        "median_ms": 3969.0
+      }
+    }
+  },
+  "child": {
+    "started": 0,
+    "finished": 0,
+    "usage_complete": true,
+    "cache_usage_complete": true,
+    "missing_cache_assumption": "zero cache as in original report",
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0
+    },
+    "estimated_cny": 0.0,
+    "wall_seconds": 0.0,
+    "timing": {}
+  },
+  "total_estimated_cny": 0.0668673,
+  "first_patch_mutation": {
+    "step": 5,
+    "seq": 42,
+    "seconds": 64.422,
+    "clock": "monotonic tool_finished",
+    "nominal_timestamp_offset_seconds": 64.416912,
+    "files": [
+      "mlflow/store/analytics/trace_correlation.py"
+    ]
+  },
+  "last_patch_mutation": {
+    "step": 11,
+    "seq": 85,
+    "seconds": 130.508,
+    "clock": "monotonic tool_finished",
+    "nominal_timestamp_offset_seconds": 130.497426,
+    "files": [
+      "mlflow/store/analytics/__init__.py"
+    ]
+  },
+  "patch_attempts": 4,
+  "patch_errors": 1,
+  "tool_errors": [
+    {
+      "step": 3,
+      "tool": "apply_patch",
+      "error": "unsupported_patch"
+    },
+    {
+      "step": 10,
+      "tool": "exec_command",
+      "error": "command_exit_nonzero"
+    }
+  ],
+  "tool_calls": 14,
+  "tool_wall_seconds_including_child_wait": 3.518,
+  "native_tool_wall_seconds": 3.518,
+  "subagents": [],
+  "subagent_requests": [],
+  "final_text": "Done. Here's what I implemented and verified.\n\n## Changes\n\n**`/testbed/mlflow/store/analytics/trace_correlation.py`** (the existing dataclasses `NPMIResult`, `TraceCorrelationCounts` and constant `JEFFREYS_PRIOR = 0.5` were already present and left intact):\n\n- Added private helpers:\n  - `_build_contingency_table(...)` — constructs the 2×2 table `(n11, n10, n01, n00)` from the four counts and returns `None` when `total_count <= 0` or any cell is negative (inconsistent data).\n  - `_npmi_from_marginals(n11, n1, n2, total)` — computes `PMI = log((n11·N)/(n1·n2))` and `NPMI = PMI / (-(log(n11) - log(N)))` using the natural log, clamping the result to `[-1, 1]` for float-precision safety.\n- `calculate_smoothed_npmi(...)` — validates the table, returns `1.0` for the degenerate perfect-co-occurrence case (`n10=n01=n00=0` pre-smoothing), adds the `smoothing` value to all four cells, recomputes `N/n1/n2`, returns NaN on post-smoothing degenerate marginals, otherwise the clamped NPMI. No explicit `-1.0` rule (smoothing handles zero joint counts).\n- `calculate_npmi_from_counts(...)` — returns `NPMIResult(npmi, npmi_smoothed)`. Policy: NaN for inconsistent/`total<=0`/zero-support (`n1=0` or `n2=0`); explicit `-1.0` when both filters have support but never co-occur; `1.0` for strict perfect co-occurrence; otherwise the formula value. Smoothed value always delegates to `calculate_smoothed_npmi`.\n\n**`/testbed/mlflow/store/analytics/__init__.py`**: it listed `calculate_npmi_from_counts`/`calculate_smoothed_npmi` in `__all__` but never imported them — I added those imports so package-level access works.\n\n## What I actually checked\nRun via the interpreter (no dedicated test harness exists in the repo for this module):\n- Basic case `(10,20,15,100)` → npmi `0.5229`, npmi_smoothed `0.5099`, matching hand-computed formulae; `calculate_smoothed_npmi` agrees with `result.npmi_smoothed`.\n- `(0,50,50,100)` → npmi `-1.0`.\n- `(0,0,50,100)` → npmi NaN (zero support), npmi_smoothed `0.0` (smoothing regularizes it).\n- `(50,50,50,50)` → both variants exactly `1.0`; `(50,50,50,100)` → npmi ≈1.0 (not the degenerate case, formula applies), smoothed ≈0.972.\n- `total<=0` and inconsistent tables (negative derived cells) → NaN for both.\n- Values remain within `[-1, 1]`.\n\n## Notes / limitations\n- I used approximate comparison; strict perfect co-occurrence is recognized only when `n10=n01=n00=0` per the spec — for high-but-not-total co-occurrence the formula yields ≈1.0 (clamped), which is mathematically correct and how tests using `pytest.approx` would expect it.\n- No pre-existing pytest file for this module was found; verification was done with direct interpreter assertions rather than the project test suite.",
+  "validation_candidates_require_manual_review": [],
+  "source": {
+    "branch": "codex/nexus-command-echo-projection",
+    "commit": "afa3b14453b6151e0c650f8f1a7f9f2533bdf027",
+    "version": "0.3.0.dev15",
+    "wheel_sha256": "83007aa89fb68829e358df47c9f2ce212fcfabc40558a887212c842824c3b503",
+    "source_files": 36,
+    "immediate_baseline_source": "11b14c07486eae7d82d3bc72d9982116a7cd57c2",
+    "intervention": "Exact command echo reference after unchanged observation selection; original raw results and all output facts retained. No SYSTEM/tools/model/child/detector changes."
+  },
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "afa3b14453b6151e0c650f8f1a7f9f2533bdf027",
+    "manifest_sha256": "80c82ba060e2eab7577d5a095c519ba782b0669315393a659b90159d7b0d4afe",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C08",
+        "run": "20261009T180016Z-412e2b70",
+        "sample": {
+          "sample_id": "sample-mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1-1",
+          "task_id": "mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1",
+          "execution_status": "FINISHED",
+          "agent_outcome": "COMPLETED",
+          "verifier_status": "PASS",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": true,
+          "sample_success": true
+        },
+        "evidence_hash": "da22b69dccad1155b370b6abb7fbb7ff2df284a674e73c39c10f5eadd5185147",
+        "official_report_sha256": "95c199c3236b32a89f783c684f636acdcc4421ba299bd410ed597dee492a2f86",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 21,
+            "failure": 0
+          },
+          "PASS_TO_PASS": {
+            "success": 30,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  },
+  "live_projection": {
+    "run_id": "20261009T180016Z-412e2b70",
+    "exact_reconstruction": "PASS",
+    "scope": "Actual recorded projections and every retained result fact verified; same-trace byte counterfactual only, not provider token/cost causality.",
+    "model_request_count": 14,
+    "unique_referenced_results": 7,
+    "saved_bytes_across_requests": 18816,
+    "old_observation_bytes_across_requests": 146393,
+    "estimated_token_delta_across_requests": 6473,
+    "rows": [
+      {
+        "step": 1,
+        "saved_bytes": 0,
+        "reference_count": 0,
+        "old_observation_bytes": 0,
+        "new_observation_bytes": 0,
+        "estimated_token_delta": 0
+      },
+      {
+        "step": 2,
+        "saved_bytes": 157,
+        "reference_count": 2,
+        "old_observation_bytes": 1375,
+        "new_observation_bytes": 1218,
+        "estimated_token_delta": 55
+      },
+      {
+        "step": 3,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 3814,
+        "new_observation_bytes": 3546,
+        "estimated_token_delta": 94
+      },
+      {
+        "step": 4,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 4394,
+        "new_observation_bytes": 4126,
+        "estimated_token_delta": 93
+      },
+      {
+        "step": 5,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 4760,
+        "new_observation_bytes": 4492,
+        "estimated_token_delta": 93
+      },
+      {
+        "step": 6,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 7277,
+        "new_observation_bytes": 7009,
+        "estimated_token_delta": 93
+      },
+      {
+        "step": 7,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 11270,
+        "new_observation_bytes": 11002,
+        "estimated_token_delta": 94
+      },
+      {
+        "step": 8,
+        "saved_bytes": 268,
+        "reference_count": 3,
+        "old_observation_bytes": 11638,
+        "new_observation_bytes": 11370,
+        "estimated_token_delta": 93
+      },
+      {
+        "step": 9,
+        "saved_bytes": 2217,
+        "reference_count": 4,
+        "old_observation_bytes": 14662,
+        "new_observation_bytes": 12445,
+        "estimated_token_delta": 762
+      },
+      {
+        "step": 10,
+        "saved_bytes": 2676,
+        "reference_count": 5,
+        "old_observation_bytes": 15728,
+        "new_observation_bytes": 13052,
+        "estimated_token_delta": 919
+      },
+      {
+        "step": 11,
+        "saved_bytes": 2875,
+        "reference_count": 6,
+        "old_observation_bytes": 16562,
+        "new_observation_bytes": 13687,
+        "estimated_token_delta": 987
+      },
+      {
+        "step": 12,
+        "saved_bytes": 2875,
+        "reference_count": 6,
+        "old_observation_bytes": 17631,
+        "new_observation_bytes": 14756,
+        "estimated_token_delta": 988
+      },
+      {
+        "step": 13,
+        "saved_bytes": 3204,
+        "reference_count": 7,
+        "old_observation_bytes": 18458,
+        "new_observation_bytes": 15254,
+        "estimated_token_delta": 1101
+      },
+      {
+        "step": 14,
+        "saved_bytes": 3204,
+        "reference_count": 7,
+        "old_observation_bytes": 18824,
+        "new_observation_bytes": 15620,
+        "estimated_token_delta": 1101
+      }
+    ]
+  },
+  "timing_audit": [
+    {
+      "timed_event_count": 58,
+      "monotonic_non_decreasing": true,
+      "core_execution_ms": 147759,
+      "nudges": [],
+      "included": []
+    }
+  ],
+  "baseline": {
+    "run_id": "20261008T174811Z-978d9da4",
+    "sample": {
+      "sample_id": "sample-mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1-1",
+      "task_id": "mlflow__mlflow.93dab383.test_trace_correlation.53c200a6.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED",
+      "verifier_status": "PASS",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": true,
+      "sample_success": true
+    },
+    "agent_seconds": 133.11488523900334,
+    "steps": 15,
+    "main": {
+      "started": 15,
+      "finished": 15,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 187749,
+        "output_tokens": 7571,
+        "cached_input_tokens": 159744
+      },
+      "estimated_cny": 0.05882010000000001,
+      "wall_seconds": 126.522,
+      "timing": {}
+    },
+    "native_tool_wall_seconds": 4.456,
+    "patch_errors": 1
+  },
+  "scope": "C08 positive control only; C17/C13/holdout NOT RUN for dev15. KEEP V0.2; no merge/release. Pausing after this round at user request."
+}
