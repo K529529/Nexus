@@ -159,7 +159,6 @@ class Session:
     run_id: str | None = None
     # Set only by explicit resume; ordinary turns always start an independent run.
     resume_run_id: str | None = None
-    completion_nudged_run_id: str | None = None
     compactions: dict[str, ContextSnapshot] = field(default_factory=dict)
     plan: PlanState | None = None
     skill_catalog: tuple[SkillInfo, ...] = ()

@@ -10,7 +10,6 @@ from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
 from nexus.core.context import ContextBuilder, execution_budget, project_guidance
 from nexus.core.plan import project_plan
-from nexus.core.progress import ProgressLedger
 from nexus.core.types import (
     ExecutionContext,
     Json,
@@ -69,9 +68,7 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         assert session.messages[: len(history)] == history
         assert model.requests[2] == project_guidance(
             project_plan(session, [session.messages[0], session.messages[len(history)]]),
-            execution_budget(1, 40)
-            + "\n\n"
-            + ProgressLedger().prompt(session, 1, 40, list(registry)),
+            execution_budget(1, 40),
         )
         assert all("Task A" not in m.content for m in model.requests[3])
         assert "Task B observation" in model.requests[3][-2].content
@@ -190,10 +187,7 @@ async def test_resume_restores_only_interrupted_run(
     try:
         assert restored.resume_run_id == "interrupted-run"
         before_resume = writer.seq
-        model = ScriptedModel(
-            [reply(text="Recovered answer")]
-            + ([reply(text="Unknown prior edits remain unverified.")] if not outcome else [])
-        )
+        model = ScriptedModel([reply(text="Recovered answer")])
         result = await run_turn(
             restored, "Continue", model, {}, Events(restored, writer, ignore), Limits()
         )

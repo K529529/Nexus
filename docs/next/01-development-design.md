@@ -1,3 +1,5 @@
+> 2026-10-09 final sprint supersedes Batch1/1.1 runtime mechanisms; see [V0.3 final](v0.3-final.md).
+
 # Nexus Next V0：开发设计
 
 状态：**APPROVED v0.2 / Phase 2 Implementation** · 2026-10-01

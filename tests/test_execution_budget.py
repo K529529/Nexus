@@ -8,9 +8,9 @@ from typing import Literal
 
 import pytest
 
-from nexus.core.agent import COMPLETION_GUIDANCE as GUIDANCE
 from nexus.core.agent import run_turn
 from nexus.core.context import Context, estimate, execution_budget, groups
+from nexus.core.stagnation import GUIDANCE
 from nexus.core.types import Limits, Message, Session, ToolSpec, Usage
 from tests.conftest import Recorder, ScriptedModel, call, reply
 from tests.test_stagnation import registry

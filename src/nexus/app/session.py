@@ -117,8 +117,6 @@ def replay(records: list[Json], workspace: Path) -> Session:
             elif record["kind"] == "run_finished" and run_id == session.run_id:
                 if data.get("outcome") == "completed":
                     session.resume_run_id = None
-            elif record["kind"] == "completion_nudge" and run_id == session.run_id:
-                session.completion_nudged_run_id = run_id
             elif record["kind"] == "message":
                 if not isinstance(data.get("content", ""), str):
                     raise SessionError("Invalid message content")

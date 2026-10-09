@@ -86,8 +86,6 @@ async def test_predict_exports_only_redacted_final(
 
     replies = [reply(text="Done " + secret)]
     if write_secret:
-        replies.append(reply(text="Unverified limitation " + secret))
-    if write_secret:
         replies.insert(
             0,
             reply(

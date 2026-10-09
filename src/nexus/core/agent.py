@@ -9,8 +9,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
-from nexus.core.progress import ProgressLedger
-from nexus.core.stagnation import StagnationDetector
+from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -27,11 +26,6 @@ from nexus.core.types import (
     ToolResult,
     Usage,
 )
-
-COMPLETION_GUIDANCE = """Your completion claim conflicts with current runtime state:
-unfinished plan items and/or unverified changes remain.
-Continue working, or explicitly reconcile the plan / report the unresolved limitation before
-finishing. This is a one-time reminder; it does not require a mutation or an automatic test."""
 
 
 async def append_message(session: Session, message: Message, emit: Emit) -> None:
@@ -71,8 +65,6 @@ async def run_turn(
         session.loaded_skills = ()
         session.skills_run_id = session.run_id
     detector = StagnationDetector(session)
-    ledger = ProgressLedger.restore(session)
-    execution_window = uuid4().hex
     pending_guidance: str | None = None
     result = RunResult("failed")
     pending: list[ToolCall] = []
@@ -88,8 +80,7 @@ async def run_turn(
             "tool_finished",
             "plan_updated",
             "skill_loaded",
-            "stagnation_observation",
-            "completion_nudge",
+            "stagnation_nudge",
         }:
             data = {**data, "step": result.steps}
         if kind == "model_started":
@@ -100,29 +91,12 @@ async def run_turn(
 
     async def task_events(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
         if kind == "model_started" and pending_guidance:
-            data = {**data, "completion_nudge_included": True}
+            data = {**data, "stagnation_nudge_included": True}
         return await observed(kind, data, protocol_data=protocol_data)
 
     async def record_tool(value: ToolResult) -> None:
-        value.data = {
-            **value.data,
-            "execution_step": result.steps,
-            "execution_window": execution_window,
-        }
         message = value.message()
         await append_message(session, message, observed)
-        matching = next(
-            (
-                c
-                for m in reversed(session.messages)
-                if m.run_id == session.run_id
-                for c in m.tool_calls
-                if c.id == value.call_id
-            ),
-            None,
-        )
-        if matching is not None:
-            ledger.observe(matching, value)
         await observed(
             "tool_finished",
             {
@@ -134,11 +108,9 @@ async def run_turn(
                 "result_bytes": len(message.content.encode("utf-8")),
                 "exit_code": value.data.get("exit_code"),
                 "truncated": value.truncated,
-                "purpose": value.data.get("purpose"),
                 "shell": value.data.get("shell"),
                 "returncode": value.data.get("exit_code"),
                 "timed_out": value.data.get("timed_out"),
-                "validation": value.data.get("validation"),
             },
         )
 
@@ -161,8 +133,6 @@ async def run_turn(
             result.steps = step
             context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
-            context.progress = ledger.prompt(session, step, limits.max_steps, list(registry))
-            await observed("progress_snapshot", ledger.data(session, step, limits.max_steps))
             active_context, _ = projected_context()
             attempted = await context.prepare(
                 session, active_context, specs, model, observed, guidance=pending_guidance
@@ -201,21 +171,6 @@ async def run_turn(
             pending_guidance = None
             await append_message(session, reply.message, observed)
             if not reply.message.tool_calls:
-                state = ledger.data(session, step, limits.max_steps)
-                unfinished = state["plan_completed"] < state["plan_total"]
-                if session.completion_nudged_run_id != session.run_id and (
-                    unfinished or state["validation_debt"]
-                ):
-                    await observed(
-                        "completion_nudge",
-                        {
-                            "unfinished_plan": unfinished,
-                            "validation_debt": state["validation_debt"],
-                        },
-                    )
-                    session.completion_nudged_run_id = session.run_id
-                    pending_guidance = COMPLETION_GUIDANCE
-                    continue
                 result.outcome, result.final_text = "completed", reply.message.content
                 break
             pending = list(reply.message.tool_calls)
@@ -264,7 +219,8 @@ async def run_turn(
                 session, batch, step=step, max_steps=limits.max_steps
             )
             if nudge is not None:
-                await observed("stagnation_observation", nudge)
+                await observed("stagnation_nudge", nudge)
+                pending_guidance = GUIDANCE
         else:
             result.outcome, result.reason = "limited", "max_steps"
     except ToolCancelled as exc:
@@ -317,14 +273,6 @@ async def run_turn(
         else "unknown",
     )
     try:
-        await observed(
-            "progress_snapshot",
-            {
-                **ledger.data(session, result.steps, limits.max_steps),
-                "terminal": True,
-                "remaining_steps": max(0, limits.max_steps - result.steps),
-            },
-        )
         await observed("run_finished", asdict(result))
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"

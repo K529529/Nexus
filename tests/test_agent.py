@@ -38,7 +38,6 @@ async def test_real_read_patch_test_loop(tmp_path: Path) -> None:
                 )
             ),
             reply(text="Fixed addition; the assertion passed."),
-            reply(text="Only the local assertion was checked; no broader test evidence."),
         ]
     )
     session = Session(tmp_path)
@@ -46,8 +45,8 @@ async def test_real_read_patch_test_loop(tmp_path: Path) -> None:
         session, "fix addition", model, native_tools(), Recorder(), Limits(shell=default_shell())
     )
     assert result.outcome == "completed"
-    assert (result.steps, result.model_calls, result.tool_calls) == (5, 5, 3)
-    assert result.usage.total_tokens == 75
+    assert (result.steps, result.model_calls, result.tool_calls) == (4, 4, 3)
+    assert result.usage.total_tokens == 60
     assert "return a + b" in (tmp_path / "calc.py").read_text()
     results = [json.loads(m.content) for m in session.messages if m.role == "tool"]
     assert all(r["ok"] for r in results)

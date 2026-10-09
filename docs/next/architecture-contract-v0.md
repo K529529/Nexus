@@ -477,7 +477,13 @@ for that explicitly bounded extension. No old Skill routing architecture is rest
 
 V0 does not implement Skills / `SKILL.md`.
 
-## Sub-Agent: Not Included
+## Sub-Agent: V0.3 experimental extension
+
+2026-10-09: the user explicitly authorized a depth-one, tool-based, read-only recursive
+sub-context reusing the same loop. See [V0.3 final sprint](v0.3-final.md).
+The original exclusion below remains historical V0 scope, superseded for this experiment.
+
+### Original V0 exclusion
 
 V0 does not implement Sub-Agent / Multi-Agent execution.
 

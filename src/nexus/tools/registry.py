@@ -12,24 +12,11 @@ EXEC_SPEC = ToolSpec(
     "exec_command",
     "Execute a command in the actual local shell. Use for reading/searching files, git, "
     "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
-    "truncation. timeout_ms: 1..600000 (default 120000). "
-    "Always label purpose: inspect, mutate, validate, or other. For shell edits declare "
-    "mutation_scope as workspace-relative files; prefer small apply_patch edits. "
-    "For checks declare validation_scope (explicit implementation files actually exercised). "
-    "A direct pytest invocation with a standard result summary provides behavioral evidence: "
-    "e.g. python -m pytest tests/test_app.py -q, purpose=validate, validation_scope=['app.py']. "
-    "Use workdir to set cwd; preserve the test exit status and output. "
-    "A fresh JUnit XML supplied via validation_report is optional stronger evidence, not required. "
-    "Print/import/compile alone provide partial validation. Scope is your declaration, not "
-    "measured code coverage; omit scope if uncertain. Commands are not rewritten or retried.",
+    "truncation. timeout_ms: 1..600000 (default 120000).",
     {
         "type": "object",
         "properties": {
             "command": {"type": "string"},
-            "purpose": {"type": "string", "enum": ["inspect", "validate", "mutate", "other"]},
-            "mutation_scope": {"type": "array", "maxItems": 100, "items": {"type": "string"}},
-            "validation_scope": {"type": "array", "maxItems": 100, "items": {"type": "string"}},
-            "validation_report": {"type": "string"},
             "workdir": {"type": "string"},
             "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 600000},
         },

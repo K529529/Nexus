@@ -7,7 +7,7 @@ import hashlib
 import os
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from nexus.app.config import Config
@@ -23,6 +23,7 @@ from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, js
 from nexus.tools.mcp import connect_servers
 from nexus.tools.registry import default_tools
 from nexus.tools.skills import create_load_skill_tool
+from nexus.tools.subagent import create_spawn_agent_tool
 
 
 class Conversation:
@@ -53,6 +54,7 @@ class Conversation:
         if resume:
             self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
         resolved = registry(self.session) if callable(registry) else registry
+        self.enable_subagents = registry is None
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
         self.registry = dict(self.base_registry)
         # Custom registries (including fixed eval) opt in explicitly; never inherit host Skills.
@@ -158,6 +160,19 @@ class Conversation:
                     self.model = None
                     self.registry = dict(self.base_registry)
                     raise
+            if self.enable_subagents:
+                main_model = self.model
+                self.registry["spawn_agent"] = create_spawn_agent_tool(
+                    self.session,
+                    lambda: ChatModel(
+                        replace(
+                            self.config.model,
+                            max_output_tokens=min(self.config.model.max_output_tokens, 2048),
+                        ),
+                        client=main_model.client,
+                    ),
+                    self.config.limits,
+                )
             fingerprint = hashlib.sha256(
                 json_text(
                     {
