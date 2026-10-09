@@ -151,7 +151,7 @@ async def test_real_pytest_proves_execution_but_import_does_not(
     assert result.data["validation"]["tests"]["passed"] == 1
 
 
-async def test_debt_reminder_is_request_only_and_does_not_gate_finish(tmp_path: Path) -> None:
+async def test_debt_reminder_is_request_only_and_allows_second_final(tmp_path: Path) -> None:
     session = Session(tmp_path, messages=[Message("system", "rules")])
     model = ScriptedModel(
         [
@@ -162,12 +162,13 @@ async def test_debt_reminder_is_request_only_and_does_not_gate_finish(tmp_path: 
                 )
             ),
             reply(text="Unverified change; checks not run."),
+            reply(text="Checks remain unrun; stopping with this limitation."),
         ]
     )
     result = await run_turn(
-        session, "implement", model, default_tools(session), Recorder(), Limits(max_steps=2)
+        session, "implement", model, default_tools(session), Recorder(), Limits(max_steps=3)
     )
-    assert result.outcome == "completed" and len(model.requests) == 2
+    assert result.outcome == "completed" and len(model.requests) == 3
     assert '"validation_debt":true' in model.requests[1][-1].content
     assert all("Progress and validation evidence" not in m.content for m in session.messages)
     restored = ProgressLedger.restore(session)
@@ -248,3 +249,105 @@ async def test_validation_mutation_does_not_clear_debt(execution: ExecutionConte
     ledger = ProgressLedger()
     ledger.observe(call("exec_command", {}), result)
     assert ledger.pending == {"app.py"}
+
+
+async def test_plain_pytest_without_junit_clears_declared_scope(
+    execution: ExecutionContext,
+) -> None:
+    (execution.workspace / "test_app.py").write_text("def test_behavior(): assert 2+2==4")
+    ledger = ProgressLedger()
+    ledger.observe(
+        call("apply_patch", {}),
+        ToolResult(
+            "p",
+            True,
+            {
+                "files": [{"path": "app.py"}],
+                "execution_step": 1,
+            },
+        ),
+    )
+    arguments = {
+        "command": pytest_command("unused.xml").split(" --junitxml=")[0],
+        "purpose": "validate",
+        "validation_scope": ["app.py"],
+    }
+    result = await execute(arguments, execution, Recorder())
+    assert result.ok and result.data["validation"]["evidence"] == "pytest_result_summary"
+    assert result.data["validation"]["tests"]["passed"] == 1
+    ledger.observe(call("exec_command", arguments), result)
+    assert not ledger.pending and ledger.validation_after_mutation
+
+
+@pytest.mark.parametrize(
+    "command, output, exit_code, truncated, clears",
+    [
+        ("pytest -q", "2 passed in 0.12s", 0, False, True),
+        (
+            "cd /testbed && python -m pytest -q",
+            "=== 2 passed, 1 skipped in 1.0s ===",
+            0,
+            False,
+            True,
+        ),
+        ("python -c 'print(1)'", "2 passed in 0.12s", 0, False, False),
+        ("pytest -q | tail -1", "2 passed in 0.12s", 0, False, False),
+        ("pytest -q; echo ok", "2 passed in 0.12s", 0, False, False),
+        ("pytest -q", "2 passed in 0.12s", 1, False, False),
+        ("pytest -q", "2 passed in 0.12s", 0, True, False),
+        ("pytest -q", "1 failed, 2 passed in 0.12s", 0, False, False),
+        ("pytest -q", "1 skipped in 0.12s", 0, False, False),
+        ("pytest -q", "no tests ran in 0.12s", 0, False, False),
+    ],
+)
+def test_pytest_output_evidence_is_bounded_and_not_exit_zero_alone(
+    command: str,
+    output: str,
+    exit_code: int,
+    truncated: bool,
+    clears: bool,
+) -> None:
+    evidence = validation_evidence(
+        {
+            "command": command,
+            "cwd": "/testbed",
+            "stdout": output,
+            "exit_code": exit_code,
+            "truncated": truncated,
+            "timed_out": False,
+            "cancelled": False,
+            "cleanup_incomplete": False,
+        },
+        None,
+        None,
+    )
+    assert evidence["behavioral_pass"] == clears
+
+
+def test_telemetry_errors_do_not_repeat_shell_commands_and_partial_does_not_clear(
+    tmp_path: Path,
+) -> None:
+    ledger = ProgressLedger()
+    ledger.observe(call("apply_patch", {}), ToolResult("p", True, {"files": [{"path": "a.py"}]}))
+    command = "echo PRIVATE_COMMAND_SENTINEL"
+    ledger.observe(
+        call("exec_command", {"command": command}),
+        ToolResult(
+            "x",
+            False,
+            {
+                "stderr": command + " failed " + "x" * 1000,
+                "purpose": "validate",
+                "validation_scope": ["a.py"],
+                "validation": {"level": "partial", "behavioral_pass": False},
+            },
+            "command_exit_nonzero",
+        ),
+    )
+    assert ledger.pending == {"a.py"} and ledger.validation_after_mutation
+    error = ledger.errors[-1]
+    assert set(error) == {"tool", "error_code", "failed_file", "detail"}
+    assert command not in str(error) and len(error["detail"]) <= 240
+    assert "PRIVATE_COMMAND_SENTINEL" not in ledger.prompt(Session(tmp_path), 2, 50, [])
+    ledger.observe(call("apply_patch", {}), ToolResult("p2", True, {"files": [{"path": "a.py"}]}))
+    assert not ledger.validation_after_mutation

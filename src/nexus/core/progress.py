@@ -19,6 +19,7 @@ class ProgressLedger:
         self.last_mutation_window: str | None = None
         self.last_mutation: Json | None = None
         self.last_validation: Json | None = None
+        self.validation_after_mutation = False
         self.errors: deque[Json] = deque(maxlen=5)
 
     @classmethod
@@ -63,6 +64,7 @@ class ProgressLedger:
             files = [f for f in data.get("observed_changed_files", []) if isinstance(f, str)]
             unknown |= bool(data.get("mutation_scope_unknown"))
         if files or unknown:
+            self.validation_after_mutation = False
             self.last_mutation_step = step
             self.last_mutation_window = window
             self.last_mutation = {
@@ -81,6 +83,8 @@ class ProgressLedger:
                 self.unknown_mutation = True
         validation = data.get("validation")
         if call.name == "exec_command" and data.get("purpose") == "validate":
+            if self.last_mutation is not None and not files and not unknown:
+                self.validation_after_mutation = True
             self.last_validation = {
                 "step": step,
                 "execution_window": window,
@@ -99,11 +103,14 @@ class ProgressLedger:
         if not result.ok:
             self.errors.append(
                 {
-                    "step": step,
                     "tool": call.name,
-                    "error": result.error_code,
-                    "direction": str(args.get("command", data.get("failed_file") or ""))[:180],
-                    "detail": str(data.get("detail", data.get("stderr", "")))[:240],
+                    "error_code": result.error_code,
+                    "failed_file": str(data["failed_file"])[:240]
+                    if data.get("failed_file")
+                    else None,
+                    "detail": str(data.get("detail", data.get("stderr", ""))).replace(
+                        str(args.get("command") or "\x00"), "[command omitted]"
+                    )[:240],
                 }
             )
 
@@ -126,8 +133,14 @@ class ProgressLedger:
             if self.last_validation
             else None,
             "last_validation_result": self.last_validation,
+            "validation_after_last_mutation": self.validation_after_mutation
+            if self.last_mutation is not None
+            else None,
+            "validation_level": (self.last_validation.get("result") or {}).get("level", "none")
+            if self.last_validation
+            else "none",
             "validation_debt": bool(self.pending or self.unknown_mutation),
-            "recent_tool_errors_or_rejected_directions": list(self.errors),
+            "recent_tool_errors": list(self.errors),
         }
 
     def prompt(self, session: Session, step: int, maximum: int, tools: list[str]) -> str:
@@ -137,9 +150,7 @@ class ProgressLedger:
             + "\nAvailable tools: "
             + ", ".join(tools)
             + "\nPatch paths must be workspace-relative; shell uses the stated cwd and dialect."
-            + "\nBefore finishing, inspect validation debt: validate changed behavior if feasible, "
-            "or report unverified scope. Partial checks do not discharge behavioral debt."
             + "\nScope and plan completion are model declarations, not correctness proof. "
             "Shell mutations are observed only for declared files; unknown scope remains debt. "
-            "Use recent failed directions to avoid repeating an unchanged rejected action."
+            "Partial validation is recorded without clearing behavioral debt."
         )

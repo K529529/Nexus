@@ -407,6 +407,7 @@ async def test_registry_agent_chain_and_detector(execution: ExecutionContext) ->
             reply(call("apply_patch", {"patch": wrapped("*** Add File: a\n+old")})),
             reply(call("apply_patch", {"patch": update("@@\n-old\n+new")}, "c2")),
             reply(text="done"),
+            reply(text="Change is unverified; ending with that limitation."),
         ]
     )
     session = Session(execution.workspace)

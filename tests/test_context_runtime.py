@@ -190,7 +190,10 @@ async def test_resume_restores_only_interrupted_run(
     try:
         assert restored.resume_run_id == "interrupted-run"
         before_resume = writer.seq
-        model = ScriptedModel([reply(text="Recovered answer")])
+        model = ScriptedModel(
+            [reply(text="Recovered answer")]
+            + ([reply(text="Unknown prior edits remain unverified.")] if not outcome else [])
+        )
         result = await run_turn(
             restored, "Continue", model, {}, Events(restored, writer, ignore), Limits()
         )

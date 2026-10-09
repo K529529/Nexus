@@ -88,6 +88,8 @@ EventSink(event) -> None                               # async
 
 ## 3. 主循环与完成语义
 
+2026-10-09 用户批准的 [V0.3 Batch 1.1](v0.3-batch1.1.md) 对下文直接 completed 增加一个窄例外：当前 run 首次无工具 final 若与未完成计划或 validation debt 冲突，给一次 request-only 提醒；后续 final 允许结束，仍受原 max_steps 限制。
+
 ```text
 创建新 run 或消费显式 resume 边界；写入 run_started、本轮 user message
 for step in 1..max_steps:

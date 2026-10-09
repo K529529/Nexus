@@ -216,13 +216,18 @@ async def test_repeated_compaction_and_interrupted_resume(
         groups(recovered)
         if truncated:
             assert path.read_bytes() == original
-        model = ScriptedModel([reply(text="Finished resumed work")])
+        model = ScriptedModel(
+            [
+                reply(text="Finished resumed work"),
+                reply(text="Unknown prior side effects remain unverified."),
+            ]
+        )
         result = await run_turn(
             restored, "Continue", model, {}, Events(restored, recovered_writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
         assert model.requests[0] == project_guidance(
-            project_plan(restored, recovered + [restored.messages[-2]]),
+            project_plan(restored, recovered + [restored.messages[-3]]),
             execution_budget(1, 40)
             + "\n\n"
             + ProgressLedger.restore(restored).prompt(restored, 1, 40, []),

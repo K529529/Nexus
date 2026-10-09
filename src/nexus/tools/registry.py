@@ -16,13 +16,12 @@ EXEC_SPEC = ToolSpec(
     "Always label purpose: inspect, mutate, validate, or other. For shell edits declare "
     "mutation_scope as workspace-relative files; prefer small apply_patch edits. "
     "For checks declare validation_scope (explicit implementation files actually exercised). "
-    "To prove behavioral validation, generate a fresh JUnit XML report in this command and "
-    "supply validation_report: e.g. python -m pytest tests/test_app.py -q "
-    "--junitxml=/tmp/nexus-check.xml. Use a shell-appropriate report path. "
-    "Use a direct pytest or python -m pytest invocation. Do not pipe tests through tail/head "
-    "or mask their exit status. Print/import/compile "
-    "alone only provide partial validation. Report scope is your declaration, not measured "
-    "code coverage; omit scope if uncertain. Commands are not rewritten or retried.",
+    "A direct pytest invocation with a standard result summary provides behavioral evidence: "
+    "e.g. python -m pytest tests/test_app.py -q, purpose=validate, validation_scope=['app.py']. "
+    "Use workdir to set cwd; preserve the test exit status and output. "
+    "A fresh JUnit XML supplied via validation_report is optional stronger evidence, not required. "
+    "Print/import/compile alone provide partial validation. Scope is your declaration, not "
+    "measured code coverage; omit scope if uncertain. Commands are not rewritten or retried.",
     {
         "type": "object",
         "properties": {

@@ -188,12 +188,13 @@ async def test_safety_summary_rebuild_fallback_and_budget_share_plan(
             [
                 reply(text="Historical stale plan said complete; cannot update structured state."),
                 reply(text="final"),
+                reply(text="Unfinished plan acknowledged."),
             ]
         )
         result = await run_turn(session, "continue", model, {}, events, limits)
-        assert result.outcome == "completed" and len(model.requests) == (3 if fallback else 2)
+        assert result.outcome == "completed" and len(model.requests) == (4 if fallback else 3)
         assert session.plan is plan and session.messages[: len(original)] == original
-        summary_input, final_input = model.requests[-2:]
+        summary_input, final_input = model.requests[-3:-1]
         assert summary_input[-2].content.startswith("Summarize the earlier conversation")
         assert all("Execution budget" not in m.content for m in summary_input)
         assert execution_budget(1, 40) in final_input[-1].content

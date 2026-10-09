@@ -160,10 +160,17 @@ async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, stat
         call("update_plan", {"plan": [item("Latest", status)], "explanation": "audit only"}, "p2"),
     )
     first.message.protocol_data = {"reasoning_content": "private continuation"}
-    model = ScriptedModel([first, reply(text="Legal final with any plan status")])
+    model = ScriptedModel(
+        [first, reply(text="Legal final with any plan status")]
+        + ([reply(text="Stopping with unfinished plan.")] if status == "pending" else [])
+    )
     result = await run_turn(session, "task", model, registry, events, Limits())
-    assert result.outcome == "completed" and result.steps == 2 and result.tool_calls == 3
-    assert result.model_calls == 2 and len(model.requests) == 2
+    assert (
+        result.outcome == "completed"
+        and result.steps == 2 + int(status == "pending")
+        and result.tool_calls == 3
+    )
+    assert result.model_calls == len(model.requests) == 2 + int(status == "pending")
     assert seen[0] and seen[0].items[0].step == "Inspect"
     assert snapshot(model.requests[0]) == {"plan": []}
     assert snapshot(model.requests[1]) == {"plan": [item("Latest", status)]}
@@ -259,7 +266,11 @@ async def test_commit_resume_recovery_and_new_run(
         writer.close()
     restored, writer, _ = resume_session(path, tmp_path, tmp_path)
     try:
-        model = ScriptedModel([reply(text="continued"), reply(text="new task")])
+        model = ScriptedModel(
+            [reply(text="continued")]
+            + ([reply(text="Unfinished plan acknowledged.")] if not clear else [])
+            + [reply(text="new task")]
+        )
         events = Events(restored, writer, ignore)
         result = await run_turn(restored, "continue", model, {}, events, Limits())
         assert result.outcome == "completed" and result.tool_calls == 0
@@ -270,7 +281,7 @@ async def test_commit_resume_recovery_and_new_run(
         assert replay(records, tmp_path).plan == expected
         await run_turn(restored, "independent task", model, {}, events, Limits())
         assert restored.run_id != run_id and restored.plan is None
-        assert snapshot(model.requests[1]) == {"plan": []}
+        assert snapshot(model.requests[1 if clear else 2]) == {"plan": []}
         records, _ = read_records(writer.stream)
         assert replay(records, tmp_path).plan is None
     finally:
@@ -469,6 +480,7 @@ async def test_commit_is_durable_before_memory_and_redacted_before_publication(
                 )
             ),
             reply(text="done"),
+            reply(text="Stopping with unfinished plan."),
         ]
     )
     try:
@@ -534,7 +546,13 @@ async def test_cli_accepts_plan_and_unknown_events_without_duplicate_output(tmp_
         result = await run_turn(
             session,
             "task",
-            ScriptedModel([reply(call("update_plan", {"plan": [item()]})), reply(text="done")]),
+            ScriptedModel(
+                [
+                    reply(call("update_plan", {"plan": [item()]})),
+                    reply(text="ready"),
+                    reply(text="done"),
+                ]
+            ),
             default_tools(session),
             events,
             Limits(),

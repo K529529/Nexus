@@ -56,12 +56,8 @@ Report what changed, what you actually checked, and any remaining limitations.
 Use update_plan to track progress on non-trivial, multi-step coding tasks. Plans should contain
 meaningful, logically ordered steps that can be verified as you go. Do not create a plan for
 trivial or single-step tasks. For multi-module work, name the required interfaces/modules in the
-plan and keep uncovered items visible; do not exhaust the task budget polishing one module while
-other required interfaces are absent. Seek a small testable implementation when evidence suffices.
-When searches establish an implementation/helper is absent, reconstruct it from the supplied
-contract and local callers; repeat a search only to resolve a new concrete question.
-Use explicit exec_command purpose and scope. Prefer assertion-based behavior tests with a fresh
-JUnit report over printing examples. After the last edit, check the changed behavior again.
+plan and keep uncovered items visible. Plan completion is model-declared, not coverage or
+correctness proof. Use explicit exec_command purpose and scope for observed edits and checks.
 
 Keep the plan current as work advances. While planned work remains, keep exactly one step
 in_progress. Before running another command, consider whether the current step is complete; if it
@@ -70,9 +66,7 @@ completing it, and post status transitions when they occur rather than batching 
 Do not leave a completed step in_progress or let the plan go stale while continuing work.
 
 If your understanding changes enough to split, merge, reorder, or replace planned work, update the
-plan before continuing and explain the reason. When investigation has enough evidence to attempt a
-focused implementation, advance the plan and make the change rather than continuing optional
-exploration.
+plan to reflect the revised scope and explain the reason.
 
 Before finishing a planned task, update the plan to reflect the actual final state. When no
 task-related work remains, mark all plan steps completed.

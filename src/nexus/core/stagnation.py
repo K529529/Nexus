@@ -1,27 +1,9 @@
-"""One bounded pre-mutation reminder per execution window, never a task scheduler."""
+"""Legacy stagnation counters for telemetry only; never injected as model guidance."""
 
 from nexus.core.types import Json, PlanStatus, Session, ToolCall, ToolResult
 
 PLAN_IDLE_THRESHOLD = 8
 PRE_MUTATION_THRESHOLD = 24
-GUIDANCE = """[Nexus runtime guidance]
-
-You have taken many tool-using steps, and Nexus has not observed an
-apply_patch-reported file mutation in this execution window.
-
-Reassess the current task state before continuing.
-
-If the task requires code changes and you have enough evidence, attempt a focused
-implementation and keep the plan current.
-If the task is analysis-only and you have enough evidence to answer, stop optional
-exploration and respond.
-If more investigation is genuinely necessary, identify the concrete unresolved blocker
-before continuing.
-Treat a proposed cause as a hypothesis; test it against the observed behavior with the
-smallest distinguishing local check.
-If external references or the exact test environment are unavailable, use a local check
-of the same behavior rather than repeating failed lookups without a new lead.
-Avoid optional exploration that does not advance the task."""
 
 
 def plan_signature(session: Session) -> tuple[PlanStatus, ...]:
