@@ -1,0 +1,497 @@
+{
+  "decision": "KEEP V0.2",
+  "candidate_acceptance": "FAILED",
+  "recovery_branch": "NOT EXERCISED; old and new detector replay both have zero nudges",
+  "source": {
+    "branch": "codex/nexus-plan-progress-rearm",
+    "commit": "872a20b3af3872198e593870d0fd1ef60eb0aef1",
+    "version": "0.3.0.dev12",
+    "wheel_sha256": "54abf69e691b9fda54d9105da367267a3aa93357286ea85b86d16cf69edecc6b",
+    "source_files": 36,
+    "immediate_baseline_source": "8a8d696c10dc5755d50dc910bda5dd78505a928f",
+    "intervention": "Preserve initial reminder. At most one additional request-only reminder after increased model-reported completed count and eight unchanged status steps; reported patch mutation resets idle interval. No root prompt, tool, model or child budget changes from dev11.",
+    "runtime_differences_vs_dev11": [
+      "nexus/__init__.py",
+      "nexus/core/agent.py",
+      "nexus/core/stagnation.py"
+    ]
+  },
+  "v02": {
+    "run_id": "20261008T194152Z-8947f05d",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 422.824529481004,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1676832,
+        "output_tokens": 23498,
+        "cached_input_tokens": 1252864
+      },
+      "estimated_cny": 0.5279054,
+      "wall_seconds": 415.521,
+      "timing": {}
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5279054,
+    "first_patch_mutation": {
+      "step": 23,
+      "seq": 167,
+      "seconds": 132.469643,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 38,
+      "seq": 273,
+      "seconds": 335.405542,
+      "files": [
+        "xarray/structure/merge.py"
+      ]
+    },
+    "patch_attempts": 3,
+    "patch_errors": 0,
+    "tool_errors": [
+      {
+        "step": 24,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 27,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 50,
+    "tool_wall_seconds_including_child_wait": 4.804,
+    "native_tool_wall_seconds": 4.804,
+    "subagents": [],
+    "subagent_requests": []
+  },
+  "dev11": {
+    "run_id": "20261009T164500Z-73925e3d",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 474.27448068699965,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1740367,
+        "output_tokens": 20167,
+        "cached_input_tokens": 1240576
+      },
+      "estimated_cny": 0.5783413000000001,
+      "wall_seconds": 456.396,
+      "timing": {
+        "request_total_ms": {
+          "count": 50,
+          "sum_ms": 456396,
+          "median_ms": 6506.0
+        },
+        "ttft_ms": {
+          "count": 50,
+          "sum_ms": 134077,
+          "median_ms": 2586.0
+        },
+        "generation_ms": {
+          "count": 50,
+          "sum_ms": 322248,
+          "median_ms": 3781.0
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5783413000000001,
+    "first_patch_mutation": null,
+    "last_patch_mutation": null,
+    "patch_attempts": 1,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 16,
+        "tool": "apply_patch",
+        "error": "invalid_patch"
+      },
+      {
+        "step": 33,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 35,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 44,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 46,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 60,
+    "tool_wall_seconds_including_child_wait": 15.402,
+    "native_tool_wall_seconds": 15.402,
+    "subagents": [],
+    "subagent_requests": []
+  },
+  "dev12": {
+    "run_id": "20261009T170421Z-29c29bd0",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 358.138702444001,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1493028,
+        "output_tokens": 16323,
+        "cached_input_tokens": 1119744
+      },
+      "estimated_cny": 0.45467370000000007,
+      "wall_seconds": 349.518,
+      "timing": {
+        "request_total_ms": {
+          "count": 50,
+          "sum_ms": 349518,
+          "median_ms": 5005.5
+        },
+        "ttft_ms": {
+          "count": 50,
+          "sum_ms": 135673,
+          "median_ms": 2632.5
+        },
+        "generation_ms": {
+          "count": 50,
+          "sum_ms": 213799,
+          "median_ms": 2281.5
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.45467370000000007,
+    "first_patch_mutation": {
+      "step": 14,
+      "seq": 102,
+      "seconds": 79.81341,
+      "files": [
+        "xarray/core/coordinate_transform.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 38,
+      "seq": 271,
+      "seconds": 244.122714,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "patch_attempts": 4,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 9,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 13,
+        "tool": "apply_patch",
+        "error": "path_escape"
+      },
+      {
+        "step": 18,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 21,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 45,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 50,
+    "tool_wall_seconds_including_child_wait": 6.108,
+    "native_tool_wall_seconds": 6.108,
+    "subagents": [],
+    "subagent_requests": [],
+    "first_actual_mutation": {
+      "step": 14,
+      "seq": 102,
+      "timestamp_offset_seconds": 79.81341,
+      "tool": "apply_patch"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 348,
+      "timestamp_offset_seconds": 348.652964,
+      "tool": "exec_command"
+    }
+  },
+  "behavior_review": {
+    "run_id": "20261009T170421Z-29c29bd0",
+    "patch_sha256": "ab333270fd050695ba10675d22a774b28d194bcaf0b9ac698a53fe555f350bdc",
+    "changed_paths": [
+      "xarray/core/coordinate_transform.py",
+      "xarray/core/coordinates.py",
+      "xarray/core/dataarray.py",
+      "xarray/core/dataset.py",
+      "xarray/core/groupby.py",
+      "xarray/core/indexes.py",
+      "xarray/core/utils.py"
+    ],
+    "first_actual_mutation": {
+      "step": 14,
+      "seq": 102,
+      "timestamp_offset_seconds": 79.81341,
+      "tool": "apply_patch"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 348,
+      "timestamp_offset_seconds": 348.652964,
+      "tool": "exec_command"
+    },
+    "nudges": [],
+    "recovery_exercised": false,
+    "subagent_calls": 0,
+    "last_behavior_check": {
+      "step": 44,
+      "seq": 313,
+      "timestamp_offset_seconds": 277.032531,
+      "tool": "exec_command",
+      "args": {
+        "command": "cd /testbed && python -m pytest xarray/tests/test_range_index.py -x -q 2>&1 | tail -15"
+      },
+      "result": {
+        "call_id": "call_fe80ca9b90214d5197358987",
+        "ok": true,
+        "data": {
+          "command": "cd /testbed && python -m pytest xarray/tests/test_range_index.py -x -q 2>&1 | tail -15",
+          "cwd": "/testbed",
+          "shell": "/bin/sh",
+          "exit_code": 0,
+          "stdout": "            ((2.0, 10.0, 2.0), {}),\n            ((), {\"start\": 2.0, \"stop\": 10.0, \"step\": 2.0}),\n        ],\n    )\n    def test_range_index_arange(args, kwargs) -> None:\n        index = RangeIndex.arange(*args, **kwargs, dim=\"x\")\n>       actual = xr.Coordinates.from_xindex(index)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       AttributeError: type object 'Coordinates' has no attribute 'from_xindex'\n\n/testbed/xarray/tests/test_range_index.py:37: AttributeError\n=========================== short test summary info ============================\nFAILED xarray/tests/test_range_index.py::test_range_index_arange[args0-kwargs0]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed in 0.50s\n",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 4286
+        },
+        "error_code": null,
+        "duration_ms": 4286,
+        "truncated": false
+      }
+    },
+    "actions_after_last_mutation": [
+      {
+        "step": 50,
+        "tool": "update_plan",
+        "args": {
+          "plan": [
+            {
+              "status": "completed",
+              "step": "Implement CoordinateTransform in coordinate_transform.py"
+            },
+            {
+              "status": "completed",
+              "step": "Implement filter_indexes_from_coords & isel_indexes in indexes.py"
+            },
+            {
+              "status": "completed",
+              "step": "Implement dict_equiv & drop_dims_from_indexers in utils.py"
+            },
+            {
+              "status": "completed",
+              "step": "Add from_xindex/sizes in coordinates.py (partial)"
+            },
+            {
+              "status": "pending",
+              "step": "Implement merge.py functions"
+            },
+            {
+              "status": "pending",
+              "step": "Implement array_repr in formatting.py"
+            },
+            {
+              "status": "pending",
+              "step": "Finish coordinates.py to_dataset/assert_coordinate_consistent & run full test suite"
+            }
+          ]
+        }
+      }
+    ],
+    "official_failure": "All ten failures: property object is not callable. from_xindex inserted below the preexisting @property decorator, also removing that decorator from dims.",
+    "clock_backwards": [
+      {
+        "previous_seq": 63,
+        "seq": 64,
+        "backwards_seconds": 35.596545
+      },
+      {
+        "previous_seq": 246,
+        "seq": 247,
+        "backwards_seconds": 22.315689
+      }
+    ]
+  },
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "872a20b3af3872198e593870d0fd1ef60eb0aef1",
+    "manifest_sha256": "896ab2c4d4d8ec856d0bae92c23c8d2c6216fb10f55cfcf39474b68714c89ca1",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C17",
+        "run": "20261009T170421Z-29c29bd0",
+        "sample": {
+          "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+          "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+          "execution_status": "FINISHED",
+          "agent_outcome": "LIMITED",
+          "verifier_status": "FAIL",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": false,
+          "sample_success": false
+        },
+        "evidence_hash": "8c5737d41efd8b7216c28fd0759c0261936c146b074bd44150f34db7fdea2bf6",
+        "official_report_sha256": "1305eea312ba0caf41f668485123d6f199a0d0a765f48a03e675028a07958e30",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 4,
+            "failure": 10
+          },
+          "PASS_TO_PASS": {
+            "success": 74,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  },
+  "live_detector_replay": {
+    "cell": "C17",
+    "version": "dev12",
+    "run_id": "20261009T170421Z-29c29bd0",
+    "recorded": [],
+    "baseline_replay": [],
+    "proposed_replay": []
+  },
+  "cost_basis": "Historical estimated CNY ((input-cached)*0.8+cached*0.1+output*2.7)/1e6. Cached input is a subset. Not current pricing or invoice. Complete recorded usage for this run.",
+  "scope_limits": [
+    "Single unseeded known-task trial, not causal proof",
+    "V0.2 predates full egress isolation",
+    "Wall-clock backsteps invalidate exact timestamp-based latency comparison; use monotonic durations and sequence order",
+    "C08/C13/holdout NOT RUN for dev12",
+    "No child invocation or Main integration value"
+  ]
+}
