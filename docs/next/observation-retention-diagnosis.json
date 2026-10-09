@@ -1,0 +1,275 @@
+{
+  "v02": {
+    "run": "20261008T184931Z-a5442fc2",
+    "scope": "C13 v02 only; analysis stops before first Plot mutation for dev3/v02. Literal sed ranges only, overlapping pairs may double-count. Does not prove a causal effect on model behavior.",
+    "verified_projection_count": 41,
+    "range_overlap_pairs": 10,
+    "compacted_overlap_pairs": 9,
+    "alternative_64k_compacted_overlap_pairs": 0,
+    "last_projection": {
+      "step": 41,
+      "version": "compact-v1",
+      "working_set_target_tokens": 16384,
+      "hot_full_count": 1,
+      "recent_full_count": 14,
+      "cold_count": 25,
+      "cold_compacted_count": 21,
+      "cold_kept_full_count": 4,
+      "observation_full_bytes": 114890,
+      "observation_projected_bytes": 64434,
+      "observation_full_estimated_tokens": 42464,
+      "observation_projected_estimated_tokens": 24738,
+      "alternative_64k": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 65536,
+        "hot_full_count": 1,
+        "recent_full_count": 39,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 114890,
+        "observation_projected_bytes": 114890,
+        "observation_full_estimated_tokens": 42464,
+        "observation_projected_estimated_tokens": 42464
+      }
+    },
+    "examples": [
+      {
+        "step": 9,
+        "range": [
+          136,
+          175
+        ],
+        "path": "seaborn/external/version.py",
+        "prior": {
+          "start": 120,
+          "end": 180,
+          "path": "seaborn/external/version.py",
+          "step": 3,
+          "seq": 24
+        },
+        "overlap_lines": 40,
+        "prior_currently_compacted": false,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 24,
+        "range": [
+          55,
+          145
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 1,
+          "end": 90,
+          "path": "seaborn/_core/plot.py",
+          "step": 11,
+          "seq": 82
+        },
+        "overlap_lines": 36,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 26,
+        "range": [
+          14,
+          55
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 1,
+          "end": 90,
+          "path": "seaborn/_core/plot.py",
+          "step": 11,
+          "seq": 82
+        },
+        "overlap_lines": 42,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      }
+    ]
+  },
+  "dev3": {
+    "run": "20261009T132728Z-04d93e4e",
+    "scope": "C13 dev3 only; analysis stops before first Plot mutation for dev3/v02. Literal sed ranges only, overlapping pairs may double-count. Does not prove a causal effect on model behavior.",
+    "verified_projection_count": 38,
+    "range_overlap_pairs": 4,
+    "compacted_overlap_pairs": 3,
+    "alternative_64k_compacted_overlap_pairs": 0,
+    "last_projection": {
+      "step": 38,
+      "version": "compact-v1",
+      "working_set_target_tokens": 16384,
+      "hot_full_count": 1,
+      "recent_full_count": 16,
+      "cold_count": 20,
+      "cold_compacted_count": 18,
+      "cold_kept_full_count": 2,
+      "observation_full_bytes": 86668,
+      "observation_projected_bytes": 57314,
+      "observation_full_estimated_tokens": 32466,
+      "observation_projected_estimated_tokens": 22195,
+      "alternative_64k": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 65536,
+        "hot_full_count": 1,
+        "recent_full_count": 36,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 86668,
+        "observation_projected_bytes": 86668,
+        "observation_full_estimated_tokens": 32466,
+        "observation_projected_estimated_tokens": 32466
+      }
+    },
+    "examples": [
+      {
+        "step": 7,
+        "range": [
+          134,
+          155
+        ],
+        "path": "seaborn/external/version.py",
+        "prior": {
+          "start": 134,
+          "end": 180,
+          "path": "seaborn/external/version.py",
+          "step": 3,
+          "seq": 24
+        },
+        "overlap_lines": 22,
+        "prior_currently_compacted": false,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 29,
+        "range": [
+          175,
+          215
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 144,
+          "end": 260,
+          "path": "seaborn/_core/plot.py",
+          "step": 14,
+          "seq": 103
+        },
+        "overlap_lines": 41,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 35,
+        "range": [
+          1071,
+          1090
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 1071,
+          "end": 1210,
+          "path": "seaborn/_core/plot.py",
+          "step": 19,
+          "seq": 138
+        },
+        "overlap_lines": 20,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      }
+    ]
+  },
+  "dev4": {
+    "run": "20261009T135340Z-380f49b3",
+    "scope": "C13 dev4 only; analysis stops before first Plot mutation for dev3/v02. Literal sed ranges only, overlapping pairs may double-count. Does not prove a causal effect on model behavior.",
+    "verified_projection_count": 44,
+    "range_overlap_pairs": 22,
+    "compacted_overlap_pairs": 22,
+    "alternative_64k_compacted_overlap_pairs": 0,
+    "last_projection": {
+      "step": 44,
+      "version": "compact-v1",
+      "working_set_target_tokens": 16384,
+      "hot_full_count": 1,
+      "recent_full_count": 12,
+      "cold_count": 39,
+      "cold_compacted_count": 37,
+      "cold_kept_full_count": 2,
+      "observation_full_bytes": 167199,
+      "observation_projected_bytes": 79433,
+      "observation_full_estimated_tokens": 61675,
+      "observation_projected_estimated_tokens": 30791,
+      "alternative_64k": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 65536,
+        "hot_full_count": 1,
+        "recent_full_count": 51,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 167199,
+        "observation_projected_bytes": 167199,
+        "observation_full_estimated_tokens": 61675,
+        "observation_projected_estimated_tokens": 61675
+      }
+    },
+    "examples": [
+      {
+        "step": 17,
+        "range": [
+          140,
+          260
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 100,
+          "end": 470,
+          "path": "seaborn/_core/plot.py",
+          "step": 5,
+          "seq": 48
+        },
+        "overlap_lines": 121,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 18,
+        "range": [
+          336,
+          432
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 100,
+          "end": 470,
+          "path": "seaborn/_core/plot.py",
+          "step": 5,
+          "seq": 48
+        },
+        "overlap_lines": 97,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      },
+      {
+        "step": 19,
+        "range": [
+          300,
+          336
+        ],
+        "path": "seaborn/_core/plot.py",
+        "prior": {
+          "start": 100,
+          "end": 470,
+          "path": "seaborn/_core/plot.py",
+          "step": 5,
+          "seq": 48
+        },
+        "overlap_lines": 37,
+        "prior_currently_compacted": true,
+        "prior_compacted_at_64k": false
+      }
+    ]
+  }
+}
