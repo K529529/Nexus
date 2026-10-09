@@ -264,6 +264,14 @@ Developer Run Profiler V0.1：Agent 在 `model_started`、`model_finished`、`to
 message.content 序列化正文的 UTF-8 字节数）、`exit_code`（结果 data 中的值或 null）与
 `truncated`。这些字段只进入事件，不进入模型请求；完整工具正文仍只保留在 tool message。
 
+执行遥测补充可选 `execution_elapsed_ms`：仅位于 run/model/tool 的 started/finished 事件 data，
+使用当前 `run_turn` 调用的单调时钟起点，单位毫秒。每次调用重新起算，resume 即使沿用 run_id 也如此；
+消费者按 run_started 划分执行窗口。tool_finished 的值表示结果记录完成时的累计耗时，不推断工具内部写入的精确瞬间。
+SubAgent 转发事件保留子循环自己的 execution_elapsed_ms，并由 Main 补充 parent_execution_elapsed_ms；
+子调用生命周期 started/finished 只有父偏移。沿用 parent_call_id / child session/run ID 关联，不把父等待时间与子耗时重复相加。
+这些字段不进入模型消息、ToolResult 正文或协议续接字段；旧日志缺失时表示未知。原有墙钟 timestamp、单项 duration_ms 和 schema_version 保持不变。
+
+
 `app/events.py` 的 `emit` 顺序写 JSONL，再通知公开消费者，不建立消息总线、订阅管理器或后台 exporter。持久化 message 时可通过仅内部使用的可选参数附带 protocol_data，writer 将其放入同一条本地记录；TUI、`--json`、普通日志、eval 可分享导出和未来 OTel 只得到不含该字段的 RuntimeEvent。无需另一套事件平台，测试直接验证公开消费者从未收到私有载荷。
 
 JSONL 保持单写者追加，按执行顺序写 message/tool_started/结果。建议每条完整记录写后 flush、正常退出 flush/close；是否及何时 fsync 由实现选择并记录，不固定逐执行边界 fsync，不承诺耐断电事务或 exactly-once。写入/flush 错误必须可见，停止派发下一副作用并说明当前运行不可完整恢复；正常退出和进程中断恢复需要实测。日志缺项不能证明副作用未发生。

@@ -1,0 +1,133 @@
+{
+  "status": "PASS",
+  "scope": "Installed-wheel scripted model, actual native child read / patch / Linux shell assertion; no remote inference and no FeatureBench task",
+  "version": "0.3.0.dev13",
+  "main_events": [
+    [
+      "run_started",
+      0
+    ],
+    [
+      "model_started",
+      0
+    ],
+    [
+      "model_finished",
+      10
+    ],
+    [
+      "tool_started",
+      10
+    ],
+    [
+      "tool_finished",
+      32
+    ],
+    [
+      "model_started",
+      32
+    ],
+    [
+      "model_finished",
+      42
+    ],
+    [
+      "tool_started",
+      43
+    ],
+    [
+      "tool_finished",
+      43
+    ],
+    [
+      "model_started",
+      43
+    ],
+    [
+      "model_finished",
+      54
+    ],
+    [
+      "tool_started",
+      54
+    ],
+    [
+      "tool_finished",
+      76
+    ],
+    [
+      "model_started",
+      76
+    ],
+    [
+      "model_finished",
+      86
+    ],
+    [
+      "run_finished",
+      87
+    ]
+  ],
+  "child_events": [
+    [
+      "subagent_run_started",
+      0,
+      10
+    ],
+    [
+      "subagent_model_started",
+      0,
+      11
+    ],
+    [
+      "subagent_model_finished",
+      10,
+      21
+    ],
+    [
+      "subagent_tool_started",
+      10,
+      21
+    ],
+    [
+      "subagent_tool_finished",
+      10,
+      21
+    ],
+    [
+      "subagent_model_started",
+      11,
+      21
+    ],
+    [
+      "subagent_model_finished",
+      21,
+      32
+    ],
+    [
+      "subagent_run_finished",
+      21,
+      32
+    ]
+  ],
+  "first_patch_completion_ms": 43,
+  "validation_completion_ms": 76,
+  "wall_clock_rollback_observed": true,
+  "context_fields_absent": true,
+  "jsonl_replay_equal": true,
+  "file_sha256": "4aa1bf4e3fa71a9a654d303a535c5b0a6e9396c23a69ca050f30b17798f7d2b6",
+  "execution_duration_ms": 87,
+  "container": {
+    "base_image": "sha256:ad252d5ab24f4333405538e4229b68ec64e3655b7bfa00833e4a8d2e249af8a1",
+    "network": "none",
+    "read_only_root": true,
+    "user": "1000",
+    "removed_after_exit": true
+  },
+  "source": {
+    "commit": "11b14c07486eae7d82d3bc72d9982116a7cd57c2",
+    "version": "0.3.0.dev13",
+    "wheel_sha256": "432678a5efac6f3e3de3693b527aa633f60699bdb9f96d863260c9b29f5cd726",
+    "mode": "scripted installed-wheel Linux smoke; no real model or FeatureBench verdict"
+  }
+}
