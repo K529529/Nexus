@@ -9,7 +9,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
-from nexus.core.stagnation import GUIDANCE, PLAN_GUIDANCE, StagnationDetector
+from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -239,7 +239,7 @@ async def run_turn(
             )
             if nudge is not None:
                 await observed("stagnation_nudge", nudge)
-                pending_guidance = PLAN_GUIDANCE if nudge["trigger"] == "plan_idle" else GUIDANCE
+                pending_guidance = GUIDANCE
         else:
             result.outcome, result.reason = "limited", "max_steps"
     except ToolCancelled as exc:
