@@ -1,0 +1,1134 @@
+{
+  "decision": "V0.3 FAILED / KEEP V0.2",
+  "baseline_source": "v0.2.0 / 677fc997dcdc2f369fa8d4a667d400de99e35f84",
+  "dev3_source": "c77d0702dbdf4a7934e89c7d3a2df9da5e989c40",
+  "dev4_source": "08059ea33a09054ab09efefe8a083137250da496",
+  "price_basis": "same historical estimate as original experiment: uncached input 0.8, cached input 0.1, output 2.7 CNY per million; not invoice; missing usage remains unmeasured",
+  "rows": [
+    {
+      "cell": "C08",
+      "version": "v0.2",
+      "run_id": "20261008T174811Z-978d9da4",
+      "agent_seconds": 133.11488523900334,
+      "steps": 15,
+      "main": {
+        "started": 15,
+        "finished": 15,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 187749,
+          "output_tokens": 7571,
+          "cached_input_tokens": 159744
+        },
+        "estimated_cny": 0.05882010000000001,
+        "wall_seconds": 126.522,
+        "timing": {}
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.05882010000000001,
+      "first_patch_mutation": {
+        "step": 5,
+        "seq": 42,
+        "seconds": 40.054482,
+        "files": [
+          "mlflow/store/analytics/trace_correlation.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 11,
+        "seq": 85,
+        "seconds": 98.136426,
+        "files": [
+          "mlflow/store/analytics/trace_correlation.py"
+        ]
+      },
+      "patch_attempts": 6,
+      "patch_errors": 1,
+      "tool_errors": [
+        {
+          "step": 4,
+          "tool": "apply_patch",
+          "error": "unsupported_patch"
+        }
+      ],
+      "tool_calls": 15,
+      "native_tool_wall_seconds": 4.456,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 21,
+          "failure": 0
+        },
+        "PASS_TO_PASS": {
+          "success": 30,
+          "failure": 0
+        }
+      },
+      "official_verdict": "PASS",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED"
+    },
+    {
+      "cell": "C08",
+      "version": "dev3",
+      "run_id": "20261009T131023Z-aaceb1c8",
+      "agent_seconds": 225.36852010200073,
+      "steps": 14,
+      "main": {
+        "started": 14,
+        "finished": 14,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 249717,
+          "output_tokens": 13423,
+          "cached_input_tokens": 193792
+        },
+        "estimated_cny": 0.1003613,
+        "wall_seconds": 218.978,
+        "timing": {
+          "request_total_ms": {
+            "count": 14,
+            "sum_ms": 218978,
+            "median_ms": 8257.5
+          },
+          "ttft_ms": {
+            "count": 14,
+            "sum_ms": 12907,
+            "median_ms": 862.5
+          },
+          "generation_ms": {
+            "count": 14,
+            "sum_ms": 206047,
+            "median_ms": 7347.0
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.1003613,
+      "first_patch_mutation": {
+        "step": 7,
+        "seq": 58,
+        "seconds": 135.00121,
+        "files": [
+          "mlflow/store/analytics/trace_correlation.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 9,
+        "seq": 75,
+        "seconds": 140.107969,
+        "files": [
+          "mlflow/store/analytics/__init__.py"
+        ]
+      },
+      "patch_attempts": 5,
+      "patch_errors": 3,
+      "tool_errors": [
+        {
+          "step": 6,
+          "tool": "apply_patch",
+          "error": "path_escape"
+        },
+        {
+          "step": 6,
+          "tool": "apply_patch",
+          "error": "path_escape"
+        },
+        {
+          "step": 7,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        },
+        {
+          "step": 10,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 11,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 16,
+      "native_tool_wall_seconds": 4.09,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 21,
+          "failure": 0
+        },
+        "PASS_TO_PASS": {
+          "success": 30,
+          "failure": 0
+        }
+      },
+      "official_verdict": "PASS",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED"
+    },
+    {
+      "cell": "C08",
+      "version": "dev4",
+      "run_id": "20261009T133531Z-e3276fc5",
+      "agent_seconds": 244.76272066299953,
+      "steps": 18,
+      "main": {
+        "started": 18,
+        "finished": 18,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 319578,
+          "output_tokens": 15821,
+          "cached_input_tokens": 281600
+        },
+        "estimated_cny": 0.1012591,
+        "wall_seconds": 238.705,
+        "timing": {
+          "request_total_ms": {
+            "count": 18,
+            "sum_ms": 238705,
+            "median_ms": 4642.0
+          },
+          "ttft_ms": {
+            "count": 18,
+            "sum_ms": 14708,
+            "median_ms": 835.0
+          },
+          "generation_ms": {
+            "count": 18,
+            "sum_ms": 223941,
+            "median_ms": 3658.5
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.1012591,
+      "first_patch_mutation": {
+        "step": 5,
+        "seq": 44,
+        "seconds": 62.317776,
+        "files": [
+          "mlflow/store/analytics/trace_correlation.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 14,
+        "seq": 109,
+        "seconds": 214.567701,
+        "files": [
+          "mlflow/store/analytics/trace_correlation.py"
+        ]
+      },
+      "patch_attempts": 6,
+      "patch_errors": 2,
+      "tool_errors": [
+        {
+          "step": 6,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        },
+        {
+          "step": 9,
+          "tool": "apply_patch",
+          "error": "invalid_patch"
+        }
+      ],
+      "tool_calls": 19,
+      "native_tool_wall_seconds": 3.767,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 21,
+          "failure": 0
+        },
+        "PASS_TO_PASS": {
+          "success": 30,
+          "failure": 0
+        }
+      },
+      "official_verdict": "PASS",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED"
+    },
+    {
+      "cell": "C17",
+      "version": "v0.2",
+      "run_id": "20261008T194152Z-8947f05d",
+      "agent_seconds": 422.824529481004,
+      "steps": 50,
+      "main": {
+        "started": 50,
+        "finished": 50,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1676832,
+          "output_tokens": 23498,
+          "cached_input_tokens": 1252864
+        },
+        "estimated_cny": 0.5279054,
+        "wall_seconds": 415.521,
+        "timing": {}
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.5279054,
+      "first_patch_mutation": {
+        "step": 23,
+        "seq": 167,
+        "seconds": 132.469643,
+        "files": [
+          "xarray/core/indexes.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 38,
+        "seq": 273,
+        "seconds": 335.405542,
+        "files": [
+          "xarray/structure/merge.py"
+        ]
+      },
+      "patch_attempts": 3,
+      "patch_errors": 0,
+      "tool_errors": [
+        {
+          "step": 24,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 27,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 50,
+      "native_tool_wall_seconds": 4.804,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 4,
+          "failure": 10
+        },
+        "PASS_TO_PASS": {
+          "success": 74,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED"
+    },
+    {
+      "cell": "C17",
+      "version": "dev3",
+      "run_id": "20261009T131811Z-a19326db",
+      "agent_seconds": 429.33631268499994,
+      "steps": 49,
+      "main": {
+        "started": 49,
+        "finished": 49,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1832481,
+          "output_tokens": 23817,
+          "cached_input_tokens": 1385984
+        },
+        "estimated_cny": 0.5601019,
+        "wall_seconds": 411.516,
+        "timing": {
+          "request_total_ms": {
+            "count": 49,
+            "sum_ms": 411516,
+            "median_ms": 6320
+          },
+          "ttft_ms": {
+            "count": 49,
+            "sum_ms": 63817,
+            "median_ms": 992
+          },
+          "generation_ms": {
+            "count": 49,
+            "sum_ms": 347636,
+            "median_ms": 4655
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.5601019,
+      "first_patch_mutation": {
+        "step": 14,
+        "seq": 115,
+        "seconds": 122.870169,
+        "files": [
+          "xarray/core/indexes.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 44,
+        "seq": 330,
+        "seconds": 369.431008,
+        "files": [
+          "xarray/core/duck_array_ops.py"
+        ]
+      },
+      "patch_attempts": 7,
+      "patch_errors": 2,
+      "tool_errors": [
+        {
+          "step": 13,
+          "tool": "apply_patch",
+          "error": "path_escape"
+        },
+        {
+          "step": 16,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        }
+      ],
+      "tool_calls": 53,
+      "native_tool_wall_seconds": 15.318,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 4,
+          "failure": 10
+        },
+        "PASS_TO_PASS": {
+          "success": 74,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED"
+    },
+    {
+      "cell": "C17",
+      "version": "dev4",
+      "run_id": "20261009T134332Z-02aa2f7f",
+      "agent_seconds": 477.346070177,
+      "steps": 50,
+      "main": {
+        "started": 50,
+        "finished": 50,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1815858,
+          "output_tokens": 24902,
+          "cached_input_tokens": 1296384
+        },
+        "estimated_cny": 0.612453,
+        "wall_seconds": 461.375,
+        "timing": {
+          "request_total_ms": {
+            "count": 50,
+            "sum_ms": 461375,
+            "median_ms": 5222.5
+          },
+          "ttft_ms": {
+            "count": 50,
+            "sum_ms": 69112,
+            "median_ms": 1432.5
+          },
+          "generation_ms": {
+            "count": 50,
+            "sum_ms": 392203,
+            "median_ms": 4380.5
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.612453,
+      "first_patch_mutation": {
+        "step": 45,
+        "seq": 335,
+        "seconds": 361.159477,
+        "files": [
+          "xarray/structure/merge.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 45,
+        "seq": 335,
+        "seconds": 361.159477,
+        "files": [
+          "xarray/structure/merge.py"
+        ]
+      },
+      "patch_attempts": 1,
+      "patch_errors": 0,
+      "tool_errors": [
+        {
+          "step": 19,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 22,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 23,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 26,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 54,
+      "native_tool_wall_seconds": 13.266,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 4,
+          "failure": 10
+        },
+        "PASS_TO_PASS": {
+          "success": 74,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED"
+    },
+    {
+      "cell": "C13",
+      "version": "v0.2",
+      "run_id": "20261008T184931Z-a5442fc2",
+      "agent_seconds": 461.928142003002,
+      "steps": 50,
+      "main": {
+        "started": 51,
+        "finished": 51,
+        "usage_complete": false,
+        "cache_usage_complete": false,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1407694,
+          "output_tokens": 26435,
+          "cached_input_tokens": 946688
+        },
+        "estimated_cny": 0.5348481,
+        "wall_seconds": 455.671,
+        "timing": {}
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.5348481,
+      "first_patch_mutation": {
+        "step": 47,
+        "seq": 337,
+        "seconds": 437.842827,
+        "files": [
+          "seaborn/_core/plot.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 47,
+        "seq": 337,
+        "seconds": 437.842827,
+        "files": [
+          "seaborn/_core/plot.py"
+        ]
+      },
+      "patch_attempts": 4,
+      "patch_errors": 3,
+      "tool_errors": [
+        {
+          "step": 6,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        },
+        {
+          "step": 8,
+          "tool": "apply_patch",
+          "error": "invalid_patch"
+        },
+        {
+          "step": 40,
+          "tool": "apply_patch",
+          "error": "invalid_patch"
+        },
+        {
+          "step": 45,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 50,
+      "native_tool_wall_seconds": 3.705,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 162,
+          "failure": 40
+        },
+        "PASS_TO_PASS": {
+          "success": 245,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED"
+    },
+    {
+      "cell": "C13",
+      "version": "dev3",
+      "run_id": "20261009T132728Z-04d93e4e",
+      "agent_seconds": 322.77842358,
+      "steps": 50,
+      "main": {
+        "started": 51,
+        "finished": 51,
+        "usage_complete": false,
+        "cache_usage_complete": false,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1324878,
+          "output_tokens": 15524,
+          "cached_input_tokens": 1039872
+        },
+        "estimated_cny": 0.3739068,
+        "wall_seconds": 307.327,
+        "timing": {
+          "request_total_ms": {
+            "count": 51,
+            "sum_ms": 307327,
+            "median_ms": 4238
+          },
+          "ttft_ms": {
+            "count": 50,
+            "sum_ms": 57143,
+            "median_ms": 966.0
+          },
+          "generation_ms": {
+            "count": 50,
+            "sum_ms": 230975,
+            "median_ms": 3003.5
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.3739068,
+      "first_patch_mutation": {
+        "step": 9,
+        "seq": 67,
+        "seconds": 32.881688,
+        "files": [
+          "seaborn/external/version.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 50,
+        "seq": 359,
+        "seconds": 320.626394,
+        "files": [
+          "seaborn/_core/plot.py"
+        ]
+      },
+      "patch_attempts": 12,
+      "patch_errors": 4,
+      "tool_errors": [
+        {
+          "step": 5,
+          "tool": "apply_patch",
+          "error": "path_escape"
+        },
+        {
+          "step": 6,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        },
+        {
+          "step": 8,
+          "tool": "apply_patch",
+          "error": "patch_conflict"
+        },
+        {
+          "step": 10,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 30,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 40,
+          "tool": "apply_patch",
+          "error": "invalid_patch"
+        },
+        {
+          "step": 46,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        },
+        {
+          "step": 47,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 50,
+      "native_tool_wall_seconds": 12.641,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 163,
+          "failure": 39
+        },
+        "PASS_TO_PASS": {
+          "success": 245,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED"
+    },
+    {
+      "cell": "C13",
+      "version": "dev4",
+      "run_id": "20261009T135340Z-380f49b3",
+      "agent_seconds": 900.6362556189997,
+      "steps": null,
+      "main": {
+        "started": 44,
+        "finished": 43,
+        "usage_complete": false,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 1556489,
+          "output_tokens": 50133,
+          "cached_input_tokens": 1059072
+        },
+        "estimated_cny": 0.6391999,
+        "wall_seconds": 856.266,
+        "timing": {
+          "request_total_ms": {
+            "count": 43,
+            "sum_ms": 856266,
+            "median_ms": 6156
+          },
+          "ttft_ms": {
+            "count": 43,
+            "sum_ms": 59179,
+            "median_ms": 1227
+          },
+          "generation_ms": {
+            "count": 43,
+            "sum_ms": 797025,
+            "median_ms": 4578
+          }
+        }
+      },
+      "child": {
+        "started": 0,
+        "finished": 0,
+        "usage_complete": true,
+        "cache_usage_complete": true,
+        "missing_cache_assumption": "zero cache as in original report",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_input_tokens": 0
+        },
+        "estimated_cny": 0.0,
+        "wall_seconds": 0.0,
+        "timing": {}
+      },
+      "total_estimated_cny": 0.6391999,
+      "first_patch_mutation": {
+        "step": 9,
+        "seq": 76,
+        "seconds": 26.475121,
+        "files": [
+          "seaborn/external/version.py"
+        ]
+      },
+      "last_patch_mutation": {
+        "step": 9,
+        "seq": 76,
+        "seconds": 26.475121,
+        "files": [
+          "seaborn/external/version.py"
+        ]
+      },
+      "patch_attempts": 2,
+      "patch_errors": 1,
+      "tool_errors": [
+        {
+          "step": 8,
+          "tool": "apply_patch",
+          "error": "unsupported_patch"
+        },
+        {
+          "step": 32,
+          "tool": "exec_command",
+          "error": "command_exit_nonzero"
+        }
+      ],
+      "tool_calls": 52,
+      "native_tool_wall_seconds": 3.505,
+      "subagents": [],
+      "subagent_requests": [],
+      "official_counts": {
+        "FAIL_TO_PASS": {
+          "success": 48,
+          "failure": 154
+        },
+        "PASS_TO_PASS": {
+          "success": 245,
+          "failure": 0
+        }
+      },
+      "official_verdict": "FAIL",
+      "execution_status": "TIMED_OUT",
+      "agent_outcome": "UNKNOWN"
+    }
+  ],
+  "behavior_review": {
+    "C08": {
+      "v0.2": {
+        "first_mutation_step": 5,
+        "first_mutation_seconds": 40.054482,
+        "seq": 42
+      },
+      "dev3": {
+        "first_mutation_step": 7,
+        "first_mutation_seconds": 135.001,
+        "seq": 58
+      },
+      "dev4": {
+        "first_mutation_step": 5,
+        "first_mutation_seconds": 62.3178,
+        "seq": 44,
+        "last_mutation_step": 14,
+        "final_validation": "step 15 assertion smoke passed; pyflakes unavailable; official PASS"
+      }
+    },
+    "C17": {
+      "v0.2": {
+        "first_mutation_step": 11,
+        "first_mutation_seconds": 35.830343,
+        "seq": 81,
+        "method": "shell write"
+      },
+      "dev3": {
+        "first_mutation_step": 14,
+        "first_mutation_seconds": 122.87,
+        "seq": 115
+      },
+      "dev4": {
+        "first_mutation_step": 7,
+        "first_mutation_seconds": 48.563522,
+        "seq": 65,
+        "method": "shell write",
+        "last_mutation_step": 50,
+        "last_mutation_seq": 370,
+        "last_mutation_seconds": 475.122751,
+        "final_validation": "step 50 smoke after mutation raises AttributeError Dataset.assign_vars; shell pipeline reports ok",
+        "official_failure": "all 10 F2P failures: Coordinates.from_xindex missing",
+        "stagnation_limitation": "nudge at step 22 despite prior shell mutations; detector tracks apply_patch only"
+      }
+    },
+    "C13": {
+      "v0.2": {
+        "first_mutation_step": 9,
+        "first_mutation_seconds": 25.496291,
+        "seq": 67,
+        "primary_mutation_step": 41,
+        "primary_mutation_seconds": 404.867973,
+        "primary_mutation_seq": 295,
+        "method": "shell write seaborn/external/version.py; later Plot",
+        "last_mutation_step": 47,
+        "final_validation": "narrow local smoke at steps 48/49; official FAIL 162/202"
+      },
+      "dev3": {
+        "first_mutation_step": 9,
+        "first_mutation_seconds": 32.8817,
+        "seq": 67,
+        "primary_mutation_step": 38,
+        "primary_mutation_seconds": 252.189,
+        "primary_mutation_seq": 274,
+        "last_mutation_step": 50,
+        "final_validation": "no validation after last mutation"
+      },
+      "dev4": {
+        "first_mutation_step": 9,
+        "first_mutation_seconds": 26.475121,
+        "seq": 76,
+        "first_mutation_file": "seaborn/external/version.py",
+        "primary_mutation_step": null,
+        "primary_mutation_seconds": null,
+        "last_mutation_step": 9,
+        "completed_model_requests": 43,
+        "started_model_requests": 44,
+        "last_started_step": 44,
+        "execution_status": "TIMED_OUT",
+        "agent_seconds": 900.6362556189997,
+        "final_validation": "No pytest/assert/unittest validation call; later import is only smoke, not correctness validation. Frozen candidate changes only version.py.",
+        "candidate_hash": "d7fa575b6a12275aeca5fc9ceec177b6239d0f10cdb33f69cc0dd08c5aebb556"
+      },
+      "summary": "V0.2 首次写 version helper 在 step 9 / 25.5s，核心 Plot 实现在 step 41 / 404.9s。最终候选首次修改 step 9 / 26.5s，但仅补 version.py；之后持续探索，43 个模型请求完成、第 44 个请求进行中触发 900s timeout。冻结补丁独立确认没有 Plot 修改；没有 pytest/assert 验证调用（import smoke 不能当正确性验证）。官方 F2P 从 162/202 降到 48/202，P2P 245/245，出现明确退化。"
+    }
+  },
+  "integrity": {
+    "integrity": "PASS",
+    "experiments": [
+      {
+        "experiment": "nexus-v03-final-3case-20261009",
+        "commit": "c77d0702dbdf4a7934e89c7d3a2df9da5e989c40",
+        "source_files": 36,
+        "manifest_sha256": "5375e6bfcc145baf2902316e6060825661ac1cfc4eac2dcdcaefed26ca9dcb20",
+        "cells": [
+          {
+            "cell": "C08",
+            "run": "20261009T131023Z-aaceb1c8",
+            "official": "PASS",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "15ed3c8a6a719535d4a20509b8250f95884a72d8c00c38e8e046a82e770fe87c",
+            "official_report_sha256": "9cc621e620f834b74c7bb99d23ed939ba7e2c53ca8b5ebc150455b836f056ae5"
+          },
+          {
+            "cell": "C17",
+            "run": "20261009T131811Z-a19326db",
+            "official": "FAIL",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "1f262ed8184413ba801f37c05fadd822a7f69705f66b0db3a367f7c4a41a18be",
+            "official_report_sha256": "711a797e0c20a4a93f827c25ac25e11ed9d3ba61c831b949259de4c85498ff6a"
+          },
+          {
+            "cell": "C13",
+            "run": "20261009T132728Z-04d93e4e",
+            "official": "FAIL",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "4bcdf8dd991334d4fd3f391060e02cf9b464064bc5fdd32eec373aa8c1a0db7c",
+            "official_report_sha256": "0566a524a75c88270a286fe7a4b68a585042d304a8e23f268402207ef4240ece"
+          }
+        ]
+      },
+      {
+        "experiment": "nexus-v03-final-r2-3case-20261009",
+        "commit": "08059ea33a09054ab09efefe8a083137250da496",
+        "source_files": 36,
+        "manifest_sha256": "17cc4a4e1340a1a97990edbbe3663d25977f648e8b7d411eb404938d44206623",
+        "cells": [
+          {
+            "cell": "C08",
+            "run": "20261009T133531Z-e3276fc5",
+            "official": "PASS",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "b7427b6d67bdad4899b474a921f6354fad79fa6fea654732b4df4db6bf769f31",
+            "official_report_sha256": "c78c08189975c50430f1b543c8a11bcb56ad4e922ccfacda169411a024cd6d68"
+          },
+          {
+            "cell": "C17",
+            "run": "20261009T134332Z-02aa2f7f",
+            "official": "FAIL",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "71517c5ef530d6775ae1aeb58dc316d8624e67c03a4e5c10fc0c9527b513334c",
+            "official_report_sha256": "1330721ebcf12d427700a755a80ae88535d9e680de0caf362d432fb63fc83eb1"
+          },
+          {
+            "cell": "C13",
+            "run": "20261009T135340Z-380f49b3",
+            "official": "FAIL",
+            "candidate_frozen": true,
+            "cleanup": "COMPLETED",
+            "evidence_hash": "4f860c89dbc6c7313b3e3d76ca18eb3396b6c52f83f3b39cebaa429a66842d4b",
+            "official_report_sha256": "a84a473f7b77c694746cf0a499fd8b42afba3ade8341d9c6f8b981d2bc971425"
+          }
+        ]
+      }
+    ],
+    "scope": "frozen source/config hashes, unchanged ABK release, official reports, one execution per cell, Candidate Freeze, raw/archive equality, cleanup",
+    "no_holdout": true
+  },
+  "tool_exposure": [
+    {
+      "run": "20261009T134332Z-02aa2f7f",
+      "recorded": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "with_spawn_agent": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "without_spawn_agent": "2fed3f4b40310e903a2cb3a7b7bd4fbd5968329165a4aa9e926524ad864e9517",
+      "tools": [
+        "exec_command",
+        "apply_patch",
+        "update_plan",
+        "spawn_agent"
+      ],
+      "matched": true
+    },
+    {
+      "run": "20261009T133531Z-e3276fc5",
+      "recorded": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "with_spawn_agent": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "without_spawn_agent": "2fed3f4b40310e903a2cb3a7b7bd4fbd5968329165a4aa9e926524ad864e9517",
+      "tools": [
+        "exec_command",
+        "apply_patch",
+        "update_plan",
+        "spawn_agent"
+      ],
+      "matched": true
+    },
+    {
+      "run": "20261009T135340Z-380f49b3",
+      "recorded": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "with_spawn_agent": "ad51ffe608af92edca3984d3c21e85eaa3167556265c7947e448deb4cb9b56f0",
+      "without_spawn_agent": "2fed3f4b40310e903a2cb3a7b7bd4fbd5968329165a4aa9e926524ad864e9517",
+      "tools": [
+        "exec_command",
+        "apply_patch",
+        "update_plan",
+        "spawn_agent"
+      ],
+      "matched": true
+    }
+  ]
+}
