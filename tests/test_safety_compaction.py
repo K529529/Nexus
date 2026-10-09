@@ -20,6 +20,7 @@ from nexus.core.context import (
     project_guidance,
 )
 from nexus.core.plan import project_plan
+from nexus.core.progress import ProgressLedger
 from nexus.core.types import (
     Emit,
     Limits,
@@ -221,7 +222,10 @@ async def test_repeated_compaction_and_interrupted_resume(
         )
         assert result.outcome == "completed" and result.tool_calls == 0
         assert model.requests[0] == project_guidance(
-            project_plan(restored, recovered + [restored.messages[-2]]), execution_budget(1, 40)
+            project_plan(restored, recovered + [restored.messages[-2]]),
+            execution_budget(1, 40)
+            + "\n\n"
+            + ProgressLedger.restore(restored).prompt(restored, 1, 40, []),
         )
         assert "old observation " * 500 not in str([m.public() for m in model.requests[0]])
         records, _ = read_records(recovered_writer.stream)

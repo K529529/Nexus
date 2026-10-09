@@ -443,10 +443,12 @@ async def test_partial_stream_not_retried_or_returned(monkeypatch: Any) -> None:
         with pytest.raises(ModelError, match="incomplete_stream"):
             await model.complete([Message("user", "test")], [], emit)
         assert attempts == 1
-        assert emit.events[-1] == (
-            "model_finished",
-            {"error": "stream_interrupted", "attempt": 1, "duration_ms": 1250},
-        )
+        kind, timing = emit.events[-1]
+        assert kind == "model_finished"
+        assert timing["error"] == "stream_interrupted" and timing["attempt"] == 1
+        assert timing["duration_ms"] == 1250
+        assert timing["ttft_ms"] is not None and timing["generation_ms"] is None
+        assert timing["request_total_ms"] >= timing["ttft_ms"]
     finally:
         await model.close()
 
@@ -758,3 +760,26 @@ def test_invalid_output_token_parameter(tmp_path: Path, value: str) -> None:
     )
     with pytest.raises(ConfigError, match="model.output_token_parameter"):
         load_config(path, require_key=False)
+
+
+async def test_client_stream_timing_excludes_role_only_chunk(monkeypatch: Any) -> None:
+    ticks = iter([10.0, 10.5, 11.75, 12.0])
+    monkeypatch.setattr(model_module, "perf_counter", lambda: next(ticks))
+    model = model_for(
+        lambda request: httpx.Response(
+            200,
+            content=sse(
+                [chunk({"role": "assistant"}), chunk({"content": "done"}), chunk({}, "stop")]
+            ),
+        )
+    )
+    emit = Recorder()
+    try:
+        await model.complete([Message("user", "task")], [], emit)
+        data = next(d for k, d in emit.events if k == "model_finished")
+        assert data["request_total_ms"] == 2000
+        assert data["ttft_ms"] == 500
+        assert data["generation_ms"] == 1250
+        assert data["usage"]["total_tokens"] is None
+    finally:
+        await model.close()

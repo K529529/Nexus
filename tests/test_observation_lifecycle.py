@@ -21,6 +21,7 @@ from nexus.core.context import (
     protected_seqs,
 )
 from nexus.core.observations import compact, hot_tool_seqs, provenance
+from nexus.core.progress import ProgressLedger
 from nexus.core.types import (
     Emit,
     Limits,
@@ -411,6 +412,7 @@ async def test_final_context_rebuilt_projected_checked_observed_and_profiled(
     session.messages[2].content = "earlier narrative " * 700
     ctx = context(9000)
     ctx.execution_budget = execution_budget(1, 40)
+    ctx.progress = ProgressLedger.restore(session).prompt(session, 1, 40, [])
     limits = Limits(context_window=(9000 if fallback else 5500) + 1524, max_output_tokens=500)
     captured = recorder(session)
     original = deepcopy(session.messages)

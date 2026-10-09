@@ -6,12 +6,25 @@ import asyncio
 import hashlib
 import time
 from dataclasses import asdict
+from time import perf_counter
 from typing import Any
 
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
 from nexus.app.config import ModelConfig
 from nexus.core.types import Emit, Json, Message, ModelError, ModelReply, ToolCall, ToolSpec, Usage
+
+
+def stream_timing(started: float, first: float | None, finished: float | None) -> Json:
+    """Client-observed stream timings, not provider compute/queue attribution."""
+    return {
+        "request_total_ms": int((perf_counter() - started) * 1000),
+        "ttft_ms": int((first - started) * 1000) if first is not None else None,
+        "generation_ms": int((finished - first) * 1000)
+        if first is not None and finished is not None
+        else None,
+        "timing_source": "client_stream",
+    }
 
 
 class ChatModel:
@@ -93,6 +106,11 @@ class ChatModel:
             request["stream_options"] = {"include_usage": True}
         for attempt in (1, 2):
             started = time.monotonic()
+            clock_started = perf_counter()
+            first_token: float | None = None
+            finish_seen: float | None = None
+            usage = Usage()
+
             seen_delta = False
             stream = None
             await emit("model_started", {"model": self.config.name, "attempt": attempt})
@@ -137,6 +155,8 @@ class ChatModel:
                             raise ModelError("invalid_reasoning_content")
                         if finish is not None and (delta.content or delta.tool_calls or fragment):
                             raise ModelError("delta_after_finish")
+                        if first_token is None and (delta.content or fragment or delta.tool_calls):
+                            first_token = perf_counter()
                         if fragment:
                             reasoning.append(fragment)
                         if delta.content:
@@ -154,6 +174,7 @@ class ChatModel:
                             if finish is not None:
                                 raise ModelError("duplicate_finish")
                             finish = choice.finish_reason
+                            finish_seen = perf_counter()
                     if finish is None:
                         raise ModelError("incomplete_stream")
                     reply = ModelReply(
@@ -187,6 +208,7 @@ class ChatModel:
                         "model": self.config.name,
                         "attempt": attempt,
                         "duration_ms": int((time.monotonic() - started) * 1000),
+                        **stream_timing(clock_started, first_token, finish_seen),
                         "finish_reason": finish,
                         "usage": asdict(usage),
                     },
@@ -207,8 +229,10 @@ class ChatModel:
                     "model_finished",
                     {
                         "error": code,
+                        **({"usage": asdict(usage)} if usage.source == "reported" else {}),
                         "attempt": attempt,
                         "duration_ms": int((time.monotonic() - started) * 1000),
+                        **stream_timing(clock_started, first_token, finish_seen),
                     },
                 )
                 transient = status is None or status == 429 or status >= 500
@@ -226,6 +250,8 @@ class ChatModel:
                         "error": "empty_or_invalid_final" if empty else "stream_interrupted",
                         "attempt": attempt,
                         "duration_ms": int((time.monotonic() - started) * 1000),
+                        **stream_timing(clock_started, first_token, finish_seen),
+                        **({"usage": asdict(usage)} if usage.source == "reported" else {}),
                         **({"finish_reason": finish, "usage": asdict(usage)} if empty else {}),
                     },
                 )

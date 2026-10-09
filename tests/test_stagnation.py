@@ -14,6 +14,7 @@ from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
 from nexus.core.context import Context, estimate, execution_budget, groups, project_guidance
 from nexus.core.plan import SNAPSHOT_HEADER
+from nexus.core.progress import ProgressLedger
 from nexus.core.stagnation import (
     GUIDANCE,
     PLAN_IDLE_THRESHOLD,
@@ -374,16 +375,21 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     specs = [t.spec for t in tools.values()]
     expected = deepcopy(session)
     expected.messages.append(Message("user", "continue", run_id="run", seq=2))
-    for response in responses:
+    for step, response in enumerate(responses, 1):
         assistant = deepcopy(response.message)
         assistant.run_id, assistant.seq = "run", len(expected.messages) + 1
         expected.messages.append(assistant)
-        tool_result = ToolResult(assistant.tool_calls[0].id, True, {"stdout": "observed"}).message()
+        tool_result = ToolResult(
+            assistant.tool_calls[0].id,
+            True,
+            {"stdout": "observed", "execution_step": step, "execution_window": "0" * 32},
+        ).message()
         tool_result.run_id, tool_result.seq = "run", len(expected.messages) + 1
         expected.messages.append(tool_result)
     normal = Context(Limits()).project(expected, expected.messages).messages
     context = Context(Limits())
     context.execution_budget = execution_budget(9, 40)
+    context.progress = ProgressLedger.restore(session).prompt(session, 9, 40, list(tools))
     base = estimate(context.task_request(normal), specs)
     with_nudge = estimate(context.task_request(normal, GUIDANCE), specs)
     budget = with_nudge * 3 if fallback else int((base + with_nudge) / (2 * 0.85))
@@ -560,6 +566,7 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
     )
     context = Context(Limits())
     context.execution_budget = execution_budget(9, 40)
+    context.progress = ProgressLedger.restore(session).prompt(session, 9, 40, list(tools))
     base = estimate(context.task_request(projected), specs)
     total = estimate(context.task_request(projected, GUIDANCE), specs)
     budget = (base + total) // 2

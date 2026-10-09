@@ -13,10 +13,19 @@ from collections import deque
 from pathlib import Path
 
 from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult
+from nexus.tools.validation import (
+    PURPOSES,
+    fingerprints,
+    report_identity,
+    scope_paths,
+    validation_evidence,
+)
 
 COMMAND_ARGUMENTS_DETAIL = (
     "Expected a non-empty 'command' string, optional 'workdir' string and "
-    "'timeout_ms' integer (1..600000); no other fields."
+    "'timeout_ms' integer (1..600000), purpose (inspect/validate/mutate/other), "
+    "mutation_scope or validation_scope (relative file arrays), validation_report (JUnit path); "
+    "no other fields."
 )
 
 
@@ -113,8 +122,22 @@ async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> Too
     command = arguments.get("command")
     workdir = arguments.get("workdir", ".")
     timeout = arguments.get("timeout_ms", 120000)
+    purpose = arguments.get("purpose", "other")
+    report_name = arguments.get("validation_report")
     if (
-        arguments.keys() - {"command", "workdir", "timeout_ms"}
+        arguments.keys()
+        - {
+            "command",
+            "workdir",
+            "timeout_ms",
+            "purpose",
+            "mutation_scope",
+            "validation_scope",
+            "validation_report",
+        }
+        or not isinstance(purpose, str)
+        or purpose not in PURPOSES
+        or (report_name is not None and (not isinstance(report_name, str) or not report_name))
         or not isinstance(command, str)
         or not command.strip()
         or not isinstance(workdir, str)
@@ -128,9 +151,22 @@ async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> Too
             {"detail": COMMAND_ARGUMENTS_DETAIL},
             "invalid_arguments",
         )
+    try:
+        mutation_scope = scope_paths(arguments.get("mutation_scope", []))
+        validation_scope = scope_paths(arguments.get("validation_scope", []))
+    except ValueError as exc:
+        return ToolResult(context.call_id, False, {"detail": str(exc)}, "invalid_arguments")
     cwd = (context.workspace / Path(workdir)).resolve()
+    report = (cwd / report_name).resolve() if report_name else None
+    report_before = report_identity(report) if purpose == "validate" else None
+    scope = list(dict.fromkeys(mutation_scope + validation_scope))
+    before_files = fingerprints(context.workspace, scope)
     data: Json = {
         "command": command,
+        "purpose": purpose,
+        "purpose_source": "agent_declared" if "purpose" in arguments else "unspecified",
+        "mutation_scope": mutation_scope,
+        "validation_scope": validation_scope,
         "cwd": str(cwd),
         "shell": context.shell,
         "exit_code": None,
@@ -249,6 +285,21 @@ async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> Too
     data.update(output.output())
     data["exit_code"] = process.returncode if process else None
     data["duration_ms"] = int((time.monotonic() - started) * 1000)
+    after_files = fingerprints(context.workspace, scope)
+    data["observed_changed_files"] = [
+        p
+        for p in scope
+        if before_files[p] is not None
+        and after_files[p] is not None
+        and before_files[p] != after_files[p]
+    ]
+    data["mutation_scope_unknown"] = (purpose == "mutate" and not mutation_scope) or any(
+        before_files[p] is None or after_files[p] is None for p in scope
+    )
+    data["validation"] = (
+        validation_evidence(data, report, report_before) if purpose == "validate" else None
+    )
+    data["returncode"] = data["exit_code"]
     if data["cleanup_incomplete"]:
         error = "cleanup_incomplete"
     elif error is None and data["exit_code"] != 0:

@@ -12,11 +12,25 @@ EXEC_SPEC = ToolSpec(
     "exec_command",
     "Execute a command in the actual local shell. Use for reading/searching files, git, "
     "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
-    "truncation. timeout_ms: 1..600000 (default 120000).",
+    "truncation. timeout_ms: 1..600000 (default 120000). "
+    "Always label purpose: inspect, mutate, validate, or other. For shell edits declare "
+    "mutation_scope as workspace-relative files; prefer small apply_patch edits. "
+    "For checks declare validation_scope (explicit implementation files actually exercised). "
+    "To prove behavioral validation, generate a fresh JUnit XML report in this command and "
+    "supply validation_report: e.g. python -m pytest tests/test_app.py -q "
+    "--junitxml=/tmp/nexus-check.xml. Use a shell-appropriate report path. "
+    "Use a direct pytest or python -m pytest invocation. Do not pipe tests through tail/head "
+    "or mask their exit status. Print/import/compile "
+    "alone only provide partial validation. Report scope is your declaration, not measured "
+    "code coverage; omit scope if uncertain. Commands are not rewritten or retried.",
     {
         "type": "object",
         "properties": {
             "command": {"type": "string"},
+            "purpose": {"type": "string", "enum": ["inspect", "validate", "mutate", "other"]},
+            "mutation_scope": {"type": "array", "maxItems": 100, "items": {"type": "string"}},
+            "validation_scope": {"type": "array", "maxItems": 100, "items": {"type": "string"}},
+            "validation_report": {"type": "string"},
             "workdir": {"type": "string"},
             "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 600000},
         },
@@ -27,6 +41,8 @@ EXEC_SPEC = ToolSpec(
 PATCH_SPEC = ToolSpec(
     "apply_patch",
     "Edit UTF-8 text files inside the workspace with Nexus patch format.\n\n"
+    "Minimal example (literal text in the patch JSON string):\n"
+    "*** Begin Patch\n*** Add File: example.txt\n+hello\n*** End Patch\n\n"
     "Example:\n"
     "*** Begin Patch\n"
     "*** Update File: src/app.py\n@@ def run():\n-old()\n+new()\n"

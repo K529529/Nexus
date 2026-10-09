@@ -353,6 +353,21 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         "failed_file": failed_file,
         "failed_hunk": failed_hunk,
         "detail": bounded_text(detail, MAX_ERROR_DETAIL_BYTES),
+        "recovery": {
+            "path_escape": "Use a workspace-relative path; do not bypass symlink/path checks.",
+            "patch_conflict": "Read the failed file's current lines, then submit a smaller patch "
+            "with unique exact old context. Do not repeat the rejected patch unchanged.",
+            "concurrent_change": "Re-read the file and rebuild against its current content.",
+            "patch_io_error": "Inspect applied files and the I/O error before another edit; "
+            "the batch may be partial.",
+            "invalid_arguments": "Pass exactly one field: patch, containing literal patch text.",
+        }.get(
+            error,
+            "Use exact Begin/End Patch boundaries, relative file sections and +/- edit "
+            "lines. Read detail and failed_hunk; do not guess or regenerate unrelated code.",
+        )
+        if error
+        else None,
     }
     return ToolResult(
         context.call_id,

@@ -149,6 +149,8 @@ for step in 1..max_steps:
 
 ### 5.1 `exec_command`
 
+2026-10-09 用户批准的 V0.3 Batch 1 增补见 [Batch 1](v0.3-batch1.md)：可选 purpose、mutation_scope、validation_scope、validation_report 用于事实观测。下文原三字段限制被该增补覆盖，命令执行、shell、timeout 和取消语义不变。
+
 输入：`{command: string, workdir?: string, timeout_ms?: integer}`。三字段以外的参数返回错误。command 非空；timeout 默认 120,000 ms，允许 1–600,000 ms；不提供后台 job、PTY、stdin 交互或另一个轮询工具。
 
 默认 cwd 是本次 workspace；相对 workdir 相对 workspace 解析，显式绝对目录可以在 workspace 外。检查目录存在后启动，不做命令语义分类、不拆 argv 制定授权、不改写用户命令。子进程继承当前执行环境；运行上下文告知模型实际 OS、shell、workspace。
@@ -172,7 +174,7 @@ Python asyncio 的管道、异步子进程与 Windows event-loop 约束见 [官�
 
 ### 5.2 `apply_patch`
 
-输入：`{patch: string}`，普通 unified diff 文本；修改文件用 `--- a/path` / `+++ b/path`，新增/删除用 `/dev/null`。只实现这一种补丁语法，在首测模型验证，不因工具名是 apply_patch 就再实现 Codex 补丁格式。允许同一次调用多个文本文件，工具说明附一个短示例。允许忽略标准 `diff --git`、`index` 前导行；不支持二进制、rename、文件模式变更、symlink patch 或模糊匹配算法，遇到这些格式返回明确 unsupported。
+输入：`{patch: string}`。当前真实实现向模型展示 Nexus patch 协议：`*** Begin Patch` / `*** End Patch` 包围 Add / Update / Delete File 段，Update 使用无需行号/计数的 `@@` chunks；兼容原有 UTF-8 unified diff（`--- a/` / `+++ b/` / `/dev/null`）。此处修正文档与已存在的 V0.2 实现不一致，Batch 1 不新增格式、不自动修复或模糊匹配。工具 schema 包含最小合法例子；失败提供 error_code、failed_file、failed_hunk、detail、recovery。workspace 路径边界与预检/partial 语义不变。
 
 每次 patch 与每个目标文件上限 1 MiB，UTF-8 文本。新文件默认 LF；修改保留原有行及其行尾，新插入行沿用文件主换行风格；支持 no-newline marker。无实际变化返回 no_changes 事实，不伪报 modified。
 

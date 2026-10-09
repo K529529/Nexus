@@ -9,6 +9,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
+from nexus.core.progress import ProgressLedger
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
@@ -65,6 +66,8 @@ async def run_turn(
         session.loaded_skills = ()
         session.skills_run_id = session.run_id
     detector = StagnationDetector(session)
+    ledger = ProgressLedger.restore(session)
+    execution_window = uuid4().hex
     pending_guidance: str | None = None
     result = RunResult("failed")
     pending: list[ToolCall] = []
@@ -95,8 +98,25 @@ async def run_turn(
         return await observed(kind, data, protocol_data=protocol_data)
 
     async def record_tool(value: ToolResult) -> None:
+        value.data = {
+            **value.data,
+            "execution_step": result.steps,
+            "execution_window": execution_window,
+        }
         message = value.message()
         await append_message(session, message, observed)
+        matching = next(
+            (
+                c
+                for m in reversed(session.messages)
+                if m.run_id == session.run_id
+                for c in m.tool_calls
+                if c.id == value.call_id
+            ),
+            None,
+        )
+        if matching is not None:
+            ledger.observe(matching, value)
         await observed(
             "tool_finished",
             {
@@ -108,6 +128,11 @@ async def run_turn(
                 "result_bytes": len(message.content.encode("utf-8")),
                 "exit_code": value.data.get("exit_code"),
                 "truncated": value.truncated,
+                "purpose": value.data.get("purpose"),
+                "shell": value.data.get("shell"),
+                "returncode": value.data.get("exit_code"),
+                "timed_out": value.data.get("timed_out"),
+                "validation": value.data.get("validation"),
             },
         )
 
@@ -130,6 +155,8 @@ async def run_turn(
             result.steps = step
             context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
+            context.progress = ledger.prompt(session, step, limits.max_steps, list(registry))
+            await observed("progress_snapshot", ledger.data(session, step, limits.max_steps))
             active_context, _ = projected_context()
             attempted = await context.prepare(
                 session, active_context, specs, model, observed, guidance=pending_guidance
@@ -270,6 +297,14 @@ async def run_turn(
         else "unknown",
     )
     try:
+        await observed(
+            "progress_snapshot",
+            {
+                **ledger.data(session, result.steps, limits.max_steps),
+                "terminal": True,
+                "remaining_steps": max(0, limits.max_steps - result.steps),
+            },
+        )
         await observed("run_finished", asdict(result))
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"
