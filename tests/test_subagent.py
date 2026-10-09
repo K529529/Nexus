@@ -24,6 +24,35 @@ def test_inspection_bounded_confined_and_readonly(tmp_path: Path) -> None:
     assert (tmp_path / "module.py").read_text() == "needle\n" * 300
 
 
+def test_read_page_preserves_source_and_line_numbers_with_long_path(tmp_path: Path) -> None:
+    relative = Path("a_very_long_package_name") / "another_long_module_name" / "source_file.py"
+    target = tmp_path / relative
+    target.parent.mkdir(parents=True)
+    source = [f"value_{i} = {i}" for i in range(161)]
+    target.write_text("\n".join(source) + "\n", encoding="utf-8")
+    result = inspect_files(
+        {"mode": "read", "path": relative.as_posix(), "start_line": 2},
+        ExecutionContext(tmp_path, "page", "/bin/sh", 8000),
+    )
+    # Repeating a long path per line used to exhaust 8KB before the end of this page.
+    assert "161: value_160 = 160" in result.data["text"]
+    assert not result.truncated and len(result.data["text"].encode()) <= 8000
+    assert result.data["text"].splitlines() == [f"Path: {relative.as_posix()}"] + [
+        f"{i + 1}: {source[i]}" for i in range(1, 161)
+    ]
+    assert target.read_text(encoding="utf-8") == "\n".join(source) + "\n"
+
+
+def test_search_keeps_per_match_paths(tmp_path: Path) -> None:
+    for name in ["a.py", "b.py"]:
+        (tmp_path / name).write_text("first\nneedle\n", encoding="utf-8")
+    result = inspect_files(
+        {"mode": "search", "path": ".", "text": "needle"},
+        ExecutionContext(tmp_path, "search", "/bin/sh", 8000),
+    )
+    assert result.data["text"].splitlines() == ["a.py:2: needle", "b.py:2: needle"]
+
+
 async def test_recursive_loop_isolation_evidence_and_main_usage(tmp_path: Path) -> None:
     (tmp_path / "module.py").write_text("def required_interface(): pass\n")
     child_model = ScriptedModel(

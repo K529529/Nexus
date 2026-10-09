@@ -32,7 +32,8 @@ EXCLUDED = {".git", ".nexus", ".venv", "node_modules", "__pycache__", ".env"}
 INSPECT_SPEC = ToolSpec(
     "inspect_repository",
     "Read-only inspection. path is workspace-relative. mode=list lists files; mode=read returns "
-    "numbered lines from start_line (default 1, max 160 lines); mode=search finds literal text "
+    "a Path header then numbered source lines from start_line (default 1, max 160 lines). "
+    "Cite the header path and line number. mode=search finds literal text "
     "(max 80 matches). Narrow path to a module. No execution/writes. Check truncated.",
     {
         "type": "object",
@@ -109,8 +110,8 @@ def inspect_files(args: Json, context: ExecutionContext) -> ToolResult:
                 else:
                     source = raw.decode("utf-8", errors="replace").splitlines()
                     if mode == "read":
-                        lines = [
-                            f"{label}:{i + 1}: {line}"
+                        lines = [f"Path: {label}"] + [
+                            f"{i + 1}: {line}"
                             for i, line in enumerate(source)
                             if start <= i + 1 < start + 160
                         ]

@@ -1,0 +1,164 @@
+{
+  "scope": "Offline transformation of already observed read output only, no added source lines or model calls; not a model behavior prediction.",
+  "original_projections_verified": 4,
+  "reads": [
+    {
+      "call_id": "call_46687d361992427883c3ef86",
+      "path": "xarray/core/coordinate_transform.py",
+      "old_bytes": 7808,
+      "new_bytes": 3926,
+      "old_truncated": false,
+      "source_lines_preserved": true
+    },
+    {
+      "call_id": "call_8e21e63f1e5f4565a17d3148",
+      "path": "xarray/indexes/range_index.py",
+      "old_bytes": 8000,
+      "new_bytes": 4316,
+      "old_truncated": true,
+      "source_lines_preserved": true
+    },
+    {
+      "call_id": "call_79a33270e0a64e898e895bc6",
+      "path": "xarray/core/coordinate_transform.py",
+      "old_bytes": 7808,
+      "new_bytes": 3926,
+      "old_truncated": false,
+      "source_lines_preserved": true
+    },
+    {
+      "call_id": "call_e0f0aeeb1441402d976c176f",
+      "path": "xarray/core/indexing.py",
+      "old_bytes": 6371,
+      "new_bytes": 4073,
+      "old_truncated": false,
+      "source_lines_preserved": true
+    }
+  ],
+  "requests": [
+    {
+      "step": 1,
+      "original": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 0,
+        "recent_full_count": 0,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 0,
+        "observation_projected_bytes": 0,
+        "observation_full_estimated_tokens": 0,
+        "observation_projected_estimated_tokens": 0
+      },
+      "compact_read_counterfactual": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 0,
+        "recent_full_count": 0,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 0,
+        "observation_projected_bytes": 0,
+        "observation_full_estimated_tokens": 0,
+        "observation_projected_estimated_tokens": 0
+      },
+      "range_forward_original": false,
+      "range_forward_compact": false
+    },
+    {
+      "step": 2,
+      "original": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 3,
+        "recent_full_count": 0,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 8563,
+        "observation_projected_bytes": 8563,
+        "observation_full_estimated_tokens": 3058,
+        "observation_projected_estimated_tokens": 3058
+      },
+      "compact_read_counterfactual": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 3,
+        "recent_full_count": 0,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 4682,
+        "observation_projected_bytes": 4682,
+        "observation_full_estimated_tokens": 1764,
+        "observation_projected_estimated_tokens": 1764
+      },
+      "range_forward_original": false,
+      "range_forward_compact": false
+    },
+    {
+      "step": 3,
+      "original": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 2,
+        "recent_full_count": 2,
+        "cold_count": 1,
+        "cold_compacted_count": 1,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 18449,
+        "observation_projected_bytes": 11383,
+        "observation_full_estimated_tokens": 6514,
+        "observation_projected_estimated_tokens": 4119
+      },
+      "compact_read_counterfactual": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 2,
+        "recent_full_count": 3,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 10885,
+        "observation_projected_bytes": 10885,
+        "observation_full_estimated_tokens": 3992,
+        "observation_projected_estimated_tokens": 3992
+      },
+      "range_forward_original": true,
+      "range_forward_compact": true
+    },
+    {
+      "step": 4,
+      "original": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 2,
+        "recent_full_count": 0,
+        "cold_count": 5,
+        "cold_compacted_count": 3,
+        "cold_kept_full_count": 2,
+        "observation_full_bytes": 33161,
+        "observation_projected_bytes": 18257,
+        "observation_full_estimated_tokens": 11614,
+        "observation_projected_estimated_tokens": 6578
+      },
+      "compact_read_counterfactual": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 5232,
+        "hot_full_count": 2,
+        "recent_full_count": 1,
+        "cold_count": 4,
+        "cold_compacted_count": 2,
+        "cold_kept_full_count": 2,
+        "observation_full_bytes": 19419,
+        "observation_projected_bytes": 15653,
+        "observation_full_estimated_tokens": 7032,
+        "observation_projected_estimated_tokens": 5762
+      },
+      "range_forward_original": false,
+      "range_forward_compact": true
+    }
+  ]
+}
