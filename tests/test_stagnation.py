@@ -16,6 +16,7 @@ from nexus.core.context import Context, estimate, execution_budget, groups, proj
 from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.stagnation import (
     GUIDANCE,
+    PLAN_GUIDANCE,
     PLAN_IDLE_THRESHOLD,
     PRE_MUTATION_THRESHOLD,
     StagnationDetector,
@@ -103,8 +104,15 @@ def test_plan_anchor_creation_cosmetic_updates_and_empty_mode(
         assert observe(detector, session) is None
         assert detector.plan_idle_steps == idle
     nudge = observe(detector, session)
-    assert nudge and nudge["trigger"] == "plan_idle" and nudge["pre_mutation_steps"] == 10
-    assert nudge["active_plan_step"] == ("Cosmetic wording 7" if status == "in_progress" else None)
+    if status == "completed":
+        assert nudge is None
+        for _ in range(30):
+            assert observe(detector, session) is None
+    else:
+        assert nudge and nudge["trigger"] == "plan_idle" and nudge["pre_mutation_steps"] == 10
+        assert nudge["active_plan_step"] == (
+            "Cosmetic wording 7" if status == "in_progress" else None
+        )
 
     other = StagnationDetector(session)
     assert observe(other, session) is None
@@ -152,7 +160,7 @@ def test_transition_resets_only_idle_and_both_thresholds_prefer_plan(tmp_path: P
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_reported_mutation_wins_and_disables_even_at_threshold(tmp_path: Path, ok: bool) -> None:
+def test_reported_mutation_resets_idle_even_at_threshold(tmp_path: Path, ok: bool) -> None:
     session = Session(tmp_path, run_id="run")
     detector = StagnationDetector(session)
     for _ in range(23):
@@ -163,7 +171,11 @@ def test_reported_mutation_wins_and_disables_even_at_threshold(tmp_path: Path, o
         (call("apply_patch", {}, "a"), ToolResult("a", ok, {"changed_files": 1})),
     ]
     assert detector.observe_completed_step(session, batch, step=24, max_steps=40) is None
-    assert detector.mutation_seen and not detector.nudged
+    assert detector.mutation_seen and not detector.nudge_count
+    for _ in range(7):
+        assert observe(detector, session) is None
+    nudge = observe(detector, session)
+    assert nudge and nudge["trigger"] == "plan_idle"
     for _ in range(30):
         assert observe(detector, session) is None
 
@@ -190,7 +202,7 @@ def test_final_step_no_nudge_and_foreign_plan_is_not_anchor(tmp_path: Path) -> N
     detector = StagnationDetector(session)
     for step in range(1, 25):
         assert observe(detector, session, step=step, max_steps=24) is None
-    assert detector.plan_idle_steps == 0 and not detector.nudged
+    assert detector.plan_idle_steps == 0 and not detector.nudge_count
 
 
 async def read_tool(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
@@ -212,7 +224,7 @@ def reads(count: int, *, prefix: str = "r", batch_size: int = 1) -> list[ModelRe
 
 
 def has_guidance(messages: list[Message]) -> bool:
-    return any(GUIDANCE in m.content for m in messages)
+    return any(text in m.content for m in messages for text in (GUIDANCE, PLAN_GUIDANCE))
 
 
 async def test_real_chain_order_one_nudge_persistence_and_fresh_resume(tmp_path: Path) -> None:
@@ -258,13 +270,16 @@ async def test_real_chain_order_one_nudge_persistence_and_fresh_resume(tmp_path:
         assert included[0]["data"]["step"] == 10
         assert scheduled[0]["seq"] < included[0]["seq"]
         assert not has_guidance(session.messages)
-        assert all(GUIDANCE not in json.dumps(r["data"]) for r in records if r["kind"] == "message")
+        assert all(
+            text not in json.dumps(r["data"])
+            for r in records
+            if r["kind"] == "message"
+            for text in (GUIDANCE, PLAN_GUIDANCE)
+        )
         restored = replay(records, tmp_path)
         assert restored.plan == session.plan and restored.messages == session.messages
         assert all(
-            GUIDANCE not in m.content
-            for snap in session.compactions.values()
-            for m in snap.messages
+            not has_guidance([m]) for snap in session.compactions.values() for m in snap.messages
         )
         for request in model.requests:
             groups(request)
@@ -385,7 +400,7 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     context = Context(Limits())
     context.execution_budget = execution_budget(9, 40)
     base = estimate(context.task_request(normal), specs)
-    with_nudge = estimate(context.task_request(normal, GUIDANCE), specs)
+    with_nudge = estimate(context.task_request(normal, PLAN_GUIDANCE), specs)
     budget = with_nudge * 3 if fallback else int((base + with_nudge) / (2 * 0.85))
     assert fallback or base < budget * 0.85 < with_nudge
 
@@ -445,7 +460,7 @@ async def test_budget_compaction_retry_delivery_and_calibration(
     nudged_requests = [ms for ms in task_requests if has_guidance(ms)]
     assert len(nudged_requests) == 1 + int(fallback)
     for request in nudged_requests:
-        assert sum(m.content.count(GUIDANCE) for m in request) == 1
+        assert sum(m.content.count(PLAN_GUIDANCE) for m in request) == 1
         assert sum(m.content.count(SNAPSHOT_HEADER) for m in request) == 1
         assert sum(m.content.count(execution_budget(9, 40)) for m in request) == 1
         groups(request)
@@ -504,7 +519,7 @@ async def test_actual_mock_api_request_preserves_reasoning_and_consumes_nudge(
     assert result.outcome == "completed" and len(requests) == 10
     for index, request in enumerate(requests, 1):
         content = request["messages"][-1]["content"]
-        assert content.count(GUIDANCE) == int(index == 9)
+        assert content.count(PLAN_GUIDANCE) == int(index == 9)
         assert content.count(SNAPSHOT_HEADER) == 1
         assert content.count("Execution budget") == 1
         assert execution_budget(index, 40) in content
@@ -539,9 +554,9 @@ async def test_whole_batch_uses_final_plan_and_mutation_has_priority(
     result = await run_turn(session, "continue", model, tools, events, Limits())
     assert result.outcome == "completed"
     assert [i + 1 for i, ms in enumerate(model.requests) if has_guidance(ms)] == (
-        [] if mutates else [9]
+        [17] if mutates else [9]
     )
-    assert len([d for k, d in events.events if k == "stagnation_nudge"]) == int(not mutates)
+    assert len([d for k, d in events.events if k == "stagnation_nudge"]) == 1
 
 
 async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fit(
@@ -561,7 +576,7 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
     context = Context(Limits())
     context.execution_budget = execution_budget(9, 40)
     base = estimate(context.task_request(projected), specs)
-    total = estimate(context.task_request(projected, GUIDANCE), specs)
+    total = estimate(context.task_request(projected, PLAN_GUIDANCE), specs)
     budget = (base + total) // 2
     responses = reads(8) + [reply(text="must not request")]
     # Provider calibration reveals insufficient protected capacity at the boundary
@@ -606,5 +621,94 @@ async def test_nudge_audit_write_failure_stops_further_dispatch(
         assert not any(r["data"].get("stagnation_nudge_included") for r in records)
         assert not any(r["kind"] == "stagnation_nudge" for r in records)
         assert replay(records, tmp_path).messages == session.messages
+    finally:
+        writer.close()
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_second_reminder_requires_progress_resets_on_patch_and_stops_at_two(
+    tmp_path: Path, ok: bool
+) -> None:
+    session = Session(tmp_path, run_id="run")
+    set_plan(session, "in_progress", "pending", "pending")
+    detector = StagnationDetector(session)
+    for _ in range(7):
+        assert observe(detector, session) is None
+    assert observe(detector, session) is not None
+    for i in range(15):
+        set_plan(session, "in_progress", "pending", "pending", text=f"Rename {i}")
+        assert observe(detector, session) is None
+    set_plan(session, "completed", "in_progress", "pending")
+    assert observe(detector, session) is None
+    for _ in range(7):
+        assert observe(detector, session) is None
+    assert observe(detector, session, name="apply_patch", count=1, ok=ok) is None
+    for _ in range(7):
+        assert observe(detector, session) is None
+    assert observe(deepcopy(detector), session, step=40, max_steps=40) is None
+    assert observe(detector, session, step=39, max_steps=40) is not None
+    set_plan(session, "completed", "completed", "in_progress")
+    for _ in range(20):
+        assert observe(detector, session) is None
+    assert detector.nudge_count == 2
+
+
+async def test_two_plan_reminders_after_early_patch_are_request_only(tmp_path: Path) -> None:
+    session = Session(tmp_path)
+    writer = SessionLog.create(session, "task", {}, tmp_path)
+    events = Events(session, writer, ignore)
+    tools = registry(session)
+
+    async def patch(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+        return ToolResult(context.call_id, False, {"changed_files": 1}, "patch_io_error")
+
+    tools["apply_patch"] = Tool(ToolSpec("apply_patch", "", {}), patch)
+    first = reply(
+        call(
+            "update_plan",
+            {
+                "plan": [
+                    {"step": "Module A", "status": "in_progress"},
+                    {"step": "Module B", "status": "pending"},
+                ]
+            },
+            "plan",
+        ),
+        call("apply_patch", {}, "partial"),
+    )
+    progress = reply(
+        call(
+            "update_plan",
+            {
+                "plan": [
+                    {"step": "Module A", "status": "completed"},
+                    {"step": "Module B", "status": "in_progress"},
+                ]
+            },
+            "progress",
+        )
+    )
+    model = ScriptedModel(
+        [first] + reads(8) + [progress] + reads(8, prefix="later") + [reply(text="done")]
+    )
+    try:
+        result = await run_turn(session, "task", model, tools, events, Limits())
+        assert result.outcome == "completed"
+        assert [i + 1 for i, ms in enumerate(model.requests) if has_guidance(ms)] == [10, 19]
+        assert all(
+            sum(m.content.count(PLAN_GUIDANCE) for m in model.requests[i]) == 1 for i in (9, 18)
+        )
+        records, _ = read_records(writer.stream)
+        assert [r["data"]["step"] for r in records if r["kind"] == "stagnation_nudge"] == [9, 18]
+        assert [
+            r["data"]["step"] for r in records if r["data"].get("stagnation_nudge_included")
+        ] == [10, 19]
+        assert not has_guidance(session.messages)
+        assert not has_guidance(replay(records, tmp_path).messages)
+        assert all(
+            PLAN_GUIDANCE not in json.dumps(r["data"]) for r in records if r["kind"] == "message"
+        )
+        for messages in model.requests:
+            groups(messages)
     finally:
         writer.close()

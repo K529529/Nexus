@@ -1,0 +1,356 @@
+{
+  "claim": "Historical event replay only. Trigger opportunity is not a live correctness improvement.",
+  "rows": [
+    {
+      "cell": "C08",
+      "version": "v0.2",
+      "run_id": "20261008T174811Z-978d9da4",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": []
+    },
+    {
+      "cell": "C08",
+      "version": "dev3",
+      "run_id": "20261009T131023Z-aaceb1c8",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": []
+    },
+    {
+      "cell": "C08",
+      "version": "dev4",
+      "run_id": "20261009T133531Z-e3276fc5",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": []
+    },
+    {
+      "cell": "C17",
+      "version": "v0.2",
+      "run_id": "20261008T194152Z-8947f05d",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect existing files for missing/stub implementations",
+          "step": 11
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect existing files for missing/stub implementations"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect existing files for missing/stub implementations"
+        },
+        {
+          "step": 20,
+          "included_at_step": 21,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 20,
+          "threshold": 8,
+          "active_plan_step": "Implement indexes.py interfaces (filter_indexes_from_coords, isel_indexes)"
+        }
+      ]
+    },
+    {
+      "cell": "C17",
+      "version": "dev3",
+      "run_id": "20261009T131811Z-a19326db",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect current state of all 6 target files for missing stubs",
+          "step": 11
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect current state of all 6 target files for missing stubs"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Inspect current state of all 6 target files for missing stubs"
+        }
+      ]
+    },
+    {
+      "cell": "C17",
+      "version": "dev4",
+      "run_id": "20261009T134332Z-02aa2f7f",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 22,
+          "threshold": 8,
+          "active_plan_step": "Implement dict_equiv + drop_dims_from_indexers in utils.py",
+          "step": 22
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 22,
+          "included_at_step": 23,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 22,
+          "threshold": 8,
+          "active_plan_step": "Implement dict_equiv + drop_dims_from_indexers in utils.py"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 22,
+          "included_at_step": 23,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 22,
+          "threshold": 8,
+          "active_plan_step": "Implement dict_equiv + drop_dims_from_indexers in utils.py"
+        },
+        {
+          "step": 41,
+          "included_at_step": 42,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 41,
+          "threshold": 8,
+          "active_plan_step": "Implement merge functions in structure/merge.py"
+        }
+      ]
+    },
+    {
+      "cell": "C13",
+      "version": "v0.2",
+      "run_id": "20261008T184931Z-a5442fc2",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 18,
+          "threshold": 8,
+          "active_plan_step": "Restore Plot methods (add/facet/label/layout/limit/on/pair/scale/share) and ThemeConfig._repr_html_ in plot.py",
+          "step": 18
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 18,
+          "included_at_step": 19,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 18,
+          "threshold": 8,
+          "active_plan_step": "Restore Plot methods (add/facet/label/layout/limit/on/pair/scale/share) and ThemeConfig._repr_html_ in plot.py"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 18,
+          "included_at_step": 19,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 18,
+          "threshold": 8,
+          "active_plan_step": "Restore Plot methods (add/facet/label/layout/limit/on/pair/scale/share) and ThemeConfig._repr_html_ in plot.py"
+        }
+      ]
+    },
+    {
+      "cell": "C13",
+      "version": "dev3",
+      "run_id": "20261009T132728Z-04d93e4e",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": [
+        {
+          "step": 19,
+          "included_at_step": 20,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 8,
+          "threshold": 8,
+          "active_plan_step": "Identify missing Plot methods / ThemeConfig._repr_html_ in seaborn/_core/plot.py"
+        }
+      ]
+    },
+    {
+      "cell": "C13",
+      "version": "dev4",
+      "run_id": "20261009T135340Z-380f49b3",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": [
+        {
+          "step": 18,
+          "included_at_step": 19,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 8,
+          "threshold": 8,
+          "active_plan_step": "Identify missing Plot methods & ThemeConfig._repr_html_ in _core/plot.py"
+        }
+      ]
+    },
+    {
+      "cell": "C17",
+      "version": "baseline-prompt",
+      "run_id": "20261009T164500Z-73925e3d",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 12,
+          "threshold": 8,
+          "active_plan_step": "Implement filter_indexes_from_coords + isel_indexes in core/indexes.py",
+          "step": 12
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 12,
+          "included_at_step": 13,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 12,
+          "threshold": 8,
+          "active_plan_step": "Implement filter_indexes_from_coords + isel_indexes in core/indexes.py"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 12,
+          "included_at_step": 13,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 12,
+          "threshold": 8,
+          "active_plan_step": "Implement filter_indexes_from_coords + isel_indexes in core/indexes.py"
+        },
+        {
+          "step": 27,
+          "included_at_step": 28,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 27,
+          "threshold": 8,
+          "active_plan_step": "Implement filter_indexes_from_coords + isel_indexes + _apply_indexes in core/indexes.py"
+        }
+      ]
+    },
+    {
+      "cell": "C17",
+      "version": "subagent-nudge",
+      "run_id": "20261009T162812Z-2fe99645",
+      "recorded": [
+        {
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Survey current state of all 6 target files (what exists, what is missing/stubbed)",
+          "step": 11
+        }
+      ],
+      "baseline_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Survey current state of all 6 target files (what exists, what is missing/stubbed)"
+        }
+      ],
+      "proposed_replay": [
+        {
+          "step": 11,
+          "included_at_step": 12,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 11,
+          "threshold": 8,
+          "active_plan_step": "Survey current state of all 6 target files (what exists, what is missing/stubbed)"
+        }
+      ]
+    },
+    {
+      "cell": "C17",
+      "version": "dev12",
+      "run_id": "20261009T170421Z-29c29bd0",
+      "recorded": [],
+      "baseline_replay": [],
+      "proposed_replay": [
+        {
+          "step": 25,
+          "included_at_step": 26,
+          "trigger": "plan_idle",
+          "mode": "plan",
+          "plan_idle_steps": 8,
+          "pre_mutation_steps": 13,
+          "threshold": 8,
+          "active_plan_step": "Implement filter_indexes_from_coords & isel_indexes in indexes.py"
+        }
+      ]
+    }
+  ]
+}

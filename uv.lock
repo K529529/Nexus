@@ -612,7 +612,7 @@ wheels = [
 
 [[package]]
 name = "nexus-coding-agent"
-version = "0.3.0.dev13"
+version = "0.3.0.dev14"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
