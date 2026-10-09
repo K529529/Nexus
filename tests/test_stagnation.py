@@ -17,6 +17,7 @@ from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.stagnation import (
     GUIDANCE,
     PLAN_IDLE_THRESHOLD,
+    POST_MUTATION_GUIDANCE,
     PRE_MUTATION_THRESHOLD,
     StagnationDetector,
 )
@@ -152,7 +153,9 @@ def test_transition_resets_only_idle_and_both_thresholds_prefer_plan(tmp_path: P
 
 
 @pytest.mark.parametrize("ok", [True, False])
-def test_reported_mutation_wins_and_disables_even_at_threshold(tmp_path: Path, ok: bool) -> None:
+def test_reported_mutation_resets_idle_without_disabling_unfinished_plan(
+    tmp_path: Path, ok: bool
+) -> None:
     session = Session(tmp_path, run_id="run")
     detector = StagnationDetector(session)
     for _ in range(23):
@@ -164,8 +167,12 @@ def test_reported_mutation_wins_and_disables_even_at_threshold(tmp_path: Path, o
     ]
     assert detector.observe_completed_step(session, batch, step=24, max_steps=40) is None
     assert detector.mutation_seen and not detector.nudged
-    for _ in range(30):
-        assert observe(detector, session) is None
+    for step in range(25, 32):
+        assert observe(detector, session, step=step) is None
+    nudge = observe(detector, session, step=32)
+    assert nudge and nudge["trigger"] == "plan_idle" and nudge["after_mutation"]
+    for step in range(33, 40):
+        assert observe(detector, session, step=step) is None
 
 
 @pytest.mark.parametrize("count", [None, 0, -1, True, False, "1", 1.0, [], {}])
@@ -212,7 +219,7 @@ def reads(count: int, *, prefix: str = "r", batch_size: int = 1) -> list[ModelRe
 
 
 def has_guidance(messages: list[Message]) -> bool:
-    return any(GUIDANCE in m.content for m in messages)
+    return any(GUIDANCE in m.content or POST_MUTATION_GUIDANCE in m.content for m in messages)
 
 
 async def test_real_chain_order_one_nudge_persistence_and_fresh_resume(tmp_path: Path) -> None:
@@ -539,9 +546,13 @@ async def test_whole_batch_uses_final_plan_and_mutation_has_priority(
     result = await run_turn(session, "continue", model, tools, events, Limits())
     assert result.outcome == "completed"
     assert [i + 1 for i, ms in enumerate(model.requests) if has_guidance(ms)] == (
-        [] if mutates else [9]
+        [17] if mutates else [9]
     )
-    assert len([d for k, d in events.events if k == "stagnation_nudge"]) == int(not mutates)
+    assert len([d for k, d in events.events if k == "stagnation_nudge"]) == 1
+    if mutates:
+        assert any(POST_MUTATION_GUIDANCE in m.content for m in model.requests[16])
+        assert not any(GUIDANCE in m.content for m in model.requests[16])
+        assert not has_guidance(session.messages)
 
 
 async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fit(
@@ -608,3 +619,37 @@ async def test_nudge_audit_write_failure_stops_further_dispatch(
         assert replay(records, tmp_path).messages == session.messages
     finally:
         writer.close()
+
+
+@pytest.mark.parametrize("planned", [False, True])
+def test_mutation_without_unfinished_plan_does_not_nudge(tmp_path: Path, planned: bool) -> None:
+    session = Session(tmp_path, run_id="run")
+    if planned:
+        set_plan(session, "completed")
+    detector = StagnationDetector(session)
+    assert observe(detector, session, name="apply_patch", count=1) is None
+    for step in range(2, 40):
+        assert observe(detector, session, step=step) is None
+
+
+def test_continued_edits_and_plan_progress_reset_post_mutation_idle(tmp_path: Path) -> None:
+    session = Session(tmp_path, run_id="run")
+    set_plan(session, "in_progress", "pending")
+    detector = StagnationDetector(session)
+    for step in range(1, 23):
+        assert (
+            observe(
+                detector,
+                session,
+                step=step,
+                name="apply_patch" if step % 7 == 1 else "exec_command",
+                count=1 if step % 7 == 1 else None,
+            )
+            is None
+        )
+    set_plan(session, "completed", "in_progress")
+    assert observe(detector, session, step=23) is None
+    for step in range(24, 31):
+        assert observe(detector, session, step=step) is None
+    nudge = observe(detector, session, step=31)
+    assert nudge and nudge["after_mutation"]
