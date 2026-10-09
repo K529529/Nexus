@@ -1,6 +1,6 @@
 # Plan idle after mutation: isolated follow-up experiment
 
-Status: experimental, real-task benefit NOT YET VERIFIED. The failed V0.3 sprint remains FAILED; stable V0.2 remains the recommendation. The continuing long-term goal authorizes further evidence-driven work, not relabeling that failure.
+Status: live candidate FAILED; the added detector branch was NOT EXERCISED. No demonstrated benefit. The failed V0.3 sprint remains FAILED; stable V0.2 remains the recommendation. The continuing long-term goal authorizes further evidence-driven work, not relabeling that failure.
 
 ## Observed failure and proposed change
 
@@ -28,8 +28,18 @@ In particular, V0.2 C13 already received a reminder and still failed. A newly re
 
 Windows full suite: 507 passed, 10 optional Docker checks skipped. Targeted detector/SubAgent tests: 41 passed. Ruff PASS; mypy src + tests PASS (64 files). Lock validation PASS; dependency pins unchanged (only the Nexus candidate version changes). Regression coverage includes post-mutation reactivation, repeated-edit reset, completed/absent plan silence, single nudge, partial mutation, and request-only guidance through the real Loop.
 
-One changed-candidate C13 execution will use the same qwen3.8-flash / low / 50 steps / 900s / one sample / no retry, official FeatureBench evaluator, Candidate Freeze and isolation. Compared with final dev4, only the detector and its corresponding guidance change (plus package version); the system prompt, tools, model and budgets stay fixed. Do not claim general improvement or release readiness from a single development case. Further acceptance still requires positive-control preservation, wider required-interface coverage and real SubAgent benefit.
+One changed-candidate C13 execution used the same qwen3.8-flash / low / 50 steps / 900s / one sample / no retry, official FeatureBench evaluator, Candidate Freeze and isolation. Compared with final dev4, only the detector and its corresponding guidance change (plus package version); the system prompt, tools, model and budgets stay fixed. Do not claim general improvement or release readiness from a single development case. Further acceptance still requires positive-control preservation, wider required-interface coverage and real SubAgent benefit.
 
 Experiment directory: D:/WorkSpace/AgentBenchKit/.agentbenchkit/experiments/nexus-plan-idle-recovery-20261009
 
-Live execution: NOT RUN at this commit. No merge or release.
+## Live result and decision
+
+Run `20261009T142348Z-9a3bc9b6`, frozen source `bc031f9`, official **FAIL**, execution **TIMED_OUT** at 900.6s. Candidate patch is 0 bytes; no files changed or deleted. The official report says `patch_exists=false`, `patch_successfully_applied=false`, `resolved=false`. Its empty F2P/P2P arrays are **tests not executed**, not 0/202 test passes.
+
+Main requests: 42 started / 41 finished; last started step 41, last finished step 40. One existing transport retry occurred at step 24; no Agent retry. Reported input 1,513,816, output 53,575, cached input subset 1,000,704. Reported-cost subtotal ¥0.65521 using the same historical price basis as the earlier final report; missing failed/in-flight usage is unknown. Model completed-attempt wall time 893.024s; native tools 3.931s. Patch attempts 0, SubAgent calls/steps/cost 0. There is no mutation-then-validation cycle to credit.
+
+The old pre-mutation plan-idle reminder fired after step 11 and was included in the step 12 request. The model kept exploring. This consumed the only permitted reminder, so the added post-mutation branch was never reached. Replaying this actual trajectory through the old and new detectors yields identical reminder events. Therefore the outcome cannot demonstrate either benefit or harm caused by the new branch; it demonstrates another failure of this overall candidate and no evidence for keeping the extension.
+
+Integrity audit PASS: unchanged frozen files/ABK release, source/wheel match, one execution, raw/archive hashes equal, Candidate Freeze and cleanup complete, pinned official verdict confirmed. [Result and receipts](plan-idle-result.json).
+
+**Do not merge/release. Do not carry this unexercised extension into the next independent ablation.** Stable V0.2 remains the recommendation. Do not rerun this failed frozen candidate. The separate [observation retention diagnosis](observation-retention-diagnosis.md) identifies a next hypothesis based on actual re-read/projection evidence; it has no live benefit proof yet. The long-term goal remains unmet and active.

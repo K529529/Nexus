@@ -1,0 +1,192 @@
+{
+  "run_id": "20261009T142348Z-9a3bc9b6",
+  "sample": {
+    "sample_id": "sample-mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1-1",
+    "task_id": "mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1",
+    "execution_status": "TIMED_OUT",
+    "agent_outcome": "UNKNOWN",
+    "verifier_status": "FAIL",
+    "analysis_status": "NOT_RUN",
+    "cleanup_status": "COMPLETED",
+    "candidate_frozen": true,
+    "startup_retries_exhausted": false,
+    "candidate_pass": false,
+    "sample_success": false
+  },
+  "agent_seconds": 900.6107849849996,
+  "main": {
+    "started": 42,
+    "finished": 41,
+    "usage_complete": false,
+    "cache_usage_complete": false,
+    "missing_cache_assumption": "zero cache as in original report",
+    "usage": {
+      "input_tokens": 1513816,
+      "output_tokens": 53575,
+      "cached_input_tokens": 1000704
+    },
+    "estimated_cny": 0.6552125,
+    "wall_seconds": 893.024,
+    "timing": {
+      "request_total_ms": {
+        "count": 41,
+        "sum_ms": 893024,
+        "median_ms": 10975
+      },
+      "ttft_ms": {
+        "count": 40,
+        "sum_ms": 57236,
+        "median_ms": 1329.5
+      },
+      "generation_ms": {
+        "count": 40,
+        "sum_ms": 816624,
+        "median_ms": 8333.0
+      }
+    }
+  },
+  "child": {
+    "started": 0,
+    "finished": 0,
+    "usage_complete": true,
+    "cache_usage_complete": true,
+    "missing_cache_assumption": "zero cache as in original report",
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0
+    },
+    "estimated_cny": 0.0,
+    "wall_seconds": 0.0,
+    "timing": {}
+  },
+  "total_estimated_cny": 0.6552125,
+  "patch_attempts": 0,
+  "patch_errors": 0,
+  "tool_errors": [
+    {
+      "step": 29,
+      "tool": "exec_command",
+      "error": "command_exit_nonzero"
+    },
+    {
+      "step": 33,
+      "tool": "exec_command",
+      "error": "command_exit_nonzero"
+    },
+    {
+      "step": 35,
+      "tool": "exec_command",
+      "error": "command_exit_nonzero"
+    }
+  ],
+  "tool_calls": 51,
+  "native_tool_wall_seconds": 3.931,
+  "decision": "No demonstrated benefit; do not merge; do not carry this unexercised mechanism into the next ablation",
+  "last_started_step": 41,
+  "last_finished_step": 40,
+  "new_branch_exercised": false,
+  "nudges": [
+    {
+      "trigger": "plan_idle",
+      "mode": "plan",
+      "plan_idle_steps": 8,
+      "pre_mutation_steps": 11,
+      "threshold": 8,
+      "active_plan_step": "Inspect existing seaborn/_core/plot.py and external/version.py to find removed interfaces",
+      "step": 11
+    }
+  ],
+  "old_detector_replay": [
+    {
+      "step": 11,
+      "included_at_step": 12,
+      "trigger": "plan_idle",
+      "mode": "plan",
+      "plan_idle_steps": 8,
+      "pre_mutation_steps": 11,
+      "threshold": 8,
+      "active_plan_step": "Inspect existing seaborn/_core/plot.py and external/version.py to find removed interfaces"
+    }
+  ],
+  "new_detector_replay": [
+    {
+      "step": 11,
+      "included_at_step": 12,
+      "trigger": "plan_idle",
+      "mode": "plan",
+      "plan_idle_steps": 8,
+      "pre_mutation_steps": 11,
+      "threshold": 8,
+      "active_plan_step": "Inspect existing seaborn/_core/plot.py and external/version.py to find removed interfaces"
+    }
+  ],
+  "candidate": {
+    "schema_version": 2,
+    "format": "git_patch",
+    "baseline_hash": "b6daf71a318a76f6339764a49adbe9bde2b160be",
+    "candidate_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate_tree": "b6daf71a318a76f6339764a49adbe9bde2b160be",
+    "files": [],
+    "changed": [],
+    "deleted": []
+  },
+  "official_report": {
+    "n_attempt": 1,
+    "patch_is_None": false,
+    "patch_exists": false,
+    "patch_successfully_applied": false,
+    "resolved": false,
+    "pass_rate": 0.0,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [],
+        "failure": []
+      }
+    },
+    "featurebench_eval_completed": true,
+    "featurebench_eval_completed_at": "2026-10-09T22:40:20.277907"
+  },
+  "test_count_interpretation": "NOT EXECUTED: empty patch rejected; do not report 0/202",
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "bc031f95e2f28f412cf3e17a94517b4cf51fa07d",
+    "manifest_sha256": "117ea6d14d7c4403e3475b6dbcaf4878d7582a673e1b77e0c56021fa75a218e9",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C13",
+        "run": "20261009T142348Z-9a3bc9b6",
+        "sample": {
+          "sample_id": "sample-mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1-1",
+          "task_id": "mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1",
+          "execution_status": "TIMED_OUT",
+          "agent_outcome": "UNKNOWN",
+          "verifier_status": "FAIL",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": false,
+          "sample_success": false
+        },
+        "evidence_hash": "715c2f803c5fba437044d08895cf2bba22ea51cdc0c9e2d1be83c3bc7fbf810f",
+        "official_report_sha256": "3d6cf77250c661b81f79c59f0f84020184c8a7e6f3af72ba4b8ad400e750f70b",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 0,
+            "failure": 0
+          },
+          "PASS_TO_PASS": {
+            "success": 0,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  }
+}
