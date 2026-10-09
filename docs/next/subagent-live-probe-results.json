@@ -1,0 +1,427 @@
+{
+  "scope": "Direct tool integration diagnostics only; no autonomous Main adoption or official evaluation.",
+  "source_commit": "c1250f873b9e6fb7df718d0193c1146fcf2f4083",
+  "rows": [
+    {
+      "classification": "INVALID diagnostic: constant event sequence",
+      "path": "D:\\WorkSpace\\AgentBenchKit\\.agentbenchkit\\experiments\\nexus-subagent-readonly-probe-20261009",
+      "manifest_sha256": "d5bc0663af19376f8e80732d0f41465e28f33dd8464bb930914142998ec9278b",
+      "events_sha256": "9c70ba7bca5af46c671efcaaeff80dd9fddf46a8b0a2736d1f0e8f7b465e82f4",
+      "integrity": "PASS",
+      "source_unchanged": {
+        "files": 195,
+        "sha256": "99acefbb7d68a62324acfeb5a7b9869660b3c2fe2d84e048376152f24b7902b6",
+        "investigated_files": {
+          "core/coordinate_transform.py": "b82a5c7628daa8db682a0840514ed7612b5356f61308377d01e2ce1272b1925e",
+          "core/indexing.py": "414f89d13e8c0b668649eeeb0b313337ec4a1d21d43a5156f4a3a4153b071a4c",
+          "indexes/range_index.py": "721e7e8b00d1423ec352c87fc76aef709209805a8a2f3ae58946f5e5fdcb9959"
+        }
+      },
+      "result": {
+        "call_id": "probe-child",
+        "ok": false,
+        "data": {
+          "report": {
+            "findings": [],
+            "uncertainties": [
+              "No structured final report returned"
+            ]
+          },
+          "outcome": "failed",
+          "reason": "unpaired_context",
+          "steps": 5,
+          "model_calls": 4,
+          "tool_calls": 10,
+          "usage": {
+            "input_tokens": 13310,
+            "output_tokens": 1142,
+            "total_tokens": 14452,
+            "source": "reported",
+            "cached_input_tokens": 3072
+          },
+          "child_session_id": "ea43ef10fe99424e8117292ace1e1366",
+          "workspace_access": "read_only",
+          "depth": 1,
+          "duration_ms": 18411
+        },
+        "error_code": "subagent_incomplete",
+        "duration_ms": 18411,
+        "truncated": false
+      },
+      "requests": [
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 3
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 6
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 10
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 14
+        }
+      ],
+      "model_finishes": [
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 2559,
+          "request_total_ms": 2559,
+          "ttft_ms": 912,
+          "generation_ms": 1645,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 1484,
+            "output_tokens": 151,
+            "total_tokens": 1635,
+            "source": "reported",
+            "cached_input_tokens": 0
+          },
+          "step": 1,
+          "parent_call_id": "probe-child",
+          "child_session_id": "ea43ef10fe99424e8117292ace1e1366",
+          "child_run_id": "136fd75f2486457ba79c6ae5de3a114a",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 2802,
+          "request_total_ms": 2802,
+          "ttft_ms": 992,
+          "generation_ms": 1808,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 1816,
+            "output_tokens": 191,
+            "total_tokens": 2007,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 2,
+          "parent_call_id": "probe-child",
+          "child_session_id": "ea43ef10fe99424e8117292ace1e1366",
+          "child_run_id": "136fd75f2486457ba79c6ae5de3a114a",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 5051,
+          "request_total_ms": 5051,
+          "ttft_ms": 971,
+          "generation_ms": 4079,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 4207,
+            "output_tokens": 388,
+            "total_tokens": 4595,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 3,
+          "parent_call_id": "probe-child",
+          "child_session_id": "ea43ef10fe99424e8117292ace1e1366",
+          "child_run_id": "136fd75f2486457ba79c6ae5de3a114a",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 7987,
+          "request_total_ms": 7987,
+          "ttft_ms": 1553,
+          "generation_ms": 6433,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 5803,
+            "output_tokens": 412,
+            "total_tokens": 6215,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 4,
+          "parent_call_id": "probe-child",
+          "child_session_id": "ea43ef10fe99424e8117292ace1e1366",
+          "child_run_id": "136fd75f2486457ba79c6ae5de3a114a",
+          "depth": 1
+        }
+      ],
+      "estimated_cny": 0.011581
+    },
+    {
+      "classification": "VALID component diagnosis",
+      "path": "D:\\WorkSpace\\AgentBenchKit\\.agentbenchkit\\experiments\\nexus-subagent-readonly-probe-r2-20261009",
+      "manifest_sha256": "af96292c9be2b1b5dffabfeba332245b3a36d120bc610615018f6f427a02d4f1",
+      "events_sha256": "94d387ac2e654acbafd8184183350e225f22857ff5cc17d8e28e7305a0fecb3a",
+      "integrity": "PASS",
+      "source_unchanged": {
+        "files": 195,
+        "sha256": "99acefbb7d68a62324acfeb5a7b9869660b3c2fe2d84e048376152f24b7902b6",
+        "investigated_files": {
+          "core/coordinate_transform.py": "b82a5c7628daa8db682a0840514ed7612b5356f61308377d01e2ce1272b1925e",
+          "core/indexing.py": "414f89d13e8c0b668649eeeb0b313337ec4a1d21d43a5156f4a3a4153b071a4c",
+          "indexes/range_index.py": "721e7e8b00d1423ec352c87fc76aef709209805a8a2f3ae58946f5e5fdcb9959"
+        }
+      },
+      "result": {
+        "call_id": "probe-child",
+        "ok": false,
+        "data": {
+          "report": {
+            "findings": [],
+            "uncertainties": [
+              "No structured final report returned"
+            ]
+          },
+          "outcome": "failed",
+          "reason": "invalid_finish: length",
+          "steps": 5,
+          "model_calls": 5,
+          "tool_calls": 10,
+          "usage": {
+            "input_tokens": 27100,
+            "output_tokens": 4958,
+            "total_tokens": 32058,
+            "source": "reported",
+            "cached_input_tokens": 10496
+          },
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "workspace_access": "read_only",
+          "depth": 1,
+          "duration_ms": 79266
+        },
+        "error_code": "subagent_incomplete",
+        "duration_ms": 79266,
+        "truncated": false
+      },
+      "requests": [
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 3
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 6
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 10
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 12
+        },
+        {
+          "model": "qwen3.8-flash",
+          "max_tokens": 2048,
+          "reasoning_effort": "low",
+          "tool_names": [
+            "inspect_repository"
+          ],
+          "message_count": 17
+        }
+      ],
+      "model_finishes": [
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 4338,
+          "request_total_ms": 4338,
+          "ttft_ms": 1985,
+          "generation_ms": 2351,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 1484,
+            "output_tokens": 187,
+            "total_tokens": 1671,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 1,
+          "parent_call_id": "probe-child",
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "child_run_id": "a14d2c5eef9d4090aab2aa9cde261399",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 2956,
+          "request_total_ms": 2956,
+          "ttft_ms": 793,
+          "generation_ms": 2162,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 6202,
+            "output_tokens": 245,
+            "total_tokens": 6447,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 2,
+          "parent_call_id": "probe-child",
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "child_run_id": "a14d2c5eef9d4090aab2aa9cde261399",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 1859,
+          "request_total_ms": 1859,
+          "ttft_ms": 600,
+          "generation_ms": 1258,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 5298,
+            "output_tokens": 117,
+            "total_tokens": 5415,
+            "source": "reported",
+            "cached_input_tokens": 1024
+          },
+          "step": 3,
+          "parent_call_id": "probe-child",
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "child_run_id": "a14d2c5eef9d4090aab2aa9cde261399",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 21720,
+          "request_total_ms": 21720,
+          "ttft_ms": 947,
+          "generation_ms": 20772,
+          "timing_source": "client_stream",
+          "finish_reason": "tool_calls",
+          "usage": {
+            "input_tokens": 5787,
+            "output_tokens": 1122,
+            "total_tokens": 6909,
+            "source": "reported",
+            "cached_input_tokens": 2048
+          },
+          "step": 4,
+          "parent_call_id": "probe-child",
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "child_run_id": "a14d2c5eef9d4090aab2aa9cde261399",
+          "depth": 1
+        },
+        {
+          "model": "qwen3.8-flash",
+          "attempt": 1,
+          "duration_ms": 48377,
+          "request_total_ms": 48377,
+          "ttft_ms": 1436,
+          "generation_ms": 46940,
+          "timing_source": "client_stream",
+          "finish_reason": "length",
+          "usage": {
+            "input_tokens": 8329,
+            "output_tokens": 3287,
+            "total_tokens": 11616,
+            "source": "reported",
+            "cached_input_tokens": 5376
+          },
+          "step": 5,
+          "parent_call_id": "probe-child",
+          "child_session_id": "02eaf4cafb7a4ddda10e5f08aae4869b",
+          "child_run_id": "a14d2c5eef9d4090aab2aa9cde261399",
+          "depth": 1
+        }
+      ],
+      "estimated_cny": 0.0277194
+    }
+  ],
+  "invalid_harness_replay": {
+    "status": "PASS",
+    "no_model_calls": true,
+    "rows": [
+      {
+        "unique_sequences": false,
+        "ok": false,
+        "outcome": "failed",
+        "reason": "unpaired_context",
+        "model_calls": 4,
+        "second_request_tool_call_ids": [
+          "call_3de24d5f8c664441a8b5933a",
+          "call_3de24d5f8c664441a8b5933a"
+        ],
+        "second_request_expected_ids": [
+          "call_68a101d1f4354ca9a5319efb",
+          "call_3de24d5f8c664441a8b5933a"
+        ]
+      },
+      {
+        "unique_sequences": true,
+        "ok": true,
+        "outcome": "completed",
+        "reason": null,
+        "model_calls": 5,
+        "second_request_tool_call_ids": [
+          "call_68a101d1f4354ca9a5319efb",
+          "call_3de24d5f8c664441a8b5933a"
+        ],
+        "second_request_expected_ids": [
+          "call_68a101d1f4354ca9a5319efb",
+          "call_3de24d5f8c664441a8b5933a"
+        ]
+      }
+    ]
+  },
+  "estimated_cny_total": 0.0393004,
+  "price_basis": "Historical experiment formula, not invoice; all attempts retained including invalid diagnostic."
+}

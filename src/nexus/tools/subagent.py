@@ -168,9 +168,14 @@ def create_spawn_agent_tool(
                 system + "\n\nYou are an isolated read-only "
                 "investigator. Only inspect_repository is available. Do not edit, execute code, "
                 "delegate or plan the whole parent task. Answer the question within 6 turns. "
-                "Return JSON with findings (array of concise path:line evidence and implementation "
-                "implications) and uncertainties (array of strings). Distinguish observations from "
-                "hypotheses. Return findings before exhausting steps.",
+                "Return only JSON with findings and uncertainties (arrays of strings). "
+                "Use at most 4 findings and 2 uncertainties; keep the entire JSON under 1200 "
+                "characters. Each finding should cite path:line evidence and one implementation "
+                "implication. Omit background explanations and code fences. Distinguish "
+                "observations from hypotheses. Finish as soon as the question is answerable; "
+                "report unresolved "
+                "points as uncertainties instead of exhausting the budget. Return findings before "
+                "exhausting steps.",
             )
         ]
 
