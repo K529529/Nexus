@@ -340,6 +340,7 @@ async def test_suite_sequential_persistence_and_stop(
     assert manifest["context_policy"] == "Context Runtime V0.2.1"
     assert manifest["observation_projection"] == {
         "version": "compact-v1",
+        "command_echo": "exact-call-v1",
         "working_set_tokens": 16384,
         "working_set_fraction": 0.25,
         "success_max_bytes": 1024,

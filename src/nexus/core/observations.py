@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
-from nexus.core.types import Json, Message, Session, json_text
+from nexus.core.types import Json, Message, Session, ToolCall, json_text
 
 CONTEXT_POLICY = "Context Runtime V0.2.1"
 VERSION = "compact-v1"
+COMMAND_ECHO_POLICY = "exact-call-v1"
 WORKING_SET_TOKENS = 16384
 WORKING_SET_FRACTION = 0.25
 SUCCESS_MAX_BYTES = 1024
@@ -21,6 +23,7 @@ def provenance() -> Json:
         "context_policy": CONTEXT_POLICY,
         "observation_projection": {
             "version": VERSION,
+            "command_echo": COMMAND_ECHO_POLICY,
             "working_set_tokens": WORKING_SET_TOKENS,
             "working_set_fraction": WORKING_SET_FRACTION,
             "success_max_bytes": SUCCESS_MAX_BYTES,
@@ -186,6 +189,39 @@ def compact(message: Message, tool: str) -> Message:
         return message
 
 
+def command_reference(message: Message, call: ToolCall) -> Message:
+    """Replace only an exact command echo whose unique caller remains in this request."""
+    if call.name != "exec_command" or call.id != message.tool_call_id:
+        return message
+    try:
+        original = json.loads(message.content)
+        arguments = json.loads(call.arguments_json)
+        if (
+            not isinstance(original, dict)
+            or original.get("call_id") != call.id
+            or type(original.get("ok")) is not bool
+            or type(original.get("truncated")) is not bool
+            or "projection" in original
+            or not isinstance(original.get("data"), dict)
+            or not isinstance(arguments, dict)
+            or not isinstance(arguments.get("command"), str)
+        ):
+            return message
+        data = original["data"]
+        if "command_ref" in data or data.get("command") != arguments["command"]:
+            return message
+        del data["command"]
+        data["command_ref"] = call.id
+        content = json_text(original)
+        return (
+            replace(message, content=content)
+            if byte_size(content) < byte_size(message.content)
+            else message
+        )
+    except (ValueError, TypeError, OverflowError, RecursionError):
+        return message
+
+
 @dataclass
 class Projection:
     messages: list[Message]
@@ -218,8 +254,20 @@ def project(
             break
         recent.add(message.seq)
         remaining -= size
+    # Bind to callers actually present in the logical request, never omitted history.
+    call_counts = Counter(c.id for m in full if m.role == "assistant" for c in m.tool_calls)
+    callers = {}
+    for index, message in enumerate(full):
+        if message.role != "assistant" or not message.tool_calls:
+            continue
+        results = full[index + 1 : index + 1 + len(message.tool_calls)]
+        if len(results) == len(message.tool_calls) and all(
+            r.role == "tool" and r.tool_call_id == c.id
+            for c, r in zip(message.tool_calls, results, strict=True)
+        ):
+            callers.update({c.id: c for c in message.tool_calls if call_counts[c.id] == 1})
     projected = []
-    cold = compacted = 0
+    cold = compacted = command_refs = command_saved = 0
     for message in full:
         result = message
         if message.role == "tool" and message.seq not in hot | recent:
@@ -228,12 +276,20 @@ def project(
             if message.seq in raw and message.tool_call_id in names:
                 result = compact(message, names[message.tool_call_id])
             compacted += int(result is not message)
+        if result.role == "tool" and result.tool_call_id in callers:
+            referenced = command_reference(result, callers[result.tool_call_id])
+            command_refs += int(referenced is not result)
+            command_saved += byte_size(result.content) - byte_size(referenced.content)
+            result = referenced
         projected.append(result)
     visible = [m for m in projected if m.role == "tool"]
     return Projection(
         projected,
         {
             "version": VERSION,
+            "command_echo": COMMAND_ECHO_POLICY,
+            "command_echo_references": command_refs,
+            "command_echo_saved_bytes": command_saved,
             "working_set_target_tokens": target,
             "hot_full_count": sum(m.seq in hot for m in observations),
             "recent_full_count": len(recent),

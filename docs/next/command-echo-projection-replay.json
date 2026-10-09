@@ -1,0 +1,3890 @@
+{
+  "scope": "Exact dev14 public observation projections rebuilt and diagnostics matched; production candidate matches every expected projected message. Command echoes removed only when identical caller arguments remain in this request; raw stdout/stderr and all other facts unchanged. Token delta is local estimate only, private reasoning excluded. Not new model behavior.",
+  "run_id": "20261009T173455Z-e6da9805",
+  "projection_count": 50,
+  "sum_saved_observation_bytes_across_requests": 382458,
+  "sum_original_observation_bytes_across_requests": 2534133,
+  "sum_estimated_token_delta": 134773,
+  "unique_results": {
+    "11": {
+      "saved_bytes": 55,
+      "command_bytes": 86
+    },
+    "14": {
+      "saved_bytes": 146,
+      "command_bytes": 179
+    },
+    "21": {
+      "saved_bytes": 21,
+      "command_bytes": 54
+    },
+    "24": {
+      "saved_bytes": 155,
+      "command_bytes": 178
+    },
+    "35": {
+      "saved_bytes": 180,
+      "command_bytes": 205
+    },
+    "38": {
+      "saved_bytes": 122,
+      "command_bytes": 149
+    },
+    "45": {
+      "saved_bytes": 58,
+      "command_bytes": 87
+    },
+    "48": {
+      "saved_bytes": 60,
+      "command_bytes": 89
+    },
+    "55": {
+      "saved_bytes": 273,
+      "command_bytes": 290
+    },
+    "58": {
+      "saved_bytes": 24,
+      "command_bytes": 57
+    },
+    "65": {
+      "saved_bytes": 281,
+      "command_bytes": 299
+    },
+    "72": {
+      "saved_bytes": 24,
+      "command_bytes": 57
+    },
+    "79": {
+      "saved_bytes": 22,
+      "command_bytes": 55
+    },
+    "86": {
+      "saved_bytes": 116,
+      "command_bytes": 142
+    },
+    "89": {
+      "saved_bytes": 22,
+      "command_bytes": 55
+    },
+    "96": {
+      "saved_bytes": 22,
+      "command_bytes": 55
+    },
+    "103": {
+      "saved_bytes": 24,
+      "command_bytes": 57
+    },
+    "111": {
+      "saved_bytes": 133,
+      "command_bytes": 160
+    },
+    "118": {
+      "saved_bytes": 22,
+      "command_bytes": 53
+    },
+    "121": {
+      "saved_bytes": 130,
+      "command_bytes": 155
+    },
+    "128": {
+      "saved_bytes": 164,
+      "command_bytes": 191
+    },
+    "135": {
+      "saved_bytes": 300,
+      "command_bytes": 319
+    },
+    "142": {
+      "saved_bytes": 219,
+      "command_bytes": 240
+    },
+    "149": {
+      "saved_bytes": 255,
+      "command_bytes": 275
+    },
+    "156": {
+      "saved_bytes": 28,
+      "command_bytes": 61
+    },
+    "163": {
+      "saved_bytes": 232,
+      "command_bytes": 256
+    },
+    "177": {
+      "saved_bytes": 3249,
+      "command_bytes": 3139
+    },
+    "199": {
+      "saved_bytes": 115,
+      "command_bytes": 142
+    },
+    "206": {
+      "saved_bytes": 24,
+      "command_bytes": 57
+    },
+    "213": {
+      "saved_bytes": 2352,
+      "command_bytes": 2306
+    },
+    "220": {
+      "saved_bytes": 363,
+      "command_bytes": 386
+    },
+    "227": {
+      "saved_bytes": 25,
+      "command_bytes": 58
+    },
+    "234": {
+      "saved_bytes": 115,
+      "command_bytes": 146
+    },
+    "241": {
+      "saved_bytes": 25,
+      "command_bytes": 58
+    },
+    "248": {
+      "saved_bytes": 211,
+      "command_bytes": 235
+    },
+    "256": {
+      "saved_bytes": 25,
+      "command_bytes": 58
+    },
+    "263": {
+      "saved_bytes": 349,
+      "command_bytes": 364
+    },
+    "270": {
+      "saved_bytes": 7838,
+      "command_bytes": 7564
+    },
+    "277": {
+      "saved_bytes": 192,
+      "command_bytes": 217
+    },
+    "284": {
+      "saved_bytes": 47,
+      "command_bytes": 80
+    },
+    "291": {
+      "saved_bytes": 45,
+      "command_bytes": 76
+    },
+    "298": {
+      "saved_bytes": 61,
+      "command_bytes": 94
+    },
+    "305": {
+      "saved_bytes": 194,
+      "command_bytes": 221
+    },
+    "312": {
+      "saved_bytes": 11060,
+      "command_bytes": 10676
+    },
+    "319": {
+      "saved_bytes": 104,
+      "command_bytes": 135
+    },
+    "340": {
+      "saved_bytes": 491,
+      "command_bytes": 502
+    },
+    "347": {
+      "saved_bytes": 321,
+      "command_bytes": 340
+    },
+    "354": {
+      "saved_bytes": 372,
+      "command_bytes": 393
+    },
+    "361": {
+      "saved_bytes": 3256,
+      "command_bytes": 3148
+    },
+    "368": {
+      "saved_bytes": 73,
+      "command_bytes": 106
+    },
+    "375": {
+      "saved_bytes": 2211,
+      "command_bytes": 2153
+    }
+  },
+  "rows": [
+    {
+      "step": 1,
+      "deduplicated_results": 0,
+      "saved_bytes": 0,
+      "original_observation_bytes": 0,
+      "estimated_token_delta": 0,
+      "edits": []
+    },
+    {
+      "step": 2,
+      "deduplicated_results": 2,
+      "saved_bytes": 201,
+      "original_observation_bytes": 1895,
+      "estimated_token_delta": 68,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "deduplicated_results": 4,
+      "saved_bytes": 377,
+      "original_observation_bytes": 4624,
+      "estimated_token_delta": 134,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "deduplicated_results": 6,
+      "saved_bytes": 679,
+      "original_observation_bytes": 6585,
+      "estimated_token_delta": 243,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "deduplicated_results": 8,
+      "saved_bytes": 797,
+      "original_observation_bytes": 12607,
+      "estimated_token_delta": 289,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "deduplicated_results": 10,
+      "saved_bytes": 1094,
+      "original_observation_bytes": 14874,
+      "estimated_token_delta": 398,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "deduplicated_results": 11,
+      "saved_bytes": 1375,
+      "original_observation_bytes": 19284,
+      "estimated_token_delta": 502,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "deduplicated_results": 12,
+      "saved_bytes": 1399,
+      "original_observation_bytes": 25201,
+      "estimated_token_delta": 509,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "deduplicated_results": 13,
+      "saved_bytes": 1421,
+      "original_observation_bytes": 32852,
+      "estimated_token_delta": 517,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        }
+      ]
+    },
+    {
+      "step": 10,
+      "deduplicated_results": 15,
+      "saved_bytes": 1559,
+      "original_observation_bytes": 38130,
+      "estimated_token_delta": 568,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        }
+      ]
+    },
+    {
+      "step": 11,
+      "deduplicated_results": 16,
+      "saved_bytes": 1581,
+      "original_observation_bytes": 42272,
+      "estimated_token_delta": 575,
+      "edits": [
+        {
+          "seq": 11,
+          "saved_bytes": 55,
+          "original_bytes": 1132
+        },
+        {
+          "seq": 14,
+          "saved_bytes": 146,
+          "original_bytes": 763
+        },
+        {
+          "seq": 21,
+          "saved_bytes": 21,
+          "original_bytes": 1271
+        },
+        {
+          "seq": 24,
+          "saved_bytes": 155,
+          "original_bytes": 1458
+        },
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        }
+      ]
+    },
+    {
+      "step": 12,
+      "deduplicated_results": 13,
+      "saved_bytes": 1228,
+      "original_observation_bytes": 48498,
+      "estimated_token_delta": 449,
+      "edits": [
+        {
+          "seq": 35,
+          "saved_bytes": 180,
+          "original_bytes": 617
+        },
+        {
+          "seq": 38,
+          "saved_bytes": 122,
+          "original_bytes": 568
+        },
+        {
+          "seq": 45,
+          "saved_bytes": 58,
+          "original_bytes": 1339
+        },
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        }
+      ]
+    },
+    {
+      "step": 13,
+      "deduplicated_results": 11,
+      "saved_bytes": 1001,
+      "original_observation_bytes": 50404,
+      "estimated_token_delta": 366,
+      "edits": [
+        {
+          "seq": 48,
+          "saved_bytes": 60,
+          "original_bytes": 4683
+        },
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        }
+      ]
+    },
+    {
+      "step": 14,
+      "deduplicated_results": 12,
+      "saved_bytes": 1093,
+      "original_observation_bytes": 48945,
+      "estimated_token_delta": 401,
+      "edits": [
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        }
+      ]
+    },
+    {
+      "step": 15,
+      "deduplicated_results": 13,
+      "saved_bytes": 1257,
+      "original_observation_bytes": 49569,
+      "estimated_token_delta": 459,
+      "edits": [
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        }
+      ]
+    },
+    {
+      "step": 16,
+      "deduplicated_results": 14,
+      "saved_bytes": 1557,
+      "original_observation_bytes": 50573,
+      "estimated_token_delta": 569,
+      "edits": [
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        }
+      ]
+    },
+    {
+      "step": 17,
+      "deduplicated_results": 15,
+      "saved_bytes": 1776,
+      "original_observation_bytes": 51476,
+      "estimated_token_delta": 650,
+      "edits": [
+        {
+          "seq": 55,
+          "saved_bytes": 273,
+          "original_bytes": 723
+        },
+        {
+          "seq": 58,
+          "saved_bytes": 24,
+          "original_bytes": 1544
+        },
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        }
+      ]
+    },
+    {
+      "step": 18,
+      "deduplicated_results": 14,
+      "saved_bytes": 1734,
+      "original_observation_bytes": 53261,
+      "estimated_token_delta": 633,
+      "edits": [
+        {
+          "seq": 65,
+          "saved_bytes": 281,
+          "original_bytes": 4410
+        },
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        }
+      ]
+    },
+    {
+      "step": 19,
+      "deduplicated_results": 14,
+      "saved_bytes": 1481,
+      "original_observation_bytes": 53924,
+      "estimated_token_delta": 539,
+      "edits": [
+        {
+          "seq": 72,
+          "saved_bytes": 24,
+          "original_bytes": 5917
+        },
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        }
+      ]
+    },
+    {
+      "step": 20,
+      "deduplicated_results": 14,
+      "saved_bytes": 1689,
+      "original_observation_bytes": 49695,
+      "estimated_token_delta": 614,
+      "edits": [
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        }
+      ]
+    },
+    {
+      "step": 21,
+      "deduplicated_results": 14,
+      "saved_bytes": 1689,
+      "original_observation_bytes": 50227,
+      "estimated_token_delta": 614,
+      "edits": [
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        }
+      ]
+    },
+    {
+      "step": 22,
+      "deduplicated_results": 15,
+      "saved_bytes": 4938,
+      "original_observation_bytes": 53885,
+      "estimated_token_delta": 1761,
+      "edits": [
+        {
+          "seq": 79,
+          "saved_bytes": 22,
+          "original_bytes": 7651
+        },
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        }
+      ]
+    },
+    {
+      "step": 23,
+      "deduplicated_results": 14,
+      "saved_bytes": 4916,
+      "original_observation_bytes": 48508,
+      "estimated_token_delta": 1753,
+      "edits": [
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        }
+      ]
+    },
+    {
+      "step": 24,
+      "deduplicated_results": 14,
+      "saved_bytes": 4916,
+      "original_observation_bytes": 49316,
+      "estimated_token_delta": 1753,
+      "edits": [
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        }
+      ]
+    },
+    {
+      "step": 25,
+      "deduplicated_results": 15,
+      "saved_bytes": 5031,
+      "original_observation_bytes": 51179,
+      "estimated_token_delta": 1795,
+      "edits": [
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        }
+      ]
+    },
+    {
+      "step": 26,
+      "deduplicated_results": 16,
+      "saved_bytes": 5055,
+      "original_observation_bytes": 52853,
+      "estimated_token_delta": 1803,
+      "edits": [
+        {
+          "seq": 86,
+          "saved_bytes": 116,
+          "original_bytes": 2206
+        },
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        }
+      ]
+    },
+    {
+      "step": 27,
+      "deduplicated_results": 16,
+      "saved_bytes": 7291,
+      "original_observation_bytes": 54442,
+      "estimated_token_delta": 2576,
+      "edits": [
+        {
+          "seq": 89,
+          "saved_bytes": 22,
+          "original_bytes": 3072
+        },
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        }
+      ]
+    },
+    {
+      "step": 28,
+      "deduplicated_results": 16,
+      "saved_bytes": 7632,
+      "original_observation_bytes": 54383,
+      "estimated_token_delta": 2693,
+      "edits": [
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        }
+      ]
+    },
+    {
+      "step": 29,
+      "deduplicated_results": 17,
+      "saved_bytes": 7657,
+      "original_observation_bytes": 55711,
+      "estimated_token_delta": 2702,
+      "edits": [
+        {
+          "seq": 96,
+          "saved_bytes": 22,
+          "original_bytes": 4142
+        },
+        {
+          "seq": 103,
+          "saved_bytes": 24,
+          "original_bytes": 7297
+        },
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        }
+      ]
+    },
+    {
+      "step": 30,
+      "deduplicated_results": 16,
+      "saved_bytes": 7726,
+      "original_observation_bytes": 53015,
+      "estimated_token_delta": 2726,
+      "edits": [
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        }
+      ]
+    },
+    {
+      "step": 31,
+      "deduplicated_results": 17,
+      "saved_bytes": 7751,
+      "original_observation_bytes": 57451,
+      "estimated_token_delta": 2734,
+      "edits": [
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        }
+      ]
+    },
+    {
+      "step": 32,
+      "deduplicated_results": 18,
+      "saved_bytes": 7962,
+      "original_observation_bytes": 58385,
+      "estimated_token_delta": 2811,
+      "edits": [
+        {
+          "seq": 111,
+          "saved_bytes": 133,
+          "original_bytes": 2713
+        },
+        {
+          "seq": 118,
+          "saved_bytes": 22,
+          "original_bytes": 1396
+        },
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        }
+      ]
+    },
+    {
+      "step": 33,
+      "deduplicated_results": 17,
+      "saved_bytes": 7832,
+      "original_observation_bytes": 60904,
+      "estimated_token_delta": 2762,
+      "edits": [
+        {
+          "seq": 121,
+          "saved_bytes": 130,
+          "original_bytes": 804
+        },
+        {
+          "seq": 128,
+          "saved_bytes": 164,
+          "original_bytes": 624
+        },
+        {
+          "seq": 135,
+          "saved_bytes": 300,
+          "original_bytes": 1004
+        },
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        }
+      ]
+    },
+    {
+      "step": 34,
+      "deduplicated_results": 15,
+      "saved_bytes": 7587,
+      "original_observation_bytes": 61910,
+      "estimated_token_delta": 2673,
+      "edits": [
+        {
+          "seq": 142,
+          "saved_bytes": 219,
+          "original_bytes": 903
+        },
+        {
+          "seq": 149,
+          "saved_bytes": 255,
+          "original_bytes": 2673
+        },
+        {
+          "seq": 156,
+          "saved_bytes": 28,
+          "original_bytes": 4049
+        },
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        }
+      ]
+    },
+    {
+      "step": 35,
+      "deduplicated_results": 13,
+      "saved_bytes": 14923,
+      "original_observation_bytes": 65176,
+      "estimated_token_delta": 5238,
+      "edits": [
+        {
+          "seq": 163,
+          "saved_bytes": 232,
+          "original_bytes": 664
+        },
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        }
+      ]
+    },
+    {
+      "step": 36,
+      "deduplicated_results": 13,
+      "saved_bytes": 14883,
+      "original_observation_bytes": 66228,
+      "estimated_token_delta": 5224,
+      "edits": [
+        {
+          "seq": 177,
+          "saved_bytes": 3249,
+          "original_bytes": 3658
+        },
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        }
+      ]
+    },
+    {
+      "step": 37,
+      "deduplicated_results": 13,
+      "saved_bytes": 11681,
+      "original_observation_bytes": 64460,
+      "estimated_token_delta": 4094,
+      "edits": [
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        }
+      ]
+    },
+    {
+      "step": 38,
+      "deduplicated_results": 14,
+      "saved_bytes": 11726,
+      "original_observation_bytes": 64941,
+      "estimated_token_delta": 4110,
+      "edits": [
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        }
+      ]
+    },
+    {
+      "step": 39,
+      "deduplicated_results": 15,
+      "saved_bytes": 11787,
+      "original_observation_bytes": 65437,
+      "estimated_token_delta": 4130,
+      "edits": [
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        }
+      ]
+    },
+    {
+      "step": 40,
+      "deduplicated_results": 16,
+      "saved_bytes": 11981,
+      "original_observation_bytes": 66239,
+      "estimated_token_delta": 4199,
+      "edits": [
+        {
+          "seq": 199,
+          "saved_bytes": 115,
+          "original_bytes": 1863
+        },
+        {
+          "seq": 206,
+          "saved_bytes": 24,
+          "original_bytes": 1674
+        },
+        {
+          "seq": 213,
+          "saved_bytes": 2352,
+          "original_bytes": 2771
+        },
+        {
+          "seq": 220,
+          "saved_bytes": 363,
+          "original_bytes": 1989
+        },
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        }
+      ]
+    },
+    {
+      "step": 41,
+      "deduplicated_results": 13,
+      "saved_bytes": 20187,
+      "original_observation_bytes": 72661,
+      "estimated_token_delta": 7076,
+      "edits": [
+        {
+          "seq": 227,
+          "saved_bytes": 25,
+          "original_bytes": 1328
+        },
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        }
+      ]
+    },
+    {
+      "step": 42,
+      "deduplicated_results": 13,
+      "saved_bytes": 20266,
+      "original_observation_bytes": 73922,
+      "estimated_token_delta": 7104,
+      "edits": [
+        {
+          "seq": 234,
+          "saved_bytes": 115,
+          "original_bytes": 6695
+        },
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        }
+      ]
+    },
+    {
+      "step": 43,
+      "deduplicated_results": 12,
+      "saved_bytes": 20151,
+      "original_observation_bytes": 69677,
+      "estimated_token_delta": 7064,
+      "edits": [
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        }
+      ]
+    },
+    {
+      "step": 44,
+      "deduplicated_results": 12,
+      "saved_bytes": 20151,
+      "original_observation_bytes": 70642,
+      "estimated_token_delta": 7064,
+      "edits": [
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        }
+      ]
+    },
+    {
+      "step": 45,
+      "deduplicated_results": 13,
+      "saved_bytes": 20642,
+      "original_observation_bytes": 71919,
+      "estimated_token_delta": 7242,
+      "edits": [
+        {
+          "seq": 241,
+          "saved_bytes": 25,
+          "original_bytes": 4436
+        },
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        }
+      ]
+    },
+    {
+      "step": 46,
+      "deduplicated_results": 13,
+      "saved_bytes": 20938,
+      "original_observation_bytes": 71820,
+      "estimated_token_delta": 7350,
+      "edits": [
+        {
+          "seq": 248,
+          "saved_bytes": 211,
+          "original_bytes": 934
+        },
+        {
+          "seq": 256,
+          "saved_bytes": 25,
+          "original_bytes": 4580
+        },
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        },
+        {
+          "seq": 347,
+          "saved_bytes": 321,
+          "original_bytes": 3313
+        }
+      ]
+    },
+    {
+      "step": 47,
+      "deduplicated_results": 12,
+      "saved_bytes": 21074,
+      "original_observation_bytes": 76177,
+      "estimated_token_delta": 7397,
+      "edits": [
+        {
+          "seq": 263,
+          "saved_bytes": 349,
+          "original_bytes": 1883
+        },
+        {
+          "seq": 270,
+          "saved_bytes": 7838,
+          "original_bytes": 8253
+        },
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        },
+        {
+          "seq": 347,
+          "saved_bytes": 321,
+          "original_bytes": 3313
+        },
+        {
+          "seq": 354,
+          "saved_bytes": 372,
+          "original_bytes": 8218
+        }
+      ]
+    },
+    {
+      "step": 48,
+      "deduplicated_results": 11,
+      "saved_bytes": 16143,
+      "original_observation_bytes": 71052,
+      "estimated_token_delta": 5671,
+      "edits": [
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        },
+        {
+          "seq": 347,
+          "saved_bytes": 321,
+          "original_bytes": 3313
+        },
+        {
+          "seq": 354,
+          "saved_bytes": 372,
+          "original_bytes": 8218
+        },
+        {
+          "seq": 361,
+          "saved_bytes": 3256,
+          "original_bytes": 3666
+        }
+      ]
+    },
+    {
+      "step": 49,
+      "deduplicated_results": 12,
+      "saved_bytes": 16216,
+      "original_observation_bytes": 71620,
+      "estimated_token_delta": 5695,
+      "edits": [
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        },
+        {
+          "seq": 347,
+          "saved_bytes": 321,
+          "original_bytes": 3313
+        },
+        {
+          "seq": 354,
+          "saved_bytes": 372,
+          "original_bytes": 8218
+        },
+        {
+          "seq": 361,
+          "saved_bytes": 3256,
+          "original_bytes": 3666
+        },
+        {
+          "seq": 368,
+          "saved_bytes": 73,
+          "original_bytes": 568
+        }
+      ]
+    },
+    {
+      "step": 50,
+      "deduplicated_results": 13,
+      "saved_bytes": 18427,
+      "original_observation_bytes": 75324,
+      "estimated_token_delta": 6476,
+      "edits": [
+        {
+          "seq": 277,
+          "saved_bytes": 192,
+          "original_bytes": 1378
+        },
+        {
+          "seq": 284,
+          "saved_bytes": 47,
+          "original_bytes": 1684
+        },
+        {
+          "seq": 291,
+          "saved_bytes": 45,
+          "original_bytes": 481
+        },
+        {
+          "seq": 298,
+          "saved_bytes": 61,
+          "original_bytes": 496
+        },
+        {
+          "seq": 305,
+          "saved_bytes": 194,
+          "original_bytes": 802
+        },
+        {
+          "seq": 312,
+          "saved_bytes": 11060,
+          "original_bytes": 11471
+        },
+        {
+          "seq": 319,
+          "saved_bytes": 104,
+          "original_bytes": 1565
+        },
+        {
+          "seq": 340,
+          "saved_bytes": 491,
+          "original_bytes": 1277
+        },
+        {
+          "seq": 347,
+          "saved_bytes": 321,
+          "original_bytes": 3313
+        },
+        {
+          "seq": 354,
+          "saved_bytes": 372,
+          "original_bytes": 8218
+        },
+        {
+          "seq": 361,
+          "saved_bytes": 3256,
+          "original_bytes": 3666
+        },
+        {
+          "seq": 368,
+          "saved_bytes": 73,
+          "original_bytes": 568
+        },
+        {
+          "seq": 375,
+          "saved_bytes": 2211,
+          "original_bytes": 3704
+        }
+      ]
+    }
+  ]
+}

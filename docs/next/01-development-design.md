@@ -163,7 +163,7 @@ Windows 默认优先 `pwsh`，没有则 `powershell.exe`，固定 `-NoProfile -N
 
 `tools/execution.py` 使用 `asyncio.create_subprocess_exec(shell, fixed_args..., command)`；只有 executor 管理进程。stdin 关闭，stdout/stderr 并发读取，不能等进程退出后才读取管道。
 
-结果必带：`command`、解析后的 cwd、shell、`exit_code: int|null`、stdout、stderr、timed_out、cancelled、truncated、duration_ms。exit_code 是 shell 的实际退出码，不推断脚本内部每条命令成功与否。输出被截断时照实标记，不把截断输出当作完整测试证据。
+结果必带：`command`、解析后的 cwd、shell、`exit_code: int|null`、stdout、stderr、timed_out、cancelled、truncated、duration_ms。exit_code 是 shell 的实际退出码，不推断脚本内部每条命令成功与否。 实验性 exact-call-v1 请求投影只对当前请求中唯一、配对完整的 exec_command 调用，将结果中完全相同的 command 回显替换为 command_ref（对应 tool_call_id）；没有净字节收益或绑定不明确则保留原文。原始 ToolResult、JSONL、恢复历史和安全快照仍保留完整 command。该投影不改变 stdout/stderr、退出码、截断事实、HOT/WARM/COLD 选择或命令执行语义；COLD preview 的 source_bytes 仍指向原始结果。输出被截断时照实标记，不把截断输出当作完整测试证据。
 
 可靠性约束：
 
