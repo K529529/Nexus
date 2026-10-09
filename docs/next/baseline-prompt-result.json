@@ -1,0 +1,625 @@
+{
+  "decision": "KEEP V0.2",
+  "candidate_acceptance": "FAILED",
+  "source": {
+    "branch": "codex/nexus-baseline-prompt",
+    "commit": "8a8d696c10dc5755d50dc910bda5dd78505a928f",
+    "version": "0.3.0.dev11",
+    "wheel_sha256": "66e6585ce07dc13e6737b999a17438843d2a5520a08eea70812d6f8a6e8fd7f0",
+    "source_files": 36,
+    "intervention": "Restore SYSTEM exactly to V0.2 main and remove dev10 optional delegation nudge. Tool interfaces, child budgets, observations and model config unchanged from dev10.",
+    "system_sha256": "7ab50d8a3e63b061467a8a6c3df3bec54bd226fdbb86ec576d18d0d5d368096c",
+    "not_causal_isolation_against_v02": true
+  },
+  "baseline_v02": {
+    "run_id": "20261008T194152Z-8947f05d",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 422.824529481004,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1676832,
+        "output_tokens": 23498,
+        "cached_input_tokens": 1252864
+      },
+      "estimated_cny": 0.5279054,
+      "wall_seconds": 415.521,
+      "timing": {}
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5279054,
+    "first_patch_mutation": {
+      "step": 23,
+      "seq": 167,
+      "seconds": 132.469643,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 38,
+      "seq": 273,
+      "seconds": 335.405542,
+      "files": [
+        "xarray/structure/merge.py"
+      ]
+    },
+    "patch_attempts": 3,
+    "patch_errors": 0,
+    "tool_errors": [
+      {
+        "step": 24,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 27,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 50,
+    "tool_wall_seconds_including_child_wait": 4.804,
+    "native_tool_wall_seconds": 4.804,
+    "subagents": [],
+    "subagent_requests": [],
+    "first_actual_mutation": {
+      "step": 11,
+      "timestamp_offset_seconds": 35.830343,
+      "tool": "exec_command",
+      "basis": "Previously audited baseline shell write"
+    }
+  },
+  "previous_dev10": {
+    "run_id": "20261009T162812Z-2fe99645",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 342.52702814800074,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1646912,
+        "output_tokens": 19796,
+        "cached_input_tokens": 1184768
+      },
+      "estimated_cny": 0.5416411999999999,
+      "wall_seconds": 335.75,
+      "timing": {
+        "request_total_ms": {
+          "count": 50,
+          "sum_ms": 335750,
+          "median_ms": 4401.0
+        },
+        "ttft_ms": {
+          "count": 50,
+          "sum_ms": 81162,
+          "median_ms": 1707.5
+        },
+        "generation_ms": {
+          "count": 50,
+          "sum_ms": 254519,
+          "median_ms": 2722.0
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5416411999999999,
+    "first_patch_mutation": {
+      "step": 31,
+      "seq": 241,
+      "seconds": 209.251978,
+      "files": [
+        "xarray/core/indexes.py"
+      ]
+    },
+    "last_patch_mutation": {
+      "step": 44,
+      "seq": 333,
+      "seconds": 302.134255,
+      "files": [
+        "xarray/structure/merge.py"
+      ]
+    },
+    "patch_attempts": 4,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 2,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 2,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 10,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 12,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 22,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 27,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 35,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 47,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 48,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 49,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 56,
+    "tool_wall_seconds_including_child_wait": 4.321,
+    "native_tool_wall_seconds": 4.321,
+    "subagents": [],
+    "subagent_requests": []
+  },
+  "candidate_dev11": {
+    "run_id": "20261009T164500Z-73925e3d",
+    "sample": {
+      "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+      "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 474.27448068699965,
+    "steps": 50,
+    "main": {
+      "started": 50,
+      "finished": 50,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1740367,
+        "output_tokens": 20167,
+        "cached_input_tokens": 1240576
+      },
+      "estimated_cny": 0.5783413000000001,
+      "wall_seconds": 456.396,
+      "timing": {
+        "request_total_ms": {
+          "count": 50,
+          "sum_ms": 456396,
+          "median_ms": 6506.0
+        },
+        "ttft_ms": {
+          "count": 50,
+          "sum_ms": 134077,
+          "median_ms": 2586.0
+        },
+        "generation_ms": {
+          "count": 50,
+          "sum_ms": 322248,
+          "median_ms": 3781.0
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5783413000000001,
+    "first_patch_mutation": null,
+    "last_patch_mutation": null,
+    "patch_attempts": 1,
+    "patch_errors": 1,
+    "tool_errors": [
+      {
+        "step": 16,
+        "tool": "apply_patch",
+        "error": "invalid_patch"
+      },
+      {
+        "step": 33,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 35,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 44,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 46,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 60,
+    "tool_wall_seconds_including_child_wait": 15.402,
+    "native_tool_wall_seconds": 15.402,
+    "subagents": [],
+    "subagent_requests": [],
+    "first_actual_mutation": {
+      "step": 18,
+      "seq": 161,
+      "timestamp_offset_seconds": 113.323073,
+      "tool": "exec_command"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 379,
+      "timestamp_offset_seconds": 455.590434,
+      "tool": "exec_command"
+    }
+  },
+  "behavior_review": {
+    "run_id": "20261009T164500Z-73925e3d",
+    "patch_sha256": "4632bbbfb0810b9895d3bf5294366e619cfd7d6a51c0f3d5b4152492c460fb9e",
+    "changed_paths": [
+      "xarray/core/coordinate_transform.py",
+      "xarray/core/duck_array_ops.py",
+      "xarray/core/indexes.py",
+      "xarray/core/utils.py",
+      "xarray/structure/merge.py"
+    ],
+    "first_actual_mutation": {
+      "step": 18,
+      "seq": 161,
+      "timestamp_offset_seconds": 113.323073,
+      "tool": "exec_command"
+    },
+    "last_actual_mutation": {
+      "step": 49,
+      "seq": 379,
+      "timestamp_offset_seconds": 455.590434,
+      "tool": "exec_command"
+    },
+    "nudges": [
+      {
+        "seq": 117,
+        "trigger": "plan_idle",
+        "mode": "plan",
+        "plan_idle_steps": 8,
+        "pre_mutation_steps": 12,
+        "threshold": 8,
+        "active_plan_step": "Implement filter_indexes_from_coords + isel_indexes in core/indexes.py",
+        "step": 12
+      }
+    ],
+    "hint_request_steps": [
+      13
+    ],
+    "subagent_calls": 0,
+    "last_check": {
+      "step": 49,
+      "seq": 379,
+      "timestamp_offset_seconds": 455.590434,
+      "tool": "exec_command",
+      "args": {
+        "command": "cd /testbed && python - <<'PYEOF'\nup=\"xarray/core/utils.py\"; u=open(up).read()\n# fix the broken concatenation\nbad=\"return params, func_argsdef dict_equiv(\"\ngood=\"return params, func_args\\n\\n\\ndef dict_equiv(\"\nif bad in u:\n    u=u.replace(bad, good,1)\n    open(up,\"w\").write(u)\nprint(\"def dict_equiv\" in open(up).read())\nPYEOF\npython -c \"import xarray.structure.merge; print('import ok')\" 2>&1 | tail -3"
+      },
+      "result": {
+        "call_id": "call_f4a0f50c31114da4b3627e3c",
+        "ok": true,
+        "data": {
+          "command": "cd /testbed && python - <<'PYEOF'\nup=\"xarray/core/utils.py\"; u=open(up).read()\n# fix the broken concatenation\nbad=\"return params, func_argsdef dict_equiv(\"\ngood=\"return params, func_args\\n\\n\\ndef dict_equiv(\"\nif bad in u:\n    u=u.replace(bad, good,1)\n    open(up,\"w\").write(u)\nprint(\"def dict_equiv\" in open(up).read())\nPYEOF\npython -c \"import xarray.structure.merge; print('import ok')\" 2>&1 | tail -3",
+          "cwd": "/testbed",
+          "shell": "/bin/sh",
+          "exit_code": 0,
+          "stdout": "True\nimport ok\n",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 460
+        },
+        "error_code": null,
+        "duration_ms": 460,
+        "truncated": false
+      }
+    },
+    "final_plan": [
+      {
+        "step": "Implement CoordinateTransform base in core/coordinate_transform.py",
+        "status": "completed"
+      },
+      {
+        "step": "Implement filter_indexes_from_coords + isel_indexes + _apply_indexes in core/indexes.py",
+        "status": "completed"
+      },
+      {
+        "step": "Implement dict_equiv in core/utils.py",
+        "status": "completed"
+      },
+      {
+        "step": "Restore stripped asarray/lazy_array_equiv (duck_array_ops) + _assert_compat_valid (merge) unblockers",
+        "status": "completed"
+      },
+      {
+        "step": "Implement drop_dims_from_indexers in core/utils.py",
+        "status": "pending"
+      },
+      {
+        "step": "Implement remaining merge helpers (merge_attrs/merge_collected/unique_variable/etc.)",
+        "status": "pending"
+      },
+      {
+        "step": "Implement array_repr in core/formatting.py",
+        "status": "pending"
+      },
+      {
+        "step": "Implement Coordinates methods (from_xindex/sizes/to_dataset/assert_coordinate_consistent)",
+        "status": "pending"
+      },
+      {
+        "step": "Run full relevant test suites to verify",
+        "status": "pending"
+      }
+    ],
+    "official_failures": "All 10 F2P failures: Coordinates.from_xindex missing",
+    "clock_backwards": [
+      {
+        "previous_seq": 36,
+        "seq": 37,
+        "backwards_seconds": 30.688698
+      },
+      {
+        "previous_seq": 305,
+        "seq": 306,
+        "backwards_seconds": 22.991799
+      }
+    ],
+    "timing_caveat": "Ordering uses ABK event seq; total agent/model/tool duration uses monotonic counters. Timestamp offsets are not reliable global elapsed-time measurements because of wall-clock backstep.",
+    "post_test_investigation": {
+      "first_step": 28,
+      "last_step": 41,
+      "model_turns": 14,
+      "model_wall_seconds": 151.785,
+      "tool_wall_seconds": 0.549,
+      "commands": [
+        {
+          "step": 28,
+          "command": "cd /testbed && grep -n \"def asarray\\|^asarray\\|asarray =\" xarray/core/duck_array_ops.py; echo \"---\"; sed -n '350,360p' xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 29,
+          "command": "cd /testbed && grep -n \"asarray\" xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 30,
+          "command": "cd /testbed && grep -n \"asarray\\|def asarray\\|array_namespace\\|def _\" xarray/core/duck_array_ops.py | sed -n '1,25p'; echo \"=== lines 1-60 import area & around 300 ===\"; sed -n '295,345p' xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 31,
+          "command": "cd /testbed && sed -n '1,55p' xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 32,
+          "command": "cd /testbed && sed -n '307,340p' xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 33,
+          "command": "cd /testbed && grep -n \"get_array_namespace\\|def asarray\\|import.*asarray\" xarray/core/duck_array_ops.py | head; echo \"---\"; grep -rn \"def asarray\" xarray/ | grep -v pycache"
+        },
+        {
+          "step": 34,
+          "command": "cd /testbed && grep -rn \"def asarray\\|asarray =\\|^    asarray\\|import asarray\\|asarray,\" xarray/namedarray/*.py xarray/core/*.py 2>/dev/null | grep -v \"np.asarray\\|\\.asarray\\|asarray(\" | head; echo \"=== get_array_namespace def ===\"; grep -rn \"def get_array_namespace\" xarray/"
+        },
+        {
+          "step": 35,
+          "command": "cd /testbed && grep -rn \"asarray\\|get_array_namespace\\|is_duck_array\" xarray/namedarray/core.py | head; echo \"=== search whole pkg for 'def asarray' and imports ===\"; grep -rn \"asarray\" xarray/namedarray/parallelcompat.py xarray/ufuncs.py | head; echo \"=== git show original file (HEAD) for asarray ===\"; git show HEAD:xarray/core/duck_array_ops.py | grep -n \"def asarray\\|import asarray\\|asarray as\\| from numpy import\" "
+        },
+        {
+          "step": 36,
+          "command": "cd /testbed && grep -n \"asarray\" xarray/core/duck_array_ops.py | head -3; echo \"=== how defined in original ===\"; git show HEAD:xarray/core/duck_array_ops.py | grep -n \"asarray\"; echo \"=== get_array_namespace ===\"; grep -n \"get_array_namespace\\|^from\\|^import\" xarray/core/duck_array_ops.py | grep -i \"namespace\\|asarray\""
+        },
+        {
+          "step": 37,
+          "command": "cd /testbed && grep -n \"get_array_namespace\\|from numpy import asarray\\|import asarray\" xarray/core/duck_array_ops.py | head -2; echo \"=== full top imports ===\"; grep -n \"get_array_namespace\" xarray/core/duck_array_ops.py | tail -1; sed -n '110,145p' xarray/core/duck_array_ops.py"
+        },
+        {
+          "step": 38,
+          "command": "cd /testbed && python -c \"import xarray.core.duck_array_ops\" 2>&1 | tail; echo \"=== grep get_array_namespace import in file ===\"; grep -n \"get_array_namespace\" xarray/core/duck_array_ops.py | grep -i \"import\\|from\"; echo \"=== check ufuncs get_array_namespace signature ===\"; sed -n '32,60p' xarray/ufuncs.py"
+        },
+        {
+          "step": 39,
+          "command": "cd /testbed && grep -rn \"def asarray\" xarray/ | grep -v pycache; echo \"=== usages signature check ===\"; grep -rn \"asarray(\" xarray/core/duck_array_ops.py | grep \"xp=\" | head"
+        },
+        {
+          "step": 40,
+          "command": "cd /testbed && sed -n '311,338p' xarray/core/duck_array_ops.py | cat -n"
+        },
+        {
+          "step": 41,
+          "command": "cd /testbed && git show HEAD:xarray/core/duck_array_ops.py | sed -n '311,335p'"
+        }
+      ]
+    }
+  },
+  "patch_errors": [
+    {
+      "step": 16,
+      "seq": 147,
+      "args": {
+        "patch": "*** Begin Patch\n*** Update File: xarray/core/coordinate_transform.py\n@@\n     coord_names: tuple[Hashable, ...]\n     dims: tuple[str, ...]\n     dim_size: dict[str, int]\n     dtype: Any\n+\n+    def __init__(\n+        self,\n+        coord_names: Iterable[Hashable],\n+        dim_size: Mapping[str, int],\n+        dtype: Any = None,\n+    ):\n+        self.coord_names = tuple(coord_names)\n+        self.dims = tuple(dim_size.keys())\n+        self.dim_size = dict(dim_size)\n+        self.dtype = np.dtype(dtype) if dtype is not None else np.dtype(np.float64)\n+\n+    def equals(self, other: \"CoordinateTransform\", **kwargs) -> bool:\n+        raise NotImplementedError()\n+\n+    def forward(self, dim_positions: dict[str, Any]) -> dict[Hashable, Any]:\n+        raise NotImplementedError()\n+\n+    def reverse(self, coord_labels: dict[Hashable, Any]) -> dict[str, Any]:\n+        raise NotImplementedError()\n+\n+    def generate_coords(\n+        self, dims: tuple[str, ...] | None = None\n+    ) -> dict[Hashable, Any]:\n+        if dims is None:\n+            dims = self.dims\n+\n+        positions = np.meshgrid(\n+            *[np.arange(self.dim_size[dim], dtype=np.int64) for dim in dims],\n+            indexing=\"ij\",\n+        )\n+        dim_positions = dict(zip(dims, positions, strict=False))\n+\n+        return self.forward(dim_positions)\n \n \n "
+      },
+      "result": {
+        "call_id": "call_444ade4fd21b465a97506302",
+        "ok": false,
+        "data": {
+          "files": [],
+          "changed_files": 0,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": "Expected *** Begin Patch and *** End Patch boundaries",
+          "recovery": "Use exact Begin/End Patch boundaries, relative file sections and +/- edit lines. Read detail and failed_hunk; do not guess or regenerate unrelated code."
+        },
+        "error_code": "invalid_patch",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    }
+  ],
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "8a8d696c10dc5755d50dc910bda5dd78505a928f",
+    "manifest_sha256": "6e893fae950c154a62f060fc8e62608454f3e9e36c20b1b6ae3188ed796043c8",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C17",
+        "run": "20261009T164500Z-73925e3d",
+        "sample": {
+          "sample_id": "sample-pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1-1",
+          "task_id": "pydata__xarray.97f3a746.test_coordinate_transform.6cacb660.lv1",
+          "execution_status": "FINISHED",
+          "agent_outcome": "LIMITED",
+          "verifier_status": "FAIL",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": false,
+          "sample_success": false
+        },
+        "evidence_hash": "0e5437b84b8328b4441ef4eaf0044caec4855cd87a93afd9c4755875fdf209c4",
+        "official_report_sha256": "f5cb075308ac58f6ca28e59fbaa5f446e14dc8b66624df0e3e97b9d5287294d2",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 4,
+            "failure": 10
+          },
+          "PASS_TO_PASS": {
+            "success": 74,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  },
+  "changes_percent_vs_v02": {
+    "agent_seconds": 12.168156674625275,
+    "total_estimated_cny": 9.553965540038067
+  },
+  "cost_basis": "Historical CNY estimate ((input-cached)*0.8+cached*0.1+output*2.7)/1e6; cached tokens are a subset; not current pricing or an invoice. All C17 model usage fields recorded.",
+  "scope_limits": [
+    "One unseeded known-task run per candidate; no causal or significance claim",
+    "V0.2 predates stronger full egress isolation",
+    "Only C17 ran for dev11; C08/C13/holdout NOT RUN",
+    "Two wall-clock backsteps; use event seq for order, monotonic duration counters for total cost/time",
+    "Public prompt simplification does not establish stronger Agent behavior",
+    "No child invocation or integration value demonstrated"
+  ]
+}
