@@ -1,0 +1,869 @@
+{
+  "status": "C13 partial convergence improvement; official FAIL; controls pending; no release",
+  "baseline": {
+    "run_id": "20261008T184931Z-a5442fc2",
+    "sample": {
+      "sample_id": "sample-mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1-1",
+      "task_id": "mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "LIMITED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 461.928142003002,
+    "steps": 50,
+    "main": {
+      "started": 51,
+      "finished": 51,
+      "usage_complete": false,
+      "cache_usage_complete": false,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1407694,
+        "output_tokens": 26435,
+        "cached_input_tokens": 946688
+      },
+      "estimated_cny": 0.5348481,
+      "wall_seconds": 455.671,
+      "timing": {}
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.5348481,
+    "patch_attempts": 4,
+    "patch_errors": 3,
+    "tool_errors": [
+      {
+        "step": 6,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 8,
+        "tool": "apply_patch",
+        "error": "invalid_patch"
+      },
+      {
+        "step": 40,
+        "tool": "apply_patch",
+        "error": "invalid_patch"
+      },
+      {
+        "step": 45,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 50,
+    "native_tool_wall_seconds": 3.705
+  },
+  "dev6": {
+    "run_id": "20261009T145046Z-1b95e73d",
+    "sample": {
+      "sample_id": "sample-mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1-1",
+      "task_id": "mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1",
+      "execution_status": "FINISHED",
+      "agent_outcome": "COMPLETED",
+      "verifier_status": "FAIL",
+      "analysis_status": "NOT_RUN",
+      "cleanup_status": "COMPLETED",
+      "candidate_frozen": true,
+      "startup_retries_exhausted": false,
+      "candidate_pass": false,
+      "sample_success": false
+    },
+    "agent_seconds": 494.34138025100043,
+    "steps": 41,
+    "main": {
+      "started": 41,
+      "finished": 41,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 1485006,
+        "output_tokens": 28225,
+        "cached_input_tokens": 1397504
+      },
+      "estimated_cny": 0.2859595,
+      "wall_seconds": 471.887,
+      "timing": {
+        "request_total_ms": {
+          "count": 41,
+          "sum_ms": 471887,
+          "median_ms": 6217
+        },
+        "ttft_ms": {
+          "count": 41,
+          "sum_ms": 43316,
+          "median_ms": 1019
+        },
+        "generation_ms": {
+          "count": 41,
+          "sum_ms": 428533,
+          "median_ms": 5416
+        }
+      }
+    },
+    "child": {
+      "started": 0,
+      "finished": 0,
+      "usage_complete": true,
+      "cache_usage_complete": true,
+      "missing_cache_assumption": "zero cache as in original report",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0
+      },
+      "estimated_cny": 0.0,
+      "wall_seconds": 0.0,
+      "timing": {}
+    },
+    "total_estimated_cny": 0.2859595,
+    "patch_attempts": 3,
+    "patch_errors": 3,
+    "tool_errors": [
+      {
+        "step": 4,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 6,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 7,
+        "tool": "apply_patch",
+        "error": "patch_conflict"
+      },
+      {
+        "step": 21,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      },
+      {
+        "step": 30,
+        "tool": "exec_command",
+        "error": "command_exit_nonzero"
+      }
+    ],
+    "tool_calls": 49,
+    "native_tool_wall_seconds": 19.402
+  },
+  "manual_mutations": [
+    {
+      "step": 8,
+      "seq": 66,
+      "seconds": 38.565176,
+      "method": "shell write",
+      "path": "seaborn/external/version.py"
+    },
+    {
+      "step": 26,
+      "seq": 206,
+      "seconds": 285.48332,
+      "method": "shell write",
+      "path": "seaborn/_core/plot.py"
+    },
+    {
+      "step": 31,
+      "seq": 244,
+      "seconds": 390.612112,
+      "method": "shell write",
+      "path": "seaborn/_core/plot.py"
+    },
+    {
+      "step": 35,
+      "seq": 272,
+      "seconds": 425.400571,
+      "method": "shell write",
+      "path": "seaborn/_core/plot.py"
+    }
+  ],
+  "validation": "Last mutation step 35; Plot smoke passed step 36, version assertions and existing tests passed steps 38/40. Broader required-interface correctness remains FAIL.",
+  "network_attempts": [
+    {
+      "step": 30,
+      "duration_ms": 7755,
+      "tool_ok": true,
+      "actual_result": "Proxy 403; no package download; pipeline masks nonzero exit"
+    }
+  ],
+  "official_test_delta": {
+    "newly_passing": [
+      "tests/_core/test_plot.py::TestLabelVisibility::test_1d_column_wrapped_non_cross",
+      "tests/_core/test_plot.py::TestLayerAddition::test_orient[h-y]",
+      "tests/_core/test_plot.py::TestLayerAddition::test_orient[v-x]",
+      "tests/_core/test_plot.py::TestPairInterface::test_all_numeric[list]",
+      "tests/_core/test_plot.py::TestPairInterface::test_axis_sharing",
+      "tests/_core/test_plot.py::TestPairInterface::test_non_cross",
+      "tests/_core/test_plot.py::TestPairInterface::test_non_cross_wrapping",
+      "tests/_core/test_plot.py::TestPlotting::test_paired_variables",
+      "tests/_core/test_plot.py::TestPlotting::test_paired_variables_one_subset"
+    ],
+    "newly_failing": [
+      "tests/_core/test_plot.py::TestPlotting::test_labels_facets",
+      "tests/_core/test_plot.py::TestPlotting::test_on_axes_with_subplots_error",
+      "tests/_core/test_plot.py::TestPlotting::test_title_facet_function"
+    ],
+    "net_success_change": 6
+  },
+  "candidate": {
+    "schema_version": 2,
+    "format": "git_patch",
+    "baseline_hash": "b6daf71a318a76f6339764a49adbe9bde2b160be",
+    "candidate_hash": "7f2e40480eb30ff43bb54bdb96a0835d7617b3951a75086b27893a2c38124484",
+    "candidate_tree": "02c064cfa5b7d8700645ee97fc99431b55cee805",
+    "files": [
+      {
+        "path": "seaborn/_core/plot.py",
+        "sha256": "d72ddc2663488aa41cf148a9d5ae14749acc470c0eb968e6f8e13a6745c1e1e1",
+        "symlink": false,
+        "mode": 33188
+      },
+      {
+        "path": "seaborn/external/version.py",
+        "sha256": "8d6d3f1c10fb7a8deb124bc1df2aee60b027f159bafda6a559fde119bec98568",
+        "symlink": false,
+        "mode": 33188
+      }
+    ],
+    "changed": [
+      "seaborn/_core/plot.py",
+      "seaborn/external/version.py"
+    ],
+    "deleted": []
+  },
+  "integrity": {
+    "integrity": "PASS",
+    "commit": "3251ba9bf6befd5d76b845693d77c94ec2746fb2",
+    "manifest_sha256": "ddab29d4ba3ea8a52b4015712059365ec5e18ea1c65e6b27edc9a303d6ae262e",
+    "source_files": 36,
+    "cells": [
+      {
+        "cell": "C13",
+        "run": "20261009T145046Z-1b95e73d",
+        "sample": {
+          "sample_id": "sample-mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1-1",
+          "task_id": "mwaskom__seaborn.7001ebe7.test_plot.b645d353.lv1",
+          "execution_status": "FINISHED",
+          "agent_outcome": "COMPLETED",
+          "verifier_status": "FAIL",
+          "analysis_status": "NOT_RUN",
+          "cleanup_status": "COMPLETED",
+          "candidate_frozen": true,
+          "startup_retries_exhausted": false,
+          "candidate_pass": false,
+          "sample_success": false
+        },
+        "evidence_hash": "e86a17627863dd6dce0fe1e8a05c8b440c5509ee66a57e47d00e4fa85b996520",
+        "official_report_sha256": "231f6d33ad95e8d92a5f2615611fb06d2a79276dcc6422b61fffb51b67cf3c6d",
+        "counts": {
+          "FAIL_TO_PASS": {
+            "success": 168,
+            "failure": 34
+          },
+          "PASS_TO_PASS": {
+            "success": 245,
+            "failure": 0
+          }
+        }
+      }
+    ]
+  },
+  "projection_evidence": {
+    "verified_requests": 41,
+    "changed_requests": 24,
+    "first_difference_step": 18,
+    "last": {
+      "step": 41,
+      "at": "2026-10-09T15:00:05.004605+00:00",
+      "actual": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 65536,
+        "hot_full_count": 1,
+        "recent_full_count": 48,
+        "cold_count": 0,
+        "cold_compacted_count": 0,
+        "cold_kept_full_count": 0,
+        "observation_full_bytes": 119555,
+        "observation_projected_bytes": 119555,
+        "observation_full_estimated_tokens": 44825,
+        "observation_projected_estimated_tokens": 44825
+      },
+      "counterfactual_16k": {
+        "version": "compact-v1",
+        "working_set_target_tokens": 16384,
+        "hot_full_count": 1,
+        "recent_full_count": 17,
+        "cold_count": 31,
+        "cold_compacted_count": 29,
+        "cold_kept_full_count": 2,
+        "observation_full_bytes": 119555,
+        "observation_projected_bytes": 65025,
+        "observation_full_estimated_tokens": 44825,
+        "observation_projected_estimated_tokens": 25778
+      }
+    }
+  },
+  "range_reads": {
+    "scope": "Only successful literal numeric sed reads (quoted or unquoted) of Plot/subplots before first Plot mutation; >=20-line overlaps with prior model steps; pairs may double-count. Not all repeated exploration, not a causal estimate.",
+    "versions": {
+      "v02": {
+        "run": "20261008T184931Z-a5442fc2",
+        "cap": 16384,
+        "verified_projections": 41,
+        "before_core_mutation_step": 41,
+        "overlap_pairs": [
+          {
+            "step": 24,
+            "range": [
+              55,
+              145
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1,
+              "end": 90,
+              "path": "seaborn/_core/plot.py",
+              "step": 11,
+              "seq": 82
+            },
+            "overlap_lines": 36,
+            "prior_compacted": true
+          },
+          {
+            "step": 26,
+            "range": [
+              14,
+              55
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1,
+              "end": 90,
+              "path": "seaborn/_core/plot.py",
+              "step": 11,
+              "seq": 82
+            },
+            "overlap_lines": 42,
+            "prior_compacted": true
+          },
+          {
+            "step": 27,
+            "range": [
+              380,
+              440
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 300,
+              "end": 470,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 96
+            },
+            "overlap_lines": 61,
+            "prior_compacted": true
+          },
+          {
+            "step": 27,
+            "range": [
+              862,
+              960
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 701,
+              "end": 960,
+              "path": "seaborn/_core/plot.py",
+              "step": 17,
+              "seq": 124
+            },
+            "overlap_lines": 99,
+            "prior_compacted": true
+          },
+          {
+            "step": 28,
+            "range": [
+              304,
+              380
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 300,
+              "end": 470,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 96
+            },
+            "overlap_lines": 77,
+            "prior_compacted": true
+          },
+          {
+            "step": 32,
+            "range": [
+              1055,
+              1090
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1060,
+              "end": 1135,
+              "path": "seaborn/_core/plot.py",
+              "step": 19,
+              "seq": 141
+            },
+            "overlap_lines": 31,
+            "prior_compacted": true
+          },
+          {
+            "step": 33,
+            "range": [
+              1105,
+              1212
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1060,
+              "end": 1135,
+              "path": "seaborn/_core/plot.py",
+              "step": 19,
+              "seq": 141
+            },
+            "overlap_lines": 31,
+            "prior_compacted": true
+          },
+          {
+            "step": 36,
+            "range": [
+              76,
+              140
+            ],
+            "path": "seaborn/_core/subplots.py",
+            "prior": {
+              "start": 76,
+              "end": 100,
+              "path": "seaborn/_core/subplots.py",
+              "step": 22,
+              "seq": 162
+            },
+            "overlap_lines": 25,
+            "prior_compacted": true
+          }
+        ]
+      },
+      "dev4": {
+        "run": "20261009T135340Z-380f49b3",
+        "cap": 16384,
+        "verified_projections": 44,
+        "before_core_mutation_step": null,
+        "overlap_pairs": [
+          {
+            "step": 17,
+            "range": [
+              140,
+              260
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 100,
+              "end": 470,
+              "path": "seaborn/_core/plot.py",
+              "step": 5,
+              "seq": 48
+            },
+            "overlap_lines": 121,
+            "prior_compacted": true
+          },
+          {
+            "step": 18,
+            "range": [
+              336,
+              432
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 100,
+              "end": 470,
+              "path": "seaborn/_core/plot.py",
+              "step": 5,
+              "seq": 48
+            },
+            "overlap_lines": 97,
+            "prior_compacted": true
+          },
+          {
+            "step": 19,
+            "range": [
+              300,
+              336
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 100,
+              "end": 470,
+              "path": "seaborn/_core/plot.py",
+              "step": 5,
+              "seq": 48
+            },
+            "overlap_lines": 37,
+            "prior_compacted": true
+          },
+          {
+            "step": 23,
+            "range": [
+              1104,
+              1170
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 67,
+            "prior_compacted": true
+          },
+          {
+            "step": 28,
+            "range": [
+              1170,
+              1215
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 46,
+            "prior_compacted": true
+          },
+          {
+            "step": 29,
+            "range": [
+              1343,
+              1420
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1300,
+              "end": 1430,
+              "path": "seaborn/_core/plot.py",
+              "step": 14,
+              "seq": 115
+            },
+            "overlap_lines": 78,
+            "prior_compacted": true
+          },
+          {
+            "step": 29,
+            "range": [
+              19,
+              45
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1,
+              "end": 99,
+              "path": "seaborn/_core/plot.py",
+              "step": 6,
+              "seq": 55
+            },
+            "overlap_lines": 27,
+            "prior_compacted": true
+          },
+          {
+            "step": 33,
+            "range": [
+              1071,
+              1104
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 34,
+            "prior_compacted": true
+          },
+          {
+            "step": 33,
+            "range": [
+              1215,
+              1262
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 48,
+            "prior_compacted": true
+          },
+          {
+            "step": 34,
+            "range": [
+              995,
+              1071
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 934,
+              "end": 1071,
+              "path": "seaborn/_core/plot.py",
+              "step": 21,
+              "seq": 170
+            },
+            "overlap_lines": 77,
+            "prior_compacted": true
+          },
+          {
+            "step": 35,
+            "range": [
+              1137,
+              1170
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 34,
+            "prior_compacted": true
+          },
+          {
+            "step": 35,
+            "range": [
+              1137,
+              1170
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1104,
+              "end": 1170,
+              "path": "seaborn/_core/plot.py",
+              "step": 23,
+              "seq": 184
+            },
+            "overlap_lines": 34,
+            "prior_compacted": true
+          },
+          {
+            "step": 35,
+            "range": [
+              1107,
+              1137
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1071,
+              "end": 1300,
+              "path": "seaborn/_core/plot.py",
+              "step": 13,
+              "seq": 108
+            },
+            "overlap_lines": 31,
+            "prior_compacted": true
+          },
+          {
+            "step": 35,
+            "range": [
+              1107,
+              1137
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1104,
+              "end": 1170,
+              "path": "seaborn/_core/plot.py",
+              "step": 23,
+              "seq": 184
+            },
+            "overlap_lines": 31,
+            "prior_compacted": true
+          },
+          {
+            "step": 36,
+            "range": [
+              1586,
+              1666
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1522,
+              "end": 1670,
+              "path": "seaborn/_core/plot.py",
+              "step": 15,
+              "seq": 125
+            },
+            "overlap_lines": 81,
+            "prior_compacted": true
+          },
+          {
+            "step": 37,
+            "range": [
+              103,
+              142
+            ],
+            "path": "seaborn/_core/subplots.py",
+            "prior": {
+              "start": 32,
+              "end": 140,
+              "path": "seaborn/_core/subplots.py",
+              "step": 22,
+              "seq": 177
+            },
+            "overlap_lines": 38,
+            "prior_compacted": true
+          },
+          {
+            "step": 39,
+            "range": [
+              47,
+              95
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1,
+              "end": 99,
+              "path": "seaborn/_core/plot.py",
+              "step": 6,
+              "seq": 55
+            },
+            "overlap_lines": 49,
+            "prior_compacted": true
+          },
+          {
+            "step": 40,
+            "range": [
+              1522,
+              1560
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1522,
+              "end": 1670,
+              "path": "seaborn/_core/plot.py",
+              "step": 15,
+              "seq": 125
+            },
+            "overlap_lines": 39,
+            "prior_compacted": true
+          },
+          {
+            "step": 40,
+            "range": [
+              47,
+              102
+            ],
+            "path": "seaborn/_core/subplots.py",
+            "prior": {
+              "start": 32,
+              "end": 140,
+              "path": "seaborn/_core/subplots.py",
+              "step": 22,
+              "seq": 177
+            },
+            "overlap_lines": 56,
+            "prior_compacted": true
+          },
+          {
+            "step": 41,
+            "range": [
+              160,
+              256
+            ],
+            "path": "seaborn/_core/subplots.py",
+            "prior": {
+              "start": 142,
+              "end": 257,
+              "path": "seaborn/_core/subplots.py",
+              "step": 25,
+              "seq": 198
+            },
+            "overlap_lines": 97,
+            "prior_compacted": true
+          },
+          {
+            "step": 42,
+            "range": [
+              142,
+              166
+            ],
+            "path": "seaborn/_core/subplots.py",
+            "prior": {
+              "start": 142,
+              "end": 257,
+              "path": "seaborn/_core/subplots.py",
+              "step": 25,
+              "seq": 198
+            },
+            "overlap_lines": 25,
+            "prior_compacted": true
+          },
+          {
+            "step": 43,
+            "range": [
+              1798,
+              1829
+            ],
+            "path": "seaborn/_core/plot.py",
+            "prior": {
+              "start": 1779,
+              "end": 1829,
+              "path": "seaborn/_core/plot.py",
+              "step": 29,
+              "seq": 232
+            },
+            "overlap_lines": 32,
+            "prior_compacted": true
+          }
+        ]
+      },
+      "dev6": {
+        "run": "20261009T145046Z-1b95e73d",
+        "cap": 65536,
+        "verified_projections": 26,
+        "before_core_mutation_step": 26,
+        "overlap_pairs": []
+      }
+    }
+  },
+  "price_basis": "Historical experiment estimate: uncached input 0.8, cached input 0.1, output 2.7 CNY/million; baseline has missing usage; not invoice or causal estimate."
+}
