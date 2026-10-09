@@ -24,10 +24,11 @@ of the same behavior rather than repeating failed lookups without a new lead.
 Avoid optional exploration that does not advance the task."""
 
 DELEGATION_GUIDANCE = """If an unresolved question concerns an independent module and
-spawn_agent can replace further Main exploration, delegate that one question with known paths and required
-interfaces. Use returned source evidence to advance implementation; verify uncertain
-claims at integration boundaries. Work directly when delegation would only repeat
-known searches. Delegation is optional; keep time for edits and checks."""
+spawn_agent can replace further Main exploration, delegate that one question with
+known paths and required interfaces. Use returned source evidence to advance
+implementation; verify uncertain claims at integration boundaries. Work directly
+when delegation would only repeat known searches. Delegation is optional; keep
+time for edits and checks."""
 
 
 def plan_signature(session: Session) -> tuple[PlanStatus, ...]:
