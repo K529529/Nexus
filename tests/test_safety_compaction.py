@@ -19,7 +19,9 @@ from nexus.core.context import (
     groups,
     project_guidance,
 )
+from nexus.core.conversation import ConversationHistory
 from nexus.core.plan import project_plan
+from nexus.core.request_context import logical_messages
 from nexus.core.types import (
     Emit,
     Limits,
@@ -137,7 +139,7 @@ async def test_threshold_compaction_is_non_destructive_and_run_scoped(history: H
             0
         ]
     )
-    assert [m.content for m in new.requests[0][1:-1]] == ["New independent task"]
+    assert [m.content for m in logical_messages(new.requests[0])[1:]] == ["New independent task"]
     assert session.messages[: len(original)] == original
 
 
@@ -220,7 +222,9 @@ async def test_repeated_compaction_and_interrupted_resume(
             restored, "Continue", model, {}, Events(restored, recovered_writer, ignore), Limits()
         )
         assert result.outcome == "completed" and result.tool_calls == 0
-        assert model.requests[0] == project_guidance(
+        assert [
+            m for m in model.requests[0] if not isinstance(m, ConversationHistory)
+        ] == project_guidance(
             project_plan(restored, recovered + [restored.messages[-2]]), execution_budget(1, 40)
         )
         assert "old observation " * 500 not in str([m.public() for m in model.requests[0]])

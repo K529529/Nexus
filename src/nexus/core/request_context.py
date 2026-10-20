@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 
+from nexus.core.conversation import ConversationHistory
 from nexus.core.types import Message
 
 
@@ -15,7 +16,7 @@ class RequestContext(Message):
 
 
 def logical_messages(messages: list[Message]) -> list[Message]:
-    return [m for m in messages if not isinstance(m, RequestContext)]
+    return [m for m in messages if not isinstance(m, (RequestContext, ConversationHistory))]
 
 
 def project_context(messages: list[Message], name: str, text: str | None) -> list[Message]:
@@ -27,7 +28,9 @@ def project_context(messages: list[Message], name: str, text: str | None) -> lis
     else:
         sections.pop(name, None)
     result = [
-        deepcopy(m) if m.role in {"system", "user"} else m for m in logical_messages(messages)
+        deepcopy(m) if m.role in {"system", "user"} else m
+        for m in messages
+        if not isinstance(m, RequestContext)
     ]
     if sections:
         result.append(RequestContext("user", "\n\n".join(sections.values()), sections=sections))

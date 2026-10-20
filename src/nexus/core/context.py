@@ -7,6 +7,7 @@ import platform
 from dataclasses import asdict
 from pathlib import Path
 
+from nexus.core.conversation import project_conversation
 from nexus.core.observations import Projection, hot_tool_seqs, project
 from nexus.core.plan import project_plan
 from nexus.core.request_context import logical_messages, project_context
@@ -208,8 +209,11 @@ class Context:
         projection = project(
             session, logical_messages(logical), self.budget, lambda m: estimate([m], [])
         )
-        projection.messages = project_state(session, projection.messages)
+        projection.messages = self.with_state(session, projection.messages)
         return projection
+
+    def with_state(self, session: Session, messages: list[Message]) -> list[Message]:
+        return project_conversation(session, project_state(session, messages), self.budget)
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)
@@ -244,7 +248,7 @@ class Context:
         """Attempt safety compaction once at this boundary; return whether attempted."""
         active = logical_messages(self.project(session, active).messages)
         # Capacity uses the task request, while summary input below stays guidance-free.
-        task_context = self.task_request(project_state(session, active), guidance)
+        task_context = self.task_request(self.with_state(session, active), guidance)
         original = self.tokens(task_context, tools)
         if not force and original < self.budget * 0.85:
             return False
@@ -260,7 +264,7 @@ class Context:
         protected = protected_seqs(session, active, session.run_id)
         self.check(
             self.task_request(
-                project_state(session, [m for m in active if m.seq in protected]), guidance
+                self.with_state(session, [m for m in active if m.seq in protected]), guidance
             ),
             tools,
         )

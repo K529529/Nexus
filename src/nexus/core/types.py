@@ -160,6 +160,8 @@ class Session:
     # Set only by explicit resume; ordinary turns always start an independent run.
     resume_run_id: str | None = None
     compactions: dict[str, ContextSnapshot] = field(default_factory=dict)
+    # Latest execution outcome per run, rebuilt from existing run_finished records.
+    run_outcomes: dict[str, Json] = field(default_factory=dict)
     plan: PlanState | None = None
     skill_catalog: tuple[SkillInfo, ...] = ()
     selected_skill: SkillSnapshot | None = None

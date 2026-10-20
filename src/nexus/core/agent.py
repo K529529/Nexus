@@ -271,6 +271,8 @@ async def run_turn(
     )
     try:
         await observed("run_finished", asdict(result))
+        assert session.run_id is not None
+        session.run_outcomes[session.run_id] = {"outcome": result.outcome, "reason": result.reason}
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"
     return result

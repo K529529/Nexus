@@ -13,6 +13,7 @@ import pytest
 from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ModelConfig, default_shell
 from nexus.core.context import SYSTEM
+from nexus.core.conversation import ConversationHistory
 from nexus.core.types import Limits, ModelReply, RunResult, RuntimeEvent
 from nexus.tools.mcp import connect_servers, public_name
 from nexus.tools.registry import native_tools
@@ -140,6 +141,8 @@ async def test_resume_unfinished_conversation_and_refresh_current_environment(
         assert active[-2].content == "Continue"
         assert (await resumed.turn("Unrelated question")).outcome == "completed"
         active = clients[1].requests[1]
+        assert any("Interrupted task" in m.content for m in active)
+        active = [m for m in active if not isinstance(m, ConversationHistory)]
         assert len(active) == 4
         assert "offline-server" in active[1].content
         assert active[1].run_id == resumed.session.run_id != run_id

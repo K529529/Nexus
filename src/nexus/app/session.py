@@ -115,6 +115,11 @@ def replay(records: list[Json], workspace: Path) -> Session:
                 session.run_id = session.resume_run_id = run_id
                 started_tool = None
             elif record["kind"] == "run_finished" and run_id == session.run_id:
+                if run_id is not None:
+                    session.run_outcomes[run_id] = {
+                        "outcome": data.get("outcome", "unknown"),
+                        "reason": data.get("reason"),
+                    }
                 if data.get("outcome") == "completed":
                     session.resume_run_id = None
             elif record["kind"] == "message":
@@ -344,6 +349,7 @@ def resume_session(
                 run_id=session.run_id,
                 resume_run_id=session.resume_run_id,
                 compactions=session.compactions,
+                run_outcomes=session.run_outcomes,
                 plan=session.plan,
                 selected_skill=session.selected_skill,
                 loaded_skills=session.loaded_skills,

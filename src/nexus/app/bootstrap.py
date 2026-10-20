@@ -174,7 +174,7 @@ class Conversation:
                         "detail": (
                             "Resuming the unfinished run with current instructions/model/tools. "
                             if self.session.resume_run_id
-                            else "No unfinished run boundary; next input starts an isolated run. "
+                            else "Next input starts a new run with bounded conversation history. "
                         )
                         + "Saved tool calls are never replayed."
                     },
