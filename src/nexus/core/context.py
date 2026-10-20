@@ -268,7 +268,9 @@ class Context:
             session, logical_messages(logical), self.budget, lambda m: estimate([m], [])
         )
         projection.messages = self.with_state(session, projection.messages)
-        history = [m for m in projection.messages if isinstance(m, ConversationHistory)]
+        history: list[Message] = [
+            m for m in projection.messages if isinstance(m, ConversationHistory)
+        ]
         projection.diagnostics["conversation_history_bytes"] = sum(
             len(m.content.encode("utf-8")) for m in history
         )

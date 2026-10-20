@@ -160,3 +160,21 @@ def test_projection_is_not_compaction_input_or_reference(tmp_path: Path) -> None
     assert any(isinstance(m, ConversationHistory) for m in projected)
     assert context.project(session, projected).messages == projected
     assert [m.seq for m in logical] == [1, 3]
+    diagnostics = context.project(session, logical).diagnostics
+    history = next(m for m in projected if isinstance(m, ConversationHistory))
+    assert diagnostics["conversation_history_bytes"] == len(history.content.encode("utf-8"))
+    assert diagnostics["conversation_history_estimated_tokens"] == estimate([history], [])
+
+
+def test_escaped_history_stays_within_request_budget(tmp_path: Path) -> None:
+    session = Session(
+        tmp_path,
+        run_id="new",
+        messages=[
+            Message("user", '"\\\n\t' * 10000, run_id="old"),
+            Message("assistant", '"\\\n\t' * 10000, run_id="old"),
+        ],
+    )
+    for budget in (1500, 8000, 1000000):
+        projected = project_conversation(session, [], budget)
+        assert estimate(projected, []) < min(6200, budget * 0.20)
