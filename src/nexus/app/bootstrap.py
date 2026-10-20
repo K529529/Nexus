@@ -165,6 +165,7 @@ class Conversation:
                 json_text(
                     {
                         "model": asdict(self.config.model),
+                        "response_language": self.config.response_language,
                         "tools": [asdict(t.spec) for t in self.registry.values()],
                         **provenance(),
                     }
@@ -191,7 +192,12 @@ class Conversation:
                     await self.events("warning", {"detail": warning})
             await self.events(
                 "configuration",
-                {"fingerprint": fingerprint, "model": asdict(self.config.model), **provenance()},
+                {
+                    "fingerprint": fingerprint,
+                    "model": asdict(self.config.model),
+                    "response_language": self.config.response_language,
+                    **provenance(),
+                },
             )
             environment = (
                 "[Environment fact] MCP servers "

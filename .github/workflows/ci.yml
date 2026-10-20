@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, next]
+    branches: [main, next, codex/nexus-v0.3-stage1]
 
 permissions:
   contents: read

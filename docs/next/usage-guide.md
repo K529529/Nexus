@@ -24,6 +24,7 @@ include_usage = true
 
 [runtime]
 max_steps = 40
+response_language = "zh-CN"  # default; also accepts "en" and "auto"
 
 [execution]
 output_limit_bytes = 32768
@@ -34,6 +35,11 @@ output_limit_bytes = 32768
 # args = []
 # env_from = { SERVICE_TOKEN = "MY_SERVICE_TOKEN" }
 ```
+
+`runtime.response_language` controls visible model progress and replies. Explicit user
+language requests take precedence; `auto` follows the latest user request. This does not
+translate private reasoning or tool arguments, or add model calls. Reopen the Conversation
+to reload configuration.
 
 Set the key in the same terminal before starting:
 
@@ -114,12 +120,14 @@ the same async task that runs its turns.
 
 Sessions are append-only JSONL under `~/.nexus/sessions/<workspace-key>/` with one
 writer per session. Resume restores conversation and waits for a new user request.
-Each ordinary input starts an isolated run: the model sees current system/repository
-instructions, the current request and that run's messages. Previous runs stay in JSONL.
+Each ordinary input starts an independent execution run, with bounded excerpts of recent
+requests, visible replies and outcomes from the same Conversation. Old tool payloads and
+private protocol data do not cross run boundaries. Long history is explicitly omitted;
+the original JSONL remains intact. A new Conversation does not inherit this history.
 Use `/resume` or `nexus resume` to select a session whose latest run is unfinished
 (interrupted, aborted, failed or limited); the next input continues that run's context.
 A completed session's next input starts a new run. Run IDs remain internal metadata;
-the selector resumes only the latest unfinished run. Context Runtime V0.2.1 retains run
+the selector resumes only the latest unfinished run. V0.3 stage 1 retains execution
 isolation and safety compaction. At 85% of the projected input budget, it summarizes old
 complete groups in the current run's active context, aiming for roughly 60%. Original
 messages stay in session history and JSONL; resume reconstructs the saved projection.
@@ -129,8 +137,11 @@ Nexus attempts compaction and retries once. Unrecoverable overflow returns
 is appended. Consumed results outside a token-budgeted recent working set receive deterministic
 `compact-v1` previews at request time. Session/JSONL retain original messages; safety snapshots
 retain logical references, and HOT tool groups cannot be summarized. Projection diagnostics are
-available in JSONL/profile metrics without extra TUI output. Soft compaction and further history
-reduction remain future work. See [V0.2.1 evidence](context-runtime-v0.2.1-evidence.md).
+available in JSONL/profile metrics. Conversation history uses at most approximately 20% of
+input capacity, capped at 18,000 bytes. The last three turns carry a validation/handoff
+reminder; exhausting the budget remains limited without an extra model call. Unfinished
+runs save bounded tool facts and model-reported pending plan items for explicit Resume.
+Tool success is not task verification. See [stage 1 design](v0.3-stage1.md).
 It never reruns old commands. Missing results after interruption become
 `interrupted_unknown`; inspect actual files/process state before retrying. A
 corrupt final line is recovered into a new file while preserving the original;

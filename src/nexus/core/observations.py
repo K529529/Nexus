@@ -6,9 +6,10 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
+from nexus.core.conversation import HISTORY_FRACTION, MAX_HISTORY_BYTES, MAX_RUN_BYTES
 from nexus.core.types import Json, Message, Session, json_text
 
-CONTEXT_POLICY = "Context Runtime V0.2.1"
+CONTEXT_POLICY = "Context Runtime V0.3 stage1"
 VERSION = "compact-v1"
 WORKING_SET_TOKENS = 16384
 WORKING_SET_FRACTION = 0.25
@@ -19,6 +20,12 @@ FAILURE_MAX_BYTES = 2048
 def provenance() -> Json:
     return {
         "context_policy": CONTEXT_POLICY,
+        "conversation_projection": {
+            "version": "excerpts-v1",
+            "max_history_bytes": MAX_HISTORY_BYTES,
+            "max_run_bytes": MAX_RUN_BYTES,
+            "budget_fraction": HISTORY_FRACTION,
+        },
         "observation_projection": {
             "version": VERSION,
             "working_set_tokens": WORKING_SET_TOKENS,

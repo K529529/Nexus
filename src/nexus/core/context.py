@@ -7,7 +7,7 @@ import platform
 from dataclasses import asdict
 from pathlib import Path
 
-from nexus.core.conversation import project_conversation
+from nexus.core.conversation import ConversationHistory, project_conversation
 from nexus.core.observations import Projection, hot_tool_seqs, project
 from nexus.core.plan import project_plan
 from nexus.core.request_context import logical_messages, project_context
@@ -268,6 +268,13 @@ class Context:
             session, logical_messages(logical), self.budget, lambda m: estimate([m], [])
         )
         projection.messages = self.with_state(session, projection.messages)
+        history = [m for m in projection.messages if isinstance(m, ConversationHistory)]
+        projection.diagnostics["conversation_history_bytes"] = sum(
+            len(m.content.encode("utf-8")) for m in history
+        )
+        projection.diagnostics["conversation_history_estimated_tokens"] = (
+            estimate(history, []) if history else 0
+        )
         return projection
 
     def with_state(self, session: Session, messages: list[Message]) -> list[Message]:

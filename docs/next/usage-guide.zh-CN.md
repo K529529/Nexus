@@ -22,12 +22,15 @@ output_token_parameter = "max_completion_tokens"  # 本服务已验证限制推�
 
 [runtime]
 max_steps = 40
+response_language = "zh-CN"  # 默认中文；en 英文；auto 跟随本轮用户语言
 
 [execution]
 output_limit_bytes = 32768
 ```
 
 `output_token_parameter` 可选 `max_tokens`（兼容默认值）或 `max_completion_tokens`。
+`response_language` 控制面向用户的模型进度与回复，用户明确指定其他语言时优先遵从用户。
+它不改写内部推理或工具参数，不增加翻译调用；配置在新 Conversation 生效。
 部分服务的 `max_tokens` 不包含推理；服务支持时选择总 completion 参数，使限制覆盖推理与回答。
 `max_output_tokens` 同时用于该参数和 Context 预留。Nexus 不根据模型名猜测，也不在参数被拒绝后
 自动换参数重试。服务接受参数不等于上限生效，需用小额受限探针验证；见
@@ -81,18 +84,21 @@ Conversation 内不自动重连。配置在新 Conversation 中重载，不做�
 退出码：0 completed、1 failed、2 配置/参数错误、3 limited、130 aborted。
 
 会话写入 `~/.nexus/sessions/<workspace-key>/` 下的 append-only JSONL，文件锁确保单
-writer。普通输入每次开启独立 run，模型只接收当前 system/仓库指令、当前请求和该 run
-的消息；之前 run 的完整历史仍保留在 JSONL。使用 `/resume` 或 `nexus resume` 选择最近
+writer。普通输入每次开启独立执行 run，同时携带同一 Conversation 内近期旧 run 的
+有界需求、可见回复与结果状态摘录；旧工具输出和私有协议不跨 run 携带。过长历史明确省略，
+完整历史仍保留在 JSONL；`/new` 不继承旧 Conversation。使用 `/resume` 或 `nexus resume` 选择最近
 run 未完成的会话（中断、aborted、failed、limited），下一次输入会续接这个 run 的上下文。
 已完成会话的下一次输入开启新 run；run_id 仍是内部元数据，选择器只恢复最近的未完成 run。
-Context Runtime V0.2.1 保留 run 隔离和安全压缩：投影后的活动输入达到预算的 85% 时，对当前
+V0.3 第一阶段保留 Run 执行隔离和安全压缩：投影后的活动输入达到预算的 85% 时，对当前
 run 的旧完整消息组生成摘要，目标约为预算的 60%。只替换活动上下文，Session 历史和 JSONL
 仍保留原消息；resume 会重建已保存的投影。若服务端报超限且本请求边界尚未尝试压缩，
 则压缩并最多重试一次；仍无法容纳时返回 `limited/context_limit`。工具结果在后续有效 assistant
 消息写入前保持 FULL；已消费且掉出 token 工作集的结果，在请求时派生 `compact-v1` preview。
 Session/JSONL 保留原文，snapshot 保留逻辑引用；HOT 所属工具组不能被摘要替换。
-投影统计进入 JSONL/profile metrics，不扩常驻 TUI。软压缩和进一步历史缩减仍是后续工作，
-详见 [V0.2.1 实测记录](context-runtime-v0.2.1-evidence.md)。
+历史和工具投影统计写入 JSONL；历史最多占约 20% 输入预算且不超过 18,000 bytes。
+预算最后 3 轮提醒优先验证与交接，耗尽后保持 limited，不额外调用模型。
+非 completed 的运行保存有界工具事实和模型 Plan 待办，TUI 提示显式 Resume；
+工具成功不代表任务已验证。详见 [V0.3 第一阶段说明](v0.3-stage1.md)。
 恢复后等待用户输入，不重新执行旧命令。崩溃后的缺失结果标为
 `interrupted_unknown`，需要先检查实际文件/进程状态。损坏尾行恢复到新文件并保留原文件；
 中间损坏拒绝恢复。逐记录 flush 不等于耐断电事务，也不保证副作用恰好执行一次。

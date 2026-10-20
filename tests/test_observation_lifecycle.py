@@ -464,7 +464,8 @@ async def test_final_context_rebuilt_projected_checked_observed_and_profiled(
     metrics = profile_metrics(profiler.profile)
     assert metrics["observation_projection"]["requests"] == len(requests)  # type: ignore[index]
     assert metrics["usage"]["input_tokens"]["reported"] is None  # type: ignore[index]
-    assert provenance()["context_policy"] == "Context Runtime V0.2.1"
+    assert provenance()["context_policy"] == "Context Runtime V0.3 stage1"
+    assert provenance()["conversation_projection"]["version"] == "excerpts-v1"
 
 
 async def test_long_run_reduces_repeated_tool_inputs_without_losing_raw_history(

@@ -169,7 +169,8 @@ async def application(args: argparse.Namespace) -> int:
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
                     "/resume recent sessions · /new new conversation · /exit quit. "
-                    "Each ordinary input starts an isolated run; /resume continues the "
+                    "Each input starts a new run with bounded conversation history; "
+                    "/resume continues the "
                     "selected session's unfinished run. "
                     "Ctrl+C aborts the current turn; at the prompt it clears input."
                 )
