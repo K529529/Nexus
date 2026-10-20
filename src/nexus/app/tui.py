@@ -181,6 +181,36 @@ class Transcript:
         elif kind == "run_finished":
             self.stop_activity()
             self.tools.clear()
+            handoff = data.get("handoff")
+            if handoff:
+                self.console.print(
+                    Text(
+                        "本轮已停止，任务尚未完成最终交付；工具成功不等于任务已验证。",
+                        style="yellow",
+                    )
+                )
+                for fact in handoff.get("recent_tools", []):
+                    status = "成功" if fact.get("ok") else str(fact.get("error_code") or "失败")
+                    suffix = (
+                        "；结果后尚无模型回复" if fact.get("no_subsequent_model_response") else ""
+                    )
+                    self.console.print(
+                        Text(
+                            short_line(
+                                f"  {fact['tool']} · {status} · "
+                                f"日志 seq {fact['source_seq']}{suffix}"
+                            )
+                        )
+                    )
+                for item in handoff.get("pending_plan", []):
+                    self.console.print(Text(short_line("  待办（模型记录）：" + item["step"])))
+                self.console.print(
+                    Text(
+                        "使用 /resume 或 nexus resume 选择本会话后继续；先检查实际状态，"
+                        "尤其是副作用未知的操作。恢复不会自动重放工具。",
+                        style="dim",
+                    )
+                )
             total = data["usage"].get("total_tokens")
             suffix = data.get("reason") or ""
             label = (

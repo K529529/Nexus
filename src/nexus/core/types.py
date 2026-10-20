@@ -214,6 +214,7 @@ class RunResult:
     usage: Usage = field(default_factory=Usage)
     duration_ms: int = 0
     reason: str | None = None
+    handoff: Json | None = None
 
 
 class ModelError(Exception):

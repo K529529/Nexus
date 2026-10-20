@@ -65,6 +65,7 @@ def project_conversation(session: Session, messages: list[Message], budget: int)
             "run_id": run_id,
             "outcome": status.get("outcome", "interrupted/unknown"),
             "reason": status.get("reason"),
+            "handoff": status.get("handoff"),
             "requests": [excerpt(m.content, 1000) for m in kept_users],
             "omitted_requests": len(users) - len(kept_users),
             "last_assistant": excerpt(assistants[-1].content, 2200) if assistants else None,

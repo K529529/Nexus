@@ -205,13 +205,27 @@ def project_guidance(messages: list[Message], guidance: str | None) -> list[Mess
 
 
 def execution_budget(step: int, max_steps: int) -> str:
-    return (
+    remaining = max_steps - step + 1
+    text = (
         "Execution budget (current execution window):\n"
         f"Current model turn: {step} / {max_steps}\n"
         f"Remaining model turns, including this one: {max_steps - step + 1}\n"
         "Tool calls need a subsequent model turn to inspect their results and respond.\n"
         "This is a limit, not a target; finish earlier when the task is done."
     )
+    if remaining <= 3:
+        text += (
+            "\nBudget boundary is near. Prioritize required validation and an honest handoff "
+            "of completed work, remaining work, and checks not yet run. "
+            "Avoid starting optional work."
+        )
+    if remaining == 1:
+        text += (
+            "\nThis is the last model turn. If you call tools now, their results will be saved "
+            "but you cannot inspect them or give a final report in this window. "
+            "Never claim that an unobserved check passed."
+        )
+    return text
 
 
 def project_state(session: Session, messages: list[Message]) -> list[Message]:
@@ -239,7 +253,13 @@ class Context:
         return projection
 
     def with_state(self, session: Session, messages: list[Message]) -> list[Message]:
-        return project_conversation(session, project_state(session, messages), self.budget)
+        handoff = session.run_outcomes.get(session.run_id or "", {}).get("handoff")
+        state = project_context(
+            project_state(session, messages),
+            "handoff",
+            "[Previous execution window receipt]\n" + json_text(handoff) if handoff else None,
+        )
+        return project_conversation(session, state, self.budget)
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         current = estimate(messages, tools)

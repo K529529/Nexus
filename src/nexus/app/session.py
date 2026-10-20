@@ -119,6 +119,7 @@ def replay(records: list[Json], workspace: Path) -> Session:
                     session.run_outcomes[run_id] = {
                         "outcome": data.get("outcome", "unknown"),
                         "reason": data.get("reason"),
+                        "handoff": data.get("handoff"),
                     }
                 if data.get("outcome") == "completed":
                     session.resume_run_id = None

@@ -9,6 +9,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
+from nexus.core.handoff import make_handoff
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
@@ -58,6 +59,7 @@ async def run_turn(
     environment: str = "",
 ) -> RunResult:
     started = time.monotonic()
+    first_message = len(session.messages)
     session.run_id = session.resume_run_id or uuid4().hex
     if session.plan is not None and session.plan.run_id != session.run_id:
         session.plan = None
@@ -270,9 +272,15 @@ async def run_turn(
         else "unknown",
     )
     try:
+        if result.outcome != "completed":
+            result.handoff = make_handoff(session, result, limits.max_steps, first_message)
         await observed("run_finished", asdict(result))
         assert session.run_id is not None
-        session.run_outcomes[session.run_id] = {"outcome": result.outcome, "reason": result.reason}
+        session.run_outcomes[session.run_id] = {
+            "outcome": result.outcome,
+            "reason": result.reason,
+            "handoff": result.handoff,
+        }
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"
     return result
