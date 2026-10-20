@@ -41,7 +41,7 @@ def update(body: str, name: str = "a") -> str:
     [
         ("*** Begin Patch\n", "invalid_patch"),
         (wrapped(""), "invalid_patch"),
-        ("*** Update File: a\n@@\n-x\n+y\n*** End Patch", "unsupported_patch"),
+        ("*** Update File: a\n@@\n-x\n+y\n*** End Patch", "patch_conflict"),
         ("garbage", "unsupported_patch"),
         (" *** Begin Patch\n*** End Patch", "unsupported_patch"),
         (update("@@\n context"), "invalid_patch"),
@@ -88,17 +88,13 @@ async def test_empty_seek_chunk_feedback_supports_safe_retry(
     path = execution.workspace / "a"
     original = b"def run():\nold\n"
     path.write_bytes(original)
-    bad = await apply_patch(
-        {"patch": update(heading + "\n@@\n-old\n+new")}, execution, Recorder()
-    )
+    bad = await apply_patch({"patch": update(heading + "\n@@\n-old\n+new")}, execution, Recorder())
     assert not bad.ok and bad.error_code == "invalid_patch"
     assert bad.data["failed_hunk"] == 1 and bad.data["changed_files"] == 0
     assert "Each @@ starts a new chunk" in bad.data["detail"]
     assert "before the next @@" in bad.data["detail"]
     assert path.read_bytes() == original
-    fixed = await apply_patch(
-        {"patch": update("@@ def run():\n-old\n+new")}, execution, Recorder()
-    )
+    fixed = await apply_patch({"patch": update("@@ def run():\n-old\n+new")}, execution, Recorder())
     assert fixed.ok and fixed.data["changed_files"] == 1
     assert path.read_bytes() == b"def run():\nnew\n"
 
@@ -131,11 +127,12 @@ async def test_actual_toolspec_example_and_schema(execution: ExecutionContext) -
     assert result.data["created_directories"] == ["tests"]
     assert PATCH_SPEC.input_schema == {
         "type": "object",
-        "properties": {"patch": {"type": "string"}},
+        "properties": {"patch": PATCH_SPEC.input_schema["properties"]["patch"]},
         "required": ["patch"],
         "additionalProperties": False,
     }
     assert "Each path may appear only once" in description
+    assert "*** Begin Patch" in PATCH_SPEC.input_schema["properties"]["patch"]["description"]
     assert "Do not provide line numbers or hunk counts" in description
     assert "does not define a function/class scope" in description
     assert "---" not in description and "unified" not in description

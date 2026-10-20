@@ -18,6 +18,7 @@ from nexus.tools.patch_format import (
     FilePatch,
     PatchError,
     bounded_text,
+    normalize_framing,
     parse_nexus_patch,
     resolve_update,
 )
@@ -262,10 +263,12 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
     detail = ""
     failed_file: str | None = None
     failed_hunk: int | None = None
+    framing_normalized = False
     try:
         if set(arguments) != {"patch"} or not isinstance(arguments["patch"], str):
             raise PatchError("invalid_arguments", "Expected only patch: string")
-        changes = parse_patch(arguments["patch"])
+        patch, framing_normalized = normalize_framing(arguments["patch"])
+        changes = parse_patch(patch)
         normalized: set[Path] = set()
         for change in changes:
             failed_file = change.path
@@ -350,6 +353,7 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         "created_directories": created,
         "partial": bool(error and (facts or created)),
         "no_changes": not error and not facts,
+        "framing_normalized": framing_normalized,
         "failed_file": failed_file,
         "failed_hunk": failed_hunk,
         "detail": bounded_text(detail, MAX_ERROR_DETAIL_BYTES),

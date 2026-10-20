@@ -88,6 +88,32 @@ def instructions(workspace: Path, shell: str, *, display: tuple[str, str] | None
     return (
         SYSTEM + project + f"\n\nEnvironment: OS={os_name}; shell={shell}; "
         f"workspace={directory}.\nUse this workspace as the repository root."
+        + shell_instructions(shell)
+    )
+
+
+def shell_instructions(shell: str) -> str:
+    name = shell.replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
+    if name not in {"powershell", "pwsh"}:
+        return ""
+    version = (
+        "Windows PowerShell (powershell.exe): && and || are unsupported. "
+        if name == "powershell"
+        else "PowerShell (pwsh): use PowerShell syntax. "
+    )
+    return (
+        "\nShell semantics: "
+        + version
+        + "Commands already run under -NoProfile -NonInteractive -Command. "
+        "Write the script directly; nested powershell -Command with double quotes "
+        "expands $variables in the outer shell. "
+        "Use workdir for cwd; Get-ChildItem for listings (CMD dir /b, dir /s and cd /d "
+        "are not PowerShell syntax). Use Get-ChildItem -Recurse -File | Select-String "
+        "for recursive text search; Select-String itself has no -Recurse parameter. "
+        "Separate independent statements with newlines or ';'. These separators do not "
+        "stop on failure: check $? for cmdlets and $LASTEXITCODE for native programs. "
+        "Capture a test program's exit code immediately, then exit with that code after "
+        "displaying/filtering output; do not mask a failed test with a later command."
     )
 
 

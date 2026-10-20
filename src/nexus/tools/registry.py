@@ -12,7 +12,10 @@ EXEC_SPEC = ToolSpec(
     "exec_command",
     "Execute a command in the actual local shell. Use for reading/searching files, git, "
     "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
-    "truncation. timeout_ms: 1..600000 (default 120000).",
+    "truncation. command is executed directly in the shell named in Environment; "
+    "do not wrap it in another shell unless deliberately switching languages. "
+    "Use workdir instead of shell-specific cd syntax. "
+    "timeout_ms: 1..600000 (default 120000).",
     {
         "type": "object",
         "properties": {
@@ -26,7 +29,10 @@ EXEC_SPEC = ToolSpec(
 )
 PATCH_SPEC = ToolSpec(
     "apply_patch",
-    "Edit UTF-8 text files inside the workspace with Nexus patch format.\n\n"
+    "Edit UTF-8 text files inside the workspace with Nexus patch format. "
+    "The patch string starts with *** Begin Patch and ends with *** End Patch. "
+    "No Markdown fences. Only a missing Begin marker before complete file sections "
+    "with an End marker is normalized; truncated patches are rejected.\n\n"
     "Example:\n"
     "*** Begin Patch\n"
     "*** Update File: src/app.py\n@@ def run():\n-old()\n+new()\n"
@@ -44,7 +50,13 @@ PATCH_SPEC = ToolSpec(
     "absolute-path edits.",
     {
         "type": "object",
-        "properties": {"patch": {"type": "string"}},
+        "properties": {
+            "patch": {
+                "type": "string",
+                "description": "Complete patch: *** Begin Patch, file sections, *** End Patch. "
+                "Prefix every Add File body line with '+', including empty lines.",
+            }
+        },
         "required": ["patch"],
         "additionalProperties": False,
     },

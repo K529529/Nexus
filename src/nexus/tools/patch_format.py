@@ -26,6 +26,25 @@ class PatchError(ValueError):
         super().__init__(bounded_text(detail, MAX_ERROR_DETAIL_BYTES))
 
 
+def normalize_framing(patch: str) -> tuple[str, bool]:
+    """Accept one unambiguous omission, never synthesize a missing end marker.
+
+    A complete file-section body ending in End Patch is already a delimited patch.
+    No fences, prose, file contents, hunks or matching rules are repaired here.
+    """
+    lines = patch.strip("\r\n\t ").split("\n")
+    if (
+        lines
+        and lines[0].startswith(("*** Update File: ", "*** Add File: ", "*** Delete File: "))
+        and lines[-1].removesuffix("\r") == "*** End Patch"
+        and not any(line.removesuffix("\r") == "*** Begin Patch" for line in lines)
+        # Do not make indented file markers valid by stripping their indentation.
+        and patch.lstrip("\r\n").startswith("*** ")
+    ):
+        return "*** Begin Patch\n" + patch, True
+    return patch, False
+
+
 @dataclass
 class Chunk:
     anchor: str | None
@@ -127,6 +146,13 @@ def parse_nexus_patch(patch: str) -> list[FilePatch]:
                 )
         elif current.kind == "added" and line.startswith("+"):
             current.added.append(line[1:])
+        elif current.kind == "added":
+            raise _error(
+                "invalid_patch",
+                f"line {number}: every Add File body line must start with '+'; "
+                "use a lone '+' for an empty source line",
+                current,
+            )
         else:
             raise _error(
                 "invalid_patch", f"line {number}: unexpected {current.kind} file body", current
@@ -154,7 +180,13 @@ def _find_unique(source: list[str], old: list[str], start: int, label: str) -> i
                 f"{label} matched {len(matches)} locations; "
                 "add more unchanged context or a more specific @@ anchor",
             )
-    raise PatchError("patch_conflict", f"{label} not found")
+    sample = bounded_text("\n".join(old), MAX_ERROR_EXCERPT_BYTES)
+    raise PatchError(
+        "patch_conflict",
+        f"{label} not found. Expected old text: {sample!r}. "
+        "Read the failed file near this text and rebuild this chunk against current content; "
+        "do not retry the unchanged patch.",
+    )
 
 
 def resolve_update(before: bytes, file: FilePatch) -> bytes:
