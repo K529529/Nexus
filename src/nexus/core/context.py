@@ -72,7 +72,13 @@ task-related work remains, mark all plan steps completed.
 """
 
 
-def instructions(workspace: Path, shell: str, *, display: tuple[str, str] | None = None) -> str:
+def instructions(
+    workspace: Path,
+    shell: str,
+    *,
+    display: tuple[str, str] | None = None,
+    response_language: str = "zh-CN",
+) -> str:
     path = workspace / "AGENTS.md"
     project = ""
     if path.exists():
@@ -85,8 +91,20 @@ def instructions(workspace: Path, shell: str, *, display: tuple[str, str] | None
         except UnicodeError:
             raise ValueError("Root AGENTS.md must be UTF-8") from None
     os_name, directory = display or (platform.system(), str(workspace.resolve()))
+    language = {
+        "zh-CN": "Simplified Chinese (简体中文)",
+        "en": "English",
+        "auto": "the language of the user's latest request",
+    }[response_language]
+    communication = (
+        f"\n\nUser-facing communication: use {language} for progress updates, explanations "
+        "and final replies unless the user explicitly requests another language. "
+        "Before substantive tool actions, briefly state the next action and its purpose. "
+        "Report observable progress, not private reasoning. Preserve code identifiers, "
+        "commands, paths and tool argument syntax; do not translate them."
+    )
     return (
-        SYSTEM + project + f"\n\nEnvironment: OS={os_name}; shell={shell}; "
+        SYSTEM + communication + project + f"\n\nEnvironment: OS={os_name}; shell={shell}; "
         f"workspace={directory}.\nUse this workspace as the repository root."
         + shell_instructions(shell)
     )

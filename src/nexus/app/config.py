@@ -42,6 +42,7 @@ class Config:
     model: ModelConfig
     limits: Limits
     mcp_servers: Json = field(default_factory=dict)
+    response_language: str = "zh-CN"
 
 
 def config_path() -> Path:
@@ -147,10 +148,20 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
             "model.output_token_parameter: expected max_tokens or max_completion_tokens"
         )
     settings = ModelConfig(
-        name, window, base, key_env, maximum, effort, include_usage, request_timeout,
+        name,
+        window,
+        base,
+        key_env,
+        maximum,
+        effort,
+        include_usage,
+        request_timeout,
         output_parameter,
     )
-    runtime = _table(data, "runtime", {"max_steps"})
+    runtime = _table(data, "runtime", {"max_steps", "response_language"})
+    language = runtime.get("response_language", "zh-CN")
+    if language not in ("zh-CN", "en", "auto"):
+        raise ConfigError("runtime.response_language: expected zh-CN, en or auto")
     execution = _table(data, "execution", {"shell", "output_limit_bytes"})
     mcp = _table(data, "mcp", {"servers"})
     servers = mcp.get("servers", {})
@@ -169,4 +180,4 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     )
     if require_key:
         settings.key()
-    return Config(settings, limits, servers)
+    return Config(settings, limits, servers, language)

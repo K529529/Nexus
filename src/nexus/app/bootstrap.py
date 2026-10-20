@@ -126,7 +126,10 @@ class Conversation:
             raise RuntimeError("Conversation is closed")
         self.session.run_id = None
         prefix = instructions(
-            self.workspace, self.config.limits.shell, display=self.environment_display
+            self.workspace,
+            self.config.limits.shell,
+            display=self.environment_display,
+            response_language=self.config.response_language,
         )
         self.config.model.key()  # Validate credentials only when actually running a task.
         self.ensure_events(text)
