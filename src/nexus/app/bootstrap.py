@@ -16,7 +16,7 @@ from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
 from nexus.core.context import instructions
-from nexus.core.model import ChatModel
+from nexus.core.model import ChatModel, CompactionModel
 from nexus.core.observations import provenance
 from nexus.core.skills import check_active
 from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, json_text
@@ -46,6 +46,13 @@ class Conversation:
         self.warnings: list[str] = []
         self.resumed = resume is not None
         self.model: ChatModel | None = None
+        self.compaction_model: CompactionModel | None = None
+        if config.compaction_model is None:
+            self.warnings.append(
+                "Missing [compaction_model]: automatic and /compact summarization require "
+                "an independent model and API-key environment variable. Legacy configuration "
+                "can run while context fits; no main-model fallback is used."
+            )
         self.environment_display = environment_display
         self.resources = AsyncExitStack()
         self.unavailable: list[str] = []
@@ -69,6 +76,8 @@ class Conversation:
 
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
+        if self.config.compaction_model is not None:
+            values.append(os.environ.get(self.config.compaction_model.api_key_env, ""))
         for raw in self.config.mcp_servers.values():
             if isinstance(raw, dict) and isinstance(raw.get("env_from"), dict):
                 values.extend(
@@ -152,6 +161,9 @@ class Conversation:
                 self.model = ChatModel(self.config.model)
                 self.resources.push_async_callback(self.model.close)
                 try:
+                    if self.config.compaction_model is not None:
+                        self.compaction_model = CompactionModel(self.config.compaction_model)
+                        self.resources.push_async_callback(self.compaction_model.close)
                     self.unavailable = await connect_servers(
                         self.config.mcp_servers, self.registry, self.resources, self.events
                     )
@@ -159,6 +171,7 @@ class Conversation:
                     # A partially opened conversation must not leak client/process handles.
                     await self.resources.aclose()
                     self.model = None
+                    self.compaction_model = None
                     self.registry = dict(self.base_registry)
                     raise
             fingerprint = hashlib.sha256(

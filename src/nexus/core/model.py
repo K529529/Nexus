@@ -14,6 +14,34 @@ from nexus.app.config import ModelConfig
 from nexus.core.types import Emit, Json, Message, ModelError, ModelReply, ToolCall, ToolSpec, Usage
 
 
+class CompactionModel:
+    """A separate client with no tool or private-protocol continuation capability."""
+
+    def __init__(self, config: ModelConfig, *, client: Any = None) -> None:
+        self.config = config
+        self.adapter = ChatModel(config, client=client)
+
+    async def close(self) -> None:
+        await self.adapter.close()
+
+    async def complete(
+        self, messages: list[Message], tools: list[ToolSpec], emit: Emit
+    ) -> ModelReply:
+        if tools or any(m.protocol_data or m.tool_calls or m.role == "tool" for m in messages):
+            raise ModelError("invalid_compaction_request")
+
+        async def events(kind: str, data: Json, **_: Any) -> int:
+            if kind == "assistant_delta":
+                return 0
+            return await emit(kind, {**data, "purpose": "compaction"})
+
+        reply = await self.adapter.complete(messages, [], events)
+        if reply.message.tool_calls or reply.finish_reason != "stop":
+            raise ModelError("invalid_compaction_response")
+        reply.message.protocol_data = None
+        return reply
+
+
 class ChatModel:
     def __init__(self, config: ModelConfig, *, client: Any = None) -> None:
         self.config = config

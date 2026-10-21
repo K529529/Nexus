@@ -43,6 +43,7 @@ class Config:
     limits: Limits
     mcp_servers: Json = field(default_factory=dict)
     response_language: str = "zh-CN"
+    compaction_model: ModelConfig | None = None
 
 
 def config_path() -> Path:
@@ -89,16 +90,11 @@ def default_shell() -> str:
     return "/bin/sh"
 
 
-def load_config(path: Path | None = None, *, require_key: bool = True) -> Config:
-    path = path or config_path()
-    data = read_toml(path)
-    unknown = data.keys() - {"model", "runtime", "execution", "mcp"}
-    if unknown:
-        raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
+def parse_model(data: Json, section: str) -> ModelConfig:
     model = dict(
         _table(
             data,
-            "model",
+            section,
             {
                 "name",
                 "base_url",
@@ -113,41 +109,43 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         )
     )
     for field_name in ("name", "base_url"):
-        if value := os.environ.get(f"NEXUS_MODEL_{field_name.upper()}"):
+        if value := os.environ.get(f"NEXUS_{section.upper()}_{field_name.upper()}"):
             model[field_name] = value
-    name = _text(model.get("name"), "model.name")
-    window = _integer(model.get("context_window"), "model.context_window")
-    maximum = _integer(model.get("max_output_tokens", 8192), "model.max_output_tokens")
+    name = _text(model.get("name"), f"{section}.name")
+    window = _integer(model.get("context_window"), f"{section}.context_window")
+    maximum = _integer(model.get("max_output_tokens", 8192), f"{section}.max_output_tokens")
     if window - maximum - 1024 <= 0:
-        raise ConfigError("model.context_window must exceed max_output_tokens + 1024")
-    base = _text(model.get("base_url", "https://api.openai.com/v1"), "model.base_url")
+        raise ConfigError(f"{section}.context_window must exceed max_output_tokens + 1024")
+    base = _text(model.get("base_url", "https://api.openai.com/v1"), f"{section}.base_url")
     url = urlsplit(base)
     if url.scheme not in {"http", "https"} or not url.hostname or url.username or url.password:
-        raise ConfigError("model.base_url: expected HTTP(S) URL without credentials")
+        raise ConfigError(f"{section}.base_url: expected HTTP(S) URL without credentials")
     if url.query or url.fragment or "<" in base or ">" in base:
-        raise ConfigError("model.base_url: query, fragment and placeholders are not supported")
-    key_env = _text(model.get("api_key_env", "NEXUS_MODEL_API_KEY"), "model.api_key_env")
+        raise ConfigError(f"{section}.base_url: query, fragment and placeholders are not supported")
+    key_env = _text(
+        model.get("api_key_env", f"NEXUS_{section.upper()}_API_KEY"), f"{section}.api_key_env"
+    )
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key_env):
-        raise ConfigError("model.api_key_env: invalid environment variable name")
+        raise ConfigError(f"{section}.api_key_env: invalid environment variable name")
     effort = model.get("reasoning_effort")
     if effort is not None:
-        effort = _text(effort, "model.reasoning_effort")
+        effort = _text(effort, f"{section}.reasoning_effort")
     include_usage = model.get("include_usage", True)
     if type(include_usage) is not bool:
-        raise ConfigError("model.include_usage: expected boolean")
+        raise ConfigError(f"{section}.include_usage: expected boolean")
     request_timeout = _integer(
-        model.get("request_timeout_seconds", 120), "model.request_timeout_seconds"
+        model.get("request_timeout_seconds", 120), f"{section}.request_timeout_seconds"
     )
     if request_timeout > 600:
-        raise ConfigError("model.request_timeout_seconds: expected integer <= 600")
+        raise ConfigError(f"{section}.request_timeout_seconds: expected integer <= 600")
     output_parameter = _text(
-        model.get("output_token_parameter", "max_tokens"), "model.output_token_parameter"
+        model.get("output_token_parameter", "max_tokens"), f"{section}.output_token_parameter"
     )
     if output_parameter not in {"max_tokens", "max_completion_tokens"}:
         raise ConfigError(
-            "model.output_token_parameter: expected max_tokens or max_completion_tokens"
+            f"{section}.output_token_parameter: expected max_tokens or max_completion_tokens"
         )
-    settings = ModelConfig(
+    return ModelConfig(
         name,
         window,
         base,
@@ -158,6 +156,16 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         request_timeout,
         output_parameter,
     )
+
+
+def load_config(path: Path | None = None, *, require_key: bool = True) -> Config:
+    path = path or config_path()
+    data = read_toml(path)
+    unknown = data.keys() - {"model", "compaction_model", "runtime", "execution", "mcp"}
+    if unknown:
+        raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
+    settings = parse_model(data, "model")
+    compaction = parse_model(data, "compaction_model") if "compaction_model" in data else None
     runtime = _table(data, "runtime", {"max_steps", "response_language"})
     language = runtime.get("response_language", "zh-CN")
     if language not in ("zh-CN", "en", "auto"):
@@ -169,8 +177,8 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         raise ConfigError("mcp.servers: expected table")
     limits = Limits(
         max_steps=_integer(runtime.get("max_steps", 40), "runtime.max_steps"),
-        context_window=window,
-        max_output_tokens=maximum,
+        context_window=settings.context_window,
+        max_output_tokens=settings.max_output_tokens,
         output_limit_bytes=_integer(
             execution.get("output_limit_bytes", 32768),
             "execution.output_limit_bytes",
@@ -180,4 +188,6 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     )
     if require_key:
         settings.key()
-    return Config(settings, limits, servers, language)
+        if compaction is not None:
+            compaction.key()
+    return Config(settings, limits, servers, language, compaction)
