@@ -11,6 +11,7 @@ from typing import Any
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
 from nexus.app.config import ModelConfig
+from nexus.core.tokens import wire_message, wire_tools
 from nexus.core.types import Emit, Json, Message, ModelError, ModelReply, ToolCall, ToolSpec, Usage
 
 
@@ -61,21 +62,7 @@ class ChatModel:
     def wire_messages(self, messages: list[Message]) -> list[Json]:
         result: list[Json] = []
         for message in messages:
-            wire: Json = {"role": message.role, "content": message.content}
-            if message.tool_calls:
-                wire["tool_calls"] = [
-                    {
-                        "id": c.id,
-                        "type": "function",
-                        "function": {
-                            "name": c.name,
-                            "arguments": c.arguments_json,
-                        },
-                    }
-                    for c in message.tool_calls
-                ]
-            if message.tool_call_id is not None:
-                wire["tool_call_id"] = message.tool_call_id
+            wire = wire_message(message)
             if message.protocol_data:
                 # Only adapter-generated, bound continuation fields can cross the wire.
                 data = message.protocol_data
@@ -104,19 +91,11 @@ class ChatModel:
             self.config.output_token_parameter: self.config.max_output_tokens,
         }
         if tools:
-            request["tools"] = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": t.name,
-                        "description": t.description,
-                        "parameters": t.input_schema,
-                    },
-                }
-                for t in tools
-            ]
+            request["tools"] = wire_tools(tools)
         if self.config.reasoning_effort is not None:
             request["reasoning_effort"] = self.config.reasoning_effort
+        if self.config.enable_thinking is not None:
+            request["extra_body"] = {"enable_thinking": self.config.enable_thinking}
         if self.config.include_usage:
             request["stream_options"] = {"include_usage": True}
         for attempt in (1, 2):

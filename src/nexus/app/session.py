@@ -227,8 +227,8 @@ def replay(records: list[Json], workspace: Path) -> Session:
                     raise SessionError("Invalid plan_updated: plan is not normalized")
                 session.plan = PlanState(run_id, items)
                 committed_plans.add((run_id, call_id))
-            elif record["kind"] == "context_compacted" and data.get("scope") == "run":
-                if run_id is None or run_id != session.run_id:
+            elif record["kind"] == "context_compacted" and data.get("scope") in {"run", "session"}:
+                if data.get("scope") == "run" and (run_id is None or run_id != session.run_id):
                     raise SessionError("Invalid compaction run")
                 ContextBuilder().restore_compaction(session, run_id, data, record["seq"])
             # Legacy unscoped compactions remain audit-only: their summaries may mix runs.
@@ -349,7 +349,7 @@ def resume_session(
                 messages=session.messages,
                 run_id=session.run_id,
                 resume_run_id=session.resume_run_id,
-                compactions=session.compactions,
+                checkpoint=session.checkpoint,
                 run_outcomes=session.run_outcomes,
                 plan=session.plan,
                 selected_skill=session.selected_skill,

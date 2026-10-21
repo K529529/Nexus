@@ -4,9 +4,23 @@ from __future__ import annotations
 
 import json
 
-from nexus.core.conversation import excerpt
-from nexus.core.observations import hot_tool_seqs
 from nexus.core.types import Json, RunResult, Session
+
+
+def excerpt(text: str, limit: int) -> str:
+    raw = text.encode("utf-8")
+    if len(raw) <= limit:
+        return text
+    marker = "\n[...excerpt omitted...]\n"
+    available = max(0, limit - len(marker.encode()))
+    head = available // 2
+    tail = available - head
+    return (
+        raw[:head].decode("utf-8", errors="ignore")
+        + marker
+        + (raw[-tail:].decode("utf-8", errors="ignore") if tail else "")
+    )
+
 
 NOTICE = (
     "Previous execution window stopped before a final answer. Tool success is not task "
@@ -19,7 +33,7 @@ def make_handoff(session: Session, result: RunResult, max_steps: int, after: int
     messages = [m for m in session.messages[after:] if m.run_id == session.run_id]
     names = {c.id: c.name for m in messages for c in m.tool_calls}
     results = [m for m in messages if m.role == "tool"]
-    hot = hot_tool_seqs(session, session.run_id or "")
+    last_reply = max((m.seq for m in messages if m.role == "assistant"), default=-1)
     recent = []
     unknown_count = 0
     for message in results:
@@ -39,7 +53,7 @@ def make_handoff(session: Session, result: RunResult, max_steps: int, after: int
                 "error_code": excerpt(str(value["error_code"]), 160)
                 if value.get("error_code")
                 else None,
-                "no_subsequent_model_response": message.seq in hot,
+                "no_subsequent_model_response": message.seq > last_reply,
                 "facts": {
                     k: data[k]
                     for k in (

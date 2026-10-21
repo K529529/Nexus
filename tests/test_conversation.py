@@ -13,7 +13,6 @@ import pytest
 from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ModelConfig, default_shell
 from nexus.core.context import SYSTEM
-from nexus.core.conversation import ConversationHistory
 from nexus.core.types import Limits, ModelReply, RunResult, RuntimeEvent
 from nexus.tools.mcp import connect_servers, public_name
 from nexus.tools.registry import native_tools
@@ -73,7 +72,7 @@ async def test_reuses_resources_until_close_and_reopens_on_resume(
         assert (await cli.drive(convo, "two")).outcome == "completed"
         assert len(clients) == 1 and clients[0].closed == 0
         assert connections == ["open"] and convo.registry is registry
-        assert not any(m.content in {"one", "first"} for m in clients[0].requests[-1])
+        assert any(m.content in {"one", "first"} for m in clients[0].requests[-1])
         assert convo.writer is not None
         path = convo.writer.path
     finally:
@@ -86,9 +85,7 @@ async def test_reuses_resources_until_close_and_reopens_on_resume(
     try:
         await cli.drive(resumed, "continue")
         assert len(clients) == 2 and connections.count("open") == 2
-        assert not any(
-            m.content in {"one", "two", "first", "second"} for m in clients[1].requests[0]
-        )
+        assert any(m.content in {"one", "two", "first", "second"} for m in clients[1].requests[0])
     finally:
         await resumed.close()
     assert clients[1].closed == 1 and connections.count("close") == 2
@@ -142,11 +139,10 @@ async def test_resume_unfinished_conversation_and_refresh_current_environment(
         assert (await resumed.turn("Unrelated question")).outcome == "completed"
         active = clients[1].requests[1]
         assert any("Interrupted task" in m.content for m in active)
-        active = [m for m in active if not isinstance(m, ConversationHistory)]
-        assert len(active) == 4
-        assert "offline-server" in active[1].content
-        assert active[1].run_id == resumed.session.run_id != run_id
-        assert active[2].content == "Unrelated question"
+        assert "offline-server" in active[-3].content
+        assert active[-3].run_id == resumed.session.run_id != run_id
+        assert active[-2].content == "Unrelated question"
+        assert any(m.content == "Recovered" for m in active)
     finally:
         await resumed.close()
 

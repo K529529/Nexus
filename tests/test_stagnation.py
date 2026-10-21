@@ -26,7 +26,6 @@ from nexus.core.types import (
     Json,
     Limits,
     Message,
-    ModelError,
     ModelReply,
     PlanItem,
     PlanState,
@@ -263,7 +262,7 @@ async def test_real_chain_order_one_nudge_persistence_and_fresh_resume(tmp_path:
         assert restored.plan == session.plan and restored.messages == session.messages
         assert all(
             GUIDANCE not in m.content
-            for snap in session.compactions.values()
+            for snap in ([session.checkpoint] if session.checkpoint else [])
             for m in snap.messages
         )
         for request in model.requests:
@@ -355,115 +354,6 @@ def test_projection_is_a_copy_and_task_neutral() -> None:
         projected[0].protocol_data["nested"].append("changed")
         assert anchor.protocol_data == original.protocol_data
         assert anchor.content == original.content
-
-
-@pytest.mark.parametrize("fallback", [False, True])
-async def test_budget_compaction_retry_delivery_and_calibration(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fallback: bool
-) -> None:
-    session = Session(tmp_path, run_id="run", resume_run_id="run")
-    set_plan(session, "in_progress")
-    events = Recorder()
-    await append_message(session, Message("system", "root rules"), events)
-    responses = reads(8)
-    for response in responses:
-        response.usage = Usage()  # Capacity test uses estimates, not the fake 10-token usage.
-    responses[0].message.content = "old inspection evidence " * 60
-    responses[0].message.protocol_data = {"reasoning_content": "private continuation"}
-    tools = registry(session)
-    specs = [t.spec for t in tools.values()]
-    expected = deepcopy(session)
-    expected.messages.append(Message("user", "continue", run_id="run", seq=2))
-    for response in responses:
-        assistant = deepcopy(response.message)
-        assistant.run_id, assistant.seq = "run", len(expected.messages) + 1
-        expected.messages.append(assistant)
-        tool_result = ToolResult(assistant.tool_calls[0].id, True, {"stdout": "observed"}).message()
-        tool_result.run_id, tool_result.seq = "run", len(expected.messages) + 1
-        expected.messages.append(tool_result)
-    normal = Context(Limits()).project(expected, expected.messages).messages
-    context = Context(Limits())
-    context.execution_budget = execution_budget(9, 40)
-    base = estimate(context.task_request(normal), specs)
-    with_nudge = estimate(context.task_request(normal, GUIDANCE), specs)
-    budget = with_nudge * 3 if fallback else int((base + with_nudge) / (2 * 0.85))
-    assert fallback or base < budget * 0.85 < with_nudge
-
-    class Model(ScriptedModel):
-        failed = False
-
-        async def complete(
-            self, messages: list[Message], tools: list[ToolSpec], emit: Emit
-        ) -> ModelReply:
-            if fallback and has_guidance(messages) and not self.failed:
-                self.failed = True
-                self.requests.append(deepcopy(messages))
-                await emit("model_started", {"attempt": 1})
-                raise ModelError("context_limit")
-            return await super().complete(messages, tools, emit)
-
-    model = Model(
-        responses
-        + [
-            reply(text="Old observations summarized."),
-            reply(call("exec_command", {}, "after-nudge")),
-            reply(text="done"),
-        ]
-    )
-    observed: list[list[Message]] = []
-    original_observe = Context.observe
-
-    def capture(
-        self: Context, response: ModelReply, messages: list[Message], tools: list[ToolSpec]
-    ) -> None:
-        original_observe(self, response, messages, tools)
-        assert self.last_estimate == estimate(messages, tools)
-        assert self.last_report == response.usage.input_tokens
-        observed.append(deepcopy(messages))
-
-    monkeypatch.setattr(Context, "observe", capture)
-    result = await run_turn(
-        session,
-        "continue",
-        model,
-        tools,
-        events,
-        Limits(context_window=budget + 1524, max_output_tokens=500),
-    )
-    assert result.outcome == "completed", result
-    assert result.steps == 10 and result.tool_calls == 9
-    assert result.model_calls == 11 + int(fallback)
-    assert len(model.requests) == 11 + int(fallback)
-    summary_requests = [
-        ms
-        for ms in model.requests
-        if any(m.content.startswith("Summarize the earlier") for m in ms)
-    ]
-    assert len(summary_requests) == 1 and not has_guidance(summary_requests[0])
-    assert all("Execution budget" not in m.content for m in summary_requests[0])
-    task_requests = [ms for ms in model.requests if ms not in summary_requests]
-    nudged_requests = [ms for ms in task_requests if has_guidance(ms)]
-    assert len(nudged_requests) == 1 + int(fallback)
-    for request in nudged_requests:
-        assert sum(m.content.count(GUIDANCE) for m in request) == 1
-        assert sum(m.content.count(SNAPSHOT_HEADER) for m in request) == 1
-        assert sum(m.content.count(execution_budget(9, 40)) for m in request) == 1
-        groups(request)
-    assert len(observed) == 10 and observed[8] == nudged_requests[-1]
-    assert not has_guidance(observed[9])
-    assert execution_budget(10, 40) in observed[9][-1].content
-    assert estimate(nudged_requests[-1], specs) <= budget
-    assert not has_guidance(session.messages)
-    assert all(not has_guidance(snapshot.messages) for snapshot in session.compactions.values())
-    summary_events = [
-        d for k, d in events.events if k == "model_started" and d.get("purpose") == "compaction"
-    ]
-    assert len(summary_events) == 1 and "stagnation_nudge_included" not in summary_events[0]
-    included = [
-        d for k, d in events.events if k == "model_started" and d.get("stagnation_nudge_included")
-    ]
-    assert len(included) == 1 + int(fallback) and all(d["step"] == 9 for d in included)
-    assert len([d for k, d in events.events if k == "stagnation_nudge"]) == 1
 
 
 async def test_actual_mock_api_request_preserves_reasoning_and_consumes_nudge(
@@ -580,7 +470,7 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
     assert len(model.requests) == 8
     assert len([d for k, d in events.events if k == "stagnation_nudge"]) == 1
     assert not any(d.get("stagnation_nudge_included") for _, d in events.events)
-    assert not session.compactions and not has_guidance(session.messages)
+    assert session.checkpoint is None and not has_guidance(session.messages)
 
 
 async def test_nudge_audit_write_failure_stops_further_dispatch(

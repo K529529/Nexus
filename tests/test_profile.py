@@ -17,13 +17,11 @@ from nexus.app.events import Events
 from nexus.app.profile import ProfileConsumer, RunProfiler, render_profile
 from nexus.app.session import SessionLog, read_records
 from nexus.core import agent
-from nexus.core.context import estimate
 from nexus.core.types import (
     Emit,
     ExecutionContext,
     Json,
     Limits,
-    Message,
     RuntimeEvent,
     Session,
     Tool,
@@ -358,66 +356,6 @@ async def test_runtime_metadata_and_equivalence(
                 [(e.kind, e.data) for e in captured],
             )
         )
-    assert runs[0] == runs[1]
-
-
-async def test_profile_preserves_real_safety_compaction(tmp_path: Path, monkeypatch: Any) -> None:
-    monkeypatch.setattr(agent, "time", SimpleNamespace(monotonic=lambda: 10.0))
-    runs: list[Any] = []
-    for enabled in [False, True]:
-        captured: list[RuntimeEvent] = []
-
-        async def consumer(item: RuntimeEvent, collected: list[RuntimeEvent] = captured) -> None:
-            collected.append(item)
-
-        session = Session(tmp_path, run_id="interrupted", resume_run_id="interrupted")
-        writer = SessionLog.create(session, "test", {}, tmp_path)
-        wrapper = ProfileConsumer(consumer)
-        events = Events(session, writer, wrapper if enabled else consumer)
-        try:
-            await agent.append_message(session, Message("system", "repository rules"), events)
-            await agent.append_message(session, Message("user", "original task"), events)
-            for i in range(3):
-                ident = f"read-{i}"
-                await agent.append_message(
-                    session,
-                    reply(
-                        call("exec_command", {}, ident),
-                        text="observation " * 500 if i == 0 else "",
-                    ).message,
-                    events,
-                )
-                await agent.append_message(
-                    session,
-                    ToolResult(ident, True, {"stdout": "observation "}).message(),
-                    events,
-                )
-            original = deepcopy(session.messages)
-            budget = int(estimate(original + [Message("user", "continue")], []) / 0.90)
-            limits = Limits(context_window=budget + 500 + 1024, max_output_tokens=500)
-            model = ScriptedModel([reply(text="Read code; continue the task."), reply(text="done")])
-            result = await agent.run_turn(session, "continue", model, {}, events, limits)
-            assert result.outcome == "completed" and result.model_calls == 2
-            assert session.messages[: len(original)] == original
-            assert len(session.compactions) == 1
-            assert any(m.content.startswith("Summarize the earlier") for m in model.requests[0])
-            assert not any(m.tool_call_id == "read-0" for m in model.requests[1])
-            model_events = [e for e in captured if e.kind in {"model_started", "model_finished"}]
-            assert all(e.data["step"] == 1 for e in model_events)
-            assert [e.data.get("purpose") for e in model_events] == [
-                "compaction",
-                "compaction",
-                None,
-                None,
-            ]
-            if enabled:
-                p = wrapper.profiler.profile
-                assert p.compactions == 1 and len(p.models) == 2
-                assert sum(m.compaction for m in p.models) == 1
-                assert p.completion(1) is p.models[-1]
-            runs.append((result, session.messages, session.compactions, model.requests))
-        finally:
-            writer.close()
     assert runs[0] == runs[1]
 
 

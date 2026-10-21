@@ -14,7 +14,7 @@ from nexus.app.events import Events
 from nexus.app.session import SessionError, SessionLog, read_records, replay, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, ContextBuilder, estimate, groups
+from nexus.core.context import Context, estimate
 from nexus.core.skills import SKILL_HEADER, active_skills, check_active, snapshot
 from nexus.core.types import (
     Emit,
@@ -37,7 +37,6 @@ from nexus.tools.skills import create_load_skill_tool
 from tests.conftest import Recorder, ScriptedModel, call, reply
 from tests.test_conversation import config, ignore
 from tests.test_model import chunk, model_for, sse
-from tests.test_safety_compaction import add_tools
 
 
 def install(
@@ -412,50 +411,6 @@ async def test_real_mock_api_projection_usage_and_reasoning(
     assert body(again).count(SKILL_HEADER) == 1
     again[-1].content = "mutated"
     assert "Unique regression guidance." in active_skills(session)[0].body
-
-
-@pytest.mark.parametrize("fallback", [False, True])
-async def test_compaction_and_provider_fallback_preserve_skills(
-    tmp_path: Path, fallback: bool
-) -> None:
-    session, writer, events = await saved_skill(tmp_path)
-    try:
-        expected = session.loaded_skills
-        await add_tools(session, events, "old_narrative", 1200)
-        await add_tools(session, events, "recent1", 1)
-        await add_tools(session, events, "recent2", 1)
-        assert session.run_id
-        session.resume_run_id = session.run_id
-        logical = ContextBuilder().build_active_context(session, session.run_id)
-        size = estimate(Context(Limits()).project(session, logical).messages, [])
-        limits = Limits(
-            context_window=(size * 2 if fallback else int(size / 0.88)) + 1524,
-            max_output_tokens=500,
-        )
-
-        class Model(ScriptedModel):
-            async def complete(
-                self, messages: list[Message], tools: list[ToolSpec], emit: Emit
-            ) -> ModelReply:
-                assert body(messages).count("Unique regression guidance.") == 1
-                groups(messages)
-                if fallback and not self.requests:
-                    self.requests.append(list(messages))
-                    raise ModelError("context_limit")
-                return await super().complete(messages, tools, emit)
-
-        model = Model([reply(text="Historical summary"), reply(text="done")])
-        result = await run_turn(session, "continue", model, {}, events, limits)
-        assert result.outcome == "completed" and len(model.requests) == (3 if fallback else 2)
-        assert session.loaded_skills == expected
-        records, _ = read_records(writer.stream)
-        compacted = next(r["data"] for r in records if r["kind"] == "context_compacted")
-        assert compacted["after_estimate"] == estimate(model.requests[-1], [])
-        assert all(
-            SKILL_HEADER not in m.content for m in session.compactions[session.run_id].messages
-        )
-    finally:
-        writer.close()
 
 
 def test_skill_capacity_and_calibration(tmp_path: Path) -> None:

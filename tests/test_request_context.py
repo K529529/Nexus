@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
-from nexus.core.context import Context, ContextBuilder, execution_budget, protected_seqs
+from nexus.core.context import Context, ContextBuilder, execution_budget
 from nexus.core.plan import SNAPSHOT_HEADER, project_plan
 from nexus.core.request_context import RequestContext, logical_messages
 from nexus.core.types import Limits, Message, PlanItem, PlanState, Session, ToolCall, ToolResult
@@ -50,6 +50,6 @@ def test_notes_do_not_consume_recent_group_protection_or_snapshot_references(
     context = Context(Limits())
     logical = ContextBuilder().build_active_context(session, "r")
     projected = context.task_request(context.project(session, logical).messages, "runtime note")
-    assert protected_seqs(session, logical_messages(projected), "r") == {1, 2, 5, 6, 7, 8}
+    assert logical_messages(projected) == logical
     assert ContextBuilder().build_active_context(session, "r") == logical
     assert all(not isinstance(m, RequestContext) for m in session.messages)

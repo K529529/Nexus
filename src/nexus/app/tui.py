@@ -171,7 +171,31 @@ class Transcript:
                 notices.append("tool result truncated")
             if notices:
                 self.console.print(Text("  " + " · ".join(notices), style="yellow"))
-        elif kind in {"warning", "context_compacted"}:
+        elif kind == "context_projection":
+            if "calibrated_context_tokens" in data:
+                self.console.print(
+                    Text(
+                        f"上下文约 {data['calibrated_context_tokens']:,} tokens · "
+                        f"压缩阈值 {data['compaction_trigger']:,}",
+                        style="dim",
+                    )
+                )
+        elif kind == "compaction_started":
+            self.stop_activity()
+            self.console.print(
+                Text(f"正在压缩会话历史 · 之前约 {data['tokens_before']:,} tokens", style="dim")
+            )
+        elif kind == "context_compacted" and data.get("scope") == "session":
+            self.stop_activity()
+            self.console.print(
+                Text(
+                    f"压缩完成 · {data['tokens_before']:,} → {data['tokens_after']:,} tokens · "
+                    f"近期历史 {data['recent_tokens_kept']:,} · 摘要 {data['summary_tokens']:,} · "
+                    f"{data['duration_ms'] / 1000:.1f}s",
+                    style="dim",
+                )
+            )
+        elif kind in {"warning", "context_compacted", "compaction_failed"}:
             self.stop_activity()
             self.console.print(
                 Text(

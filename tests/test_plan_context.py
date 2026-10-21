@@ -9,12 +9,10 @@ from typing import Any
 import httpx
 import pytest
 
-from nexus.app.session import read_records, replay
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, ContextBuilder, estimate, execution_budget, groups
-from nexus.core.plan import SNAPSHOT_HEADER, plan_data
+from nexus.core.context import Context, ContextBuilder, estimate, groups
+from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.types import (
-    Emit,
     ExecutionContext,
     Json,
     Limits,
@@ -31,8 +29,7 @@ from nexus.core.types import (
 from nexus.tools.plan import PLAN_SPEC, create_update_plan_tool
 from tests.conftest import Recorder, ScriptedModel, call, reply
 from tests.test_model import chunk, model_for, sse
-from tests.test_plan import item, saved_plan, snapshot
-from tests.test_safety_compaction import add_tools
+from tests.test_plan import item, snapshot
 
 
 async def test_actual_api_plan_updates_clear_and_reasoning_continuation(
@@ -112,7 +109,7 @@ async def test_actual_api_plan_updates_clear_and_reasoning_continuation(
     assert "PRIVATE" not in json.dumps(events.events)
 
 
-async def test_cold_plan_result_can_compact_without_losing_current_plan(tmp_path: Path) -> None:
+async def test_plan_results_remain_full_until_session_compaction(tmp_path: Path) -> None:
     session = Session(tmp_path, run_id="run")
     events = Recorder()
     await append_message(session, Message("system", "rules"), events)
@@ -137,89 +134,11 @@ async def test_cold_plan_result_can_compact_without_losing_current_plan(tmp_path
     logical = ContextBuilder().build_active_context(session, "run")
     projected = context.project(session, logical)
     old_result = next(m for m in projected.messages if m.tool_call_id == "p")
-    assert json.loads(old_result.content)["projection"]
-    assert projected.diagnostics["cold_compacted_count"] > 0
+    assert "projection" not in json.loads(old_result.content)
+    assert old_result == session.messages[3]
     assert snapshot(projected.messages) == {"plan": entries}
     assert session.messages == original
     groups(projected.messages)
-
-
-@pytest.mark.parametrize("fallback", [False, True])
-async def test_safety_summary_rebuild_fallback_and_budget_share_plan(
-    tmp_path: Path, fallback: bool, monkeypatch: Any
-) -> None:
-    session, writer, events = await saved_plan(tmp_path)
-    try:
-        assert session.run_id and session.plan
-        run_id, plan = session.run_id, session.plan
-        await add_tools(session, events, "old_narrative", 1200)
-        await add_tools(session, events, "recent1", 1)
-        await add_tools(session, events, "recent2", 1)
-        session.resume_run_id = run_id
-        original = deepcopy(session.messages)
-        logical = ContextBuilder().build_active_context(session, run_id)
-        initial = Context(Limits()).project(session, logical).messages
-        size = estimate(initial, [])
-        limits = Limits(
-            context_window=(size * 2 if fallback else int(size / 0.88)) + 1524,
-            max_output_tokens=500,
-        )
-        checks: list[list[Message]] = []
-        original_check = Context.check
-
-        def check(self: Context, messages: list[Message], tools: list[ToolSpec]) -> None:
-            assert snapshot(messages) == {"plan": plan_data(plan.items)}
-            checks.append(messages)
-            original_check(self, messages, tools)
-
-        monkeypatch.setattr(Context, "check", check)
-
-        class Model(ScriptedModel):
-            async def complete(
-                self, messages: list[Message], tools: list[ToolSpec], emit: Emit
-            ) -> ModelReply:
-                assert snapshot(messages) == {"plan": plan_data(plan.items)}
-                if fallback and not self.requests:
-                    self.requests.append(list(messages))
-                    raise ModelError("context_limit")
-                return await super().complete(messages, tools, emit)
-
-        model = Model(
-            [
-                reply(text="Historical stale plan said complete; cannot update structured state."),
-                reply(text="final"),
-            ]
-        )
-        result = await run_turn(session, "continue", model, {}, events, limits)
-        assert result.outcome == "completed" and len(model.requests) == (3 if fallback else 2)
-        assert session.plan is plan and session.messages[: len(original)] == original
-        summary_input, final_input = model.requests[-2:]
-        assert summary_input[-2].content.startswith("Summarize the earlier conversation")
-        assert all("Execution budget" not in m.content for m in summary_input)
-        assert execution_budget(1, 40) in final_input[-1].content
-        if fallback:
-            assert execution_budget(1, 40) in model.requests[0][-1].content
-        for request in model.requests:
-            groups(request)
-            assert estimate(request, []) <= Context(limits).budget
-        assert final_input in checks
-        records, _ = read_records(writer.stream)
-        compacted = next(r["data"] for r in records if r["kind"] == "context_compacted")
-        if fallback:
-            assert compacted["before_estimate"] == estimate(model.requests[0], [])
-        else:
-            assert compacted["before_estimate"] > size
-        assert compacted["after_estimate"] == estimate(final_input, [])
-        assert SNAPSHOT_HEADER not in json.dumps(records)
-        assert "Execution budget" not in json.dumps(records)
-        restored = replay(records, tmp_path)
-        assert restored.plan == plan
-        for message in final_input:
-            if message.role == "assistant" and message.tool_calls:
-                assert message.protocol_data == {"continuation": message.tool_calls[0].id}
-        assert not any(SNAPSHOT_HEADER in m.content for m in session.compactions[run_id].messages)
-    finally:
-        writer.close()
 
 
 def test_plan_counts_toward_capacity_and_calibration(tmp_path: Path) -> None:
@@ -262,4 +181,4 @@ async def test_protected_plan_limits_without_summary_or_truncation(tmp_path: Pat
         session, "continue", model, {}, events, Limits(context_window=3524, max_output_tokens=500)
     )
     assert result.outcome == "limited" and result.reason and "context_limit" in result.reason
-    assert not model.requests and session.plan is original and not session.compactions
+    assert not model.requests and session.plan is original and session.checkpoint is None

@@ -50,7 +50,7 @@ def test_counter_changes_keep_calibration_but_other_prefix_changes_reset_it() ->
         context.observe(response, request, [])
         assert context.last_estimate == estimate(request, []) > estimate(logical, [])
         context.execution_budget = execution_budget(10, 40)
-        following = context.task_request(logical + [response.message])
+        following = context.task_request(logical)
         expected = math.ceil(estimate(following, []) * 1234 / estimate(request, []))
         assert context.tokens(following, []) == expected
         assert context.last_report == 1234
@@ -92,7 +92,7 @@ async def test_protected_budget_overflow_is_honest_and_does_not_call_model(tmp_p
         Limits(context_window=budget + 1524, max_output_tokens=500),
     )
     assert result.outcome == "limited" and result.reason and "context_limit" in result.reason
-    assert not model.requests and not session.compactions
+    assert not model.requests and session.checkpoint is None
 
 
 @pytest.mark.parametrize("final_tool", [False, True])

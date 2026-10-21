@@ -9,7 +9,6 @@ from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
 from nexus.core.context import ContextBuilder, execution_budget
-from nexus.core.conversation import ConversationHistory
 from nexus.core.request_context import logical_messages
 from nexus.core.types import (
     ExecutionContext,
@@ -67,12 +66,9 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         )
         assert session.run_id != first_run
         assert session.messages[: len(history)] == history
-        assert logical_messages(model.requests[2]) == [
-            session.messages[0],
-            session.messages[len(history)],
-        ]
+        assert logical_messages(model.requests[2]) == history + [session.messages[len(history)]]
         assert any("Task A explanation" in m.content for m in model.requests[3])
-        assert all("Task A source and test logs" not in m.content for m in model.requests[3])
+        assert any("Task A source and test logs" in m.content for m in model.requests[3])
         assert "Task B observation" in model.requests[3][-2].content
         assert "Task A source and test logs" in model.requests[1][-2].content
         assert saved_bytes(writer).startswith(before)
@@ -106,7 +102,7 @@ async def test_new_run_projection_keeps_full_jsonl_history(tmp_path: Path) -> No
         writer.close()
 
 
-async def test_budget_ignores_old_runs_but_protected_output_can_still_overflow(
+async def test_budget_includes_old_runs_and_new_tool_output(
     tmp_path: Path,
 ) -> None:
     historical = Message("user", "old logs " * 10000, run_id="old-run")
@@ -114,9 +110,10 @@ async def test_budget_ignores_old_runs_but_protected_output_can_still_overflow(
     limits = Limits(context_window=2500, max_output_tokens=500)
     model = ScriptedModel([reply(text="Small new task answer")])
     assert (await run_turn(session, "Small new task", model, {}, Recorder(), limits)).outcome == (
-        "completed"
+        "limited"
     )
-    assert historical not in model.requests[0] and historical in session.messages
+    assert not model.requests and historical in session.messages
+    session = Session(tmp_path, messages=[Message("system", "rules")])
 
     async def large(args: Json, context: ExecutionContext, emit: object) -> ToolResult:
         return ToolResult(context.call_id, True, {"stdout": "current run data " * 1000})
@@ -141,7 +138,7 @@ async def test_budget_ignores_old_runs_but_protected_output_can_still_overflow(
 
 @pytest.mark.parametrize("outcome", [None, "aborted", "failed", "limited"])
 @pytest.mark.parametrize("truncated", [False, True])
-async def test_resume_restores_only_interrupted_run(
+async def test_resume_restores_session_and_resumes_only_interrupted_run(
     tmp_path: Path, outcome: str | None, truncated: bool
 ) -> None:
     session = Session(tmp_path)
@@ -202,7 +199,8 @@ async def test_resume_restores_only_interrupted_run(
         assert all(r["run_id"] == "interrupted-run" for r in resumed_records)
         active = model.requests[0]
         assert any("Old answer" in m.content for m in active)
-        active = [m for m in active if not isinstance(m, ConversationHistory)]
+        assert [m.content for m in active[1:3]] == ["Old completed task", "Old answer"]
+        active = [active[0]] + active[3:]
         assert execution_budget(1, 40) in active[-1].content
         assert b"Execution budget" not in saved_bytes(writer)
         assert [m.role for m in active[:-1]] == [

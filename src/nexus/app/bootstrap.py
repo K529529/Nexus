@@ -15,11 +15,11 @@ from nexus.app.events import Events, redact
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
-from nexus.core.context import instructions
+from nexus.core.compaction import provenance
+from nexus.core.context import Context, ContextBuilder, instructions
 from nexus.core.model import ChatModel, CompactionModel
-from nexus.core.observations import provenance
 from nexus.core.skills import check_active
-from nexus.core.types import Message, RunResult, RuntimeEvent, Session, Tool, json_text
+from nexus.core.types import Message, ModelError, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
 from nexus.tools.registry import default_tools
 from nexus.tools.skills import create_load_skill_tool
@@ -47,6 +47,13 @@ class Conversation:
         self.resumed = resume is not None
         self.model: ChatModel | None = None
         self.compaction_model: CompactionModel | None = None
+        compact = config.compaction_model
+        self.context = Context(
+            config.limits,
+            compaction_window=compact.context_window if compact else 128000,
+            summary_tokens=compact.max_output_tokens if compact else 4096,
+            secrets=self.secret_values(),
+        )
         if config.compaction_model is None:
             self.warnings.append(
                 "Missing [compaction_model]: automatic and /compact summarization require "
@@ -161,7 +168,7 @@ class Conversation:
                 self.model = ChatModel(self.config.model)
                 self.resources.push_async_callback(self.model.close)
                 try:
-                    if self.config.compaction_model is not None:
+                    if self.config.compaction_model is not None and self.compaction_model is None:
                         self.compaction_model = CompactionModel(self.config.compaction_model)
                         self.resources.push_async_callback(self.compaction_model.close)
                     self.unavailable = await connect_servers(
@@ -178,6 +185,9 @@ class Conversation:
                 json_text(
                     {
                         "model": asdict(self.config.model),
+                        "compaction_model": asdict(self.config.compaction_model)
+                        if self.config.compaction_model
+                        else None,
                         "response_language": self.config.response_language,
                         "tools": [asdict(t.spec) for t in self.registry.values()],
                         **provenance(),
@@ -191,7 +201,7 @@ class Conversation:
                         "detail": (
                             "Resuming the unfinished run with current instructions/model/tools. "
                             if self.session.resume_run_id
-                            else "Next input starts a new run with bounded conversation history. "
+                            else "Next input starts a new run with continuous session history. "
                         )
                         + "Saved tool calls are never replayed."
                     },
@@ -208,6 +218,9 @@ class Conversation:
                 {
                     "fingerprint": fingerprint,
                     "model": asdict(self.config.model),
+                    "compaction_model": asdict(self.config.compaction_model)
+                    if self.config.compaction_model
+                    else None,
                     "response_language": self.config.response_language,
                     **provenance(),
                 },
@@ -219,7 +232,7 @@ class Conversation:
                 if self.unavailable
                 else ""
             )
-            return await run_turn(
+            result = await run_turn(
                 self.session,
                 text,
                 self.model,
@@ -227,11 +240,62 @@ class Conversation:
                 self.events,
                 self.config.limits,
                 environment=environment,
+                compaction_model=self.compaction_model,
+                context=self.context,
             )
+            if result.outcome == "completed":
+                try:
+                    await self.compact(force=False)
+                except ModelError as exc:
+                    await self.events(
+                        "warning",
+                        {
+                            "detail": (
+                                f"Between-run compaction unavailable ({exc.code}); "
+                                "history retained."
+                            )
+                        },
+                    )
+            return result
         except asyncio.CancelledError:
             result = RunResult("aborted", reason="startup_cancelled")
             await self.events("run_finished", asdict(result))
             return result
+
+    async def compact(self, *, force: bool = True) -> bool:
+        """Idle maintenance: no new run, main-model request, MCP connection or tool execution."""
+        if self.closed:
+            raise RuntimeError("Conversation is closed")
+        if not self.session.messages:
+            return False
+        self.ensure_events("Context compaction")
+        assert self.events is not None
+        if self.compaction_model is None and self.config.compaction_model is not None:
+            self.compaction_model = CompactionModel(self.config.compaction_model)
+            self.resources.push_async_callback(self.compaction_model.close)
+        old_run = self.session.run_id
+        old_budget = self.context.execution_budget
+        self.session.run_id = None
+        self.context.execution_budget = None
+        try:
+            return await self.context.prepare(
+                self.session,
+                ContextBuilder().build_active_context(self.session),
+                [t.spec for t in self.registry.values()],
+                self.compaction_model,
+                self.events,
+                force=force,
+                reason="manual" if force else "between_runs",
+            )
+        except asyncio.CancelledError:
+            await self.events(
+                "compaction_failed",
+                {"reason": "cancelled", "detail": "Compaction cancelled; prior history retained."},
+            )
+            return False
+        finally:
+            self.session.run_id = old_run
+            self.context.execution_budget = old_budget
 
     async def close(self) -> None:
         if self.closed:

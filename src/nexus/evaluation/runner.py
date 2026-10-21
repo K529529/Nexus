@@ -13,7 +13,7 @@ from nexus.app.bootstrap import Conversation
 from nexus.app.config import Config
 from nexus.app.events import redact
 from nexus.app.profile import RunProfiler, profile_metrics
-from nexus.core.observations import CONTEXT_POLICY, provenance
+from nexus.core.compaction import CONTEXT_POLICY, provenance
 from nexus.core.types import Json, RuntimeEvent
 from nexus.evaluation.cases import SUITE, EvalCase, load_case
 from nexus.evaluation.environment import CleanupError, Docker, Environment, EnvironmentError
@@ -198,6 +198,9 @@ async def evaluate(selected: list[str], config: Config, home: Path | None = None
     directory.mkdir(parents=True)
     model = asdict(config.model)
     model["base_url"] = public_url(model["base_url"])
+    compaction_model = asdict(config.compaction_model) if config.compaction_model else None
+    if compaction_model:
+        compaction_model["base_url"] = public_url(compaction_model["base_url"])
     manifest: Json = dict(
         schema_version=1,
         evaluation_run_id=run_id,
@@ -205,6 +208,7 @@ async def evaluate(selected: list[str], config: Config, home: Path | None = None
         selected=selected,
         nexus=implementation_identity(SUITE.parents[1]),
         model=model,
+        compaction_model=compaction_model,
         limits=asdict(replace(config.limits, shell="/bin/sh")),
         **provenance(),
         cases=[case.identity() for case in cases],

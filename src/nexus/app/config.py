@@ -29,6 +29,7 @@ class ModelConfig:
     include_usage: bool = True
     request_timeout_seconds: int = 120
     output_token_parameter: str = "max_tokens"
+    enable_thinking: bool | None = None
 
     def key(self) -> str:
         value = os.environ.get(self.api_key_env, "")
@@ -105,6 +106,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
                 "include_usage",
                 "request_timeout_seconds",
                 "output_token_parameter",
+                "enable_thinking",
             },
         )
     )
@@ -145,6 +147,9 @@ def parse_model(data: Json, section: str) -> ModelConfig:
         raise ConfigError(
             f"{section}.output_token_parameter: expected max_tokens or max_completion_tokens"
         )
+    thinking = model.get("enable_thinking")
+    if thinking is not None and type(thinking) is not bool:
+        raise ConfigError(f"{section}.enable_thinking: expected boolean")
     return ModelConfig(
         name,
         window,
@@ -155,6 +160,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
         include_usage,
         request_timeout,
         output_parameter,
+        thinking,
     )
 
 

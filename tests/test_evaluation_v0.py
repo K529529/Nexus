@@ -143,9 +143,9 @@ async def test_injected_tool_and_environment_reach_real_loop(
     log = next((tmp_path / "history").rglob("*.jsonl"))
     records = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
     configuration = next(r["data"] for r in records if r["kind"] == "configuration")
-    assert configuration["context_policy"] == "Context Runtime V0.3 stage1"
-    assert configuration["conversation_projection"]["version"] == "excerpts-v1"
-    assert configuration["observation_projection"]["version"] == "compact-v1"
+    assert configuration["context_policy"] == "Context Runtime V0.3 session-v1"
+    assert configuration["conversation_projection"]["version"] == "continuous-session-v1"
+    assert configuration["compaction"]["version"] == 1
     assert str(tmp_path) in instructions(tmp_path, cfg.limits.shell)
 
 
@@ -338,15 +338,12 @@ async def test_suite_sequential_persistence_and_stop(
     assert code == (130 if stop_after else 2)
     summary_path = next((tmp_path / "results").glob("*/summary.json"))
     manifest = json.loads((summary_path.parent / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["context_policy"] == "Context Runtime V0.3 stage1"
-    assert manifest["conversation_projection"]["version"] == "excerpts-v1"
-    assert manifest["observation_projection"] == {
-        "version": "compact-v1",
-        "working_set_tokens": 16384,
-        "working_set_fraction": 0.25,
-        "success_max_bytes": 1024,
-        "failure_max_bytes": 2048,
+    assert manifest["context_policy"] == "Context Runtime V0.3 session-v1"
+    assert manifest["conversation_projection"]["version"] == "continuous-session-v1"
+    assert manifest["compaction"] == {
+        "version": 1, "trigger_fraction": 0.90, "keep_recent_tokens": 20000,
     }
+    assert manifest["compaction_model"] is None
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert len(summary["cases"]) == 8
     assert calls == list(CASE_IDS[:stop_after] if stop_after else CASE_IDS)

@@ -246,10 +246,7 @@ async def test_legacy_compaction_restores_originals_without_cross_run_summary(
         ]
         assert [
             m.content for m in ContextBuilder().build_active_context(restored, "current-run")
-        ] == [
-            "root instructions",
-            "current task",
-        ]
+        ] == [m.content for m in session.messages]
         groups(restored.messages)
         assert any(r["kind"] == "context_compacted" for r in records)
     finally:
@@ -405,7 +402,7 @@ def test_only_root_agents_and_schema_protocol_budget(tmp_path: Path) -> None:
     messages = [Message("assistant", "small")]
     baseline = estimate(messages, [])
     assert estimate(messages, [ToolSpec("x", "large " * 500, {})]) > baseline
-    messages[0].protocol_data = {"private": "large " * 500}
+    messages[0].protocol_data = {"fields": {"reasoning_content": "large " * 500}}
     assert estimate(messages, []) > baseline
     (tmp_path / "AGENTS.md").write_bytes(b"x" * 65537)
     with pytest.raises(ValueError, match="64 KiB"):

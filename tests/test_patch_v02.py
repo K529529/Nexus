@@ -13,7 +13,6 @@ import pytest
 
 from nexus.core.agent import run_turn
 from nexus.core.context import SYSTEM
-from nexus.core.observations import compact
 from nexus.core.stagnation import StagnationDetector
 from nexus.core.types import ExecutionContext, Limits, Session
 from nexus.tools import patch as module
@@ -333,15 +332,6 @@ async def test_error_budget_and_observation(execution: ExecutionContext) -> None
         len(bounded_text("锚" * 10000, MAX_ERROR_EXCERPT_BYTES).encode()) <= MAX_ERROR_EXCERPT_BYTES
     )
     assert "private target text" not in detail
-    # A large raw result becomes COLD; the request-only compact copy keeps chunk ownership.
-    result.data["extra"] = "large omitted payload" * 500
-    message = result.message()
-    message.seq = 17
-    projected = compact(message, "apply_patch")
-    data = json.loads(projected.content)
-    assert data["projection"] == "compact-v1" and data["source_seq"] == 17
-    assert data["data"]["failed_hunk"] == 1 and data["data"]["failed_file"] == "a"
-    assert "extra" in json.loads(message.content)["data"]
 
 
 async def test_concurrency_mode_and_partial_commit(

@@ -257,12 +257,12 @@ async def test_fragmented_reasoning_session_resume_and_next_request(tmp_path: Pa
         assert wire[1]["tool_calls"][0]["id"] == wire[2]["tool_call_id"] == "call_1"
         assert final.message.content == "done" and final.message.protocol_data is None
         await append_message(restored, final.message, events)
-        # Once consumed and outside W, the observation shrinks but its assistant stays intact.
+        # Capacity is governed by session compaction; results never shrink merely with age.
         logical = ContextBuilder().build_active_context(restored, "run")
         cold_projection = Context(Limits(context_window=4096, max_output_tokens=512)).project(
             restored, logical
         )
-        assert cold_projection.diagnostics["cold_compacted_count"] == 1
+        assert cold_projection.messages[2] == logical[2]
         assert cold_projection.messages[1] is assistant
         assert cold_projection.messages[1].protocol_data == expected
         assert "PRIVATE_REASONING" not in json.dumps([asdict(event) for event in public])
@@ -272,6 +272,8 @@ async def test_fragmented_reasoning_session_resume_and_next_request(tmp_path: Pa
 
 
 async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> None:
+    from tests.test_session_compaction import summary
+
     requests: list[Json] = []
 
     def handle(request: httpx.Request) -> httpx.Response:
@@ -281,7 +283,7 @@ async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> Non
             content=sse(
                 [
                     chunk({"reasoning_content": "PRIVATE_REASONING"}),
-                    chunk({"content": "Inspected code; work remains."}, "stop"),
+                    chunk({"content": json.dumps(summary())}, "stop"),
                 ]
             ),
         )
@@ -315,12 +317,14 @@ async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> Non
                 ),
                 events,
             )
-            await append_message(session, ToolResult(ident, True, {}).message(), events)
+            await append_message(
+                session, ToolResult(ident, True, {"stdout": "x" * 4000}).message(), events
+            )
         context = Context(Limits(context_window=8192, max_output_tokens=512))
         builder = ContextBuilder()
         projected = context.project(session, builder.build_active_context(session, "run"))
         assert await context.prepare(session, projected.messages, [], model, events, force=True)
-        assert requests[0]["messages"][1]["reasoning_content"] == "PRIVATE_REASONING"
+        assert "PRIVATE_REASONING" not in json.dumps(requests[0])
         active = context.project(session, builder.build_active_context(session, "run")).messages
         assistants = [m for m in active if m.role == "assistant"]
         assert len(assistants) == 2

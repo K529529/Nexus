@@ -26,10 +26,10 @@ from nexus.app.tui import (
     show_skills,
     terminal_text,
 )
-from nexus.core.types import RunResult, Session
+from nexus.core.types import ModelError, RunResult, Session
 
 
-async def drive(conversation: Conversation, text: str) -> RunResult:
+async def drive(conversation: Conversation, text: str, *, compact: bool = False) -> RunResult:
     loop = asyncio.get_running_loop()
     # MCP async contexts must be opened and closed in the same owning task.
     # Keep turns in the CLI task across prompts; SIGINT still cancels the active turn.
@@ -54,6 +54,9 @@ async def drive(conversation: Conversation, text: str) -> RunResult:
 
     previous = signal.signal(signal.SIGINT, interrupt)
     try:
+        if compact:
+            await conversation.compact()
+            return RunResult("completed")
         return await conversation.turn(text)
     finally:
         active = False
@@ -168,8 +171,9 @@ async def application(args: argparse.Namespace) -> int:
             if text == "/help":
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
-                    "/resume recent sessions · /new new conversation · /exit quit. "
-                    "Each input starts a new run with bounded conversation history; "
+                    "/resume recent sessions · /compact summarize history · "
+                    "/new new conversation · /exit quit. "
+                    "Each input starts a new run with continuous session history; "
                     "/resume continues the "
                     "selected session's unfinished run. "
                     "Ctrl+C aborts the current turn; at the prompt it clears input."
@@ -179,6 +183,11 @@ async def application(args: argparse.Namespace) -> int:
                 conversation = Conversation(workspace, load_config(), profile or transcript)
             elif text == "/resume":
                 select = True
+            elif text == "/compact":
+                try:
+                    await drive(conversation, "", compact=True)
+                except (ModelError, ConfigError) as exc:
+                    console.print(Text(terminal_text(str(exc)), style="yellow"))
             elif text == "/skills" or text == "/skill":
                 conversation.refresh_skills()
                 catalog = conversation.catalog

@@ -5,7 +5,6 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 
-from nexus.core.conversation import ConversationHistory
 from nexus.core.types import Message
 
 
@@ -16,7 +15,7 @@ class RequestContext(Message):
 
 
 def logical_messages(messages: list[Message]) -> list[Message]:
-    return [m for m in messages if not isinstance(m, (RequestContext, ConversationHistory))]
+    return [m for m in messages if not isinstance(m, RequestContext)]
 
 
 def project_context(messages: list[Message], name: str, text: str | None) -> list[Message]:

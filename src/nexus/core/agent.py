@@ -57,6 +57,8 @@ async def run_turn(
     limits: Limits,
     *,
     environment: str = "",
+    compaction_model: Model | None = None,
+    context: Context | None = None,
 ) -> RunResult:
     started = time.monotonic()
     first_message = len(session.messages)
@@ -85,9 +87,9 @@ async def run_turn(
             "stagnation_nudge",
         }:
             data = {**data, "step": result.steps}
-        if kind == "model_started":
+        if kind == "model_started" and data.get("purpose") != "compaction":
             result.model_calls += 1
-        if kind == "model_finished" and "usage" in data:
+        if kind == "model_finished" and "usage" in data and data.get("purpose") != "compaction":
             usages.append(Usage(**data["usage"]))
         return await emit(kind, data, protocol_data=protocol_data)
 
@@ -119,7 +121,7 @@ async def run_turn(
         if environment:
             await append_message(session, Message("user", environment), observed)
         await append_message(session, Message("user", user_text), observed)
-        context = Context(limits)
+        context = context or Context(limits)
         builder = ContextBuilder()
 
         def projected_context() -> tuple[list[Message], Json]:
@@ -133,34 +135,60 @@ async def run_turn(
             context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
             active_context, _ = projected_context()
-            attempted = await context.prepare(
-                session, active_context, specs, model, observed, guidance=pending_guidance
+            await context.prepare(
+                session,
+                active_context,
+                specs,
+                compaction_model,
+                observed,
+                guidance=pending_guidance,
             )
             active_context, diagnostics = projected_context()
             active_context = context.task_request(active_context, pending_guidance)
             context.check(active_context, specs)
-            await observed("context_projection", {**diagnostics, "step": step})
+            await observed(
+                "context_projection",
+                {**diagnostics, **context.diagnostics(active_context, specs), "step": step},
+            )
             try:
                 reply = await model.complete(active_context, specs, task_events)
             except ModelError as exc:
-                if exc.code != "context_limit" or attempted:
+                if exc.code != "context_limit":
                     raise
                 normal_context, _ = projected_context()
                 await context.prepare(
                     session,
                     normal_context,
                     specs,
-                    model,
+                    compaction_model,
                     observed,
                     force=True,
                     guidance=pending_guidance,
+                    reason="provider_overflow",
                 )
                 active_context, diagnostics = projected_context()
                 active_context = context.task_request(active_context, pending_guidance)
                 context.check(active_context, specs)
-                await observed("context_projection", {**diagnostics, "step": step})
+                await observed(
+                    "context_projection",
+                    {**diagnostics, **context.diagnostics(active_context, specs), "step": step},
+                )
                 reply = await model.complete(active_context, specs, task_events)
+            estimated = context.diagnostics(active_context, specs)["estimated_context_tokens"]
             context.observe(reply, active_context, specs)
+            await observed(
+                "context_usage",
+                {
+                    "estimated_context_tokens": estimated,
+                    "reported_input_tokens": reply.usage.input_tokens,
+                    "reported_output_tokens": reply.usage.output_tokens,
+                    "estimation_error_tokens": (
+                        estimated - reply.usage.input_tokens
+                        if reply.usage.input_tokens is not None
+                        else None
+                    ),
+                },
+            )
             valid_reply(reply.message, reply.finish_reason)
             prior_ids = {
                 c.id for m in session.messages if m.run_id == session.run_id for c in m.tool_calls

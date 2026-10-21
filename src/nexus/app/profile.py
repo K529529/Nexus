@@ -350,14 +350,8 @@ def profile_metrics(profile: RunProfile) -> dict[str, object]:
         "compaction_calls": sum(m.compaction for m in profile.models),
         "compactions": profile.compactions,
         # Request-local estimates, never provider billing usage or execution output bytes.
-        "observation_projection": {
+        "context_requests": {
             "requests": len(profile.projections),
             "last": profile.projections[-1] if profile.projections else None,
-            "cumulative_full_estimated_tokens": sum(
-                p["observation_full_estimated_tokens"] for p in profile.projections
-            ),
-            "cumulative_projected_estimated_tokens": sum(
-                p["observation_projected_estimated_tokens"] for p in profile.projections
-            ),
         },
     }
