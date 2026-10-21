@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from nexus.core.compaction_input import runtime_outcomes, serialize_history
 from nexus.core.history import groups
 from nexus.core.tokens import estimate
 from nexus.core.types import Json, Message, ModelError, Session, json_text
@@ -136,11 +137,11 @@ def summary_input(
 ) -> list[Message]:
     prior = previous_summary(prefix)
     source = prefix[1:] if prior else prefix
-    run_ids = {m.run_id for m in source if m.run_id}
     payload = {
         "previous_summary": prior,
-        "history": [{"seq": m.seq, "run_id": m.run_id, **m.public()} for m in source],
-        "run_outcomes": {r: session.run_outcomes[r] for r in run_ids if r in session.run_outcomes},
+        "history": serialize_history(session, source),
+        "run_outcomes": runtime_outcomes(session, source),
+        "evidence_scope": "Only the older prefix. Absence here does not prove never happened.",
         "summary_budget_tokens": maximum,
     }
     text = json_text(payload)
