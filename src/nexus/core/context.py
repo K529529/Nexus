@@ -23,6 +23,7 @@ from nexus.core.history import ContextBuilder as ContextBuilder
 from nexus.core.history import groups as groups
 from nexus.core.plan import project_plan
 from nexus.core.request_context import logical_messages, project_context
+from nexus.core.runtime_facts import FACT_TOKENS, project_facts
 from nexus.core.skills import project_skills
 from nexus.core.tokens import estimate as estimate
 from nexus.core.types import (
@@ -296,7 +297,7 @@ class Context:
         systems = [m for m in logical if m.role == "system"]
         history = [m for m in logical if m.role != "system"]
         fixed = estimate(self.task_request(self.with_state(session, systems), guidance), tools)
-        available = self.budget - fixed - self.summary_tokens
+        available = self.budget - fixed - self.summary_tokens - FACT_TOKENS
         target = min(KEEP_RECENT_TOKENS, max(0, available))
         prefix, recent = split_history(history, target)
         if not prefix or available <= 0:
@@ -359,7 +360,8 @@ class Context:
                 if secret:
                     text = text.replace(secret, "[REDACTED]")
             summary = parse_summary(text, prefix, self.summary_tokens)
-            projected = systems + [summary_message(summary)] + recent
+            facts = project_facts(session, prefix, self.secrets)
+            projected = systems + [summary_message(summary, runtime_facts=facts)] + recent
             next_request = self.task_request(self.with_state(session, projected), guidance)
             after = estimate(next_request, tools)
             if after > self.budget or after >= estimate(task_context, tools):
@@ -382,9 +384,10 @@ class Context:
             return True
         data = {
             "scope": "session",
-            "version": 3,
+            "version": 4,
             "prompt_version": PROMPT_VERSION,
             "summary": summary,
+            "runtime_facts": facts,
             "replaced_seqs": [m.seq for m in prefix],
             "kept_seqs": [m.seq for m in recent],
             "tokens_before": before,

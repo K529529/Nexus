@@ -49,10 +49,13 @@ class ContextBuilder:
         if scope == "session":
             from nexus.core.compaction import summary_message, validate_references, validate_summary
 
-            if data.get("version") not in {1, 2, 3}:
+            if data.get("version") not in {1, 2, 3, 4}:
                 raise ModelError("invalid_compaction_version")
+            from nexus.core.runtime_facts import validate_facts
+
+            facts = validate_facts(data.get("runtime_facts")) if data["version"] == 4 else None
             summary = summary_message(
-                validate_summary(data["summary"], version=data["version"]), seq
+                validate_summary(data["summary"], version=data["version"]), seq, runtime_facts=facts
             )
             source = [m for m in active if m.role != "system"]
             replaced, kept = data["replaced_seqs"], data["kept_seqs"]

@@ -25,7 +25,7 @@ from tests.test_session_compaction import summary as simple_summary
 
 
 def summary(source: int = 3, **changes: Any) -> Json:
-    value = simple_summary(**changes)
+    value = {"files_changes": [], "validation_evidence": [], **simple_summary(**changes)}
     value["evidence"] = {
         k: [[source] for _ in items] for k, items in summary_fields(value).items() if items
     }

@@ -327,7 +327,9 @@ async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> Non
         assert "PRIVATE_REASONING" not in json.dumps(requests[0])
         active = context.project(session, builder.build_active_context(session, "run")).messages
         assistants = [m for m in active if m.role == "assistant"]
-        assert len(assistants) == 2
+        # At this deliberately small window, the runtime-fact reserve leaves one full pair.
+        assert len(assistants) == 1 and assistants[0].tool_calls[0].id == "call_2"
+        context.check(active, [])
         assert all(m.protocol_data == continuation for m in assistants)
         assert all("PRIVATE_REASONING" not in m.content for m in active)
         assert all(m.protocol_data is None for m in active if m.role == "user")
