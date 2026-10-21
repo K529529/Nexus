@@ -11,6 +11,7 @@ from pathlib import Path
 
 from nexus.core.compaction import (
     KEEP_RECENT_TOKENS,
+    PROMPT_VERSION,
     SUMMARY_TOKENS,
     TRIGGER_FRACTION,
     parse_summary,
@@ -381,7 +382,8 @@ class Context:
             return True
         data = {
             "scope": "session",
-            "version": 1,
+            "version": 2,
+            "prompt_version": PROMPT_VERSION,
             "summary": summary,
             "replaced_seqs": [m.seq for m in prefix],
             "kept_seqs": [m.seq for m in recent],

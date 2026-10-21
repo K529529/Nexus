@@ -14,9 +14,11 @@ from nexus.core.compaction import (
     COMPACTION_PROMPT,
     FIELDS,
     PROGRESS,
+    UPDATE_COMPACTION_PROMPT,
     SummaryMessage,
     parse_summary,
     split_history,
+    summary_fields,
     summary_input,
     validate_summary,
 )
@@ -34,18 +36,41 @@ from nexus.core.types import (
 from tests.conftest import Recorder, ScriptedModel, call, reply
 
 
-def summary(**changes: Any) -> Json:
-    return {
+def summary(source: int = 3, **changes: Any) -> Json:
+    value = {
         **{k: [] for k in FIELDS},
         "goal": ["Keep the original user goal"],
         "constraints_preferences": ["Do not merge main"],
         "progress": {k: [] for k in PROGRESS},
         **changes,
     }
+    value.setdefault(
+        "evidence",
+        {k: [[source] for _ in values] for k, values in summary_fields(value).items() if values},
+    )
+    value.setdefault("updates", [])
+    return value
 
 
 def summary_reply(**changes: Any) -> ModelReply:
     return reply(text=json.dumps(summary(**changes)))
+
+
+class SummaryModel(ScriptedModel):
+    """Offline schema fixture; references supplied input, does not assess semantic fidelity."""
+
+    async def complete(self, messages: Any, tools: Any, emit: Any) -> ModelReply:
+        response = await super().complete(messages, tools, emit)
+        payload = json.loads(messages[1].content)
+        source = payload["previous_summary_seq"] or next(
+            m["seq"] for m in payload["history"] if m["kind"] == "USER_TASK_INFORMATION"
+        )
+        value = json.loads(response.message.content)
+        value["evidence"] = {
+            k: [[source] for _ in values] for k, values in summary_fields(value).items() if values
+        }
+        response.message.content = json.dumps(value)
+        return response
 
 
 async def ignore(event: RuntimeEvent) -> None:
@@ -105,7 +130,7 @@ async def test_session_checkpoint_incremental_replay_and_no_raw_rewrite(tmp_path
         original_bytes = writer.stream.read()
         original_messages = [asdict(m) for m in session.messages]
         context = Context(Limits(context_window=70000))
-        model = ScriptedModel([summary_reply(), summary_reply(next_steps=["Run tests"])])
+        model = SummaryModel([summary_reply(), summary_reply(next_steps=["Run tests"])])
         assert await context.prepare(
             session, ContextBuilder().build_active_context(session), [], model, events
         )
@@ -126,6 +151,7 @@ async def test_session_checkpoint_incremental_replay_and_no_raw_rewrite(tmp_path
             session, ContextBuilder().build_active_context(session), [], model, events
         )
         payload = json.loads(model.requests[1][1].content)
+        assert model.requests[1][0].content == UPDATE_COMPACTION_PROMPT
         assert payload["previous_summary"] == summary()
         assert not first_sources.intersection(m["seq"] for m in payload["history"])
         records, _ = read_records(writer.stream)
@@ -225,15 +251,17 @@ async def test_persist_failure_does_not_commit_and_summary_cannot_drop_constrain
                 session,
                 ContextBuilder().build_active_context(session),
                 [],
-                ScriptedModel([summary_reply()]),
+                SummaryModel([summary_reply()]),
                 fail,
             )
         assert session.checkpoint is None
         from nexus.core.compaction import summary_message
 
-        with pytest.raises(ModelError, match="constraint_loss"):
+        with pytest.raises(ModelError, match="update_missing"):
             parse_summary(
-                json.dumps(summary(constraints_preferences=[])), [summary_message(summary())], 4096
+                json.dumps(summary(source=10, constraints_preferences=[])),
+                [summary_message(summary(), seq=10)],
+                4096,
             )
     finally:
         writer.close()
@@ -280,7 +308,7 @@ async def test_compaction_preserves_plan_skills_guidance_and_separate_usage(
         session.skills_run_id = session.run_id
         session.loaded_skills = (snapshot("check", "testing", "UNIQUE_SKILL_BODY"),)
         original_plan, original_skills = session.plan, session.loaded_skills
-        compactor = ScriptedModel([summary_reply()])
+        compactor = SummaryModel([summary_reply()])
 
         class Main(ScriptedModel):
             async def complete(self, messages: Any, tools: Any, emit: Any) -> ModelReply:
@@ -316,7 +344,7 @@ async def test_compaction_preserves_plan_skills_guidance_and_separate_usage(
         await seed(session, events, 24, 32)
         context = Context(limits)
         context.execution_budget = "STEP_BUDGET"
-        compactor = ScriptedModel([summary_reply()])
+        compactor = SummaryModel([summary_reply()])
         await context.prepare(
             session,
             ContextBuilder().build_active_context(session),

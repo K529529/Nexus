@@ -28,14 +28,14 @@ class CompactionModel:
     async def complete(
         self, messages: list[Message], tools: list[ToolSpec], emit: Emit
     ) -> ModelReply:
-        from nexus.core.compaction import COMPACTION_PROMPT
+        from nexus.core.compaction import COMPACTION_PROMPT, UPDATE_COMPACTION_PROMPT
 
         if tools or any(m.protocol_data or m.tool_calls or m.role == "tool" for m in messages):
             raise ModelError("invalid_compaction_request")
         if (
             len(messages) != 2
             or messages[0].role != "system"
-            or messages[0].content != COMPACTION_PROMPT
+            or messages[0].content not in {COMPACTION_PROMPT, UPDATE_COMPACTION_PROMPT}
             or messages[1].role != "user"
         ):
             raise ModelError("invalid_compaction_prompt")

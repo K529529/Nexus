@@ -15,7 +15,7 @@ from nexus.app.session import SessionError, SessionLog, read_records, replay, re
 from nexus.core.context import Context, ContextBuilder, estimate
 from nexus.core.types import Limits, Message, ModelReply, Session, Usage
 from tests.conftest import ScriptedModel, reply
-from tests.test_session_compaction import ignore, seed, summary_reply
+from tests.test_session_compaction import SummaryModel, ignore, seed, summary_reply
 
 
 @pytest.mark.parametrize("automatic", [False, True])
@@ -24,8 +24,8 @@ async def test_idle_compaction_never_starts_a_coding_task(
     monkeypatch: Any,
     automatic: bool,
 ) -> None:
-    monkeypatch.setenv("MAIN_TEST", "main")
-    monkeypatch.setenv("SUMMARY_TEST", "summary")
+    monkeypatch.setenv("MAIN_TEST", "main-test-secret")
+    monkeypatch.setenv("SUMMARY_TEST", "summary-test-secret")
     config = Config(
         ModelConfig("main", 70000, api_key_env="MAIN_TEST"),
         Limits(context_window=70000),
@@ -35,7 +35,7 @@ async def test_idle_compaction_never_starts_a_coding_task(
     )
     clients: list[Any] = []
 
-    class SummaryClient(ScriptedModel):
+    class SummaryClient(SummaryModel):
         def __init__(self, config: Any) -> None:
             super().__init__([summary_reply()])
             self.closed = False
@@ -112,7 +112,7 @@ async def test_legacy_run_checkpoint_then_new_checkpoint_never_resurrects_histor
         session = restored
         events = Events(session, writer, ignore)
         await seed(session, events, 32, 2)
-        model = ScriptedModel([summary_reply()])
+        model = SummaryModel([summary_reply()])
         await Context(Limits(context_window=70000)).prepare(
             session,
             ContextBuilder().build_active_context(session),
@@ -141,7 +141,7 @@ async def test_corrupt_checkpoint_is_rejected(tmp_path: Path, fault: str) -> Non
             session,
             ContextBuilder().build_active_context(session),
             [],
-            ScriptedModel([summary_reply()]),
+            SummaryModel([summary_reply()]),
             events,
         )
         records, _ = read_records(writer.stream)
@@ -177,7 +177,7 @@ async def test_cancelled_compaction_and_truncated_tail_recover_prior_checkpoint(
         session,
         ContextBuilder().build_active_context(session),
         [],
-        ScriptedModel([summary_reply()]),
+        SummaryModel([summary_reply()]),
         events,
     )
     checkpoint = deepcopy(session.checkpoint)

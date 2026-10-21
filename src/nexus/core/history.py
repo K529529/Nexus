@@ -47,11 +47,13 @@ class ContextBuilder:
         active = self.build_active_context(session)
         scope = data.get("scope")
         if scope == "session":
-            from nexus.core.compaction import summary_message, validate_summary
+            from nexus.core.compaction import summary_message, validate_references, validate_summary
 
-            summary = summary_message(validate_summary(data["summary"]), seq)
-            if data.get("version") != 1:
+            if data.get("version") not in {1, 2}:
                 raise ModelError("invalid_compaction_version")
+            summary = summary_message(
+                validate_summary(data["summary"], version=data["version"]), seq
+            )
             source = [m for m in active if m.role != "system"]
             replaced, kept = data["replaced_seqs"], data["kept_seqs"]
             if (
@@ -66,6 +68,8 @@ class ContextBuilder:
             recent = source[len(replaced) :]
             groups(removed)
             groups(recent)
+            if data["version"] == 2:
+                validate_references(data["summary"], removed)
             if not recent:
                 raise ModelError("invalid_compaction_empty_tail")
             updated = [summary] + recent
