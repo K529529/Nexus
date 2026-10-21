@@ -145,7 +145,7 @@ async def test_injected_tool_and_environment_reach_real_loop(
     configuration = next(r["data"] for r in records if r["kind"] == "configuration")
     assert configuration["context_policy"] == "Context Runtime V0.3 session-v1"
     assert configuration["conversation_projection"]["version"] == "continuous-session-v1"
-    assert configuration["compaction"]["version"] == 2
+    assert configuration["compaction"]["version"] == 3
     assert str(tmp_path) in instructions(tmp_path, cfg.limits.shell)
 
 
@@ -341,8 +341,8 @@ async def test_suite_sequential_persistence_and_stop(
     assert manifest["context_policy"] == "Context Runtime V0.3 session-v1"
     assert manifest["conversation_projection"]["version"] == "continuous-session-v1"
     assert manifest["compaction"] == {
-        "version": 2,
-        "prompt_version": "fidelity-v2.2",
+        "version": 3,
+        "prompt_version": "simple-v3",
         "trigger_fraction": 0.90,
         "keep_recent_tokens": 20000,
     }

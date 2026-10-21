@@ -3,19 +3,51 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from nexus.core.compaction import (
     COMPACTION_PROMPT,
     UPDATE_COMPACTION_PROMPT,
-    parse_summary,
+    summary_fields,
     summary_input,
     summary_message,
+    validate_references,
+    validate_summary,
+)
+from nexus.core.compaction import (
+    parse_summary as parse_current_summary,
 )
 from nexus.core.compaction_input import runtime_outcomes, serialize_history
 from nexus.core.types import Json, Message, ModelError, Session, ToolCall, ToolResult
-from tests.test_session_compaction import summary
+from tests.test_session_compaction import summary as simple_summary
+
+
+def summary(source: int = 3, **changes: Any) -> Json:
+    value = simple_summary(**changes)
+    value["evidence"] = {
+        k: [[source] for _ in items] for k, items in summary_fields(value).items() if items
+    }
+    value["updates"] = []
+    return value
+
+
+def parse_summary(text: str, prefix: list[Message], maximum: int) -> Json:
+    """Exercise legacy V2 replay validation, no longer the live output contract."""
+    value = validate_summary(json.loads(text), version=2)
+    validate_references(value, prefix)
+    return value
+
+
+def test_lightweight_contract_and_revocation_without_model_bookkeeping() -> None:
+    prefix = [summary_message(summary(), 10), Message("user", "Revoke restriction", seq=12)]
+    current = simple_summary(constraints_preferences=[])
+    assert parse_current_summary(json.dumps(current), prefix, 4096) == current
+    with pytest.raises(ModelError, match="schema"):
+        parse_current_summary(json.dumps(summary()), prefix, 4096)
+    with pytest.raises(ModelError, match="too_large"):
+        parse_current_summary(json.dumps(simple_summary(goal=["x" * 20000])), prefix, 4096)
 
 
 def test_serializer_separates_claims_results_and_lifecycle() -> None:

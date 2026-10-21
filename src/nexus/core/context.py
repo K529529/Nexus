@@ -382,7 +382,7 @@ class Context:
             return True
         data = {
             "scope": "session",
-            "version": 2,
+            "version": 3,
             "prompt_version": PROMPT_VERSION,
             "summary": summary,
             "replaced_seqs": [m.seq for m in prefix],

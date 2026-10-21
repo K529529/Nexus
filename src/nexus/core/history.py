@@ -49,7 +49,7 @@ class ContextBuilder:
         if scope == "session":
             from nexus.core.compaction import summary_message, validate_references, validate_summary
 
-            if data.get("version") not in {1, 2}:
+            if data.get("version") not in {1, 2, 3}:
                 raise ModelError("invalid_compaction_version")
             summary = summary_message(
                 validate_summary(data["summary"], version=data["version"]), seq

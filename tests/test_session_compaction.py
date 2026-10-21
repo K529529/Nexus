@@ -18,7 +18,6 @@ from nexus.core.compaction import (
     SummaryMessage,
     parse_summary,
     split_history,
-    summary_fields,
     summary_input,
     validate_summary,
 )
@@ -44,11 +43,6 @@ def summary(source: int = 3, **changes: Any) -> Json:
         "progress": {k: [] for k in PROGRESS},
         **changes,
     }
-    value.setdefault(
-        "evidence",
-        {k: [[source] for _ in values] for k, values in summary_fields(value).items() if values},
-    )
-    value.setdefault("updates", [])
     return value
 
 
@@ -57,20 +51,7 @@ def summary_reply(**changes: Any) -> ModelReply:
 
 
 class SummaryModel(ScriptedModel):
-    """Offline schema fixture; references supplied input, does not assess semantic fidelity."""
-
-    async def complete(self, messages: Any, tools: Any, emit: Any) -> ModelReply:
-        response = await super().complete(messages, tools, emit)
-        payload = json.loads(messages[1].content)
-        source = payload["previous_summary_seq"] or next(
-            m["seq"] for m in payload["history"] if m["kind"] == "USER_TASK_INFORMATION"
-        )
-        value = json.loads(response.message.content)
-        value["evidence"] = {
-            k: [[source] for _ in values] for k, values in summary_fields(value).items() if values
-        }
-        response.message.content = json.dumps(value)
-        return response
+    """Offline lightweight schema fixture, not a semantic judge."""
 
 
 async def ignore(event: RuntimeEvent) -> None:
@@ -232,7 +213,7 @@ async def test_failures_keep_checkpoint_and_history(tmp_path: Path, fault: str) 
         writer.close()
 
 
-async def test_persist_failure_does_not_commit_and_summary_cannot_drop_constraints(
+async def test_persist_failure_does_not_commit(
     tmp_path: Path,
 ) -> None:
     session = Session(tmp_path)
@@ -255,14 +236,6 @@ async def test_persist_failure_does_not_commit_and_summary_cannot_drop_constrain
                 fail,
             )
         assert session.checkpoint is None
-        from nexus.core.compaction import summary_message
-
-        with pytest.raises(ModelError, match="update_missing"):
-            parse_summary(
-                json.dumps(summary(source=10, constraints_preferences=[])),
-                [summary_message(summary(), seq=10)],
-                4096,
-            )
     finally:
         writer.close()
 
