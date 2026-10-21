@@ -1,0 +1,66 @@
+{
+  "case": "ABF-original",
+  "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+  "request_sha256": "8f98ec295a0a9ef0dd6665df1f447e7640b5d3328656156d0b87e6430157b7ae",
+  "prompt_version": "fidelity-v2.1",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "temperature": "omitted (provider default)",
+  "git_head": "978b99fbf12d633f4aa2d33fd90f70c1278a6ab2",
+  "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "estimated_input_tokens": 18165,
+  "mechanism": "FAIL",
+  "fact_review": {
+    "method": "manual source-to-summary comparison; no LLM judge",
+    "result": "FAIL",
+    "notes": "NOT_RUN is no longer a constraint, but validation_evidence and lifecycle are omitted; finished inspections are labeled in progress. Reference counts mismatch."
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 13702,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 7738,
+          "output_tokens": 344,
+          "total_tokens": 8082,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 7738,
+    "output_tokens": 344,
+    "total_tokens": 8082,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "finish_reason": "stop",
+  "error": "compaction_schema",
+  "duration_ms": 14921,
+  "raw_response_sha256": "d3dfd92d42a5ff7c4f141903f2f68cc4011b6b32665a798730e40b415d6ebbe7"
+}

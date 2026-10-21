@@ -13,6 +13,9 @@ V0.3 Stage 1 使用 [DeepSeek 官方 + 硅基流动 Qwen 双模型示例](contex
 Qwen 已验证 `enable_thinking=false`，不复用主模型的 `reasoning_effort` 语义。
 详见 [Context Runtime 设计与限制](context-runtime-v0.3.md)。以下保留 V0.2 通用配置示例。
 
+保真专项增加了可追溯来源和可更新摘要，但固定 Qwen 实验仍未通过语义验收，并暴露格式拒绝
+增加的问题。当前仅为阶段审查候选，见[专项负面结果](compaction-fidelity-hardening.md)。
+
 首次在真实终端运行 `nexus` 可进入配置引导，也可手动创建 `~/.nexus/config.toml`：
 
 ```toml

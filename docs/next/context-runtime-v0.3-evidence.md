@@ -1,5 +1,8 @@
 # Context Runtime V0.3 Stage 1：实施与验收证据
 
+本页保留上一轮结果；后续专项修复与失败对照见
+[Compaction Fidelity Hardening](compaction-fidelity-hardening.md)。
+
 日期：2026-10-22。仅交付 `codex/nexus-v0.3-stage1`，不合入 main 或 `codex/nexus-v0.3`。
 机制回归与有限 API 链路已验证；**自然语言摘要事实保真未通过完整验收**，不能宣布整体验收通过。
 没有运行任务成功率 Benchmark，也未修改全局 Nexus 安装或用户原始轨迹。

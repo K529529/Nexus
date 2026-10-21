@@ -1,0 +1,89 @@
+{
+  "case": "ABF-original",
+  "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+  "request_sha256": "5c09c929bf43b5191d54d28531519da02fe2bee676500575c5b2e73a4078090d",
+  "prompt_version": "fidelity-v2.2",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "temperature": "omitted (provider default)",
+  "git_head": "3781b5d67642e87611d4e596a19c2f573ef81442",
+  "working_diff_sha256": "fd1b75b7814960ab673300f6f3708e33c55a0bf74e69747bfd053a1cb858a461",
+  "estimated_input_tokens": 18144,
+  "mechanism": "PASS",
+  "fact_review": {
+    "method": "manual source-to-summary comparison; no LLM judge",
+    "result": "FAIL",
+    "notes": "Schema passes but the original user message is copied wholesale into goal; constraints and validation classification are empty, as are lifecycle, unfinished progress and next steps. Severe information loss."
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 5500,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 7710,
+          "output_tokens": 156,
+          "total_tokens": 7866,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 7710,
+    "output_tokens": 156,
+    "total_tokens": 7866,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "finish_reason": "stop",
+  "summary": {
+    "goal": [
+      "Fix demo.py. Do not merge main. Tests have NOT RUN."
+    ],
+    "constraints_preferences": [],
+    "key_decisions_rationale": [],
+    "files_changes": [],
+    "validation_evidence": [],
+    "unresolved_issues": [],
+    "next_steps": [],
+    "progress": {
+      "completed": [],
+      "in_progress": [],
+      "blocked": []
+    },
+    "evidence": {
+      "goal": [
+        [
+          3
+        ]
+      ]
+    },
+    "updates": []
+  },
+  "duration_ms": 6594,
+  "raw_response_sha256": "43575bbf9ba445d6cb1111145265ea449991670ecbcd46492c9e041094f362d9"
+}

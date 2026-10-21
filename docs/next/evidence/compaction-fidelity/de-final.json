@@ -1,0 +1,66 @@
+{
+  "case": "DE-update",
+  "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+  "request_sha256": "4e43c6542c7d3a92faa5462bf0872405c990e808491b155570fd46407bb16ed2",
+  "prompt_version": "fidelity-v2.2",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "temperature": "omitted (provider default)",
+  "git_head": "3781b5d67642e87611d4e596a19c2f573ef81442",
+  "working_diff_sha256": "fd1b75b7814960ab673300f6f3708e33c55a0bf74e69747bfd053a1cb858a461",
+  "estimated_input_tokens": 2497,
+  "mechanism": "FAIL",
+  "fact_review": {
+    "method": "manual source-to-summary comparison; no LLM judge",
+    "result": "PARTIAL_FAIL",
+    "notes": "Revocation and focused PASS are correctly represented; earlier failure and repair reason are omitted. References target nonexistent empty-field items, so checkpoint is rejected."
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 15750,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1568,
+          "output_tokens": 502,
+          "total_tokens": 2070,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1568,
+    "output_tokens": 502,
+    "total_tokens": 2070,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "finish_reason": "stop",
+  "error": "compaction_schema",
+  "duration_ms": 16780,
+  "raw_response_sha256": "e99ca09bde5c69c9e1d037c63dddcd564f6a17bdf991d2f24023c59272ea5054"
+}

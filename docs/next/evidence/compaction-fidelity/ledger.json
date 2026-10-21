@@ -1,0 +1,209 @@
+[
+  {
+    "id": "abf-current-1",
+    "case": "ABF-original",
+    "prompt_version": "fidelity-v2",
+    "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+    "request_sha256": "75d02728abe82130b38126685146a07a5805367afd80d69cbb7ed1d70913d35f",
+    "mechanism": "FAIL",
+    "duration_ms": 130764,
+    "usage": {
+      "input_tokens": 7662,
+      "output_tokens": 393,
+      "total_tokens": 8055,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "NOT_RUN still appears as a user constraint; lifecycle/handoff omitted. One transport timeout and retry; successful response has flat, mismatched references."
+    },
+    "error": "compaction_schema",
+    "attempts": 2
+  },
+  {
+    "id": "cde-baseline",
+    "case": "CDE-initial",
+    "prompt_version": "0880514",
+    "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+    "request_sha256": "3bfb26b8bc8cb0cc46b556c8ef8128c687c7613594b95c5076a3750742a3641a",
+    "mechanism": "PASS",
+    "duration_ms": 16937,
+    "usage": {
+      "input_tokens": 825,
+      "output_tokens": 404,
+      "total_tokens": 1229,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "PARTIAL_FAIL",
+      "notes": "Assistant completion is labeled a claim and failing test is reported, but validation is still labeled NOT RUN despite the observed later failure."
+    },
+    "error": null,
+    "attempts": 1
+  },
+  {
+    "id": "cde-current",
+    "case": "CDE-initial",
+    "prompt_version": "fidelity-v2",
+    "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+    "request_sha256": "16e18dd45e6498b3bab837f3b4d2268e6c113b165a6ef8a4b6aedb19c1ad6fa9",
+    "mechanism": "FAIL",
+    "duration_ms": 9421,
+    "usage": {
+      "input_tokens": 1022,
+      "output_tokens": 345,
+      "total_tokens": 1367,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "Infers possible inspection/modification from a completion claim without tool evidence; invents a decision record; flat references rejected."
+    },
+    "error": "compaction_schema",
+    "attempts": 1
+  },
+  {
+    "id": "de-baseline",
+    "case": "DE-update",
+    "prompt_version": "0880514",
+    "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+    "request_sha256": "fe72f072c63a6ff03d8a710d90dc7bc1f1254bfcb20ae35fb96ee86b192ee2cd",
+    "mechanism": "FAIL",
+    "duration_ms": 8093,
+    "usage": {
+      "input_tokens": 1080,
+      "output_tokens": 307,
+      "total_tokens": 1387,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "Retains revoked restriction, asserts config.toml unchanged without a check, and declares broad completion. Old verbatim goal rule also rejects the response."
+    },
+    "error": "compaction_constraint_loss",
+    "attempts": 1
+  },
+  {
+    "id": "abf-current-2",
+    "case": "ABF-original",
+    "prompt_version": "fidelity-v2.1",
+    "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+    "request_sha256": "8f98ec295a0a9ef0dd6665df1f447e7640b5d3328656156d0b87e6430157b7ae",
+    "mechanism": "FAIL",
+    "duration_ms": 14921,
+    "usage": {
+      "input_tokens": 7738,
+      "output_tokens": 344,
+      "total_tokens": 8082,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "NOT_RUN is no longer a constraint, but validation_evidence and lifecycle are omitted; finished inspections are labeled in progress. Reference counts mismatch."
+    },
+    "error": "compaction_schema",
+    "attempts": 1
+  },
+  {
+    "id": "de-current",
+    "case": "DE-update",
+    "prompt_version": "fidelity-v2.1",
+    "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+    "request_sha256": "ad0c5f854dbf7659b6d24d2d27f9b37ce982abe5c40dd7d22c4db5cd7116a72f",
+    "mechanism": "FAIL",
+    "duration_ms": 40905,
+    "usage": {
+      "input_tokens": 1555,
+      "output_tokens": 676,
+      "total_tokens": 2231,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "PARTIAL_FAIL",
+      "notes": "Revocation and focused test PASS are expressed, but earlier failure/repair context disappears and task completion is overclaimed. Extra/mismatched references and invalid update receipts rejected."
+    },
+    "error": "compaction_schema",
+    "attempts": 1
+  },
+  {
+    "id": "abf-final",
+    "case": "ABF-original",
+    "prompt_version": "fidelity-v2.2",
+    "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+    "request_sha256": "5c09c929bf43b5191d54d28531519da02fe2bee676500575c5b2e73a4078090d",
+    "mechanism": "PASS",
+    "duration_ms": 6594,
+    "usage": {
+      "input_tokens": 7710,
+      "output_tokens": 156,
+      "total_tokens": 7866,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "Schema passes but the original user message is copied wholesale into goal; constraints and validation classification are empty, as are lifecycle, unfinished progress and next steps. Severe information loss."
+    },
+    "error": null,
+    "attempts": 1
+  },
+  {
+    "id": "cde-final",
+    "case": "CDE-initial",
+    "prompt_version": "fidelity-v2.2",
+    "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+    "request_sha256": "c63823977dcf5315d2c6aa306095f4ef8602850c267d9bdbbfcb9f63effbe7bc",
+    "mechanism": "FAIL",
+    "duration_ms": 11625,
+    "usage": {
+      "input_tokens": 1070,
+      "output_tokens": 427,
+      "total_tokens": 1497,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "FAIL",
+      "notes": "NOT_RUN reappears under constraints; FAILED validation contains the earlier NOT_RUN message and cites that user report rather than test receipt. Validation field type and coverage invalid."
+    },
+    "error": "compaction_schema",
+    "attempts": 1
+  },
+  {
+    "id": "de-final",
+    "case": "DE-update",
+    "prompt_version": "fidelity-v2.2",
+    "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+    "request_sha256": "4e43c6542c7d3a92faa5462bf0872405c990e808491b155570fd46407bb16ed2",
+    "mechanism": "FAIL",
+    "duration_ms": 16780,
+    "usage": {
+      "input_tokens": 1568,
+      "output_tokens": 502,
+      "total_tokens": 2070,
+      "source": "reported",
+      "cached_input_tokens": 0
+    },
+    "fact_review": {
+      "method": "manual source-to-summary comparison; no LLM judge",
+      "result": "PARTIAL_FAIL",
+      "notes": "Revocation and focused PASS are correctly represented; earlier failure and repair reason are omitted. References target nonexistent empty-field items, so checkpoint is rejected."
+    },
+    "error": "compaction_schema",
+    "attempts": 1
+  }
+]

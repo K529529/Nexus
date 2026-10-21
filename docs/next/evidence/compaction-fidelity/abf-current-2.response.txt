@@ -1,0 +1,58 @@
+{
+  "goal": [
+    "Fix demo.py."
+  ],
+  "constraints_preferences": [
+    "Do not merge main."
+  ],
+  "key_decisions_rationale": [],
+  "files_changes": [],
+  "validation_evidence": [],
+  "unresolved_issues": [
+    "Tests have NOT RUN."
+  ],
+  "next_steps": [
+    "Perform validation (run tests) as requested by the goal to fix demo.py."
+  ],
+  "progress": {
+    "completed": [],
+    "in_progress": [
+      "Read-only inspection of the source code."
+    ],
+    "blocked": []
+  },
+  "evidence": {
+    "goal": [
+      [3]
+    ],
+    "constraints_preferences": [
+      [3]
+    ],
+    "validation_evidence": [],
+    "unresolved_issues": [
+      [3]
+    ],
+    "next_steps": [
+      [3]
+    ],
+    "progress.completed": [],
+    "progress.in_progress": [
+      [4],
+      [6],
+      [10],
+      [12],
+      [16],
+      [18],
+      [22],
+      [24],
+      [28],
+      [30],
+      [34],
+      [36],
+      [40],
+      [42]
+    ],
+    "progress.blocked": []
+  },
+  "updates": []
+}

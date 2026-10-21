@@ -1,0 +1,66 @@
+{
+  "case": "CDE-initial",
+  "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+  "request_sha256": "16e18dd45e6498b3bab837f3b4d2268e6c113b165a6ef8a4b6aedb19c1ad6fa9",
+  "prompt_version": "fidelity-v2",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "temperature": "omitted (provider default)",
+  "git_head": "beee5ec4749a0be023d3ccc9fb0cd94c0c2cbf93",
+  "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "estimated_input_tokens": 1658,
+  "mechanism": "FAIL",
+  "fact_review": {
+    "method": "manual source-to-summary comparison; no LLM judge",
+    "result": "FAIL",
+    "notes": "Infers possible inspection/modification from a completion claim without tool evidence; invents a decision record; flat references rejected."
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 8358,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1022,
+          "output_tokens": 345,
+          "total_tokens": 1367,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1022,
+    "output_tokens": 345,
+    "total_tokens": 1367,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "finish_reason": "stop",
+  "error": "compaction_schema",
+  "duration_ms": 9421,
+  "raw_response_sha256": "5dc70ea25d12c4f5281400275b0c5f449e174abf5d1879eb4dcf021242bdd2ff"
+}

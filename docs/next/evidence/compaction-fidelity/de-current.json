@@ -1,0 +1,66 @@
+{
+  "case": "DE-update",
+  "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+  "request_sha256": "ad0c5f854dbf7659b6d24d2d27f9b37ce982abe5c40dd7d22c4db5cd7116a72f",
+  "prompt_version": "fidelity-v2.1",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "temperature": "omitted (provider default)",
+  "git_head": "978b99fbf12d633f4aa2d33fd90f70c1278a6ab2",
+  "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "estimated_input_tokens": 2452,
+  "mechanism": "FAIL",
+  "fact_review": {
+    "method": "manual source-to-summary comparison; no LLM judge",
+    "result": "PARTIAL_FAIL",
+    "notes": "Revocation and focused test PASS are expressed, but earlier failure/repair context disappears and task completion is overclaimed. Extra/mismatched references and invalid update receipts rejected."
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 39858,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1555,
+          "output_tokens": 676,
+          "total_tokens": 2231,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1555,
+    "output_tokens": 676,
+    "total_tokens": 2231,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "finish_reason": "stop",
+  "error": "compaction_schema",
+  "duration_ms": 40905,
+  "raw_response_sha256": "ba3b2538d272157ccfa5c25372e81991afbdde3a5f1165e30e48a8f1c1ed7de0"
+}

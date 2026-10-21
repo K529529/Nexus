@@ -1,0 +1,55 @@
+{
+  "goal": [
+    "Fix demo.py."
+  ],
+  "constraints_preferences": [
+    "Do not merge main.",
+    "Tests have NOT RUN."
+  ],
+  "key_decisions_rationale": [],
+  "files_changes": [],
+  "validation_evidence": [
+    "NO TESTS EXECUTED (scope: synthetic-0 to synthetic-6 runs, evidence: 6, 12, 18, 24, 30, 36, 42) - Claims state inspection finished and no tests executed. User instruction 3 explicitly states tests have not run."
+  ],
+  "unresolved_issues": [
+    "demo.py has not been fixed; goal unmet.",
+    "No validation performed; remediation status unknown."
+  ],
+  "next_steps": [
+    "Analyze demo.py for required fixes.",
+    "Implement fixes in demo.py.",
+    "Execute tests to verify fixes (not run yet per user directive)."
+  ],
+  "progress": {
+    "completed": [],
+    "in_progress": [],
+    "blocked": []
+  },
+  "evidence": {
+    "goal": [
+      3
+    ],
+    "constraints_preferences": [
+      3
+    ],
+    "validation_evidence": [
+      6,
+      12,
+      18,
+      24,
+      30,
+      36,
+      42,
+      3
+    ],
+    "unresolved_issues": [
+      3,
+      6
+    ],
+    "next_steps": [
+      3,
+      6
+    ]
+  },
+  "updates": []
+}

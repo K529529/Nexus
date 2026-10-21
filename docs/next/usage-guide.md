@@ -14,6 +14,10 @@ missing-compactor warning and no main-model fallback. Qwen supports the verified
 `enable_thinking=false`; its meaning is not inferred from DeepSeek's `reasoning_effort`.
 See [runtime design and limitations](context-runtime-v0.3.md). The generic V0.2 example follows.
 
+The fidelity follow-up adds traceable sources and evidence-backed updates, but fixed Qwen
+experiments still fail semantic review and expose increased schema rejection. This remains
+a stage-review candidate; see [all results and limitations](compaction-fidelity-hardening.md).
+
 Run `nexus` in a terminal for first-use setup, or create `~/.nexus/config.toml`.
 The wizard asks for an environment variable **name**, never the key value.
 It preserves other TOML sections and does not overwrite invalid TOML.
