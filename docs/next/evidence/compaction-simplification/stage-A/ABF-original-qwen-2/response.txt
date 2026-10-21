@@ -1,0 +1,31 @@
+{
+  "goal": [
+    "Fix demo.py"
+  ],
+  "constraints_preferences": [
+    "Do not merge main",
+    "Tests have NOT RUN"
+  ],
+  "key_decisions_rationale": [],
+  "files_changes": [],
+  "validation_evidence": [],
+  "unresolved_issues": [
+    "The actual state of demo.py is unknown; only synthetic inspection evidence was returned, not source content.",
+    "No tests have been executed or validated.",
+    "No fixes have been applied or attempted."
+  ],
+  "next_steps": [
+    "Execute inspection or read tools to obtain the actual content of demo.py.",
+    "Identify the specific issues in demo.py requiring fixes.",
+    "Apply necessary code changes to fix demo.py.",
+    "Ensure the constraint 'Do not merge main' is respected.",
+    "Execute tests to validate the fix."
+  ],
+  "progress": {
+    "completed": [],
+    "in_progress": [
+      "Repeated read-only inspections performed, yielding only synthetic evidence."
+    ],
+    "blocked": []
+  }
+}

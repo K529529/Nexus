@@ -1,0 +1,117 @@
+{
+  "case": "ABF-original",
+  "model": "Qwen/Qwen3.5-35B-A3B",
+  "repeat": 2,
+  "stage": "A",
+  "prompt_version": "simple-v3",
+  "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+  "request_sha256": "15e6f0203d4d986a536a58fb61f9930f49f7130ab272d2dbf201564a2582e49c",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 6437,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 7497,
+          "output_tokens": 249,
+          "total_tokens": 7746,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "Qwen/Qwen3.5-35B-A3B"
+  ],
+  "response_ids": [
+    "01a15fa00e0770702fd0bf1343ff5801"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 249,
+    "prompt_tokens": 7497,
+    "total_tokens": 7746,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 7497
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 7497,
+    "output_tokens": 249,
+    "total_tokens": 7746,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Fix demo.py"
+    ],
+    "constraints_preferences": [
+      "Do not merge main",
+      "Tests have NOT RUN"
+    ],
+    "key_decisions_rationale": [],
+    "files_changes": [],
+    "validation_evidence": [],
+    "unresolved_issues": [
+      "The actual state of demo.py is unknown; only synthetic inspection evidence was returned, not source content.",
+      "No tests have been executed or validated.",
+      "No fixes have been applied or attempted."
+    ],
+    "next_steps": [
+      "Execute inspection or read tools to obtain the actual content of demo.py.",
+      "Identify the specific issues in demo.py requiring fixes.",
+      "Apply necessary code changes to fix demo.py.",
+      "Ensure the constraint 'Do not merge main' is respected.",
+      "Execute tests to validate the fix."
+    ],
+    "progress": {
+      "completed": [],
+      "in_progress": [
+        "Repeated read-only inspections performed, yielding only synthetic evidence."
+      ],
+      "blocked": []
+    }
+  },
+  "latency_ms": 7483,
+  "response_sha256": "4fb37f9d02555923a3b73274b79dbc55eace4640f95205abbdae0860fdc00bcb"
+}

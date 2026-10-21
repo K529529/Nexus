@@ -1,0 +1,98 @@
+{
+  "stage": "A",
+  "prompt_version": "simple-v3",
+  "plan": [
+    {
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1
+    },
+    {
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1
+    },
+    {
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1
+    },
+    {
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1
+    },
+    {
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1
+    },
+    {
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1
+    },
+    {
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2
+    },
+    {
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2
+    },
+    {
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2
+    },
+    {
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2
+    },
+    {
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2
+    },
+    {
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2
+    }
+  ],
+  "git_head": "ecae6f6b0d4ca9d69501f6057da5ab862bfb405c",
+  "working_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_sha256": {
+    "scripts\\compaction_comparison.py": "b069d22083d428d9410c8a025cf8a175bb236561835aa1a35b91a670b69c0da0",
+    "src\\nexus\\core\\__init__.py": "273e995edccc7f9fad8c3c9b314fd8897f2b44a7751d25bebcabb7f17e204721",
+    "src\\nexus\\core\\agent.py": "db1b8aa916aa3d39add2914d1913b87d82d94a9df0b6d446f6fc9caff5252b2f",
+    "src\\nexus\\core\\compaction.py": "9a2abe03c54a3f4a4a5abf9caa11dbf07d13eecc0e19c94141637d5b0f80685c",
+    "src\\nexus\\core\\compaction_input.py": "582d9d55310ff55c5a90ae456affd50806966c17998c89b0c301c3a5283d3f2f",
+    "src\\nexus\\core\\context.py": "c2dc9c22df2c69c036237f2a53ebc68f1098d627a164fed5946ec292f8a88841",
+    "src\\nexus\\core\\handoff.py": "5787954a9b1e3adeeba49252e166ef7eee21739b5b6142a610fe717507e32b72",
+    "src\\nexus\\core\\history.py": "753fbb10515d0e8862c903ad7db3eb58504679f10e11d90912075a7e06535a88",
+    "src\\nexus\\core\\model.py": "7e3407add2131d0245a5d8a33297fc2087208a7a1223d541737909cbe0860b5d",
+    "src\\nexus\\core\\plan.py": "621e404670c63b3fac28f3db3183553d4c46f5eca186257a79718e66dd1b8343",
+    "src\\nexus\\core\\request_context.py": "18047e8e6fe888e3acb616201676e0d07a5200ce5dcbf15a10c90a6e205c9ffd",
+    "src\\nexus\\core\\skills.py": "87ba3caf2c9a5bebb20bc9cd544576dd39fbd15560e7cac212901361e4fc17f2",
+    "src\\nexus\\core\\stagnation.py": "b7b8b427a5e23a60ab6bd9ade1639c1c4db66f6d9a65269f669ec097cf152540",
+    "src\\nexus\\core\\tokens.py": "ef3acaa3466f4549b4c429415277217af50f252fbbbb8c660ff05f240f65d45c",
+    "src\\nexus\\core\\types.py": "780acf55716b3fc2100469b6163a2b630ed2488bd5edd8c5b67cee4aacd46072"
+  },
+  "inputs": {
+    "ABF-original": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+    "CDE-initial": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+    "DE-update": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37"
+  },
+  "requests": {
+    "ABF-original": "15e6f0203d4d986a536a58fb61f9930f49f7130ab272d2dbf201564a2582e49c",
+    "CDE-initial": "615a768875a022513a49e96cb8b9335772dfda3b7662d62649fe256969c8a442",
+    "DE-update": "4b9735fccc7b250f4fcc82fc0958c81c71a6787eb2de04169f3a0e4e005f6096"
+  },
+  "temperature": "omitted; provider defaults may differ between models",
+  "retry_policy": "existing adapter: at most 2 physical attempts per logical sample",
+  "status": "RUN_AUTHORIZED"
+}

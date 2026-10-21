@@ -1,0 +1,24 @@
+{
+  "goal": ["Implement greet in demo.py such that tests pass (expected 'Hello, got None' failure from test_demo.py::test_greet), while keeping the inspection read-only regarding config.toml."],
+  "constraints_preferences": ["Do not edit config.toml during this inspection."],
+  "key_decisions_rationale": ["No verified decisions recorded; ASSISTANT_CLAIM of completion is not independently verified."],
+  "files_changes": ["No verified file modifications recorded."],
+  "validation_evidence": [
+    "FAILED: pytest tests/test_demo.py::test_greet - expected Hello, got None (exit code 1, command_exit_nonzero)."
+  ],
+  "unresolved_issues": [
+    "greet implementation is not passing the test; expected 'Hello,' but got None.",
+    "No evidence that config.toml was checked or modified.",
+    "No evidence that greet was actually implemented or edited."
+  ],
+  "next_steps": [
+    "Inspect demo.py:greet implementation.",
+    "Fix greet to return the expected greeting (e.g., starting with 'Hello').",
+    "Run pytest tests/test_demo.py to verify pass."
+  ],
+  "progress": {
+    "completed": [],
+    "in_progress": ["Implementing greet in demo.py to pass the test."],
+    "blocked": []
+  }
+}

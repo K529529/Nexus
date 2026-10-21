@@ -1,0 +1,119 @@
+{
+  "case": "CDE-initial",
+  "model": "deepseek-ai/DeepSeek-V4-Flash",
+  "repeat": 2,
+  "stage": "A",
+  "prompt_version": "simple-v3",
+  "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+  "request_sha256": "615a768875a022513a49e96cb8b9335772dfda3b7662d62649fe256969c8a442",
+  "model_parameters": {
+    "name": "deepseek-ai/DeepSeek-V4-Flash",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "duration_ms": 3139,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 886,
+          "output_tokens": 284,
+          "total_tokens": 1170,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "deepseek-ai/DeepSeek-V4-Flash"
+  ],
+  "response_ids": [
+    "01a15fa047ad310cfad30edd50119c44"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 284,
+    "prompt_tokens": 886,
+    "total_tokens": 1170,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 886
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 886,
+    "output_tokens": 284,
+    "total_tokens": 1170,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Implement greet in demo.py."
+    ],
+    "constraints_preferences": [
+      "Read-only inspection; do not edit config.toml during this inspection.",
+      "Tests have not run in this inspection (reported at task information time, not a current directive)."
+    ],
+    "key_decisions_rationale": [
+      "No recorded decision rationale; ASSISTANT_CLAIM states feature complete but no independent evidence."
+    ],
+    "files_changes": [
+      "demo.py - implied as target but no file-change action observed or reported."
+    ],
+    "validation_evidence": [
+      "FAILED: exec_command running pytest tests/test_demo.py exited 1; stdout: 'FAILED tests/test_demo.py::test_greet - expected Hello, got None'; scope: single test."
+    ],
+    "unresolved_issues": [
+      "greet in demo.py is not yet producing the expected output 'Hello' (observed failure)."
+    ],
+    "next_steps": [
+      "Inspect demo.py to locate greet; modify greet to return 'Hello'; rerun pytest tests/test_demo.py to verify; avoid editing config.toml as directed."
+    ],
+    "progress": {
+      "completed": [
+        "Attempted pytest tests/test_demo.py (command executed, failed)."
+      ],
+      "in_progress": [
+        "Implement greet in demo.py."
+      ],
+      "blocked": []
+    }
+  },
+  "latency_ms": 4125,
+  "response_sha256": "8af23bd0070e3805a7492b63174168b3d31dc3547a6120debf6c213a2046fff2"
+}
