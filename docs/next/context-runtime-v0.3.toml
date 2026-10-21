@@ -1,0 +1,30 @@
+# V0.3 Stage 1 example. Set keys in the launching process's environment, never here.
+# Merge sections into ~/.nexus/config.toml after backing it up; CLI uses that path.
+[model]
+name = "deepseek-flash"
+base_url = "https://api.deepseek.com"
+api_key_env = "DEEPSEEK_API_KEY"
+context_window = 128000
+max_output_tokens = 8192
+reasoning_effort = "high"
+include_usage = true
+request_timeout_seconds = 120
+output_token_parameter = "max_tokens"
+
+[compaction_model]
+name = "Qwen/Qwen3.5-35B-A3B"
+base_url = "https://api.siliconflow.cn/v1"
+api_key_env = "SILICONFLOW_API_KEY"
+context_window = 128000
+max_output_tokens = 4096
+enable_thinking = false
+include_usage = true
+request_timeout_seconds = 120
+output_token_parameter = "max_tokens"
+
+[runtime]
+max_steps = 40
+response_language = "zh-CN"
+
+[execution]
+output_limit_bytes = 32768

@@ -94,16 +94,16 @@ For manual configuration, MCP and model parameters, see the [user guide](docs/ne
 
 Skills live at `~/.nexus/skills/<name>/SKILL.md`; start with the [pytest regression example](docs/next/skills/pytest-regression/SKILL.md).
 `/skill off` clears explicit selection while automatic loading remains available. Sessions are saved under `~/.nexus/sessions/`.
-Resuming an unfinished task restores its context; an ordinary new task does not automatically inherit the previous task's full history.
+Runs in the same Session share continuous message history until semantic compaction; `/new` starts fresh.
 
 <a id="capabilities-and-evidence"></a>
 ## 03 / Capabilities and evidence
 
 - **Coding loop**: execute commands, apply patches, run checks and act on tool feedback.
-- **Context management**: observation projection, safety compaction and structured Plan/Todo progress.
+- **Context management (V0.3 stage branch)**: continuous Session history, independent compaction model and Run-local Plan/Todo progress. See [runtime design and limits](docs/next/context-runtime-v0.3.md).
 - **Extensible and inspectable**: local Skills, stdio MCP, session recovery, JSONL trajectories and run profiles.
 
-Release validation: **498 tests passed** on each of Windows and Linux; 10 opt-in Docker checks were skipped in the offline suite.
+V0.2 release validation: **498 tests passed** on each of Windows and Linux; 10 opt-in Docker checks were skipped in the offline suite. V0.3 stage results and the unresolved summary-fidelity issue are recorded in [runtime evidence](docs/next/context-runtime-v0.3-evidence.md).
 One cost-first round of the fixed eight-case development set achieved **6/8 PASS and 8/8 autonomous completions**.
 This is local acceptance evidence, not stable 8/8 or an official SWE-bench score.
 See [results and limitations](docs/next/suite-hardening-evidence.md).

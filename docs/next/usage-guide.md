@@ -6,6 +6,14 @@ Detailed configuration, session behavior, tool boundaries and developer evaluati
 
 ## Configure
 
+V0.3 Stage 1 uses the [DeepSeek official + SiliconFlow Qwen example](context-runtime-v0.3.toml).
+Back up and merge required sections into `~/.nexus/config.toml`; there is no `--config` option.
+`[model]` and `[compaction_model]` have separate clients and API-key environment variables.
+Never put keys in TOML. Legacy main-only configurations work within capacity, with an explicit
+missing-compactor warning and no main-model fallback. Qwen supports the verified
+`enable_thinking=false`; its meaning is not inferred from DeepSeek's `reasoning_effort`.
+See [runtime design and limitations](context-runtime-v0.3.md). The generic V0.2 example follows.
+
 Run `nexus` in a terminal for first-use setup, or create `~/.nexus/config.toml`.
 The wizard asks for an environment variable **name**, never the key value.
 It preserves other TOML sections and does not overwrite invalid TOML.
@@ -96,7 +104,7 @@ nexus exec "Explain this test failure" --json
 nexus resume
 ```
 
-Interactive commands: `/new`, `/resume`, `/skills`, `/skill <name>`, `/skill off`, `/help`, `/exit`. The selector shows
+Interactive commands: `/new`, `/resume`, `/compact`, `/skills`, `/skill <name>`, `/skill off`, `/help`, `/exit`. The selector shows
 task title, project, update time and status; use arrows/Enter or Esc. Ctrl+C
 aborts the active turn with bounded process cleanup; at an idle prompt it clears
 input. Non-interactive callers must use `exec`. Exit codes are 0 completed,
@@ -120,25 +128,26 @@ the same async task that runs its turns.
 
 Sessions are append-only JSONL under `~/.nexus/sessions/<workspace-key>/` with one
 writer per session. Resume restores conversation and waits for a new user request.
-Each ordinary input starts an independent execution run, with bounded excerpts of recent
-requests, visible replies and outcomes from the same Conversation. Old tool payloads and
-private protocol data do not cross run boundaries. Long history is explicitly omitted;
-the original JSONL remains intact. A new Conversation does not inherit this history.
+Each ordinary input starts an independent execution run with continuous Session history:
+intermediate assistant messages, tool calls and paired results remain visible until semantic
+compaction. A new Conversation does not inherit this history.
 Use `/resume` or `nexus resume` to select a session whose latest run is unfinished
 (interrupted, aborted, failed or limited); the next input continues that run's context.
 A completed session's next input starts a new run. Run IDs remain internal metadata;
-the selector resumes only the latest unfinished run. V0.3 stage 1 retains execution
-isolation and safety compaction. At 85% of the projected input budget, it summarizes old
-complete groups in the current run's active context, aiming for roughly 60%. Original
-messages stay in session history and JSONL; resume reconstructs the saved projection.
-If the provider reports a context limit before compaction was attempted at that boundary,
-Nexus attempts compaction and retries once. Unrecoverable overflow returns
-`limited/context_limit`. Tool observations stay FULL until a later validated assistant message
-is appended. Consumed results outside a token-budgeted recent working set receive deterministic
-`compact-v1` previews at request time. Session/JSONL retain original messages; safety snapshots
-retain logical references, and HOT tool groups cannot be summarized. Projection diagnostics are
-available in JSONL/profile metrics. Conversation history uses at most approximately 20% of
-input capacity, capped at 18,000 bytes. The last three turns carry a validation/handoff
+the selector resumes only the latest unfinished run. V0.3 compacts at 90% of the model window
+(115200 for 128000), with an independent output/safety reserve that can trigger earlier.
+It keeps approximately 20000 tokens of recent complete message groups and sends only the older
+prefix plus the previous summary to the independent compactor. There is no HOT/COLD shrinking
+or old-run excerpt layer. Checkpoints are appended before switching the projection;
+original messages remain intact and replay reconstructs the same Session checkpoint.
+Compaction runs before an agent request, after completed runs before input, or through `/compact`.
+The manual command creates no Coding Run, tools or Agent steps. Provider overflow permits one
+compaction and one retry. Failed compaction retains history; unsafe requests stop explicitly.
+TUI context estimates/thresholds and compactor usage are separate from cumulative usage.
+Changing providers can make retained private protocol incompatible: it is never silently rebound.
+Schema validity does not prove summary fidelity; live tests found semantic misclassification.
+See [design](context-runtime-v0.3.md) and [evidence](context-runtime-v0.3-evidence.md).
+The last three turns carry a validation/handoff
 reminder; exhausting the budget remains limited without an extra model call. Unfinished
 runs save bounded tool facts and model-reported pending plan items for explicit Resume.
 Tool success is not task verification. See [stage 1 design](v0.3-stage1.md).

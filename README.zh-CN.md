@@ -94,16 +94,16 @@ API key 填入环境变量，不填入聊天框。模型调用费用由服务商
 
 Skill 放在 `~/.nexus/skills/<名称>/SKILL.md`，可参考 [pytest 回归测试示例](docs/next/skills/pytest-regression/SKILL.md)。
 `/skill off` 取消显式指定，仍允许模型按任务自动加载。会话保存在 `~/.nexus/sessions/`；
-恢复未完成任务会续接其上下文，普通新任务不会自动带入前一任务的完整历史。
+同一 Session 的各次 Run 共享连续消息历史，直到统一语义压缩；`/new` 开始新会话。
 
 <a id="能力与验证"></a>
 ## 03 / 能力与验证
 
 - **编码闭环**：执行命令、应用补丁、运行检查，并根据工具结果继续修复。
-- **上下文管理**：工具结果投影、安全压缩，以及独立的 Plan/Todo 进度状态。
+- **上下文管理（V0.3 阶段分支）**：连续 Session 历史、独立压缩模型与 Run 内 Plan/Todo。详见[运行时设计与限制](docs/next/context-runtime-v0.3.md)。
 - **可扩展、可追溯**：本地 Skills、stdio MCP、会话恢复、JSONL 轨迹与执行统计。
 
-发布验证：Windows / Linux 各 **498 项测试通过**，10 项 Docker 验收按需运行、未计入本次离线测试。
+V0.2 发布验证：Windows / Linux 各 **498 项测试通过**，10 项 Docker 验收按需运行、未计入当次离线测试。V0.3 阶段结果与尚未解决的摘要保真问题见[运行时证据](docs/next/context-runtime-v0.3-evidence.md)。
 固定八例开发评测的一轮成本优先配置取得 **6/8 PASS、8/8 自主结束**；这是本地验收结果，
 不代表稳定 8/8 或官方 SWE-bench 成绩。详见[评测结果与限制](docs/next/suite-hardening-evidence.md)。
 

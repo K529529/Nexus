@@ -6,6 +6,13 @@
 
 ## 配置
 
+V0.3 Stage 1 使用 [DeepSeek 官方 + 硅基流动 Qwen 双模型示例](context-runtime-v0.3.toml)。
+备份后把需要的段落合并到 `~/.nexus/config.toml`；CLI 固定读取此文件，没有 `--config`。
+两个段落分别读取 `DEEPSEEK_API_KEY` 与 `SILICONFLOW_API_KEY`，不在 TOML 保存密钥。
+旧单模型配置仍可运行容量内的任务，但缺少 `[compaction_model]` 会明确提示，无法语义压缩。
+Qwen 已验证 `enable_thinking=false`，不复用主模型的 `reasoning_effort` 语义。
+详见 [Context Runtime 设计与限制](context-runtime-v0.3.md)。以下保留 V0.2 通用配置示例。
+
 首次在真实终端运行 `nexus` 可进入配置引导，也可手动创建 `~/.nexus/config.toml`：
 
 ```toml
@@ -47,7 +54,7 @@ Linux 使用 `export DASHSCOPE_API_KEY='<key>'`。引导只询问变量名，不
 旧配置中的 `observability` 等段落不再支持；先备份旧配置再移除淘汰字段，程序不会
 自动改写旧配置。不会读取仓库 `.env` 或 `.nexus/config.toml`。
 
-上面的百炼 Flash low 配置是本轮成本优先的日常候选：完整八例为 6/8 PASS、8/8 completed，
+上面的百炼 Flash low 配置是 V0.2 的成本优先候选：完整八例为 6/8 PASS、8/8 completed，
 已报告费用约 ¥1.54，不代表已验证长期稳定。早期 Requests/Sphinx 使用不同的配置，
 曾出现编辑或结束不收敛，见
 [执行预算实测记录](execution-budget-evidence.md)。
@@ -64,7 +71,7 @@ nexus exec "分析测试失败" --json
 nexus resume
 ```
 
-交互命令：`/new`、`/resume`、`/skills`、`/skill <名称>`、`/skill off`、`/help`、`/exit`。
+交互命令：`/new`、`/resume`、`/compact`、`/skills`、`/skill <名称>`、`/skill off`、`/help`、`/exit`。
 恢复列表按最近更新时间排序，展示最后一次用户输入摘要、UTC 时间和状态，每屏九条；
 上下键浏览，Enter 确认，数字 1–9 直接打开当前屏幕的条目，Esc 取消。运行中 Ctrl+C 取消当前轮次并回收进程，
 空闲时清空输入。无终端时应使用 `exec`，不会等待不可见输入。
@@ -84,21 +91,24 @@ Conversation 内不自动重连。配置在新 Conversation 中重载，不做�
 退出码：0 completed、1 failed、2 配置/参数错误、3 limited、130 aborted。
 
 会话写入 `~/.nexus/sessions/<workspace-key>/` 下的 append-only JSONL，文件锁确保单
-writer。普通输入每次开启独立执行 run，同时携带同一 Conversation 内近期旧 run 的
-有界需求、可见回复与结果状态摘录；旧工具输出和私有协议不跨 run 携带。过长历史明确省略，
-完整历史仍保留在 JSONL；`/new` 不继承旧 Conversation。使用 `/resume` 或 `nexus resume` 选择最近
+writer。普通输入每次开启独立执行 run，但同一 Session 的历史连续，保留旧 run 的中间
+assistant 信息、Tool Calls 与配对 Results，直到统一语义压缩。`/new` 不继承旧 Session。
+使用 `/resume` 或 `nexus resume` 选择最近
 run 未完成的会话（中断、aborted、failed、limited），下一次输入会续接这个 run 的上下文。
 已完成会话的下一次输入开启新 run；run_id 仍是内部元数据，选择器只恢复最近的未完成 run。
-V0.3 第一阶段保留 Run 执行隔离和安全压缩：投影后的活动输入达到预算的 85% 时，对当前
-run 的旧完整消息组生成摘要，目标约为预算的 60%。只替换活动上下文，Session 历史和 JSONL
-仍保留原消息；resume 会重建已保存的投影。若服务端报超限且本请求边界尚未尝试压缩，
-则压缩并最多重试一次；仍无法容纳时返回 `limited/context_limit`。工具结果在后续有效 assistant
-消息写入前保持 FULL；已消费且掉出 token 工作集的结果，在请求时派生 `compact-v1` preview。
-Session/JSONL 保留原文，snapshot 保留逻辑引用；HOT 所属工具组不能被摘要替换。
-历史和工具投影统计写入 JSONL；历史最多占约 20% 输入预算且不超过 18,000 bytes。
+V0.3 Context Runtime 达到模型窗口 90% 时压缩（128000 对应 115200 tokens）；
+输出预留与安全余量独立检查，必要时提前保护。保留约 20000 tokens 的近期完整消息组，
+仅把旧前缀和上次摘要发送给独立压缩模型。没有 HOT/COLD，也没有旧 Run 摘录层。
+checkpoint 追加写入后才更新上下文，原消息与 JSONL 不改写；恢复重建同一个 Session 投影。
+压缩可在 Run 内、completed 后等待输入前、手动 `/compact` 时发生。
+`/compact` 不创建任务、不调用工具、不耗 Agent steps。服务端超限最多额外压缩并重试一次。
+失败保留旧历史；如果旧请求已不安全，则明确停止。缺少压缩模型不会调用主模型代替。
+TUI 显示当前估算、阈值、压缩前后大小和独立压缩用量；累计调用用量不是当前上下文大小。
+旧 provider 私有协议仍绑定原渠道，换渠道后可能需要新 Session；损坏或错配历史会拒绝。
 预算最后 3 轮提醒优先验证与交接，耗尽后保持 limited，不额外调用模型。
 非 completed 的运行保存有界工具事实和模型 Plan 待办，TUI 提示显式 Resume；
-工具成功不代表任务已验证。详见 [V0.3 第一阶段说明](v0.3-stage1.md)。
+工具成功不代表任务已验证。摘要结构合法也不证明事实保真；实测仍存在状态误归类，见
+[Context Runtime 说明](context-runtime-v0.3.md) 和 [验收证据](context-runtime-v0.3-evidence.md)。
 恢复后等待用户输入，不重新执行旧命令。崩溃后的缺失结果标为
 `interrupted_unknown`，需要先检查实际文件/进程状态。损坏尾行恢复到新文件并保留原文件；
 中间损坏拒绝恢复。逐记录 flush 不等于耐断电事务，也不保证副作用恰好执行一次。
