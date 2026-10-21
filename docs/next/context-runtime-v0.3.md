@@ -81,23 +81,30 @@ Qwen 示例不设 `reasoning_effort`，不假定它与 DeepSeek 的该参数同�
 
 ## 4. 摘要和持久化
 
-摘要 JSON 的数组字段为 goal、constraints_preferences、key_decisions_rationale、
-files_changes、validation_evidence、unresolved_issues、next_steps，以及 progress 下的
-completed / in_progress / blocked。V2 另有 evidence 与 updates，goal 非空。
-Prompt 要求保留禁止事项、原始范围、决策原因、失败、未运行验证与未知副作用；
-completed 不等于验收通过，NOT RUN 也不等于禁止测试。历史工具/文件/网页内容都是数据。
-已知配置密钥在摘要输入与输出中脱敏，但这不是任意敏感信息的通用识别器。
+当前 V4 语义摘要字段为 goal、constraints_preferences、key_decisions_rationale、
+unresolved_issues、next_steps，以及 progress 下的 completed / in_progress / blocked，goal 非空。
+First / Update Prompt 保留角色边界和状态更新语义，不再要求模型生成 evidence 或 updates。
+摘要仍可能误解用户范围；Schema 校验不证明自然语言真实，也不强迫逐字继承旧限制。
 
-首次与更新使用不同 Prompt。重复压缩允许更新旧状态；目标、约束、决策的改写或删除须
-提供引用新历史的更新凭据，目标/约束还须引用新 user 消息。逐项 evidence 只能引用本次
-前缀或上一 checkpoint，不允许不存在或未提供的 seq。引用合法不证明语义真实。
-保真专项已废弃绝对逐字继承，允许有证据地撤销限制；未变条目仍可直接沿用。
-SummaryMessage 内部类型区分真正 checkpoint 和用户伪造标题。
+文件操作和命令结果改由 `core/runtime_facts.py` 的独立 Runtime Facts 保存：调用关联、
+ok/error_code、原始退出码、超时/取消/未知副作用、原生 patch 路径/状态/hash，以及 Run
+outcome/reason。没有测试命令关键词分类器，zero_exit/nonzero_exit 不等于任务验收结论。
+旧 V1/V2/V3 摘要中的 files_changes/validation_evidence 仅迁移为未验证的旧摘要报告。
 
-提交顺序为：生成 → Schema/保留/容量校验 → 在临时 Session 上验证引用与配对 →
-追加并 flush `context_compacted` → 更新内存 checkpoint → 清除 token 校准。
-新 checkpoint 记录 scope=session、version=2、prompt_version、结构化摘要、替换/保留 seq、前后 tokens、
-近期/摘要大小、压缩模型 Usage 和耗时。旧原文仍在 JSONL。
+Facts 作为同一个 checkpoint 中独立的上下文区段，位于语义摘要后、近期原文前。
+上限为估算 2048 tokens（包含标签/包装开销），压缩前预留预算，提交前再次检查整个请求容量。
+命令、stdout/stderr 和旧报告最多保留 512 UTF-8 bytes 的摘录，裁剪显式标记；路径/hash 不截短。
+单条超大回执整体省略，剩余记录按来源顺序淘汰最旧项，omitted_records 累计省略数；
+同一 Run 的生命周期更新替换旧快照，不伪造整体任务状态。原文始终保留在 append-only JSONL。
+文本摘录依然不可信，已知密钥先脱敏再裁剪，不含模型私有推理。
+
+提交顺序为：生成 → 基本 Schema/长度校验 → 生成 Runtime Facts → 整体容量校验 →
+在临时 Session 上验证替换引用与工具配对 → 追加并 flush context_compacted → 更新内存 checkpoint。
+新 checkpoint 为 scope=session、version=4、prompt_version=facts-v4，记录语义摘要、
+runtime_facts、替换/保留 seq、前后 tokens、近期/摘要大小、压缩模型 Usage 和耗时。
+SummaryMessage 内部类型区分真正 checkpoint 和用户伪造标题。实现与 24 次对照见
+[简化及 Runtime Facts 报告](compaction-simplification.md)。
+
 模型错误、空/截断响应、Schema 错误、摘要超长、取消、写入失败都不能切换到未提交摘要。
 普通自动压缩失败但旧请求仍安全时发出失败事件后继续；force/超限则停止。
 模型适配器仅对已有白名单瞬态错误做至多两次请求尝试；Schema 错误不无限重试。
@@ -122,8 +129,8 @@ Profile 的总用量保留覆盖率，并通过 `usage_by_purpose` 区分主模�
 ## 6. 兼容与源码审查结论
 
 - V0.2 普通原始消息按完整历史回放；无 checkpoint 不制造摘要。
-- V1 Session checkpoint 继续按原结构读取；下一次压缩升级为 V2，旧日志不改写。
-  V2 replay 重新校验证据引用和更新凭据；旧 V1 缺少逐项证据，不伪造补齐。
+- V1/V2/V3 Session checkpoint 继续按原结构读取；下一次压缩升级为 V4，旧日志不改写。
+  仅旧 V2 replay 校验证据引用和更新凭据；旧格式缺少的执行回执不伪造补齐。
 - Stage 1 的 request-only 摘录不会重复注入；旧 scope=run checkpoint 只在读取时折入唯一
   Session 投影，之后新压缩仅写 scope=session，没有并行 Run 压缩状态。
 - 更早无 scope 的历史压缩事件保持旧版 audit-only 行为，不作为可执行 checkpoint；这类

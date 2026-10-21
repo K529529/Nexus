@@ -1,0 +1,12 @@
+{
+  "goal": ["Implement greet in demo.py."],
+  "constraints_preferences": ["This inspection is read-only; do not edit config.toml during it."],
+  "key_decisions_rationale": [],
+  "unresolved_issues": ["The greet implementation currently returns None instead of the expected output; test failure observed for test_greet (expected Hello, got None)."],
+  "next_steps": ["Inspect demo.py to see the current greet implementation.", "Correct greet in demo.py so it returns the expected output."],
+  "progress": {
+    "completed": [],
+    "in_progress": ["Running the test suite to verify greet implementation (observed failure)."],
+    "blocked": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "goal": [
+    "Implement greet in demo.py."
+  ],
+  "constraints_preferences": [
+    "This inspection is read-only; do not edit config.toml during it (revoked)."
+  ],
+  "key_decisions_rationale": [
+    "Returned \"Hello\" instead of None to match test expectation."
+  ],
+  "unresolved_issues": [],
+  "next_steps": [],
+  "progress": {
+    "completed": [
+      "Fixed return value in demo.py."
+    ],
+    "in_progress": [],
+    "blocked": []
+  }
+}

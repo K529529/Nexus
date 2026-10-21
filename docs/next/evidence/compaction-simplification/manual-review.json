@@ -1,0 +1,689 @@
+{
+  "method": "Manual source and composed-context review by implementation agent; no model self-grading or independent external judge. Post-run rubric incorporates user direction to distinguish valuable omissions from harmless compression. Acceptance is subjective, not a benchmark success rate.",
+  "rubric": {
+    "PASS": "No material error or valuable omission for continuation",
+    "PARTIAL": "Some imprecision, omission or unsupported minor detail; assess operational value explicitly",
+    "FAIL": "High-value intent/scope/progress distortion or unusable schema",
+    "acceptable": "Schema usable and no material contradiction likely to redirect next work; original records remain auditable. Not proof of downstream task success."
+  },
+  "samples": [
+    {
+      "stage": "A",
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "limited/max_steps omitted",
+        "Latest read-only scope not explicit"
+      ],
+      "unsupported_claims": [
+        "NOT RUN placed in constraints; no actual test ban because next steps request tests"
+      ],
+      "subjective_judgment": "Goal, unfinished fix and next validation remain usable; omitted lifecycle is useful audit context but does not change this sample next action.",
+      "result_path": "stage-A/ABF-original-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 7497,
+        "output_tokens": 257,
+        "total_tokens": 7754,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 5937,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "limited/max_steps omitted",
+        "Completed inspection categorized as in-progress"
+      ],
+      "unsupported_claims": [
+        "Absence of patch records generalized to no fixes attempted"
+      ],
+      "subjective_judgment": "Repeated inspection details are low value. Real source still unknown and fix unfinished are retained; acceptable with scope caveats.",
+      "result_path": "stage-A/ABF-original-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 7497,
+        "output_tokens": 249,
+        "total_tokens": 7746,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 7483,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [
+        "limited/max_steps omitted"
+      ],
+      "unsupported_claims": [
+        "No tests executed, as directed invents user intent",
+        "No file modifications stated absolutely"
+      ],
+      "subjective_judgment": "User intent is high-value information; converting a status into an instruction is not an acceptable loss.",
+      "result_path": "stage-A/ABF-original-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 7616,
+        "output_tokens": 287,
+        "total_tokens": 7903,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 4562,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "limited/max_steps omitted"
+      ],
+      "unsupported_claims": [
+        "Six inspections rather than seven",
+        "Assumed inspection rationale",
+        "Absolute no-edit statement"
+      ],
+      "subjective_judgment": "Wrong count and inferred rationale are secondary here; unknown defect, no verified fix and next actions survive. No effective test ban.",
+      "result_path": "stage-A/ABF-original-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 7616,
+        "output_tokens": 460,
+        "total_tokens": 8076,
+        "source": "reported",
+        "cached_input_tokens": 7424
+      },
+      "latency_ms": 6562,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "FAIL",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "Narrows read-only inspection to config.toml in next-step rationale"
+      ],
+      "subjective_judgment": "Both rejected schema and scope narrowing prevent adoption, even though failure cause is preserved.",
+      "result_path": "stage-A/CDE-initial-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 857,
+        "output_tokens": 149,
+        "total_tokens": 1006,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 5016,
+      "api_error": "compaction_schema",
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "limited/max_steps omitted",
+        "No explicit phase transition before suggested edits"
+      ],
+      "unsupported_claims": [],
+      "subjective_judgment": "Exact read-only constraint, failing check, cause and unfinished goal survive. Future edit suggestion must remain governed by that retained constraint.",
+      "result_path": "stage-A/CDE-initial-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 857,
+        "output_tokens": 175,
+        "total_tokens": 1032,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 3578,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [
+        "Full read-only inspection scope"
+      ],
+      "unsupported_claims": [
+        "Narrows read-only to config.toml",
+        "Changes expected Hello to Hello-comma / starting with Hello"
+      ],
+      "subjective_judgment": "Constraint scope and expected value can change the actual edit; unacceptable despite correctly reporting failure.",
+      "result_path": "stage-A/CDE-initial-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 886,
+        "output_tokens": 299,
+        "total_tokens": 1185,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 4000,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "limited/max_steps omitted"
+      ],
+      "unsupported_claims": [
+        "Status is in constraints but explicitly says not a current directive"
+      ],
+      "subjective_judgment": "Preserves complete read-only clause, failed test and actual expected value; metadata classification is imperfect but continuation is usable.",
+      "result_path": "stage-A/CDE-initial-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 886,
+        "output_tokens": 284,
+        "total_tokens": 1170,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 4125,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "Prior failing test details"
+      ],
+      "unsupported_claims": [],
+      "subjective_judgment": "Earlier failure is useful but lower value after a concrete patch and scoped passing check; omission alone is not rejection.",
+      "result_path": "stage-A/DE-update-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 1209,
+        "output_tokens": 209,
+        "total_tokens": 1418,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 32905,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "Prior failing test details"
+      ],
+      "unsupported_claims": [
+        "Invented test_t_greet name"
+      ],
+      "subjective_judgment": "Correct command and one-pass result remain; wrong test spelling is a traceability defect, not a whole-task success claim.",
+      "result_path": "stage-A/DE-update-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 1209,
+        "output_tokens": 209,
+        "total_tokens": 1418,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 6046,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "Revocation cites 202 instead of actual user seq 201"
+      ],
+      "subjective_judgment": "Revocation and failure-repair-focused-pass are preserved. The incidental wrong reference does not change the active permission.",
+      "result_path": "stage-A/DE-update-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 1268,
+        "output_tokens": 274,
+        "total_tokens": 1542,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 3515,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "A",
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "simple-v3",
+      "fact_fidelity": "PASS",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [],
+      "subjective_judgment": "Important state is preserved, scoped result is clear; no need to retain low-value lifecycle repetition.",
+      "result_path": "stage-A/DE-update-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 1268,
+        "output_tokens": 260,
+        "total_tokens": 1528,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 3453,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [
+        "Fix still requiring diagnosis is displaced by awaiting tests"
+      ],
+      "unsupported_claims": [
+        "Invented three inspection cycles and initial verification attempt",
+        "Turns NOT RUN into unmet directive"
+      ],
+      "subjective_judgment": "Runtime receipts preserve the seven calls and max_steps, but semantic state can send the next agent straight to validation before diagnosis or repair.",
+      "result_path": "stage-B/ABF-original-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 8115,
+        "output_tokens": 368,
+        "total_tokens": 8483,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 11890,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "ABF-original",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "Six instead of seven inspections",
+        "Verification rationale not recorded",
+        "Successful testing phrased as expected next documentation"
+      ],
+      "subjective_judgment": "Facts retain exact calls/lifecycle; fix-before-test next steps and unknown merge state remain. Wrong count is low value; future success is not treated as already observed.",
+      "result_path": "stage-B/ABF-original-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 8115,
+        "output_tokens": 334,
+        "total_tokens": 8449,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 27203,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "Constraint wording partly narrows scope, while blocked explicitly retains possible whole-inspection restriction"
+      ],
+      "subjective_judgment": "Qualified blocked state prevents silently assuming write permission; raw failed command and cause remain. Requires normal attention to scope, acceptable as a cautious handoff.",
+      "result_path": "stage-B/CDE-initial-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 948,
+        "output_tokens": 307,
+        "total_tokens": 1255,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 5562,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "CDE-initial",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "User requested implementation without running tests initially is invented intent"
+      ],
+      "subjective_judgment": "Correct execution facts cannot repair a false user directive; permission/intent is high-value semantic state.",
+      "result_path": "stage-B/CDE-initial-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 948,
+        "output_tokens": 370,
+        "total_tokens": 1318,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 15000,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PASS",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [],
+      "subjective_judgment": "Revoked is explicit; runtime retains old reported failure, patch and scoped pass. No need to repeat those facts in prose.",
+      "result_path": "stage-B/DE-update-qwen-1/result.json",
+      "reported_usage": {
+        "input_tokens": 1419,
+        "output_tokens": 136,
+        "total_tokens": 1555,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 6625,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "DE-update",
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "All tests passed is broader than the explicit focused command"
+      ],
+      "subjective_judgment": "Borderline wording: the same compacted context retains pytest tests/test_demo.py and 1 passed. Acceptable only as that command scope, not project-wide acceptance.",
+      "result_path": "stage-B/DE-update-qwen-2/result.json",
+      "reported_usage": {
+        "input_tokens": 1419,
+        "output_tokens": 114,
+        "total_tokens": 1533,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 3844,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [
+        "NOT RUN is still filed under constraints, labeled as a statement"
+      ],
+      "subjective_judgment": "Next steps explicitly call for tests, so no effective prohibition; important unknown defect and unfinished work retained, lifecycle preserved independently.",
+      "result_path": "stage-B/ABF-original-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 8258,
+        "output_tokens": 265,
+        "total_tokens": 8523,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 6406,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "ABF-original",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "Read-only inspection temporal scope is less explicit"
+      ],
+      "unsupported_claims": [
+        "Goal mixes objective, prohibition and status"
+      ],
+      "subjective_judgment": "Seven successful inspections and max_steps are recoverable in facts; fix and test remain pending. Classification loss is tolerable, with scope caveat.",
+      "result_path": "stage-B/ABF-original-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 8258,
+        "output_tokens": 177,
+        "total_tokens": 8435,
+        "source": "reported",
+        "cached_input_tokens": 8192
+      },
+      "latency_ms": 3203,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PARTIAL",
+      "acceptable_for_continuation": true,
+      "missing_facts": [
+        "Explicit rerun-after-fix next step"
+      ],
+      "unsupported_claims": [
+        "Already-failed test described as running/in-progress"
+      ],
+      "subjective_judgment": "Full read-only scope, failure cause and unfinished fix retained. Facts remove ambiguity about execution completion; a rerun still follows normal coding verification.",
+      "result_path": "stage-B/CDE-initial-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 980,
+        "output_tokens": 155,
+        "total_tokens": 1135,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 3592,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "CDE-initial",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [
+        "Whole-inspection read-only scope"
+      ],
+      "unsupported_claims": [
+        "Explicitly restricts read-only meaning to config.toml",
+        "Old no-tests status retained after failure"
+      ],
+      "subjective_judgment": "Scope narrowing can authorize an unintended edit. Reliable exit code does not compensate for this semantic distortion.",
+      "result_path": "stage-B/CDE-initial-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 980,
+        "output_tokens": 227,
+        "total_tokens": 1207,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 4328,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 1,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "PASS",
+      "acceptable_for_continuation": true,
+      "missing_facts": [],
+      "unsupported_claims": [],
+      "subjective_judgment": "Active restriction removed; legacy failure plus new patch and focused pass retained; optional full-suite suggestion is not a completion overclaim.",
+      "result_path": "stage-B/DE-update-deepseek-1/result.json",
+      "reported_usage": {
+        "input_tokens": 1481,
+        "output_tokens": 180,
+        "total_tokens": 1661,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 5312,
+      "api_error": null,
+      "physical_calls": 1
+    },
+    {
+      "stage": "B",
+      "case": "DE-update",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "repeat": 2,
+      "schema": "PASS",
+      "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+      "prompt_version": "facts-v4",
+      "fact_fidelity": "FAIL",
+      "acceptable_for_continuation": false,
+      "missing_facts": [
+        "Revocation and meaningful updated semantic progress"
+      ],
+      "unsupported_claims": [
+        "Revoked read-only prohibition retained as active",
+        "Obsolete assistant completion claim repeated"
+      ],
+      "subjective_judgment": "High-value permission update is lost. Runtime has patch/pass but cannot determine user intent; this is unacceptable for unattended continuation.",
+      "result_path": "stage-B/DE-update-deepseek-2/result.json",
+      "reported_usage": {
+        "input_tokens": 1481,
+        "output_tokens": 107,
+        "total_tokens": 1588,
+        "source": "reported",
+        "cached_input_tokens": 0
+      },
+      "latency_ms": 6140,
+      "api_error": null,
+      "physical_calls": 1
+    }
+  ]
+}

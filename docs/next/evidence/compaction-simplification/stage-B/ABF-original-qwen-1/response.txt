@@ -1,0 +1,35 @@
+{
+  "goal": [
+    "Fix demo.py.",
+    "Do not merge main.",
+    "Run tests (which have not run yet)."
+  ],
+  "constraints_preferences": [
+    "Do not merge main."
+  ],
+  "key_decisions_rationale": [
+    "Three cycles of read-only inspections were performed on synthetic source data per user directive 'Continue read-only inspection X; no validation yet'.",
+    "Initial attempts to verify the fix were limited by max_steps after synthetic inspection evidence was returned."
+  ],
+  "unresolved_issues": [
+    "The source of 'demo.py' has not been verified against the original problem definition; evidence provided is synthetic and repeated.",
+    "Tests have not executed; the status of 'fixing demo.py' is unconfirmed.",
+    "User directive 'Tests have NOT RUN' remains active and unmet.",
+    "No validation has occurred to confirm 'demo.py' is fixed beyond the read-only inspection claims."
+  ],
+  "next_steps": [
+    "Execute tests on 'demo.py' as the primary blocking step for task completion.",
+    "Verify the actual content of 'demo.py' if available to confirm the fix, as the inspection evidence appears synthetic/unreal.",
+    "Ensure 'main' branch is not merged while pending test results."
+  ],
+  "progress": {
+    "completed": [
+      "Performed multiple read-only inspections of the synthetic source per user directives.",
+      "Acknowledged the constraint to not merge main."
+    ],
+    "in_progress": [
+      "Awaiting execution of tests on 'demo.py'."
+    ],
+    "blocked": []
+  }
+}

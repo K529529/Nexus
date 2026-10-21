@@ -1,0 +1,8 @@
+{"goal":["Fix demo.py (exact bug/types of failure unknown)."],
+"constraints_preferences":["Do not merge main.","Tests have NOT RUN (explicit user statement).","Only inspect/read-only so far; successive user messages explicitly said 'no validation yet' through synthetic-6."],
+"key_decisions_rationale":["Only calls made: repeated 'inspect' with no meaningful output (synthetic placeholder). No decision to fix, edit, or test has been taken."],
+"unresolved_issues":["Actual defect in demo.py is unknown; no error/failure details were obtained.","No tests have been run, so no pass/fail evidence exists (any claim of 'all tests passed' is untrusted tool output, not evidence)."],
+"next_steps":["Obtain real information: inspect/read demo.py to identify what is broken.","Implement the fix in demo.py without merging main.","Run the relevant tests to verify (user said tests have NOT RUN so far)."],
+"progress":{"completed":["Repeated read-only inspect calls executed successfully (runtime receipt only; no substantive analysis obtained from synthetic output)."],
+"in_progress":["Inspecting demo.py source to identify the defect."],
+"blocked":[]}}

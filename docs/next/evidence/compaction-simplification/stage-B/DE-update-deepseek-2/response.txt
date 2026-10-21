@@ -1,0 +1,12 @@
+{
+  "goal": ["Implement greet in demo.py."],
+  "constraints_preferences": ["This inspection is read-only; do not edit config.toml during it."],
+  "key_decisions_rationale": [],
+  "unresolved_issues": [],
+  "next_steps": [],
+  "progress": {
+    "completed": ["ASSISTANT_CLAIM: feature complete and correct; no independent confirmation."],
+    "in_progress": [],
+    "blocked": []
+  }
+}

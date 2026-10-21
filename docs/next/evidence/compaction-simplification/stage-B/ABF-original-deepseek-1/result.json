@@ -1,0 +1,117 @@
+{
+  "case": "ABF-original",
+  "model": "deepseek-ai/DeepSeek-V4-Flash",
+  "repeat": 1,
+  "stage": "B",
+  "prompt_version": "facts-v4",
+  "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+  "request_sha256": "9b90e67fae025bab72aca5e6f5fc61f83b8940d0fee33534bfc9bf7f5429962f",
+  "model_parameters": {
+    "name": "deepseek-ai/DeepSeek-V4-Flash",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "duration_ms": 5391,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 8258,
+          "output_tokens": 265,
+          "total_tokens": 8523,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "deepseek-ai/DeepSeek-V4-Flash"
+  ],
+  "response_ids": [
+    "01a15fa71fd52ca3fb22eceedc3259e3"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 265,
+    "prompt_tokens": 8258,
+    "total_tokens": 8523,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 8258
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 8258,
+    "output_tokens": 265,
+    "total_tokens": 8523,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Fix demo.py (exact bug/types of failure unknown)."
+    ],
+    "constraints_preferences": [
+      "Do not merge main.",
+      "Tests have NOT RUN (explicit user statement).",
+      "Only inspect/read-only so far; successive user messages explicitly said 'no validation yet' through synthetic-6."
+    ],
+    "key_decisions_rationale": [
+      "Only calls made: repeated 'inspect' with no meaningful output (synthetic placeholder). No decision to fix, edit, or test has been taken."
+    ],
+    "unresolved_issues": [
+      "Actual defect in demo.py is unknown; no error/failure details were obtained.",
+      "No tests have been run, so no pass/fail evidence exists (any claim of 'all tests passed' is untrusted tool output, not evidence)."
+    ],
+    "next_steps": [
+      "Obtain real information: inspect/read demo.py to identify what is broken.",
+      "Implement the fix in demo.py without merging main.",
+      "Run the relevant tests to verify (user said tests have NOT RUN so far)."
+    ],
+    "progress": {
+      "completed": [
+        "Repeated read-only inspect calls executed successfully (runtime receipt only; no substantive analysis obtained from synthetic output)."
+      ],
+      "in_progress": [
+        "Inspecting demo.py source to identify the defect."
+      ],
+      "blocked": []
+    }
+  },
+  "latency_ms": 6406,
+  "response_sha256": "385e94797278e3373e539f7381fc297b29a1d56dbe36bf060deae82a6f72d710"
+}

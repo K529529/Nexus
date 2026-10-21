@@ -1,0 +1,106 @@
+{
+  "case": "DE-update",
+  "model": "Qwen/Qwen3.5-35B-A3B",
+  "repeat": 1,
+  "stage": "B",
+  "prompt_version": "facts-v4",
+  "input_sha256": "c6e3fc636c8e975408ebcdd9a601637be63cb637d8aece7e78ea37f80965ff37",
+  "request_sha256": "5c356bc3fb400eabe4cc197699f182b0f2b4a97455e563d25299460971f83fd2",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 5421,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1419,
+          "output_tokens": 136,
+          "total_tokens": 1555,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "Qwen/Qwen3.5-35B-A3B"
+  ],
+  "response_ids": [
+    "01a15fa7401fa3a5bdee5579e7b2c646"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 136,
+    "prompt_tokens": 1419,
+    "total_tokens": 1555,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 1419
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 1419,
+    "output_tokens": 136,
+    "total_tokens": 1555,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Implement greet in demo.py."
+    ],
+    "constraints_preferences": [
+      "This inspection is read-only; do not edit config.toml during it (revoked)."
+    ],
+    "key_decisions_rationale": [
+      "Returned \"Hello\" instead of None to match test expectation."
+    ],
+    "unresolved_issues": [],
+    "next_steps": [],
+    "progress": {
+      "completed": [
+        "Fixed return value in demo.py."
+      ],
+      "in_progress": [],
+      "blocked": []
+    }
+  },
+  "latency_ms": 6625,
+  "response_sha256": "2aed13888c018d30da4766b2c384a98a3d3b73da4f71b39f8400348b995ca15a"
+}

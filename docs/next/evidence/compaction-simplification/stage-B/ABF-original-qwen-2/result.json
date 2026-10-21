@@ -1,0 +1,126 @@
+{
+  "case": "ABF-original",
+  "model": "Qwen/Qwen3.5-35B-A3B",
+  "repeat": 2,
+  "stage": "B",
+  "prompt_version": "facts-v4",
+  "input_sha256": "4492b53ade3095a2682ad3a1402072df38a9c31a6194d6670db2a1026a5ffb20",
+  "request_sha256": "9b90e67fae025bab72aca5e6f5fc61f83b8940d0fee33534bfc9bf7f5429962f",
+  "model_parameters": {
+    "name": "Qwen/Qwen3.5-35B-A3B",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "Qwen/Qwen3.5-35B-A3B",
+        "attempt": 1,
+        "duration_ms": 25953,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 8115,
+          "output_tokens": 334,
+          "total_tokens": 8449,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "Qwen/Qwen3.5-35B-A3B"
+  ],
+  "response_ids": [
+    "01a15fa77ba6cb3ab233733c69df5a71"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 334,
+    "prompt_tokens": 8115,
+    "total_tokens": 8449,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 8115
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 8115,
+    "output_tokens": 334,
+    "total_tokens": 8449,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Fix demo.py.",
+      "Do not merge main.",
+      "Tests have NOT RUN."
+    ],
+    "constraints_preferences": [
+      "Continue read-only inspection 1; no validation yet.",
+      "Continue read-only inspection 2; no validation yet.",
+      "Continue read-only inspection 3; no validation yet.",
+      "Continue read-only inspection 4; no validation yet.",
+      "Continue read-only inspection 5; no validation yet.",
+      "Continue read-only inspection 6; no validation yet."
+    ],
+    "key_decisions_rationale": [
+      "Repeated read-only inspections were performed for verification purposes while tests were explicitly noted as not having run."
+    ],
+    "unresolved_issues": [
+      "demo.py has not been fixed.",
+      "Tests have not been executed to validate any changes.",
+      "Historical untrusted output suggesting all tests passed was ignored; actual test execution status remains unverified.",
+      "The instruction 'Do not merge main' is active but merge status is unknown."
+    ],
+    "next_steps": [
+      "Perform the actual fix on demo.py.",
+      "Execute the test suite to verify the fix.",
+      "Ensure no merge of 'main' occurs.",
+      "Document the successful completion of testing."
+    ],
+    "progress": {
+      "completed": [
+        "Conducted six read-only inspections of the source code.",
+        "Confirmed that tests have not been executed during the inspection phase."
+      ],
+      "in_progress": [
+        "Reviewing inspected source code to identify necessary fixes for demo.py."
+      ],
+      "blocked": []
+    }
+  },
+  "latency_ms": 27203,
+  "response_sha256": "b741d914c79257c93ea283ad99ea16ecd18c4fa841368bcf6d608c303223f6d6"
+}

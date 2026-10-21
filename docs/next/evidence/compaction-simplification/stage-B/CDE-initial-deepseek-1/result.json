@@ -1,0 +1,109 @@
+{
+  "case": "CDE-initial",
+  "model": "deepseek-ai/DeepSeek-V4-Flash",
+  "repeat": 1,
+  "stage": "B",
+  "prompt_version": "facts-v4",
+  "input_sha256": "fe14d394e351f4c9c7dda7c4f4116b6ce8cffc049b3fcf0f300785c37c9cf8a4",
+  "request_sha256": "5425f6c127a66935a3e32af1052c218889241e5f535bdc025fea0a9969a37da4",
+  "model_parameters": {
+    "name": "deepseek-ai/DeepSeek-V4-Flash",
+    "context_window": 128000,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key_env": "SILICONFLOW_API_KEY",
+    "max_output_tokens": 4096,
+    "reasoning_effort": null,
+    "include_usage": true,
+    "request_timeout_seconds": 120,
+    "output_token_parameter": "max_tokens",
+    "enable_thinking": false
+  },
+  "events": [
+    {
+      "kind": "model_started",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "purpose": "compaction"
+      }
+    },
+    {
+      "kind": "model_finished",
+      "data": {
+        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "attempt": 1,
+        "duration_ms": 2577,
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 980,
+          "output_tokens": 155,
+          "total_tokens": 1135,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "purpose": "compaction"
+      }
+    }
+  ],
+  "response_models": [
+    "deepseek-ai/DeepSeek-V4-Flash"
+  ],
+  "response_ids": [
+    "01a15fa74e2f12b26e103662eb285643"
+  ],
+  "physical_calls": 1,
+  "reasoning_characters": 0,
+  "schema": "PASS",
+  "fact_fidelity": "PENDING_MANUAL_REVIEW",
+  "raw_usage": {
+    "completion_tokens": 155,
+    "prompt_tokens": 980,
+    "total_tokens": 1135,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cache_write_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 980
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "input_tokens": 980,
+    "output_tokens": 155,
+    "total_tokens": 1135,
+    "source": "reported",
+    "cached_input_tokens": 0
+  },
+  "summary": {
+    "goal": [
+      "Implement greet in demo.py."
+    ],
+    "constraints_preferences": [
+      "This inspection is read-only; do not edit config.toml during it."
+    ],
+    "key_decisions_rationale": [],
+    "unresolved_issues": [
+      "The greet implementation currently returns None instead of the expected output; test failure observed for test_greet (expected Hello, got None)."
+    ],
+    "next_steps": [
+      "Inspect demo.py to see the current greet implementation.",
+      "Correct greet in demo.py so it returns the expected output."
+    ],
+    "progress": {
+      "completed": [],
+      "in_progress": [
+        "Running the test suite to verify greet implementation (observed failure)."
+      ],
+      "blocked": []
+    }
+  },
+  "latency_ms": 3592,
+  "response_sha256": "17feb7c26b2ee259138602fe6445f8cf0d855dc746ca0aa14390d0e4d43e3e8c"
+}
