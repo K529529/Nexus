@@ -141,6 +141,26 @@ def test_valid_reference_does_not_prove_natural_language_truth() -> None:
     assert parse_summary(json.dumps(false_claim), [Message("user", "Tests not run", seq=1)], 4096)
 
 
+def test_flat_evidence_records_have_explicit_indices_not_guessed_alignment() -> None:
+    canonical = summary(source=1)
+    wire = {
+        **canonical,
+        "evidence": [
+            {"field": "constraints_preferences", "index": 0, "source_seqs": [1]},
+            {"field": "goal", "index": 0, "source_seqs": [1]},
+        ],
+    }
+    prefix = [Message("user", "Goal. Do not merge main.", seq=1)]
+    assert parse_summary(json.dumps(wire), prefix, 4096) == canonical
+    for corrupt in [
+        wire["evidence"][:1],
+        wire["evidence"] * 2,
+        [{"field": "goal", "index": 9, "source_seqs": [1]}],
+    ]:
+        with pytest.raises(ModelError, match="schema"):
+            parse_summary(json.dumps({**wire, "evidence": corrupt}), prefix, 4096)
+
+
 def test_legacy_checkpoint_followed_by_v2_replays_with_source_validation(tmp_path: Path) -> None:
     from nexus.core.history import ContextBuilder
 
@@ -196,3 +216,22 @@ def test_legacy_checkpoint_followed_by_v2_replays_with_source_validation(tmp_pat
     fresh.messages.append(session.messages[-1])
     with pytest.raises(ModelError, match="source_missing"):
         builder.restore_compaction(fresh, None, bad, 7)
+
+
+@pytest.mark.parametrize("case_id", ["ABF-original", "CDE-initial", "DE-update"])
+def test_frozen_experiment_inputs_keep_hash_order_and_exclude_retained_tail(case_id: str) -> None:
+    from scripts.compaction_fidelity import load_case, prepare
+
+    case = load_case(case_id)  # Verifies the stored SHA-256 before constructing either request.
+    prefix, request = prepare(case, "current")
+    payload = json.loads(request[1].content)
+    assert [r["seq"] for r in payload["history"]] == [m["seq"] for m in case["messages"]]
+    assert "reasoning_content" not in request[1].content
+    assert not any(m.tool_calls for m in request)
+    if case_id == "ABF-original":
+        assert len(prefix) == 28 and prefix[-1].seq == 42  # Exact previously summarized prefix.
+        assert payload["previous_summary"] is None
+    if case_id == "DE-update":
+        assert request[0].content == UPDATE_COMPACTION_PROMPT
+        assert [r["seq"] for r in payload["history"]] == [201, 202, 203, 204, 205]
+        assert payload["previous_summary_seq"] == 200

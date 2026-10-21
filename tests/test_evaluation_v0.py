@@ -342,7 +342,7 @@ async def test_suite_sequential_persistence_and_stop(
     assert manifest["conversation_projection"]["version"] == "continuous-session-v1"
     assert manifest["compaction"] == {
         "version": 2,
-        "prompt_version": "fidelity-v2.1",
+        "prompt_version": "fidelity-v2.2",
         "trigger_fraction": 0.90,
         "keep_recent_tokens": 20000,
     }
