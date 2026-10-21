@@ -288,10 +288,7 @@ class Conversation:
                 reason="manual" if force else "between_runs",
             )
         except asyncio.CancelledError:
-            await self.events(
-                "compaction_failed",
-                {"reason": "cancelled", "detail": "Compaction cancelled; prior history retained."},
-            )
+            # Context owns the failure event; maintenance must not create a second receipt.
             return False
         finally:
             self.session.run_id = old_run

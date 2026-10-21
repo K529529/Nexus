@@ -341,7 +341,9 @@ async def test_suite_sequential_persistence_and_stop(
     assert manifest["context_policy"] == "Context Runtime V0.3 session-v1"
     assert manifest["conversation_projection"]["version"] == "continuous-session-v1"
     assert manifest["compaction"] == {
-        "version": 1, "trigger_fraction": 0.90, "keep_recent_tokens": 20000,
+        "version": 1,
+        "trigger_fraction": 0.90,
+        "keep_recent_tokens": 20000,
     }
     assert manifest["compaction_model"] is None
     summary = json.loads(summary_path.read_text(encoding="utf-8"))

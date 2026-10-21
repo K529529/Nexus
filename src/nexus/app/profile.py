@@ -76,8 +76,13 @@ class RunProfile:
         )
         return values[0], peak, values[-1]
 
-    def tokens(self, field_name: str) -> int | None:
-        known = [value for m in self.models if (value := getattr(m, field_name)) is not None]
+    def tokens(self, field_name: str, *, compaction: bool | None = None) -> int | None:
+        known = [
+            value
+            for m in self.models
+            if (compaction is None or m.compaction == compaction)
+            and (value := getattr(m, field_name)) is not None
+        ]
         return sum(known) if known else None
 
     @property
@@ -208,6 +213,11 @@ def render_profile(profile: RunProfile, console: Console, budget: int, path: Pat
         marker = "≥ " if value is not None and profile.usage_coverage < len(profile.models) else ""
         row(f"  {label}", marker + count(value))
     row("  Usage coverage", f"{profile.usage_coverage} / {len(profile.models)} calls")
+    for label, compaction in [("Main", False), ("Compaction", True)]:
+        row(
+            f"  {label} reported total (known)",
+            count(profile.tokens("total_tokens", compaction=compaction)),
+        )
     cached_coverage = sum(m.cached_input_tokens is not None for m in profile.models)
     cached = profile.tokens("cached_input_tokens")
     marker = "≥ " if cached is not None and cached_coverage < len(profile.models) else ""
@@ -348,6 +358,20 @@ def profile_metrics(profile: RunProfile) -> dict[str, object]:
         "peak_context": peak,
         "final_context": final,
         "compaction_calls": sum(m.compaction for m in profile.models),
+        "usage_by_purpose": {
+            purpose: {
+                "calls": sum(m.compaction == compaction for m in profile.models),
+                "reported_calls": sum(
+                    m.compaction == compaction and m.total_tokens is not None
+                    for m in profile.models
+                ),
+                **{
+                    key: profile.tokens(key, compaction=compaction)
+                    for key in ("input_tokens", "output_tokens", "total_tokens")
+                },
+            }
+            for purpose, compaction in [("main", False), ("compaction", True)]
+        },
         "compactions": profile.compactions,
         # Request-local estimates, never provider billing usage or execution output bytes.
         "context_requests": {

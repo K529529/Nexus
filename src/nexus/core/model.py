@@ -20,7 +20,7 @@ class CompactionModel:
 
     def __init__(self, config: ModelConfig, *, client: Any = None) -> None:
         self.config = config
-        self.adapter = ChatModel(config, client=client)
+        self.adapter = ChatModel(config, client=client, json_object=True)
 
     async def close(self) -> None:
         await self.adapter.close()
@@ -28,8 +28,17 @@ class CompactionModel:
     async def complete(
         self, messages: list[Message], tools: list[ToolSpec], emit: Emit
     ) -> ModelReply:
+        from nexus.core.compaction import COMPACTION_PROMPT
+
         if tools or any(m.protocol_data or m.tool_calls or m.role == "tool" for m in messages):
             raise ModelError("invalid_compaction_request")
+        if (
+            len(messages) != 2
+            or messages[0].role != "system"
+            or messages[0].content != COMPACTION_PROMPT
+            or messages[1].role != "user"
+        ):
+            raise ModelError("invalid_compaction_prompt")
 
         async def events(kind: str, data: Json, **_: Any) -> int:
             if kind == "assistant_delta":
@@ -44,8 +53,11 @@ class CompactionModel:
 
 
 class ChatModel:
-    def __init__(self, config: ModelConfig, *, client: Any = None) -> None:
+    def __init__(
+        self, config: ModelConfig, *, client: Any = None, json_object: bool = False
+    ) -> None:
         self.config = config
+        self.json_object = json_object
         self.client: Any = client or AsyncOpenAI(
             api_key=config.key(),
             base_url=config.base_url,
@@ -92,6 +104,8 @@ class ChatModel:
         }
         if tools:
             request["tools"] = wire_tools(tools)
+        if self.json_object:
+            request["response_format"] = {"type": "json_object"}
         if self.config.reasoning_effort is not None:
             request["reasoning_effort"] = self.config.reasoning_effort
         if self.config.enable_thinking is not None:

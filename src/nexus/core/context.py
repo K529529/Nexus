@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 import platform
 import time
@@ -298,6 +299,11 @@ class Context:
         target = min(KEEP_RECENT_TOKENS, max(0, available))
         prefix, recent = split_history(history, target)
         if not prefix or available <= 0:
+            if force and reason == "manual" and before <= self.budget:
+                await emit(
+                    "warning", {"detail": "No older complete history to compact; context retained."}
+                )
+                return False
             if force or before > self.budget:
                 raise ModelError(
                     "context_limit", "No safe history boundary fits summary and recent messages"
@@ -317,7 +323,7 @@ class Context:
             "compaction_started",
             {
                 "reason": reason
-                if force
+                if reason != "threshold"
                 else ("capacity" if before < self.trigger else "threshold"),
                 "tokens_before": before,
                 "recent_tokens_kept": estimate(recent, []),
@@ -333,6 +339,18 @@ class Context:
 
         try:
             reply = await model.complete(request, [], summary_events)
+            estimated = estimate(request, [])
+            await emit(
+                "compaction_usage",
+                {
+                    "estimated_context_tokens": estimated,
+                    "reported_input_tokens": reply.usage.input_tokens,
+                    "reported_output_tokens": reply.usage.output_tokens,
+                    "estimation_error_tokens": estimated - reply.usage.input_tokens
+                    if reply.usage.input_tokens is not None
+                    else None,
+                },
+            )
             if reply.message.tool_calls or reply.finish_reason != "stop":
                 raise ModelError("invalid_compaction_response")
             text = reply.message.content
@@ -348,17 +366,17 @@ class Context:
                     "compaction_capacity",
                     "Summary does not leave a smaller safe executable context",
                 )
-        except ModelError as exc:
+        except (ModelError, asyncio.CancelledError) as exc:
             await emit(
                 "compaction_failed",
                 {
-                    "reason": exc.code,
+                    "reason": exc.code if isinstance(exc, ModelError) else "cancelled",
                     "tokens_before": before,
                     "duration_ms": int((time.monotonic() - started) * 1000),
                     "detail": "Compaction failed; previous history and checkpoint retained.",
                 },
             )
-            if force or before > self.budget:
+            if isinstance(exc, asyncio.CancelledError) or force or before > self.budget:
                 raise
             return True
         data = {

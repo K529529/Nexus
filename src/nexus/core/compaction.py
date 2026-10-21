@@ -39,12 +39,28 @@ correction or supersession explicitly rather than silently deleting earlier cons
 Include decisions and their reasons, inspected/changed file paths, remaining work and
 concrete next steps. Distinguish intentions, observed tool success, model claims of completion,
 tests actually run and independent verification. A completed outcome proves none of these.
+constraints_preferences contains ONLY explicit user directives, with their original scope.
+NOT RUN is a validation status, NEVER a prohibition on running tests. A read-only inspection
+request applies to that inspection, not permanently to the whole project or future tasks.
+"Do not merge main" is a prohibition, NEVER evidence that main was not merged. Without an
+observed branch check the merge state is Unknown. Never convert absence of evidence into a
+verified negative claim. Likewise, a model saying "no changes" is a claim, not independent
+filesystem verification. In progress.completed, label model claims as such; reserve verified
+facts for recorded observations. Do not invent a rationale (such as avoiding side effects)
+when the user/history gave none; record rationale Unknown instead. Keep status statements
+under progress/validation_evidence, not goal/constraints, unless explicitly user-directed.
 Never turn NOT RUN into PASS. Preserve failures, max_steps and unknown side effects.
 Cite supplied source sequence numbers for important changes/results. Do not invent paths,
 changes, observations or results. Previous summary is historical evidence too.
 Output a compact state within the stated output budget. Never silently omit active constraints
 to fit: retain them, so the caller can reject an oversized summary rather than lose history.
 """
+COMPACTION_PROMPT += "\nRequired JSON shape (fill arrays with evidence):\n" + json_text(
+    {
+        **{field: [] for field in FIELDS},
+        "progress": {field: [] for field in PROGRESS},
+    }
+)
 
 
 def provenance() -> Json:

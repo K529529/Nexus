@@ -182,6 +182,10 @@ async def run_turn(
                     "estimated_context_tokens": estimated,
                     "reported_input_tokens": reply.usage.input_tokens,
                     "reported_output_tokens": reply.usage.output_tokens,
+                    "cumulative_usage_tokens": sum(u.total_tokens or 0 for u in usages)
+                    if usages and all(u.total_tokens is not None for u in usages)
+                    else None,
+                    "usage_scope": "main_model_execution_window",
                     "estimation_error_tokens": (
                         estimated - reply.usage.input_tokens
                         if reply.usage.input_tokens is not None

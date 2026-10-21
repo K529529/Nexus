@@ -185,6 +185,16 @@ class Transcript:
             self.console.print(
                 Text(f"正在压缩会话历史 · 之前约 {data['tokens_before']:,} tokens", style="dim")
             )
+        elif kind == "compaction_usage":
+            incoming = data.get("reported_input_tokens")
+            outgoing = data.get("reported_output_tokens")
+            self.console.print(
+                Text(
+                    f"压缩模型用量 · 输入 {incoming if incoming is not None else 'unknown'} · "
+                    f"输出 {outgoing if outgoing is not None else 'unknown'}",
+                    style="dim",
+                )
+            )
         elif kind == "context_compacted" and data.get("scope") == "session":
             self.stop_activity()
             self.console.print(

@@ -44,6 +44,27 @@ def usage(input_tokens: int = 100, output_tokens: int = 10) -> Json:
     }
 
 
+def test_usage_by_purpose_keeps_unknown_usage_separate() -> None:
+    profiler = RunProfiler()
+    for item in [
+        event("run_started"),
+        event("model_started", step=1),
+        event("model_finished", usage=usage(100, 10)),
+        event("model_started", purpose="compaction"),
+        event("model_finished", usage=usage(900, 30)),
+        event("model_started", step=2),
+        event("model_finished", usage={"source": "unavailable"}),
+    ]:
+        profiler.consume(item)
+    metrics = profile_module.profile_metrics(profiler.profile)
+    by_purpose: Any = metrics["usage_by_purpose"]
+    assert by_purpose["main"]["calls"] == 2
+    assert by_purpose["main"]["reported_calls"] == 1
+    assert by_purpose["main"]["total_tokens"] == 110
+    assert by_purpose["compaction"]["total_tokens"] == 930
+    assert profiler.profile.context_inputs == (100, None, None)
+
+
 def fixture_profiler() -> RunProfiler:
     profiler = RunProfiler()
     for item in [
