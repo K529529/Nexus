@@ -267,13 +267,16 @@ class SessionLog:
         self.path = path
         self.seq = 0
         self.failed = False
-        flags = os.O_RDWR | (os.O_CREAT | os.O_EXCL if create else 0)
-        descriptor = os.open(path, flags, 0o600)
-        self.stream = os.fdopen(descriptor, "r+b")
+        # Windows byte-range locks also deny readers. Keep writer ownership off the JSONL.
+        descriptor = os.open(path.with_suffix(path.suffix + ".lock"), os.O_RDWR | os.O_CREAT, 0o600)
+        self._lock_stream = os.fdopen(descriptor, "r+b")
         try:
-            _lock(self.stream)
+            _lock(self._lock_stream)
+            flags = os.O_RDWR | (os.O_CREAT | os.O_EXCL if create else 0)
+            descriptor = os.open(path, flags, 0o600)
+            self.stream = os.fdopen(descriptor, "r+b")
         except BaseException:
-            self.stream.close()
+            self._lock_stream.close()
             raise
 
     @classmethod
@@ -329,7 +332,11 @@ class SessionLog:
         return self.seq
 
     def close(self) -> None:
-        self.stream.close()  # OS file locks release on close/process death.
+        try:
+            self.stream.close()
+        finally:
+            self._lock_stream.close()  # OS file locks release on close/process death.
+        # Keep the lock file: unlinking it can let writers lock different file objects.
 
 
 def resume_session(

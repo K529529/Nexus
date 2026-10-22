@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import subprocess
@@ -156,6 +157,69 @@ def test_single_writer_and_workspace_isolation(tmp_path: Path) -> None:
     with pytest.raises(SessionError, match="another workspace"):
         resume_session(writer.path, tmp_path / "other", tmp_path)
     assert list_sessions(tmp_path, tmp_path)[0]["title"] == "locked"
+
+
+async def test_live_session_readable_without_allowing_another_writer(tmp_path: Path) -> None:
+    session = Session(tmp_path)
+    writer = SessionLog.create(session, "live", {}, tmp_path)
+    path = writer.path
+    code = """
+import shutil, sys
+from pathlib import Path
+from nexus.app.session import SessionError, SessionLog, read_records
+path, copy = map(Path, sys.argv[1:])
+with path.open('rb') as stream:
+    records, truncated = read_records(stream)
+assert not truncated and records[-1]['data']['content'] == 'first'
+shutil.copyfile(path, copy)
+assert copy.read_bytes() == path.read_bytes()
+try:
+    writer = SessionLog(path)
+except SessionError:
+    pass
+else:
+    writer.close()
+    raise AssertionError('A second writer was allowed')
+"""
+    try:
+        events = Events(session, writer, ignore)
+        await append_message(session, Message("user", "first"), events)
+        result = await asyncio.to_thread(
+            subprocess.run,
+            [sys.executable, "-c", code, str(path), str(tmp_path / "copy.jsonl")],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        # A reader or rejected writer must not release the active writer's lock.
+        with pytest.raises(SessionError):
+            SessionLog(path)
+        await append_message(session, Message("assistant", "second"), events)
+        with path.open("rb") as stream:
+            records, truncated = read_records(stream)
+        assert not truncated and [r["seq"] for r in records] == [1, 2, 3]
+        assert list_sessions(tmp_path, tmp_path)[0]["title"] == "first"
+    finally:
+        writer.close()
+    restored, writer, _ = resume_session(path, tmp_path, tmp_path)
+    try:
+        assert [m.content for m in restored.messages] == ["first", "second"]
+    finally:
+        writer.close()
+
+
+def test_log_open_failure_releases_writer_lock(tmp_path: Path) -> None:
+    path = tmp_path / "log.jsonl"
+    with pytest.raises(FileNotFoundError):
+        SessionLog(path)
+    writer = SessionLog(path, create=True)
+    writer.close()
+    with pytest.raises(FileExistsError):
+        SessionLog(path, create=True)
+    writer = SessionLog(path)
+    writer.close()
 
 
 async def test_flush_failure_stops_next_side_effect(tmp_path: Path, monkeypatch: Any) -> None:
