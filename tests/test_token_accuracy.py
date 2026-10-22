@@ -164,6 +164,8 @@ async def test_capacity_boundary_preserves_history_and_durable_log(tmp_path: Pat
         records, _ = read_records(writer.stream)
         failed = [r for r in records if r["kind"] == "compaction_failed"]
         assert failed[-1]["data"]["reason"] == "compaction_input_limit"
+        assert failed[-1]["data"]["compaction_token_count_calls"] == 1
+        assert failed[-1]["data"]["history_split_ms"] >= 0
         assert replay(records, tmp_path).checkpoint is None
         # Equality is allowed. Same exact source, no history truncation or retry mutation.
         context.compaction_window += 1
@@ -268,6 +270,14 @@ async def test_fixed_provider_error_recovers_once_with_same_main(
         assert {r["model"] for r in requests} == {"deepseek-flash"}
         assert result.outcome == ("limited" if retry_overflows else "completed")
         assert session.checkpoint is not None
+        records, _ = read_records(writer.stream)
+        projections = [r["data"] for r in records if r["kind"] == "context_projection"]
+        assert len(projections) == 2
+        assert projections[0]["step"] == projections[1]["step"] == 1
+        assert projections[1]["token_count_calls"] > projections[0]["token_count_calls"]
+        if not retry_overflows:
+            usage = next(r["data"] for r in records if r["kind"] == "context_usage")
+            assert usage["token_count_calls"] == projections[1]["token_count_calls"] + 3
     finally:
         writer.close()
         await main.close()

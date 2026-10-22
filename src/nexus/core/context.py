@@ -205,7 +205,27 @@ class Context:
         self.secrets = secrets
         self.main_estimator = main_estimator or TokenEstimator()
         self.compaction_estimator = compaction_estimator or TokenEstimator()
+        self.history_split_ms = 0.0
         self.execution_budget: str | None = None
+
+    def begin_step(self) -> None:
+        """Reset observation counters only; calibration and context are unchanged."""
+        self.main_estimator.reset_timing()
+        self.compaction_estimator.reset_timing()
+        self.history_split_ms = 0.0
+
+    def performance(self) -> Json:
+        main = self.main_estimator.timing_since()
+        compact = self.compaction_estimator.timing_since()
+        return {
+            "token_count_ms": main["token_count_ms"] + compact["token_count_ms"],
+            "token_count_calls": main["token_count_calls"] + compact["token_count_calls"],
+            "main_token_count_ms": main["token_count_ms"],
+            "main_token_count_calls": main["token_count_calls"],
+            "compaction_token_count_ms": compact["token_count_ms"],
+            "compaction_token_count_calls": compact["token_count_calls"],
+            "history_split_ms": self.history_split_ms,
+        }
 
     def task_request(self, messages: list[Message], guidance: str | None = None) -> list[Message]:
         extra = "\n\n".join(text for text in (guidance, self.execution_budget) if text)
@@ -300,7 +320,12 @@ class Context:
         fixed = count(self.task_request(self.with_state(session, systems), guidance), tools)
         available = self.budget - fixed - self.summary_tokens - FACT_TOKENS
         target = min(KEEP_RECENT_TOKENS, max(0, available))
-        prefix, recent = split_history(history, target, count=count)
+        split_started = time.perf_counter()
+        try:
+            prefix, recent = split_history(history, target, count=count)
+        finally:
+            history_split_ms = (time.perf_counter() - split_started) * 1000
+            self.history_split_ms += history_split_ms
         if not prefix or available <= 0:
             if force and reason == "manual" and before <= self.budget:
                 await emit(
@@ -316,6 +341,17 @@ class Context:
             )
             return True
         request = summary_input(session, prefix, self.summary_tokens, self.secrets)
+        compact_timing = self.compaction_estimator.timing_snapshot()
+
+        def compaction_performance() -> Json:
+            timing = self.compaction_estimator.timing_since(compact_timing)
+            return {
+                "history_split_ms": history_split_ms,
+                "compaction_token_count_ms": timing["token_count_ms"],
+                "compaction_token_count_calls": timing["token_count_calls"],
+                "performance_scope": "compaction_attempt_cumulative",
+            }
+
         self.compaction_estimator.set_scope(request, [])
         compact_input = self.compaction_estimator.count(request, [])
         started = time.monotonic()
@@ -329,6 +365,7 @@ class Context:
                 "recent_tokens_kept": count(recent, []),
                 "keep_recent_target": target,
                 "compaction_trigger": self.trigger,
+                **compaction_performance(),
             },
         )
 
@@ -354,6 +391,7 @@ class Context:
                     "estimated_context_tokens": estimated,
                     "calibrated_context_tokens": compact_input,
                     "token_estimator": self.compaction_estimator.profile,
+                    **compaction_performance(),
                     "reported_input_tokens": reply.usage.input_tokens,
                     "reported_output_tokens": reply.usage.output_tokens,
                     "estimation_error_tokens": estimated - reply.usage.input_tokens
@@ -387,6 +425,7 @@ class Context:
                     "safe_input_tokens": self.compaction_window - self.summary_tokens - 1024,
                     "duration_ms": int((time.monotonic() - started) * 1000),
                     "detail": "Compaction failed; previous history and checkpoint retained.",
+                    **compaction_performance(),
                 },
             )
             if isinstance(exc, asyncio.CancelledError) or force or before > self.budget:

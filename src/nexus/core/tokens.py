@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import json
 import math
+import time
 from collections import deque
 from fractions import Fraction
 from functools import lru_cache
@@ -105,8 +106,33 @@ class TokenEstimator:
         self.last_estimate: int | None = None
         self.last_report: int | None = None
         self.scope = ""
+        self.count_seconds = 0.0
+        self.count_calls = 0
 
     def raw(self, messages: list[Message], tools: list[ToolSpec]) -> int:
+        # Only the actual local count is timed. count()/observe() delegate here,
+        # so nested callers cannot count the same work twice. Include failed calls.
+        started = time.perf_counter()
+        try:
+            return self._raw(messages, tools)
+        finally:
+            self.count_seconds += time.perf_counter() - started
+            self.count_calls += 1
+
+    def reset_timing(self) -> None:
+        self.count_seconds = 0.0
+        self.count_calls = 0
+
+    def timing_snapshot(self) -> tuple[float, int]:
+        return self.count_seconds, self.count_calls
+
+    def timing_since(self, snapshot: tuple[float, int] = (0.0, 0)) -> Json:
+        return {
+            "token_count_ms": (self.count_seconds - snapshot[0]) * 1000,
+            "token_count_calls": self.count_calls - snapshot[1],
+        }
+
+    def _raw(self, messages: list[Message], tools: list[ToolSpec]) -> int:
         if self.profile == "fallback":
             return estimate(messages, tools)
         if not messages:

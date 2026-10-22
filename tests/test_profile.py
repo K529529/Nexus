@@ -296,6 +296,9 @@ def test_attempt_counts_failure_breakdown_and_successful_step_latency() -> None:
 async def test_runtime_metadata_and_equivalence(
     tmp_path: Path, monkeypatch: Any, profiled: bool
 ) -> None:
+    from nexus.core import tokens
+
+    monkeypatch.setattr(tokens, "time", SimpleNamespace(perf_counter=lambda: 10.0))
     monkeypatch.setattr(agent, "time", SimpleNamespace(monotonic=lambda: 10.0))
     monkeypatch.setattr(agent, "uuid4", lambda: SimpleNamespace(hex="fixed-run"))
     runs: list[Any] = []

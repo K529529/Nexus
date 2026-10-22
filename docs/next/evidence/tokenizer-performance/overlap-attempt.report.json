@@ -1,0 +1,49 @@
+{
+  "platform": "Windows-10-10.0.19045-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "input_sha256": "1c537370073c3afee40439fda4d01bb7ec83a15fa8b8a23add1314dc7be8f8af",
+  "paid_api_calls": 0,
+  "clock": "time.perf_counter",
+  "repeats": 3,
+  "cold_8k": [
+    {
+      "profile": "deepseek",
+      "token_count_ms": 181.52520002331585,
+      "token_count_calls": 1
+    },
+    {
+      "profile": "qwen",
+      "token_count_ms": 373.03740001516417,
+      "token_count_calls": 1
+    }
+  ],
+  "warm_medians": {
+    "8000": {
+      "step_token_count_ms": 67.10659997770563,
+      "step_token_count_calls": 7,
+      "history_split_ms": 66.92610000027344,
+      "single_count_ms": 10.387699992861599,
+      "compaction_count_ms": 9.65109997196123
+    },
+    "64000": {
+      "step_token_count_ms": 655.0314998603426,
+      "step_token_count_calls": 7,
+      "history_split_ms": 547.4041000124998,
+      "single_count_ms": 90.79440002096817,
+      "compaction_count_ms": 55.26059999829158
+    },
+    "110000": {
+      "step_token_count_ms": 1202.8113999404013,
+      "step_token_count_calls": 7,
+      "history_split_ms": 633.4028000128455,
+      "single_count_ms": 171.59889999311417,
+      "compaction_count_ms": 131.91430002916604
+    }
+  },
+  "notes": [
+    "History split includes token counting; do not add its time again.",
+    "Step includes all seven local counts and no API network waits.",
+    "Legacy Runtime Facts byte-budget estimates and scope hashing are outside raw-count timing.",
+    "Synthetic inputs, local measurements, no production latency claim."
+  ]
+}

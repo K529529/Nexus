@@ -44,6 +44,7 @@ packages = ["src/nexus"]
 [tool.hatch.build.targets.sdist]
 include = [
     "/src", "/tests", "/scripts/swebench_v0.py", "/scripts/token_accuracy.py", "/docs/next",
+    "/scripts/token_performance.py",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [

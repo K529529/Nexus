@@ -132,6 +132,7 @@ async def run_turn(
 
         for step in range(1, limits.max_steps + 1):
             result.steps = step
+            context.begin_step()
             context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
             active_context, _ = projected_context()
@@ -148,7 +149,13 @@ async def run_turn(
             context.check(active_context, specs)
             await observed(
                 "context_projection",
-                {**diagnostics, **context.diagnostics(active_context, specs), "step": step},
+                {
+                    **diagnostics,
+                    **context.diagnostics(active_context, specs),
+                    **context.performance(),
+                    "performance_scope": "step_before_request_cumulative",
+                    "step": step,
+                },
             )
             try:
                 reply = await model.complete(active_context, specs, task_events)
@@ -171,7 +178,13 @@ async def run_turn(
                 context.check(active_context, specs)
                 await observed(
                     "context_projection",
-                    {**diagnostics, **context.diagnostics(active_context, specs), "step": step},
+                    {
+                        **diagnostics,
+                        **context.diagnostics(active_context, specs),
+                        **context.performance(),
+                        "performance_scope": "step_before_request_cumulative",
+                        "step": step,
+                    },
                 )
                 reply = await model.complete(active_context, specs, task_events)
             diagnostics = context.diagnostics(active_context, specs)
@@ -180,6 +193,9 @@ async def run_turn(
             await observed(
                 "context_usage",
                 {
+                    **context.performance(),
+                    "performance_scope": "step_after_usage_cumulative",
+                    "step": step,
                     "estimated_context_tokens": estimated,
                     "calibrated_context_tokens": diagnostics["calibrated_context_tokens"],
                     "token_estimator": diagnostics["token_estimator"],
