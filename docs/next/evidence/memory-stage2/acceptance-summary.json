@@ -1,0 +1,179 @@
+{
+  "physical_attempts": 11,
+  "main_calls": 55,
+  "compaction_calls": 2,
+  "reported_tokens": 485392,
+  "attempts": [
+    {
+      "attempt": "agent-autonomous-1",
+      "status": "EXECUTED",
+      "main_calls": 7,
+      "compaction_calls": 0,
+      "reported_tokens": 53524,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 31.484,
+      "autonomous_memory_write": false
+    },
+    {
+      "attempt": "agent-autonomous-2",
+      "status": "EXECUTED",
+      "main_calls": 9,
+      "compaction_calls": 0,
+      "reported_tokens": 77570,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 85.265,
+      "autonomous_memory_write": true
+    },
+    {
+      "attempt": "agent-compact-1",
+      "status": "FAIL",
+      "main_calls": 2,
+      "compaction_calls": 0,
+      "reported_tokens": 8584,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 8.515,
+      "error": "AssertionError: "
+    },
+    {
+      "attempt": "agent-compact-2",
+      "status": "EXECUTED",
+      "main_calls": 2,
+      "compaction_calls": 2,
+      "reported_tokens": 55448,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 2,
+      "seconds": 26.094,
+      "two_real_compactions_stable_snapshot": true
+    },
+    {
+      "attempt": "agent-maintain-1",
+      "status": "EXECUTED",
+      "main_calls": 7,
+      "compaction_calls": 0,
+      "reported_tokens": 44605,
+      "snapshot_events": 4,
+      "instructions_events": 4,
+      "compactions": 0,
+      "seconds": 199.843
+    },
+    {
+      "attempt": "agent-qmd-unavailable-1",
+      "status": "EXECUTED",
+      "main_calls": 3,
+      "compaction_calls": 0,
+      "reported_tokens": 10860,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 7.734,
+      "independent_verifier": {
+        "passed": true
+      }
+    },
+    {
+      "attempt": "agent-query-1",
+      "status": "EXECUTED",
+      "main_calls": 4,
+      "compaction_calls": 0,
+      "reported_tokens": 21751,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 34.984
+    },
+    {
+      "attempt": "agent-remember-1",
+      "status": "EXECUTED",
+      "main_calls": 4,
+      "compaction_calls": 0,
+      "reported_tokens": 16499,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 39.172
+    },
+    {
+      "attempt": "agent-resume-1",
+      "status": "EXECUTED",
+      "main_calls": 2,
+      "compaction_calls": 0,
+      "reported_tokens": 49716,
+      "snapshot_events": 0,
+      "instructions_events": 0,
+      "compactions": 0,
+      "seconds": 8.734,
+      "snapshot_preserved_on_resume": true
+    },
+    {
+      "attempt": "agent-task-off-1",
+      "status": "EXECUTED",
+      "main_calls": 5,
+      "compaction_calls": 0,
+      "reported_tokens": 22920,
+      "snapshot_events": 0,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 19.828,
+      "independent_verifier": {
+        "passed": false,
+        "checks": {
+          "groups": true,
+          "time_order_invalid_last_stable_ties": false,
+          "no_input_mutation": true,
+          "fields_preserved": false
+        }
+      },
+      "independent_verifier_corrected": {
+        "passed": false,
+        "checks": {
+          "groups": true,
+          "time_order_invalid_last_stable_ties": false,
+          "no_input_mutation": true,
+          "fields_preserved": true
+        }
+      }
+    },
+    {
+      "attempt": "agent-task-on-1",
+      "status": "EXECUTED",
+      "main_calls": 10,
+      "compaction_calls": 0,
+      "reported_tokens": 123915,
+      "snapshot_events": 1,
+      "instructions_events": 1,
+      "compactions": 0,
+      "seconds": 136.079,
+      "independent_verifier": {
+        "passed": true,
+        "checks": {
+          "groups": true,
+          "time_order_invalid_last_stable_ties": true,
+          "no_input_mutation": true,
+          "fields_preserved": true
+        }
+      },
+      "independent_verifier_corrected": {
+        "passed": true,
+        "checks": {
+          "groups": true,
+          "time_order_invalid_last_stable_ties": true,
+          "no_input_mutation": true,
+          "fields_preserved": true
+        }
+      }
+    }
+  ],
+  "notes": [
+    "EXECUTED is not task success; inspect verifier and receipts.",
+    "First autonomous attempt failed to save; compact-1 fixture too short.",
+    "On/Off field-check correction is separately preserved in on-off-verifier-corrected.json.",
+    "Configured model identity recorded; response-reported identity unavailable."
+  ]
+}

@@ -119,3 +119,41 @@ async def test_tools_validate_and_work_without_qmd(execution: ExecutionContext) 
     assert not missing.ok and missing.error_code == "memory_search_unavailable"
     assert not (await tools["memory_read"].execute({"limit": True}, execution, emit)).ok
     assert json.loads(written.message().content)["ok"] is True
+
+
+async def test_scratchpad_large_list_is_paged(execution: ExecutionContext) -> None:
+    store = MemoryStore(execution.workspace / "memory")
+    for i in range(30):
+        store.scratchpad("add", f"item {i}: " + "中" * 3000)
+    tool = create_memory_tools(store)["scratchpad"]
+    result = await tool.execute({"action": "list"}, execution, Recorder())
+    assert result.ok and result.truncated
+    assert "content" not in result.data and result.data["total"] == 30
+    assert len(result.message().content.encode("utf-8")) < execution.output_limit_bytes
+    next_page = await tool.execute(
+        {"action": "list", "offset": result.data["next_offset"]}, execution, Recorder()
+    )
+    assert next_page.data["entries"][0]["id"] != result.data["entries"][0]["id"]
+
+
+async def test_corrupt_recovery_is_an_explicit_tool_error(execution: ExecutionContext) -> None:
+    store = MemoryStore(execution.workspace / "memory")
+    recovery = store.path("recovery/" + "a" * 32 + ".json")
+    recovery.parent.mkdir(parents=True)
+    recovery.write_text('{"version":1,"file":42,"entry":{}}', encoding="utf-8")
+    result = await create_memory_tools(store)["memory_restore"].execute(
+        {"recovery_id": "a" * 32}, execution, Recorder()
+    )
+    assert not result.ok and result.error_code == "memory_error"
+
+
+async def test_read_keeps_human_notes_alongside_managed_entries(
+    execution: ExecutionContext,
+) -> None:
+    store = MemoryStore(execution.workspace / "memory")
+    store.root.mkdir()
+    store.path("MEMORY.md").write_text("Human project convention", encoding="utf-8")
+    store.write("MEMORY.md", "Managed lesson")
+    result = await create_memory_tools(store)["memory_read"].execute({}, execution, Recorder())
+    assert result.ok and result.data["unmanaged_content"] == "Human project convention"
+    assert result.data["entries"][0]["content"] == "Managed lesson"

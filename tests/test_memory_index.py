@@ -40,6 +40,15 @@ class FakeClient:
         )
 
     async def call_tool(self, name: str, args: Any, **kwargs: Any) -> Any:
+        if name == "status":
+            return SimpleNamespace(
+                is_error=False,
+                structured_content={
+                    "needsEmbedding": 0,
+                    "totalDocuments": 1,
+                    "hasVectorIndex": True,
+                },
+            )
         assert name == "query" and args["rerank"] is True
         assert args["collections"] == ["nexus-memory"]
         return SimpleNamespace(
@@ -132,4 +141,49 @@ async def test_missing_qmd_is_explicit_and_does_not_block_writes(tmp_path: Path)
     store.write("MEMORY.md", "works offline")
     with pytest.raises(ValueError):
         await index.search("works", 5)
+    await index.close()
+
+
+async def test_write_during_connection_is_indexed_before_ready(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    store = MemoryStore(tmp_path)
+    store.write("MEMORY.md", "initial")
+
+    class ChangingClient(FakeClient):
+        async def list_tools(self) -> Any:
+            store.write("MEMORY.md", "arrived during connection")
+            return await super().list_tools()
+
+    monkeypatch.setattr(memory_index, "Client", ChangingClient)
+    index = FakeIndex(store)
+    index.start(Recorder())
+    try:
+        await ready(index)
+        assert index.commands == [("update",), ("embed",)] * 2
+        assert index.synced == index.fingerprint()
+        assert not store.read(".dirty")
+    finally:
+        await index.close()
+
+
+async def test_incomplete_vector_index_never_reports_ready(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    class BrokenClient(FakeClient):
+        async def call_tool(self, name: str, args: Any, **kwargs: Any) -> Any:
+            result = await super().call_tool(name, args, **kwargs)
+            if name == "status":
+                result.structured_content["needsEmbedding"] = 1
+            return result
+
+    monkeypatch.setattr(memory_index, "Client", BrokenClient)
+    store = MemoryStore(tmp_path)
+    store.write("MEMORY.md", "needs vectors")
+    index = FakeIndex(store)
+    index.start(Recorder())
+    assert index.task
+    await index.task
+    assert index.state["status"] == "unavailable"
+    assert store.read(".dirty")
     await index.close()

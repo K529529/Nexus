@@ -176,8 +176,13 @@ class MemoryStore:
         if not isinstance(record, dict) or record.get("version") != 1:
             raise ValueError("Invalid recovery record")
         name, entry = record["file"], record["entry"]
-        if name not in {"MEMORY.md", "SCRATCHPAD.md"} and not name.startswith("daily/"):
+        if not isinstance(name, str) or (
+            name not in {"MEMORY.md", "SCRATCHPAD.md"}
+            and not re.fullmatch(r"daily/\d{4}-\d{2}-\d{2}\.md", name)
+        ):
             raise ValueError("Invalid recovery target")
+        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str):
+            raise ValueError("Invalid recovery entry")
         ident, content = entry["id"], content_text(entry["content"])
         if not re.fullmatch(r"[0-9a-f]{32}", ident) or digest(content) != entry["revision"]:
             raise ValueError("Invalid recovery entry")

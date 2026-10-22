@@ -67,6 +67,37 @@ Sphinx 修复也 PASS，但当时服务权限错误中断了收尾。权限恢�
 
 ## 使用与恢复
 
+### V0.3 Stage 2：长期记忆
+
+此能力在 Stage 2 源码分支提供，已发布的 V0.2 安装包不包含它。
+全局记忆位于 `~/.nexus/memory/`，主模型按任务主动调用六个 Memory 工具。
+可以直接说“记住这个工程约定”“查找此前的解决办法”“纠正这条记忆”或“恢复刚才删除的条目”。
+删除返回 `recovery_id`；恢复不会覆盖后来写入的其他条目。
+
+新 Session 的稳定快照包含长期记忆、未完成待办和最近两天 Daily；旧 Daily 通过搜索读取。
+普通追加在下一新 Session 纳入快照；当前会话可用工具读取最新原文。更正、删除、恢复会使旧快照失效。
+记忆为历史参考，可能过期；关键决策仍须结合当前源码和用户指令确认。
+
+混合搜索需要单独安装 QMD（本轮验证 2.8.3）及 Node，模型由 QMD 下载并缓存：
+
+```powershell
+npm install --prefix "$env:LOCALAPPDATA/Nexus/qmd" @tobilu/qmd@2.8.3
+```
+
+Windows 默认检测以上用户目录；其他安装位置可在配置中指定：
+
+```toml
+[memory]
+enabled = true
+qmd_command = ["node", "C:/path/to/node_modules/@tobilu/qmd/dist/cli/qmd.js"]
+```
+
+第一次索引可能下载约 2.5 GB GGUF 模型并耗时；索引异步执行，写工具成功不代表索引已经就绪。
+`nexus memory status` 查看上次索引状态，交互中 `/memory` 查看当前状态与快照 Token。
+QMD 不可用时仍可读写 Markdown 和完成普通编码任务，搜索会返回明确错误。
+将 `enabled = false` 可关闭工具和快照；配置变更在新 Conversation 生效。
+完整数据流、验收入口与限制见 [Stage 2 实现报告](v0.3-stage2-memory.md)。
+
 ```sh
 nexus
 nexus exec "修复空输入缺陷并运行已有测试"

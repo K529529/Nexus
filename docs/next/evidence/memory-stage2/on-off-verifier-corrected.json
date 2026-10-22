@@ -1,0 +1,20 @@
+{
+  "agent-task-on-1": {
+    "passed": true,
+    "checks": {
+      "groups": true,
+      "time_order_invalid_last_stable_ties": true,
+      "no_input_mutation": true,
+      "fields_preserved": true
+    }
+  },
+  "agent-task-off-1": {
+    "passed": false,
+    "checks": {
+      "groups": true,
+      "time_order_invalid_last_stable_ties": false,
+      "no_input_mutation": true,
+      "fields_preserved": true
+    }
+  }
+}

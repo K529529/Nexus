@@ -205,6 +205,14 @@ class Transcript:
                     style="dim",
                 )
             )
+        elif kind == "memory_index" and data.get("status") in {"failed", "unavailable"}:
+            self.console.print(
+                Text(
+                    "记忆检索暂不可用；Markdown 读写仍可使用。/memory 查看状态。 "
+                    + short_line(str(data.get("detail", ""))),
+                    style="yellow",
+                )
+            )
         elif kind in {"warning", "context_compacted", "compaction_failed"}:
             self.stop_activity()
             self.console.print(

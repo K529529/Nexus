@@ -15,6 +15,8 @@ from rich.text import Text
 from nexus import __version__
 from nexus.app.bootstrap import Conversation
 from nexus.app.config import ConfigError, config_path, load_config, read_toml
+from nexus.app.memory import MemoryStore
+from nexus.app.memory_index import installed_command
 from nexus.app.profile import ProfileConsumer
 from nexus.app.session import SessionError, list_sessions
 from nexus.app.skills import SkillCatalog
@@ -26,7 +28,7 @@ from nexus.app.tui import (
     show_skills,
     terminal_text,
 )
-from nexus.core.types import ModelError, RunResult, Session
+from nexus.core.types import ModelError, RunResult, Session, json_text
 
 
 async def drive(conversation: Conversation, text: str, *, compact: bool = False) -> RunResult:
@@ -66,6 +68,19 @@ async def drive(conversation: Conversation, text: str, *, compact: bool = False)
 
 
 async def application(args: argparse.Namespace) -> int:
+    if args.command == "memory":
+        store = MemoryStore(Path.home() / ".nexus" / "memory")
+        print(
+            json_text(
+                {
+                    "root": str(store.root),
+                    "detected_qmd_command": installed_command(),
+                    "pending": bool(store.read(".dirty")),
+                    "last_index_status": store.read(".index.json") or "not_started",
+                }
+            )
+        )
+        return 0
     if args.command == "skills":
         listing = SkillCatalog(Path.home() / ".nexus" / "skills")
         show_skills(
@@ -171,7 +186,7 @@ async def application(args: argparse.Namespace) -> int:
             if text == "/help":
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
-                    "/resume recent sessions · /compact summarize history · "
+                    "/resume recent sessions · /compact summarize history · /memory status · "
                     "/new new conversation · /exit quit. "
                     "Each input starts a new run with continuous session history; "
                     "/resume continues the "
@@ -188,6 +203,20 @@ async def application(args: argparse.Namespace) -> int:
                     await drive(conversation, "", compact=True)
                 except (ModelError, ConfigError) as exc:
                     console.print(Text(terminal_text(str(exc)), style="yellow"))
+            elif text == "/memory":
+                index = conversation.memory_index
+                saved = conversation.session.memory_snapshot or {}
+                console.print(
+                    Text(
+                        json_text(
+                            {
+                                "enabled": conversation.memory is not None,
+                                "snapshot_tokens": saved.get("tokens", 0),
+                                "index": index.state if index else {"status": "disabled"},
+                            }
+                        )
+                    )
+                )
             elif text == "/skills" or text == "/skill":
                 conversation.refresh_skills()
                 catalog = conversation.catalog
@@ -242,6 +271,8 @@ def main() -> None:
     )
     parser.add_argument("--skill", help="Select a local Skill for this session")
     subparsers = parser.add_subparsers(dest="command")
+    memory = subparsers.add_parser("memory", help="Inspect memory/index state without a model call")
+    memory.add_argument("action", choices=["status"], default="status", nargs="?")
     skills = subparsers.add_parser("skills", help="List local Skills without a model connection")
     skills.add_argument("action", nargs="?", choices=["list"], default="list")
     evaluation = subparsers.add_parser("eval", help="Run fixed Next Dev Set V0 cases")

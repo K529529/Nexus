@@ -14,7 +14,7 @@ from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_context import root_id, snapshot
-from nexus.app.memory_index import MemoryIndex
+from nexus.app.memory_index import MemoryIndex, installed_command
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
@@ -95,7 +95,14 @@ class Conversation:
             else None
         )
         self.memory_index = (
-            MemoryIndex(self.memory, config.memory_qmd_command) if self.memory is not None else None
+            MemoryIndex(
+                self.memory,
+                installed_command()
+                if home is None and config.memory_qmd_command == ("qmd",)
+                else config.memory_qmd_command,
+            )
+            if self.memory is not None
+            else None
         )
         if self.memory is not None and self.memory_index is not None:
             self.base_registry.update(

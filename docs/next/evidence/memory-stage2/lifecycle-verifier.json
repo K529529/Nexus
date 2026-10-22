@@ -1,0 +1,8 @@
+{
+  "same_entry_ids": true,
+  "one_corrected_entry": true,
+  "corrected_retention": true,
+  "controlled_refresh_count": 4,
+  "absent_after_forget": true,
+  "present_after_restore": true
+}

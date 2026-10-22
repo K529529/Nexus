@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from datetime import date
 
-from nexus.app.memory import MAX_CONTENT, MemoryStore
+from nexus.app.memory import ENTRY, MAX_CONTENT, MemoryStore
 from nexus.core.types import Emit, ExecutionContext, Json, Tool, ToolResult, ToolSpec, json_text
 
 TEXT = {"type": "string", "minLength": 1}
@@ -80,6 +80,8 @@ SPECS = [
             "action": {"type": "string", "enum": ["add", "list", "complete", "reopen", "remove"]},
             "content": {**TEXT, "maxLength": MAX_CONTENT},
             **IDENTITY,
+            "offset": {"type": "integer", "minimum": 0},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
         },
         ["action"],
     ),
@@ -149,9 +151,12 @@ def create_memory_tools(
                     data.update(
                         entries=all_entries[offset : offset + limit], total=len(all_entries)
                     )
-                    if not all_entries:
-                        data["unmanaged_content"] = content[:8000]
-                        data["unmanaged_truncated"] = len(content) > 8000
+                    unmanaged = ENTRY.sub("", content).strip()
+                    if unmanaged:
+                        raw = unmanaged.encode("utf-8")
+                        cap = max(128, context.output_limit_bytes // 4)
+                        data["unmanaged_content"] = raw[:cap].decode("utf-8", errors="ignore")
+                        data["unmanaged_truncated"] = len(raw) > cap
                 elif name == "memory_write":
                     target = filename(args)
                     if target == "SCRATCHPAD.md":
@@ -164,12 +169,20 @@ def create_memory_tools(
                 elif name == "memory_restore":
                     data = store.restore(args["recovery_id"])
                 else:
+                    if args["action"] != "list" and ("offset" in args or "limit" in args):
+                        raise ValueError("offset/limit only apply to scratchpad list")
                     data = store.scratchpad(
                         args["action"],
                         args.get("content", ""),
                         args.get("id"),
                         args.get("revision"),
                     )
+                    if args["action"] == "list":
+                        data.pop("content")
+                        all_items = data["entries"]
+                        offset, limit = args.get("offset", 0), args.get("limit", 20)
+                        data["entries"] = all_items[offset : offset + limit]
+                        data["total"] = len(all_items)
                 mutated = name not in {"memory_search", "memory_read"} and not (
                     name == "scratchpad" and args["action"] == "list"
                 )

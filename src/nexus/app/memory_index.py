@@ -23,6 +23,22 @@ COLLECTION = "nexus-memory"
 MASK = "{MEMORY.md,SCRATCHPAD.md,daily/*.md}"
 
 
+def installed_command() -> tuple[str, ...]:
+    """Resolve a user-local install without editing PATH or running an npm installer."""
+    executable = shutil.which("qmd")
+    node = shutil.which("node")
+    if executable and not executable.lower().endswith((".cmd", ".bat")):
+        return (executable,)
+    folders = [Path(executable).parent] if executable else []
+    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        folders.append(Path(os.environ["LOCALAPPDATA"]) / "Nexus" / "qmd")
+    for folder in folders:
+        entry = folder / "node_modules" / "@tobilu" / "qmd" / "dist" / "cli" / "qmd.js"
+        if node and entry.is_file():
+            return (node, str(entry))
+    return (executable or "qmd",)
+
+
 class MemoryIndex:
     def __init__(self, store: MemoryStore, command: tuple[str, ...] = ("qmd",)) -> None:
         self.store, self.command = store, command
@@ -154,8 +170,22 @@ class MemoryIndex:
             await self._status("pending")
             return
         self.synced = before
-        await self._status("ready", fingerprint=before)
-        self.store.path(".dirty").unlink(missing_ok=True)
+        if self.client is not None:
+            await self._health()
+            await self._status("ready", fingerprint=before)
+            self.store.path(".dirty").unlink(missing_ok=True)
+        else:
+            await self._status("connecting", fingerprint=before)
+
+    async def _health(self) -> None:
+        result = await self.client.call_tool("status", {}, read_timeout_seconds=30)
+        health = result.structured_content
+        if result.is_error or not isinstance(health, dict):
+            raise RuntimeError("QMD index health unavailable")
+        if health.get("needsEmbedding", 1) != 0 or (
+            health.get("totalDocuments", 0) > 0 and not health.get("hasVectorIndex")
+        ):
+            raise RuntimeError("QMD index incomplete: " + json_text(health))
 
     async def _worker(self) -> None:
         pending: asyncio.Future[Json] | None = None
@@ -193,9 +223,17 @@ class MemoryIndex:
                             raise RuntimeError(
                                 "QMD MCP query contract unsupported; need QMD 2.8.3+"
                             )
-                        if self.state.get("status") == "not_started":
+                        try:
+                            await self._health()
+                        except RuntimeError:
+                            # Repair missing vectors even when the source fingerprint is unchanged.
+                            await self._sync()
+                        if self.dirty or self.fingerprint() != self.synced:
+                            self.changed()
+                            await self._status("pending")
+                        else:
                             await self._status("ready", fingerprint=self.synced)
-                        self.updated.set()
+                            self.store.path(".dirty").unlink(missing_ok=True)
                     request = await self.queue.get()
                     if request is None:
                         continue
@@ -234,6 +272,8 @@ class MemoryIndex:
                                 continue
                             name = name[len(COLLECTION) + 1 :]
                             source = self.store.read(name)
+                            if not source.strip():
+                                continue
                             source_id = hashlib.sha256(
                                 self.store.path(name).read_bytes()
                             ).hexdigest()

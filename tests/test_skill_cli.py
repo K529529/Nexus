@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ async def test_interactive_select_switch_off_new_no_model_calls(
     answers = iter(
         [
             "/skills",
+            "/memory",
             "/skill missing",
             "/skill regression",
             "/skills",
@@ -122,6 +124,17 @@ async def test_offline_catalog_without_config_or_key(
     monkeypatch.setattr(cli, "load_config", lambda: pytest.fail("No model configuration needed"))
     assert await cli.application(argparse.Namespace(command="skills")) == 0
     assert "regression" in capsys.readouterr().out
+
+
+async def test_offline_memory_status_without_config_or_key(
+    tmp_path: Path, monkeypatch: Any, capsys: Any
+) -> None:
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(cli, "load_config", lambda: pytest.fail("No model configuration needed"))
+    assert await cli.application(argparse.Namespace(command="memory")) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["pending"] is False and result["last_index_status"] == "not_started"
+    assert not (tmp_path / ".nexus").exists()
 
 
 async def test_selector_number_empty_and_cancel() -> None:

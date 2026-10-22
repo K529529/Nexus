@@ -4,6 +4,13 @@
 
 Detailed configuration, session behavior, tool boundaries and developer evaluation commands.
 
+The V0.3 Stage 2 source branch adds model-driven global Markdown memory, private QMD
+hybrid search, recoverable deletion, and stable session snapshots. This is not in the
+published V0.2 package. See the [Stage 2 implementation report](v0.3-stage2-memory.md)
+and [setup instructions](usage-guide.zh-CN.md#v03-stage-2长期记忆).
+`nexus memory status` and interactive `/memory` show index diagnostics without a model call.
+Set `[memory] enabled = false` in the global config to disable memory for new Conversations.
+
 ## Configure
 
 V0.3 Stage 1 uses the [DeepSeek official + SiliconFlow Qwen example](context-runtime-v0.3.toml).
