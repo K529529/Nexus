@@ -13,6 +13,7 @@ from pathlib import Path
 from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
+from nexus.app.memory_context import root_id, snapshot
 from nexus.app.memory_index import MemoryIndex
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
@@ -102,6 +103,7 @@ class Conversation:
                     self.memory,
                     search=self.memory_index.search,
                     changed=self.memory_index.changed,
+                    invalidate=self.refresh_memory,
                 )
             )
             self.registry.update(self.base_registry)
@@ -186,6 +188,7 @@ class Conversation:
         self.config.model.key()  # Validate credentials only when actually running a task.
         self.ensure_events(text)
         assert self.events is not None
+        prefix += await self.memory_prefix()
         if self.memory_index is not None:
             self.memory_index.start(self.events)
         for warning in self.warnings:
@@ -308,6 +311,7 @@ class Conversation:
             return False
         self.ensure_events("Context compaction")
         assert self.events is not None
+        await self.refresh_memory()
         if self.compaction_model is None and self.config.compaction_model is not None:
             self.compaction_model = CompactionModel(self.config.compaction_model)
             self.resources.push_async_callback(self.compaction_model.close)
@@ -331,6 +335,69 @@ class Conversation:
         finally:
             self.session.run_id = old_run
             self.context.execution_budget = old_budget
+
+    async def memory_prefix(self) -> str:
+        if self.memory is None:
+            return ""
+        assert self.events is not None
+        previous = self.session.memory_snapshot
+        try:
+            epoch = self.memory.epoch()
+            identity = root_id(self.memory)
+            if (
+                previous is not None
+                and previous["epoch"] == epoch
+                and previous["root_id"] == identity
+            ):
+                return str(previous["content"])
+            if previous is None and self.resumed:
+                # Old sessions never had a snapshot; preserve that original absence on resume.
+                value = {
+                    "version": 1,
+                    "content": "",
+                    "tokens": 0,
+                    "epoch": epoch,
+                    "root_id": identity,
+                    "reason": "legacy_resume",
+                }
+            else:
+                value = snapshot(self.memory, self.context.main_estimator)
+        except (OSError, ValueError) as exc:
+            # A broken memory file cannot prevent an ordinary coding task. Never reuse stale data.
+            value = {
+                "version": 1,
+                "content": "",
+                "tokens": 0,
+                "epoch": "unavailable",
+                "root_id": root_id(self.memory),
+                "reason": "unavailable",
+            }
+            await self.events("warning", {"detail": f"Memory snapshot unavailable: {exc}"})
+        value = redact(value, self.secret_values())
+        await self.events("memory_snapshot", value)
+        self.session.memory_snapshot = value
+        return str(value["content"])
+
+    async def refresh_memory(self) -> None:
+        """Only a durable invalidation changes an existing session's snapshot."""
+        if self.memory is None or self.events is None:
+            return
+        previous = self.session.memory_snapshot
+        suffix = await self.memory_prefix()
+        if previous == self.session.memory_snapshot:
+            return
+        current = next((m for m in self.session.messages if m.role == "system"), None)
+        if current is None:
+            return
+        base = current.content
+        old_suffix = str(previous["content"]) if previous else ""
+        if old_suffix and base.endswith(old_suffix):
+            base = base[: -len(old_suffix)]
+        seq = await self.events("instructions", {"content": base + suffix})
+        self.session.messages = [Message("system", base + suffix, seq=seq)] + [
+            m for m in self.session.messages if m.role != "system"
+        ]
+        self.context.reset_calibration()
 
     async def close(self) -> None:
         if self.closed:

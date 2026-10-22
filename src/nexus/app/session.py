@@ -13,6 +13,7 @@ from typing import BinaryIO
 
 from nexus import __version__
 from nexus.core.context import ContextBuilder
+from nexus.core.memory_snapshot import validate_snapshot
 from nexus.core.plan import plan_data, validate_plan
 from nexus.core.skills import active_skills, check_active, restore_skill
 from nexus.core.types import (
@@ -143,6 +144,8 @@ def replay(records: list[Json], workspace: Path) -> Session:
                 session.messages = [Message("system", data["content"], seq=record["seq"])] + [
                     m for m in session.messages if m.role != "system"
                 ]
+            elif record["kind"] == "memory_snapshot":
+                session.memory_snapshot = validate_snapshot(data)
             elif record["kind"] == "tool_started":
                 started_tool = (run_id, data.get("call_id"), data.get("name"))
             elif record["kind"] == "tool_finished":
@@ -362,6 +365,7 @@ def resume_session(
                 selected_skill=session.selected_skill,
                 loaded_skills=session.loaded_skills,
                 skills_run_id=session.skills_run_id,
+                memory_snapshot=session.memory_snapshot,
             )
             writer = SessionLog.create(
                 fresh,

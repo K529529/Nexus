@@ -167,6 +167,8 @@ class Session:
     selected_skill: SkillSnapshot | None = None
     loaded_skills: tuple[SkillSnapshot, ...] = ()
     skills_run_id: str | None = None
+    # Persisted separately from semantic compaction; unchanged by ordinary memory appends.
+    memory_snapshot: Json | None = None
 
 
 @dataclass(frozen=True)
