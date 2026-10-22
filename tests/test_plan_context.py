@@ -158,15 +158,16 @@ def test_plan_counts_toward_capacity_and_calibration(tmp_path: Path) -> None:
     with pytest.raises(ModelError, match="context_limit"):
         context.check(projected, [])
     response = reply(text="calibration")
-    response.usage = Usage(12345, 2, 12347, "reported")
+    reported = estimate(projected, []) + 100
+    response.usage = Usage(reported, 2, reported + 2, "reported")
     context.observe(response, projected, [])
     assert context.last_estimate == estimate(projected, [])
-    assert context.tokens(projected, []) == 12345
+    assert context.tokens(projected, []) == reported
     session.plan = PlanState("run", ())
     cleared = context.project(session, projected).messages
     assert snapshot(cleared) == {"plan": []}
     assert context.tokens(cleared, []) == math.ceil(
-        estimate(cleared, []) * 12345 / estimate(projected, [])
+        estimate(cleared, []) * (reported / estimate(projected, []))
     )
 
 

@@ -174,12 +174,15 @@ async def run_turn(
                     {**diagnostics, **context.diagnostics(active_context, specs), "step": step},
                 )
                 reply = await model.complete(active_context, specs, task_events)
-            estimated = context.diagnostics(active_context, specs)["estimated_context_tokens"]
+            diagnostics = context.diagnostics(active_context, specs)
+            estimated = diagnostics["estimated_context_tokens"]
             context.observe(reply, active_context, specs)
             await observed(
                 "context_usage",
                 {
                     "estimated_context_tokens": estimated,
+                    "calibrated_context_tokens": diagnostics["calibrated_context_tokens"],
+                    "token_estimator": diagnostics["token_estimator"],
                     "reported_input_tokens": reply.usage.input_tokens,
                     "reported_output_tokens": reply.usage.output_tokens,
                     "cumulative_usage_tokens": sum(u.total_tokens or 0 for u in usages)

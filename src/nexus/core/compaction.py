@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from nexus.core.compaction_input import runtime_outcomes, serialize_history
 from nexus.core.history import groups
 from nexus.core.tokens import estimate
-from nexus.core.types import Json, Message, ModelError, Session, json_text
+from nexus.core.types import Json, Message, ModelError, Session, ToolSpec, json_text
 
 TRIGGER_FRACTION = 0.90
 KEEP_RECENT_TOKENS = 20000
@@ -248,14 +249,19 @@ def previous_summary(messages: list[Message]) -> Json | None:
     return None
 
 
-def split_history(messages: list[Message], target: int) -> tuple[list[Message], list[Message]]:
+def split_history(
+    messages: list[Message],
+    target: int,
+    *,
+    count: Callable[[list[Message], list[ToolSpec]], int] = estimate,
+) -> tuple[list[Message], list[Message]]:
     """Keep at least the target when possible, without ever splitting a tool batch."""
     complete = groups(messages)
     if len(complete) < 2:
         return [], messages
     cut = len(complete) - 1
     tail = list(complete[-1])
-    while cut > 0 and estimate(tail, []) < target:
+    while cut > 0 and count(tail, []) < target:
         cut -= 1
         tail = complete[cut] + tail
     if cut == 0:
@@ -264,7 +270,7 @@ def split_history(messages: list[Message], target: int) -> tuple[list[Message], 
     user_cut = next((i for i in range(cut, 0, -1) if complete[i][0].role == "user"), None)
     if user_cut is not None:
         candidate = [m for group in complete[user_cut:] for m in group]
-        if estimate(candidate, []) <= max(target * 1.25, estimate(tail, [])):
+        if count(candidate, []) <= max(target * 1.25, count(tail, [])):
             cut, tail = user_cut, candidate
     prefix = [m for group in complete[:cut] for m in group]
     # A previous summary alone cannot meaningfully be compacted again.
@@ -299,11 +305,17 @@ def summary_input(
     return [Message("system", prompt), Message("user", text)]
 
 
-def parse_summary(text: str, prefix: list[Message], maximum: int) -> Json:
+def parse_summary(
+    text: str,
+    prefix: list[Message],
+    maximum: int,
+    *,
+    count: Callable[[list[Message], list[ToolSpec]], int] = estimate,
+) -> Json:
     try:
         summary = validate_summary(json.loads(text), version=4)
     except (ValueError, TypeError):
         raise ModelError("compaction_schema", "Response is not a structured JSON summary") from None
-    if estimate([summary_message(summary)], []) > maximum:
+    if count([summary_message(summary)], []) > maximum:
         raise ModelError("compaction_summary_too_large")
     return summary

@@ -278,8 +278,9 @@ def main() -> None:
         print(str(exc), file=sys.stderr)
         if isinstance(exc, ConfigError):
             print(
-                "Configure ~/.nexus/config.toml with [model] name, context_window, base_url, "
+                "Configure ~/.nexus/config.toml with [model] name, base_url, "
                 "and api_key_env. Set the key in that environment variable, not TOML. "
+                "context_window defaults to 128000 in each model section. "
                 "Example: $env:NEXUS_MODEL_API_KEY='<key>' (PowerShell) or "
                 "export NEXUS_MODEL_API_KEY='<key>' (sh).",
                 file=sys.stderr,

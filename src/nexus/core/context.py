@@ -25,6 +25,7 @@ from nexus.core.plan import project_plan
 from nexus.core.request_context import logical_messages, project_context
 from nexus.core.runtime_facts import FACT_TOKENS, project_facts
 from nexus.core.skills import project_skills
+from nexus.core.tokens import TokenEstimator
 from nexus.core.tokens import estimate as estimate
 from nexus.core.types import (
     Emit,
@@ -194,15 +195,16 @@ class Context:
         compaction_window: int = 128000,
         summary_tokens: int = SUMMARY_TOKENS,
         secrets: tuple[str, ...] = (),
+        main_estimator: TokenEstimator | None = None,
+        compaction_estimator: TokenEstimator | None = None,
     ) -> None:
         self.budget = limits.context_window - limits.max_output_tokens - 1024
         self.trigger = math.floor(limits.context_window * TRIGGER_FRACTION)
         self.compaction_window = compaction_window
         self.summary_tokens = summary_tokens
         self.secrets = secrets
-        self.last_estimate: int | None = None
-        self.last_report: int | None = None
-        self.schema_prefix = ""
+        self.main_estimator = main_estimator or TokenEstimator()
+        self.compaction_estimator = compaction_estimator or TokenEstimator()
         self.execution_budget: str | None = None
 
     def task_request(self, messages: list[Message], guidance: str | None = None) -> list[Message]:
@@ -222,33 +224,31 @@ class Context:
         )
 
     def reset_calibration(self) -> None:
-        self.last_estimate = self.last_report = None
+        self.main_estimator.reset()
+
+    @property
+    def last_estimate(self) -> int | None:
+        return self.main_estimator.last_estimate
+
+    @property
+    def last_report(self) -> int | None:
+        return self.main_estimator.last_report
 
     def tokens(self, messages: list[Message], tools: list[ToolSpec]) -> int:
-        current = estimate(messages, tools)
-        # Content growth is calibrated; schema, system and message-shape changes invalidate it.
-        key = json_text([asdict(t) for t in tools]) + json_text(
-            [m.public() for m in messages if m.role == "system"]
-        )
-        key += json_text(
-            sorted({(m.role, bool(m.tool_calls), bool(m.protocol_data)) for m in messages})
-        )
-        if key != self.schema_prefix:
-            self.reset_calibration()
-            self.schema_prefix = key
-        if self.last_estimate and self.last_report is not None:
-            return math.ceil(current * self.last_report / self.last_estimate)
-        return current
+        self.main_estimator.set_scope(messages, tools)
+        return self.main_estimator.count(messages, tools)
 
     def observe(self, reply: ModelReply, messages: list[Message], tools: list[ToolSpec]) -> None:
-        self.tokens(messages, tools)
-        self.last_estimate = estimate(messages, tools)
-        self.last_report = reply.usage.input_tokens if reply.usage.source == "reported" else None
+        self.main_estimator.observe(
+            reply.usage.input_tokens if reply.usage.source == "reported" else None, messages, tools
+        )
 
     def diagnostics(self, messages: list[Message], tools: list[ToolSpec]) -> Json:
         return {
-            "estimated_context_tokens": estimate(messages, tools),
+            "estimated_context_tokens": self.main_estimator.raw(messages, tools),
             "calibrated_context_tokens": self.tokens(messages, tools),
+            "token_estimator": self.main_estimator.profile,
+            "calibration_factor": self.main_estimator.factor,
             "reported_input_tokens": self.last_report,
             "compaction_trigger": self.trigger,
             "safe_input_tokens": self.budget,
@@ -296,10 +296,11 @@ class Context:
             return True
         systems = [m for m in logical if m.role == "system"]
         history = [m for m in logical if m.role != "system"]
-        fixed = estimate(self.task_request(self.with_state(session, systems), guidance), tools)
+        count = self.main_estimator.count
+        fixed = count(self.task_request(self.with_state(session, systems), guidance), tools)
         available = self.budget - fixed - self.summary_tokens - FACT_TOKENS
         target = min(KEEP_RECENT_TOKENS, max(0, available))
-        prefix, recent = split_history(history, target)
+        prefix, recent = split_history(history, target, count=count)
         if not prefix or available <= 0:
             if force and reason == "manual" and before <= self.budget:
                 await emit(
@@ -315,11 +316,8 @@ class Context:
             )
             return True
         request = summary_input(session, prefix, self.summary_tokens, self.secrets)
-        if estimate(request, []) + self.summary_tokens + 1024 > self.compaction_window:
-            raise ModelError(
-                "compaction_input_limit",
-                "History exceeds compaction-model capacity; source history retained",
-            )
+        self.compaction_estimator.set_scope(request, [])
+        compact_input = self.compaction_estimator.count(request, [])
         started = time.monotonic()
         await emit(
             "compaction_started",
@@ -328,7 +326,7 @@ class Context:
                 if reason != "threshold"
                 else ("capacity" if before < self.trigger else "threshold"),
                 "tokens_before": before,
-                "recent_tokens_kept": estimate(recent, []),
+                "recent_tokens_kept": count(recent, []),
                 "keep_recent_target": target,
                 "compaction_trigger": self.trigger,
             },
@@ -340,12 +338,22 @@ class Context:
             return await emit(kind, {**data, "purpose": "compaction"})
 
         try:
+            if compact_input + self.summary_tokens + 1024 > self.compaction_window:
+                raise ModelError(
+                    "compaction_input_limit",
+                    "History exceeds compaction-model capacity; source history retained",
+                )
             reply = await model.complete(request, [], summary_events)
-            estimated = estimate(request, [])
+            estimated = self.compaction_estimator.raw(request, [])
+            self.compaction_estimator.observe(
+                reply.usage.input_tokens if reply.usage.source == "reported" else None, request, []
+            )
             await emit(
                 "compaction_usage",
                 {
                     "estimated_context_tokens": estimated,
+                    "calibrated_context_tokens": compact_input,
+                    "token_estimator": self.compaction_estimator.profile,
                     "reported_input_tokens": reply.usage.input_tokens,
                     "reported_output_tokens": reply.usage.output_tokens,
                     "estimation_error_tokens": estimated - reply.usage.input_tokens
@@ -359,12 +367,12 @@ class Context:
             for secret in self.secrets:
                 if secret:
                     text = text.replace(secret, "[REDACTED]")
-            summary = parse_summary(text, prefix, self.summary_tokens)
+            summary = parse_summary(text, prefix, self.summary_tokens, count=count)
             facts = project_facts(session, prefix, self.secrets)
             projected = systems + [summary_message(summary, runtime_facts=facts)] + recent
             next_request = self.task_request(self.with_state(session, projected), guidance)
-            after = estimate(next_request, tools)
-            if after > self.budget or after >= estimate(task_context, tools):
+            after = count(next_request, tools)
+            if after > self.budget or after >= before:
                 raise ModelError(
                     "compaction_capacity",
                     "Summary does not leave a smaller safe executable context",
@@ -375,6 +383,8 @@ class Context:
                 {
                     "reason": exc.code if isinstance(exc, ModelError) else "cancelled",
                     "tokens_before": before,
+                    "estimated_input_tokens": compact_input,
+                    "safe_input_tokens": self.compaction_window - self.summary_tokens - 1024,
                     "duration_ms": int((time.monotonic() - started) * 1000),
                     "detail": "Compaction failed; previous history and checkpoint retained.",
                 },
@@ -392,8 +402,8 @@ class Context:
             "kept_seqs": [m.seq for m in recent],
             "tokens_before": before,
             "tokens_after": after,
-            "recent_tokens_kept": estimate(recent, []),
-            "summary_tokens": estimate([summary_message(summary)], []),
+            "recent_tokens_kept": count(recent, []),
+            "summary_tokens": count([summary_message(summary)], []),
             "compaction_usage": asdict(reply.usage),
             "duration_ms": int((time.monotonic() - started) * 1000),
         }

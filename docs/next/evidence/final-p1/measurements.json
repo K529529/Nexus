@@ -1,0 +1,967 @@
+{
+  "summaries": {
+    "deepseek/short_and_mixed": {
+      "old_raw": {
+        "n": 10,
+        "mean_signed_relative_error": 0.18222630155227953,
+        "mean_absolute_relative_error": 0.3848319153410018,
+        "p90_absolute_relative_error": 0.829126213592233,
+        "max_overestimate_factor": 1.9636363636363636,
+        "max_underestimate_factor": 2.242857142857143,
+        "within_15_percent": 4,
+        "within_25_percent": 4
+      },
+      "old_calibrated": {
+        "n": 10,
+        "mean_signed_relative_error": -0.04575027830845212,
+        "mean_absolute_relative_error": 0.3137619463645124,
+        "p90_absolute_relative_error": 0.554140127388535,
+        "max_overestimate_factor": 1.9636363636363636,
+        "max_underestimate_factor": 2.242857142857143,
+        "within_15_percent": 3,
+        "within_25_percent": 5
+      },
+      "new_raw": {
+        "n": 10,
+        "mean_signed_relative_error": 0.00951752177474631,
+        "mean_absolute_relative_error": 0.00951752177474631,
+        "p90_absolute_relative_error": 0.03184713375796178,
+        "max_overestimate_factor": 1.041994750656168,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 10,
+        "within_25_percent": 10
+      },
+      "new_calibrated": {
+        "n": 10,
+        "mean_signed_relative_error": 0.007417784241937911,
+        "mean_absolute_relative_error": 0.007417784241937911,
+        "p90_absolute_relative_error": 0.021333333333333333,
+        "max_overestimate_factor": 1.0318471337579618,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 10,
+        "within_25_percent": 10
+      }
+    },
+    "deepseek/boundary": {
+      "old_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 1.293492652346262,
+        "mean_absolute_relative_error": 1.293492652346262,
+        "p90_absolute_relative_error": 1.2968974247335237,
+        "max_overestimate_factor": 2.2968974247335234,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 0,
+        "within_25_percent": 0
+      },
+      "old_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.6465315312909995,
+        "mean_absolute_relative_error": 0.6465315312909995,
+        "p90_absolute_relative_error": 1.2900878799590005,
+        "max_overestimate_factor": 2.2900878799590005,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      },
+      "new_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      },
+      "new_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      }
+    },
+    "deepseek/real_history_replay": {
+      "old_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 0.1971516317774697,
+        "mean_absolute_relative_error": 0.1971516317774697,
+        "p90_absolute_relative_error": 0.2910886433106043,
+        "max_overestimate_factor": 1.2910886433106044,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      },
+      "old_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.07279186535062072,
+        "mean_absolute_relative_error": 0.2182967779599836,
+        "p90_absolute_relative_error": 0.2910886433106043,
+        "max_overestimate_factor": 1.2910886433106044,
+        "max_underestimate_factor": 1.1702817426998786,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      },
+      "new_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      },
+      "new_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      }
+    },
+    "qwen/short_and_mixed": {
+      "old_raw": {
+        "n": 10,
+        "mean_signed_relative_error": 0.17558108933662794,
+        "mean_absolute_relative_error": 0.3959223003341603,
+        "p90_absolute_relative_error": 0.7756833176248822,
+        "max_overestimate_factor": 1.8820375335120643,
+        "max_underestimate_factor": 2.1285714285714286,
+        "within_15_percent": 3,
+        "within_25_percent": 3
+      },
+      "old_calibrated": {
+        "n": 10,
+        "mean_signed_relative_error": -0.05256101366598466,
+        "mean_absolute_relative_error": 0.3207496766079518,
+        "p90_absolute_relative_error": 0.5302013422818792,
+        "max_overestimate_factor": 1.8820375335120643,
+        "max_underestimate_factor": 2.1285714285714286,
+        "within_15_percent": 3,
+        "within_25_percent": 4
+      },
+      "new_raw": {
+        "n": 10,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 10,
+        "within_25_percent": 10
+      },
+      "new_calibrated": {
+        "n": 10,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 10,
+        "within_25_percent": 10
+      }
+    },
+    "qwen/boundary": {
+      "old_raw": {
+        "n": 1,
+        "mean_signed_relative_error": 1.3347394957983194,
+        "mean_absolute_relative_error": 1.3347394957983194,
+        "p90_absolute_relative_error": 1.3347394957983194,
+        "max_overestimate_factor": 2.334739495798319,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 0,
+        "within_25_percent": 0
+      },
+      "old_calibrated": {
+        "n": 1,
+        "mean_signed_relative_error": 1.3347394957983194,
+        "mean_absolute_relative_error": 1.3347394957983194,
+        "p90_absolute_relative_error": 1.3347394957983194,
+        "max_overestimate_factor": 2.334739495798319,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 0,
+        "within_25_percent": 0
+      },
+      "new_raw": {
+        "n": 1,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      },
+      "new_calibrated": {
+        "n": 1,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      }
+    },
+    "qwen/real_history_replay": {
+      "old_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 0.24451002742606087,
+        "mean_absolute_relative_error": 0.24451002742606087,
+        "p90_absolute_relative_error": 0.3499139555846923,
+        "max_overestimate_factor": 1.3499139555846922,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 1,
+        "within_25_percent": 1
+      },
+      "old_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.09688470846976815,
+        "mean_absolute_relative_error": 0.25302924711492414,
+        "p90_absolute_relative_error": 0.3499139555846923,
+        "max_overestimate_factor": 1.3499139555846922,
+        "max_underestimate_factor": 1.1850370659383536,
+        "within_15_percent": 0,
+        "within_25_percent": 1
+      },
+      "new_raw": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      },
+      "new_calibrated": {
+        "n": 2,
+        "mean_signed_relative_error": 0.0,
+        "mean_absolute_relative_error": 0.0,
+        "p90_absolute_relative_error": 0.0,
+        "max_overestimate_factor": 1,
+        "max_underestimate_factor": 1,
+        "within_15_percent": 2,
+        "within_25_percent": 2
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "deepseek-english",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "03bbc22f4cf26ca0ad019f33dd17f02495abff237614b2b1ca70c3d6b1d9a474",
+      "reported": 715,
+      "old_raw": 1404,
+      "old_calibrated": 1404,
+      "new_raw": 715,
+      "new_calibrated": 715,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 715,
+        "total_tokens": 731,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 715
+      },
+      "duration_seconds": 2.703
+    },
+    {
+      "id": "deepseek-chinese",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "d945bcbfd75c741f42da8a05d881fa0cf0b8143107dfbc54718b6df0fb58b5e0",
+      "reported": 1030,
+      "old_raw": 1884,
+      "old_calibrated": 960,
+      "new_raw": 1030,
+      "new_calibrated": 1030,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1030,
+        "total_tokens": 1046,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1030
+      },
+      "duration_seconds": 1.984
+    },
+    {
+      "id": "deepseek-python",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "266e36a330549f6738d6cd9e93f6c1467435b1bf987e1b47681a88f6bbc5a745",
+      "reported": 413,
+      "old_raw": 619,
+      "old_calibrated": 339,
+      "new_raw": 413,
+      "new_calibrated": 413,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 413,
+        "total_tokens": 429,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 413
+      },
+      "duration_seconds": 2.094
+    },
+    {
+      "id": "deepseek-json",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "1bd7687d6572770bdb104d5707c3f44f46779b8ca55c38d56c94cb9dee1c6e98",
+      "reported": 1482,
+      "old_raw": 1577,
+      "old_calibrated": 1053,
+      "new_raw": 1482,
+      "new_calibrated": 1482,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 1482,
+        "total_tokens": 1493,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 9,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1482
+      },
+      "duration_seconds": 1.938
+    },
+    {
+      "id": "deepseek-repeated-log",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "14cb2e5110d80de05a37193c3e57eec09aae0aa718ce6f24640280855d6d5bed",
+      "reported": 3140,
+      "old_raw": 2754,
+      "old_calibrated": 2589,
+      "new_raw": 3140,
+      "new_calibrated": 3140,
+      "usage": {
+        "completion_tokens": 11,
+        "prompt_tokens": 3140,
+        "total_tokens": 3151,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 9,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3140
+      },
+      "duration_seconds": 2.109
+    },
+    {
+      "id": "deepseek-tool-schema",
+      "profile": "deepseek",
+      "category": "first",
+      "request_sha256": "0be08ebe6cccab6009f440d2aa7930de92073369e771eaf8787c67b61892125c",
+      "reported": 314,
+      "old_raw": 140,
+      "old_calibrated": 140,
+      "new_raw": 324,
+      "new_calibrated": 324,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 314,
+        "total_tokens": 330,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 314
+      },
+      "duration_seconds": 1.906
+    },
+    {
+      "id": "deepseek-tool-result",
+      "profile": "deepseek",
+      "category": "continuous",
+      "request_sha256": "1969b98dccd2eec3f7c9f23b96e44280f8425215554e19d324f9bb7342a9e097",
+      "reported": 750,
+      "old_raw": 814,
+      "old_calibrated": 814,
+      "new_raw": 766,
+      "new_calibrated": 766,
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 750,
+        "total_tokens": 752,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 494
+      },
+      "duration_seconds": 1.969
+    },
+    {
+      "id": "deepseek-tool-call-only",
+      "profile": "deepseek",
+      "category": "controlled",
+      "request_sha256": "61d32b8179955b4646b1439fd21a07cd3ab0cceb0bec2c7f09ea9fb6323080df",
+      "reported": 381,
+      "old_raw": 253,
+      "old_calibrated": 234,
+      "new_raw": 397,
+      "new_calibrated": 389,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 381,
+        "total_tokens": 397,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 253
+      },
+      "duration_seconds": 1.906
+    },
+    {
+      "id": "deepseek-real-mixed-1",
+      "profile": "deepseek",
+      "category": "real-history-replay",
+      "request_sha256": "ad471169ced4ac9f74ccace762ed56065216ee89f10cee4181a53f4c5c9d329e",
+      "reported": 12759,
+      "old_raw": 16473,
+      "old_calibrated": 16473,
+      "new_raw": 12759,
+      "new_calibrated": 12759,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 12759,
+        "total_tokens": 12775,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 12759
+      },
+      "duration_seconds": 2.422
+    },
+    {
+      "id": "deepseek-real-mixed-2",
+      "profile": "deepseek",
+      "category": "real-history-replay",
+      "request_sha256": "d012757fd05ed38677eab86cac6e161db44995ca2fe78cbc90dc33c1057cf8d2",
+      "reported": 50177,
+      "old_raw": 55356,
+      "old_calibrated": 42876,
+      "new_raw": 50177,
+      "new_calibrated": 50177,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 50177,
+        "total_tokens": 50193,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 50177
+      },
+      "duration_seconds": 2.453
+    },
+    {
+      "id": "deepseek-boundary-119000",
+      "profile": "deepseek",
+      "category": "boundary",
+      "request_sha256": "5bc2ea5bc27be87c4591a7b0920f83c6d741b20db83592e9671a4ebb25ed9472",
+      "reported": 119026,
+      "old_raw": 272580,
+      "old_calibrated": 272580,
+      "new_raw": 119026,
+      "new_calibrated": 119026,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 119026,
+        "total_tokens": 119042,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 119026
+      },
+      "duration_seconds": 4.641
+    },
+    {
+      "id": "deepseek-boundary-124000",
+      "profile": "deepseek",
+      "category": "boundary",
+      "request_sha256": "813b7bf6cb0c59a37e16dce6a23deef3816f2765832ee515c3979752a110fb60",
+      "reported": 124026,
+      "old_raw": 284875,
+      "old_calibrated": 124395,
+      "new_raw": 124026,
+      "new_calibrated": 124026,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 124026,
+        "total_tokens": 124042,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 16,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 118912
+        },
+        "prompt_cache_hit_tokens": 118912,
+        "prompt_cache_miss_tokens": 5114
+      },
+      "duration_seconds": 3.203
+    },
+    {
+      "id": "qwen-english",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "de0505c6b492d8fc04ec5f7b9fe0c9f48c0e78e70b0cd21fb6b766ebd68bfa44",
+      "reported": 746,
+      "old_raw": 1404,
+      "old_calibrated": 1404,
+      "new_raw": 746,
+      "new_calibrated": 746,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 746,
+        "total_tokens": 762,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 746
+      },
+      "duration_seconds": 1.797
+    },
+    {
+      "id": "qwen-chinese",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "3902342e933bda34e8bf4238a7da57e8e0517e3e56db959ba8b940232a4922f5",
+      "reported": 1061,
+      "old_raw": 1884,
+      "old_calibrated": 1002,
+      "new_raw": 1061,
+      "new_calibrated": 1061,
+      "usage": {
+        "completion_tokens": 1,
+        "prompt_tokens": 1061,
+        "total_tokens": 1062,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1061
+      },
+      "duration_seconds": 1.594
+    },
+    {
+      "id": "qwen-python",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "40ccf9f704b284b6e41f48b4dfcb304a92f26e7c9cd474372b79c70d469859ea",
+      "reported": 409,
+      "old_raw": 619,
+      "old_calibrated": 349,
+      "new_raw": 409,
+      "new_calibrated": 409,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 409,
+        "total_tokens": 425,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 409
+      },
+      "duration_seconds": 1.734
+    },
+    {
+      "id": "qwen-json",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "77bc46aa6e3c924c237a27adf4c676ec178e5a6d9eef4f733d796fed96a3896c",
+      "reported": 1449,
+      "old_raw": 1577,
+      "old_calibrated": 1042,
+      "new_raw": 1449,
+      "new_calibrated": 1449,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1449,
+        "total_tokens": 1465,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1449
+      },
+      "duration_seconds": 2.109
+    },
+    {
+      "id": "qwen-repeated-log",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "c7a257b7aaa283e90df904536ce677866c004e05dd96ea00f5d979b9aaa345e1",
+      "reported": 3826,
+      "old_raw": 2754,
+      "old_calibrated": 2531,
+      "new_raw": 3826,
+      "new_calibrated": 3826,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 3826,
+        "total_tokens": 3842,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3826
+      },
+      "duration_seconds": 1.985
+    },
+    {
+      "id": "qwen-tool-schema",
+      "profile": "qwen",
+      "category": "first",
+      "request_sha256": "769121ed70ed60c77a23b78f6174e4383c155ce143ee2c1ce01395990a9ebc98",
+      "reported": 298,
+      "old_raw": 140,
+      "old_calibrated": 140,
+      "new_raw": 298,
+      "new_calibrated": 298,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 298,
+        "total_tokens": 314,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 298
+      },
+      "duration_seconds": 1.969
+    },
+    {
+      "id": "qwen-tool-result",
+      "profile": "qwen",
+      "category": "continuous",
+      "request_sha256": "329e5a072386b9c2a94049d51f486108df9f480233d7f4ed369ecb14fd5ee1e9",
+      "reported": 734,
+      "old_raw": 814,
+      "old_calibrated": 814,
+      "new_raw": 734,
+      "new_calibrated": 734,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 734,
+        "total_tokens": 750,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 734
+      },
+      "duration_seconds": 1.875
+    },
+    {
+      "id": "qwen-tool-call-only",
+      "profile": "qwen",
+      "category": "controlled",
+      "request_sha256": "c4296fd111483f8728a577641a3490c688b13e21e6a685c123776a6e8f150d1d",
+      "reported": 357,
+      "old_raw": 253,
+      "old_calibrated": 229,
+      "new_raw": 357,
+      "new_calibrated": 357,
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_tokens": 357,
+        "total_tokens": 362,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 357
+      },
+      "duration_seconds": 1.687
+    },
+    {
+      "id": "qwen-real-mixed-1",
+      "profile": "qwen",
+      "category": "real-history-replay",
+      "request_sha256": "a0894f3b0639b5e97c4e524faf7c526d1f4cdb01fcdd0e881d12275410f5fffe",
+      "reported": 12203,
+      "old_raw": 16473,
+      "old_calibrated": 16473,
+      "new_raw": 12203,
+      "new_calibrated": 12203,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 12203,
+        "total_tokens": 12219,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 12203
+      },
+      "duration_seconds": 2.438
+    },
+    {
+      "id": "qwen-real-mixed-2",
+      "profile": "qwen",
+      "category": "real-history-replay",
+      "request_sha256": "bd7bdd1a353b4aefb48fbed88bff001141d6f4ebe9e022da5e0462949cc94487",
+      "reported": 48596,
+      "old_raw": 55356,
+      "old_calibrated": 41008,
+      "new_raw": 48596,
+      "new_calibrated": 48596,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 48596,
+        "total_tokens": 48612,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 48596
+      },
+      "duration_seconds": 5.14
+    },
+    {
+      "id": "qwen-boundary-119000",
+      "profile": "qwen",
+      "category": "boundary",
+      "request_sha256": "fc792f98986d363745276f84bd0665623e2a2a4d4f0feb96767dca7aef7c8e9a",
+      "reported": 119000,
+      "old_raw": 277834,
+      "old_calibrated": 277834,
+      "new_raw": 119000,
+      "new_calibrated": 119000,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 119000,
+        "total_tokens": 119016,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 119000
+      },
+      "duration_seconds": 9.563
+    }
+  ],
+  "failed_attempts": [
+    {
+      "id": "qwen-boundary-124000",
+      "profile": "qwen",
+      "category": "boundary",
+      "native_estimate": 124000,
+      "old_estimate": 288901,
+      "sha256": "5790e552a8d4f55157a1d964d9d72693ffb75ea0a2bdb7bd39cf68f11b936332",
+      "error_type": "RateLimitError",
+      "status_code": 429,
+      "body": {
+        "code": 50602,
+        "message": "Request was rejected due to rate limiting. Details: TPM limit reached.",
+        "data": null
+      },
+      "chunks": [],
+      "duration_seconds": 1.484
+    }
+  ]
+}

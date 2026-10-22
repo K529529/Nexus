@@ -420,8 +420,10 @@ def test_skill_capacity_and_calibration(tmp_path: Path) -> None:
     with pytest.raises(ModelError, match="context_limit"):
         context.check(projected, [])
     response = reply(text="done")
-    response.usage = Usage(23456, 1, 23457, "reported")
+    reported = estimate(projected, []) + 100
+    response.usage = Usage(reported, 1, reported + 1, "reported")
     context.observe(response, projected, [])
     assert (
-        context.last_estimate == estimate(projected, []) and context.tokens(projected, []) == 23456
+        context.last_estimate == estimate(projected, [])
+        and context.tokens(projected, []) == reported
     )

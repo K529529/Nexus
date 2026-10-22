@@ -1,0 +1,642 @@
+[
+  {
+    "id": "deepseek-english",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Review the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\n"
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "03bbc22f4cf26ca0ad019f33dd17f02495abff237614b2b1ca70c3d6b1d9a474",
+    "prompt_tokens": 715
+  },
+  {
+    "id": "deepseek-chinese",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n"
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "d945bcbfd75c741f42da8a05d881fa0cf0b8143107dfbc54718b6df0fb58b5e0",
+    "prompt_tokens": 1030
+  },
+  {
+    "id": "deepseek-python",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "\"\"\"One local estimator over the actual Chat Completions message/tool shapes.\"\"\"\n\nfrom __future__ import annotations\n\nimport math\n\nfrom nexus.core.types import Json, Message, ToolSpec, json_text\n\n\ndef wire_message(message: Message) -> Json:\n    wire: Json = {\"role\": message.role, \"content\": message.content}\n    if message.tool_calls:\n        wire[\"tool_calls\"] = [\n            {\n                \"id\": c.id,\n                \"type\": \"function\",\n                \"function\": {\n                    \"name\": c.name,\n                    \"arguments\": c.arguments_json,\n                },\n            }\n            for c in message.tool_calls\n        ]\n    if message.tool_call_id is not None:\n        wire[\"tool_call_id\"] = message.tool_call_id\n    if message.protocol_data:\n        fields = message.protocol_data.get(\"fields\", {})\n        if isinstance(fields, dict) and isinstance(fields.get(\"reasoning_content\"), str):\n            wire[\"reasoning_content\"] = fields[\"reasoning_content\"]\n    return wire\n\n\ndef wire_tools(tools: list[ToolSpec]) -> list[Json]:\n    return [\n        {\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": t.name,\n                \"description\": t.description,\n                \"parameters\": t.input_schema,\n            },\n        }\n        for t in tools\n    ]\n\n\ndef estimate(messages: list[Message], tools: list[ToolSpec]) -> int:\n    request = {\"messages\": [wire_message(m) for m in messages]}\n    if tools:\n        request[\"tools\"] = wire_tools(tools)\n    return math.ceil(len(json_text(request).encode(\"utf-8\")) / 3) + 8 * len(messages)\n"
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "266e36a330549f6738d6cd9e93f6c1467435b1bf987e1b47681a88f6bbc5a745",
+    "prompt_tokens": 413
+  },
+  {
+    "id": "deepseek-json",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "[{\"index\": 0, \"status\": \"NOT_RUN\", \"path\": \"src/module_0.py\", \"user\": \"测试数据\"}, {\"index\": 1, \"status\": \"NOT_RUN\", \"path\": \"src/module_1.py\", \"user\": \"测试数据\"}, {\"index\": 2, \"status\": \"NOT_RUN\", \"path\": \"src/module_2.py\", \"user\": \"测试数据\"}, {\"index\": 3, \"status\": \"NOT_RUN\", \"path\": \"src/module_3.py\", \"user\": \"测试数据\"}, {\"index\": 4, \"status\": \"NOT_RUN\", \"path\": \"src/module_4.py\", \"user\": \"测试数据\"}, {\"index\": 5, \"status\": \"NOT_RUN\", \"path\": \"src/module_5.py\", \"user\": \"测试数据\"}, {\"index\": 6, \"status\": \"NOT_RUN\", \"path\": \"src/module_6.py\", \"user\": \"测试数据\"}, {\"index\": 7, \"status\": \"NOT_RUN\", \"path\": \"src/module_7.py\", \"user\": \"测试数据\"}, {\"index\": 8, \"status\": \"NOT_RUN\", \"path\": \"src/module_8.py\", \"user\": \"测试数据\"}, {\"index\": 9, \"status\": \"NOT_RUN\", \"path\": \"src/module_9.py\", \"user\": \"测试数据\"}, {\"index\": 10, \"status\": \"NOT_RUN\", \"path\": \"src/module_10.py\", \"user\": \"测试数据\"}, {\"index\": 11, \"status\": \"NOT_RUN\", \"path\": \"src/module_11.py\", \"user\": \"测试数据\"}, {\"index\": 12, \"status\": \"NOT_RUN\", \"path\": \"src/module_12.py\", \"user\": \"测试数据\"}, {\"index\": 13, \"status\": \"NOT_RUN\", \"path\": \"src/module_13.py\", \"user\": \"测试数据\"}, {\"index\": 14, \"status\": \"NOT_RUN\", \"path\": \"src/module_14.py\", \"user\": \"测试数据\"}, {\"index\": 15, \"status\": \"NOT_RUN\", \"path\": \"src/module_15.py\", \"user\": \"测试数据\"}, {\"index\": 16, \"status\": \"NOT_RUN\", \"path\": \"src/module_16.py\", \"user\": \"测试数据\"}, {\"index\": 17, \"status\": \"NOT_RUN\", \"path\": \"src/module_17.py\", \"user\": \"测试数据\"}, {\"index\": 18, \"status\": \"NOT_RUN\", \"path\": \"src/module_18.py\", \"user\": \"测试数据\"}, {\"index\": 19, \"status\": \"NOT_RUN\", \"path\": \"src/module_19.py\", \"user\": \"测试数据\"}, {\"index\": 20, \"status\": \"NOT_RUN\", \"path\": \"src/module_20.py\", \"user\": \"测试数据\"}, {\"index\": 21, \"status\": \"NOT_RUN\", \"path\": \"src/module_21.py\", \"user\": \"测试数据\"}, {\"index\": 22, \"status\": \"NOT_RUN\", \"path\": \"src/module_22.py\", \"user\": \"测试数据\"}, {\"index\": 23, \"status\": \"NOT_RUN\", \"path\": \"src/module_23.py\", \"user\": \"测试数据\"}, {\"index\": 24, \"status\": \"NOT_RUN\", \"path\": \"src/module_24.py\", \"user\": \"测试数据\"}, {\"index\": 25, \"status\": \"NOT_RUN\", \"path\": \"src/module_25.py\", \"user\": \"测试数据\"}, {\"index\": 26, \"status\": \"NOT_RUN\", \"path\": \"src/module_26.py\", \"user\": \"测试数据\"}, {\"index\": 27, \"status\": \"NOT_RUN\", \"path\": \"src/module_27.py\", \"user\": \"测试数据\"}, {\"index\": 28, \"status\": \"NOT_RUN\", \"path\": \"src/module_28.py\", \"user\": \"测试数据\"}, {\"index\": 29, \"status\": \"NOT_RUN\", \"path\": \"src/module_29.py\", \"user\": \"测试数据\"}, {\"index\": 30, \"status\": \"NOT_RUN\", \"path\": \"src/module_30.py\", \"user\": \"测试数据\"}, {\"index\": 31, \"status\": \"NOT_RUN\", \"path\": \"src/module_31.py\", \"user\": \"测试数据\"}, {\"index\": 32, \"status\": \"NOT_RUN\", \"path\": \"src/module_32.py\", \"user\": \"测试数据\"}, {\"index\": 33, \"status\": \"NOT_RUN\", \"path\": \"src/module_33.py\", \"user\": \"测试数据\"}, {\"index\": 34, \"status\": \"NOT_RUN\", \"path\": \"src/module_34.py\", \"user\": \"测试数据\"}, {\"index\": 35, \"status\": \"NOT_RUN\", \"path\": \"src/module_35.py\", \"user\": \"测试数据\"}, {\"index\": 36, \"status\": \"NOT_RUN\", \"path\": \"src/module_36.py\", \"user\": \"测试数据\"}, {\"index\": 37, \"status\": \"NOT_RUN\", \"path\": \"src/module_37.py\", \"user\": \"测试数据\"}, {\"index\": 38, \"status\": \"NOT_RUN\", \"path\": \"src/module_38.py\", \"user\": \"测试数据\"}, {\"index\": 39, \"status\": \"NOT_RUN\", \"path\": \"src/module_39.py\", \"user\": \"测试数据\"}, {\"index\": 40, \"status\": \"NOT_RUN\", \"path\": \"src/module_40.py\", \"user\": \"测试数据\"}, {\"index\": 41, \"status\": \"NOT_RUN\", \"path\": \"src/module_41.py\", \"user\": \"测试数据\"}, {\"index\": 42, \"status\": \"NOT_RUN\", \"path\": \"src/module_42.py\", \"user\": \"测试数据\"}, {\"index\": 43, \"status\": \"NOT_RUN\", \"path\": \"src/module_43.py\", \"user\": \"测试数据\"}, {\"index\": 44, \"status\": \"NOT_RUN\", \"path\": \"src/module_44.py\", \"user\": \"测试数据\"}]"
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "1bd7687d6572770bdb104d5707c3f44f46779b8ca55c38d56c94cb9dee1c6e98",
+    "prompt_tokens": 1482
+  },
+  {
+    "id": "deepseek-repeated-log",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n"
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "14cb2e5110d80de05a37193c3e57eec09aae0aa718ce6f24640280855d6d5bed",
+    "prompt_tokens": 3140
+  },
+  {
+    "id": "deepseek-tool-schema",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "0be08ebe6cccab6009f440d2aa7930de92073369e771eaf8787c67b61892125c",
+    "prompt_tokens": 314
+  },
+  {
+    "id": "deepseek-tool-result",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "Inspect the requested file.",
+          "tool_calls": [
+            {
+              "id": "call_fixed",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": "{\"path\":\"src/nexus/core/tokens.py\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_fixed",
+          "content": "\"\"\"One local estimator over the actual Chat Completions message/tool shapes.\"\"\"\n\nfrom __future__ import annotations\n\nimport math\n\nfrom nexus.core.types import Json, Message, ToolSpec, json_text\n\n\ndef wire_message(message: Message) -> Json:\n    wire: Json = {\"role\": message.role, \"content\": message.content}\n    if message.tool_calls:\n        wire[\"tool_calls\"] = [\n            {\n                \"id\": c.id,\n                \"type\": \"function\",\n                \"function\": {\n                    \"name\": c.name,\n                    \"arguments\": c.arguments_json,\n                },\n            }\n            for c in message.tool_calls\n        ]\n    if message.tool_call_id is not None:\n        wire[\"tool_call_id\"] = message.tool_call_id\n    if message.protocol_data:\n        fields = message.protocol_data.get(\"fields\", {})\n        if isinstance(fields, dict) and isinstance(fields.get(\"reasoning_content\"), str):\n            wire[\"reasoning_content\"] = fields[\"reasoning_content\"]\n    return wire\n\n\ndef wire_tools(tools: list[ToolSpec]) -> list[Json]:\n    return [\n        {\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": t.name,\n                \"description\": t.description,\n                \"parameters\": t.input_schema,\n            },\n        }\n        for t in tools\n    ]\n\n\ndef estimate(messages: list[Message], tools: list[ToolSpec]) -> int:\n    request = {\"messages\": [wire_message(m) for m in messages]}\n    if tools:\n        request[\"tools\"] = wire_tools(tools)\n    return math.ceil(len(json_text(request).encode(\"utf-8\")) / 3) + 8 * len(messages)\n"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "1969b98dccd2eec3f7c9f23b96e44280f8425215554e19d324f9bb7342a9e097",
+    "prompt_tokens": 750
+  },
+  {
+    "id": "deepseek-tool-call-only",
+    "profile": "deepseek",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "Inspect the requested file.",
+          "tool_calls": [
+            {
+              "id": "call_fixed",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": "{\"path\":\"src/nexus/core/tokens.py\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_fixed",
+          "content": "{\"ok\":true}"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "deepseek-flash",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "reasoning_effort": "high"
+    },
+    "sha256": "61d32b8179955b4646b1439fd21a07cd3ab0cceb0bec2c7f09ea9fb6323080df",
+    "prompt_tokens": 381
+  },
+  {
+    "id": "qwen-english",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Review the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\nReview the implementation, explain what remains unverified, and retain user constraints.\n"
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "de0505c6b492d8fc04ec5f7b9fe0c9f48c0e78e70b0cd21fb6b766ebd68bfa44",
+    "prompt_tokens": 746
+  },
+  {
+    "id": "qwen-chinese",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n请检查当前实现，区分已完成的操作与尚未验证的结果。保留用户约束，不要合并主分支。\n"
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "3902342e933bda34e8bf4238a7da57e8e0517e3e56db959ba8b940232a4922f5",
+    "prompt_tokens": 1061
+  },
+  {
+    "id": "qwen-python",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "\"\"\"One local estimator over the actual Chat Completions message/tool shapes.\"\"\"\n\nfrom __future__ import annotations\n\nimport math\n\nfrom nexus.core.types import Json, Message, ToolSpec, json_text\n\n\ndef wire_message(message: Message) -> Json:\n    wire: Json = {\"role\": message.role, \"content\": message.content}\n    if message.tool_calls:\n        wire[\"tool_calls\"] = [\n            {\n                \"id\": c.id,\n                \"type\": \"function\",\n                \"function\": {\n                    \"name\": c.name,\n                    \"arguments\": c.arguments_json,\n                },\n            }\n            for c in message.tool_calls\n        ]\n    if message.tool_call_id is not None:\n        wire[\"tool_call_id\"] = message.tool_call_id\n    if message.protocol_data:\n        fields = message.protocol_data.get(\"fields\", {})\n        if isinstance(fields, dict) and isinstance(fields.get(\"reasoning_content\"), str):\n            wire[\"reasoning_content\"] = fields[\"reasoning_content\"]\n    return wire\n\n\ndef wire_tools(tools: list[ToolSpec]) -> list[Json]:\n    return [\n        {\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": t.name,\n                \"description\": t.description,\n                \"parameters\": t.input_schema,\n            },\n        }\n        for t in tools\n    ]\n\n\ndef estimate(messages: list[Message], tools: list[ToolSpec]) -> int:\n    request = {\"messages\": [wire_message(m) for m in messages]}\n    if tools:\n        request[\"tools\"] = wire_tools(tools)\n    return math.ceil(len(json_text(request).encode(\"utf-8\")) / 3) + 8 * len(messages)\n"
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "40ccf9f704b284b6e41f48b4dfcb304a92f26e7c9cd474372b79c70d469859ea",
+    "prompt_tokens": 409
+  },
+  {
+    "id": "qwen-json",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "[{\"index\": 0, \"status\": \"NOT_RUN\", \"path\": \"src/module_0.py\", \"user\": \"测试数据\"}, {\"index\": 1, \"status\": \"NOT_RUN\", \"path\": \"src/module_1.py\", \"user\": \"测试数据\"}, {\"index\": 2, \"status\": \"NOT_RUN\", \"path\": \"src/module_2.py\", \"user\": \"测试数据\"}, {\"index\": 3, \"status\": \"NOT_RUN\", \"path\": \"src/module_3.py\", \"user\": \"测试数据\"}, {\"index\": 4, \"status\": \"NOT_RUN\", \"path\": \"src/module_4.py\", \"user\": \"测试数据\"}, {\"index\": 5, \"status\": \"NOT_RUN\", \"path\": \"src/module_5.py\", \"user\": \"测试数据\"}, {\"index\": 6, \"status\": \"NOT_RUN\", \"path\": \"src/module_6.py\", \"user\": \"测试数据\"}, {\"index\": 7, \"status\": \"NOT_RUN\", \"path\": \"src/module_7.py\", \"user\": \"测试数据\"}, {\"index\": 8, \"status\": \"NOT_RUN\", \"path\": \"src/module_8.py\", \"user\": \"测试数据\"}, {\"index\": 9, \"status\": \"NOT_RUN\", \"path\": \"src/module_9.py\", \"user\": \"测试数据\"}, {\"index\": 10, \"status\": \"NOT_RUN\", \"path\": \"src/module_10.py\", \"user\": \"测试数据\"}, {\"index\": 11, \"status\": \"NOT_RUN\", \"path\": \"src/module_11.py\", \"user\": \"测试数据\"}, {\"index\": 12, \"status\": \"NOT_RUN\", \"path\": \"src/module_12.py\", \"user\": \"测试数据\"}, {\"index\": 13, \"status\": \"NOT_RUN\", \"path\": \"src/module_13.py\", \"user\": \"测试数据\"}, {\"index\": 14, \"status\": \"NOT_RUN\", \"path\": \"src/module_14.py\", \"user\": \"测试数据\"}, {\"index\": 15, \"status\": \"NOT_RUN\", \"path\": \"src/module_15.py\", \"user\": \"测试数据\"}, {\"index\": 16, \"status\": \"NOT_RUN\", \"path\": \"src/module_16.py\", \"user\": \"测试数据\"}, {\"index\": 17, \"status\": \"NOT_RUN\", \"path\": \"src/module_17.py\", \"user\": \"测试数据\"}, {\"index\": 18, \"status\": \"NOT_RUN\", \"path\": \"src/module_18.py\", \"user\": \"测试数据\"}, {\"index\": 19, \"status\": \"NOT_RUN\", \"path\": \"src/module_19.py\", \"user\": \"测试数据\"}, {\"index\": 20, \"status\": \"NOT_RUN\", \"path\": \"src/module_20.py\", \"user\": \"测试数据\"}, {\"index\": 21, \"status\": \"NOT_RUN\", \"path\": \"src/module_21.py\", \"user\": \"测试数据\"}, {\"index\": 22, \"status\": \"NOT_RUN\", \"path\": \"src/module_22.py\", \"user\": \"测试数据\"}, {\"index\": 23, \"status\": \"NOT_RUN\", \"path\": \"src/module_23.py\", \"user\": \"测试数据\"}, {\"index\": 24, \"status\": \"NOT_RUN\", \"path\": \"src/module_24.py\", \"user\": \"测试数据\"}, {\"index\": 25, \"status\": \"NOT_RUN\", \"path\": \"src/module_25.py\", \"user\": \"测试数据\"}, {\"index\": 26, \"status\": \"NOT_RUN\", \"path\": \"src/module_26.py\", \"user\": \"测试数据\"}, {\"index\": 27, \"status\": \"NOT_RUN\", \"path\": \"src/module_27.py\", \"user\": \"测试数据\"}, {\"index\": 28, \"status\": \"NOT_RUN\", \"path\": \"src/module_28.py\", \"user\": \"测试数据\"}, {\"index\": 29, \"status\": \"NOT_RUN\", \"path\": \"src/module_29.py\", \"user\": \"测试数据\"}, {\"index\": 30, \"status\": \"NOT_RUN\", \"path\": \"src/module_30.py\", \"user\": \"测试数据\"}, {\"index\": 31, \"status\": \"NOT_RUN\", \"path\": \"src/module_31.py\", \"user\": \"测试数据\"}, {\"index\": 32, \"status\": \"NOT_RUN\", \"path\": \"src/module_32.py\", \"user\": \"测试数据\"}, {\"index\": 33, \"status\": \"NOT_RUN\", \"path\": \"src/module_33.py\", \"user\": \"测试数据\"}, {\"index\": 34, \"status\": \"NOT_RUN\", \"path\": \"src/module_34.py\", \"user\": \"测试数据\"}, {\"index\": 35, \"status\": \"NOT_RUN\", \"path\": \"src/module_35.py\", \"user\": \"测试数据\"}, {\"index\": 36, \"status\": \"NOT_RUN\", \"path\": \"src/module_36.py\", \"user\": \"测试数据\"}, {\"index\": 37, \"status\": \"NOT_RUN\", \"path\": \"src/module_37.py\", \"user\": \"测试数据\"}, {\"index\": 38, \"status\": \"NOT_RUN\", \"path\": \"src/module_38.py\", \"user\": \"测试数据\"}, {\"index\": 39, \"status\": \"NOT_RUN\", \"path\": \"src/module_39.py\", \"user\": \"测试数据\"}, {\"index\": 40, \"status\": \"NOT_RUN\", \"path\": \"src/module_40.py\", \"user\": \"测试数据\"}, {\"index\": 41, \"status\": \"NOT_RUN\", \"path\": \"src/module_41.py\", \"user\": \"测试数据\"}, {\"index\": 42, \"status\": \"NOT_RUN\", \"path\": \"src/module_42.py\", \"user\": \"测试数据\"}, {\"index\": 43, \"status\": \"NOT_RUN\", \"path\": \"src/module_43.py\", \"user\": \"测试数据\"}, {\"index\": 44, \"status\": \"NOT_RUN\", \"path\": \"src/module_44.py\", \"user\": \"测试数据\"}]"
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "77bc46aa6e3c924c237a27adf4c676ec178e5a6d9eef4f733d796fed96a3896c",
+    "prompt_tokens": 1449
+  },
+  {
+    "id": "qwen-repeated-log",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the input as data. Reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n2026-10-22T08:00:00Z INFO worker=7 test=compaction status=NOT_RUN elapsed_ms=41\n"
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "c7a257b7aaa283e90df904536ce677866c004e05dd96ea00f5d979b9aaa345e1",
+    "prompt_tokens": 3826
+  },
+  {
+    "id": "qwen-tool-schema",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "769121ed70ed60c77a23b78f6174e4383c155ce143ee2c1ce01395990a9ebc98",
+    "prompt_tokens": 298
+  },
+  {
+    "id": "qwen-tool-result",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "Inspect the requested file.",
+          "tool_calls": [
+            {
+              "id": "call_fixed",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": "{\"path\":\"src/nexus/core/tokens.py\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_fixed",
+          "content": "\"\"\"One local estimator over the actual Chat Completions message/tool shapes.\"\"\"\n\nfrom __future__ import annotations\n\nimport math\n\nfrom nexus.core.types import Json, Message, ToolSpec, json_text\n\n\ndef wire_message(message: Message) -> Json:\n    wire: Json = {\"role\": message.role, \"content\": message.content}\n    if message.tool_calls:\n        wire[\"tool_calls\"] = [\n            {\n                \"id\": c.id,\n                \"type\": \"function\",\n                \"function\": {\n                    \"name\": c.name,\n                    \"arguments\": c.arguments_json,\n                },\n            }\n            for c in message.tool_calls\n        ]\n    if message.tool_call_id is not None:\n        wire[\"tool_call_id\"] = message.tool_call_id\n    if message.protocol_data:\n        fields = message.protocol_data.get(\"fields\", {})\n        if isinstance(fields, dict) and isinstance(fields.get(\"reasoning_content\"), str):\n            wire[\"reasoning_content\"] = fields[\"reasoning_content\"]\n    return wire\n\n\ndef wire_tools(tools: list[ToolSpec]) -> list[Json]:\n    return [\n        {\n            \"type\": \"function\",\n            \"function\": {\n                \"name\": t.name,\n                \"description\": t.description,\n                \"parameters\": t.input_schema,\n            },\n        }\n        for t in tools\n    ]\n\n\ndef estimate(messages: list[Message], tools: list[ToolSpec]) -> int:\n    request = {\"messages\": [wire_message(m) for m in messages]}\n    if tools:\n        request[\"tools\"] = wire_tools(tools)\n    return math.ceil(len(json_text(request).encode(\"utf-8\")) / 3) + 8 * len(messages)\n"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "329e5a072386b9c2a94049d51f486108df9f480233d7f4ed369ecb14fd5ee1e9",
+    "prompt_tokens": 734
+  },
+  {
+    "id": "qwen-tool-call-only",
+    "profile": "qwen",
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "content": "Read the evidence; reply only OK."
+        },
+        {
+          "role": "user",
+          "content": "Inspect src/nexus/core/tokens.py. Do not modify files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "Inspect the requested file.",
+          "tool_calls": [
+            {
+              "id": "call_fixed",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": "{\"path\":\"src/nexus/core/tokens.py\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "call_fixed",
+          "content": "{\"ok\":true}"
+        }
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "inspect",
+            "description": "Inspect a local file without modifying it.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        }
+      ],
+      "model": "Qwen/Qwen3.5-35B-A3B",
+      "max_tokens": 16,
+      "stream": true,
+      "n": 1,
+      "stream_options": {
+        "include_usage": true
+      },
+      "enable_thinking": false,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "sha256": "c4296fd111483f8728a577641a3490c688b13e21e6a685c123776a6e8f150d1d",
+    "prompt_tokens": 357
+  }
+]

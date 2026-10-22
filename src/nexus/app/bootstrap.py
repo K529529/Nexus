@@ -19,6 +19,7 @@ from nexus.core.compaction import provenance
 from nexus.core.context import Context, ContextBuilder, instructions
 from nexus.core.model import ChatModel, CompactionModel
 from nexus.core.skills import check_active
+from nexus.core.tokens import TokenEstimator
 from nexus.core.types import Message, ModelError, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
 from nexus.tools.registry import default_tools
@@ -53,6 +54,20 @@ class Conversation:
             compaction_window=compact.context_window if compact else 128000,
             summary_tokens=compact.max_output_tokens if compact else 4096,
             secrets=self.secret_values(),
+            main_estimator=TokenEstimator(
+                config.model.name,
+                config.model.base_url,
+                reasoning_effort=config.model.reasoning_effort,
+                enable_thinking=config.model.enable_thinking,
+            ),
+            compaction_estimator=TokenEstimator(
+                compact.name,
+                compact.base_url,
+                reasoning_effort=compact.reasoning_effort,
+                enable_thinking=compact.enable_thinking,
+            )
+            if compact
+            else None,
         )
         if config.compaction_model is None:
             self.warnings.append(

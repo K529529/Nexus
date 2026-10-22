@@ -1,0 +1,222 @@
+{
+  "calls": 24,
+  "max_output_tokens": 16,
+  "rows": [
+    {
+      "id": "deepseek-english",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 689,
+      "old_estimate": 1404,
+      "sha256": "03bbc22f4cf26ca0ad019f33dd17f02495abff237614b2b1ca70c3d6b1d9a474",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-chinese",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 1004,
+      "old_estimate": 1884,
+      "sha256": "d945bcbfd75c741f42da8a05d881fa0cf0b8143107dfbc54718b6df0fb58b5e0",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-python",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 387,
+      "old_estimate": 619,
+      "sha256": "266e36a330549f6738d6cd9e93f6c1467435b1bf987e1b47681a88f6bbc5a745",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-json",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 1456,
+      "old_estimate": 1577,
+      "sha256": "1bd7687d6572770bdb104d5707c3f44f46779b8ca55c38d56c94cb9dee1c6e98",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-repeated-log",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 3114,
+      "old_estimate": 2754,
+      "sha256": "14cb2e5110d80de05a37193c3e57eec09aae0aa718ce6f24640280855d6d5bed",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-tool-schema",
+      "profile": "deepseek",
+      "category": "first",
+      "native_estimate": 298,
+      "old_estimate": 140,
+      "sha256": "0be08ebe6cccab6009f440d2aa7930de92073369e771eaf8787c67b61892125c",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-tool-result",
+      "profile": "deepseek",
+      "category": "continuous",
+      "native_estimate": 740,
+      "old_estimate": 814,
+      "sha256": "1969b98dccd2eec3f7c9f23b96e44280f8425215554e19d324f9bb7342a9e097",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-tool-call-only",
+      "profile": "deepseek",
+      "category": "controlled",
+      "native_estimate": 371,
+      "old_estimate": 253,
+      "sha256": "61d32b8179955b4646b1439fd21a07cd3ab0cceb0bec2c7f09ea9fb6323080df",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "deepseek-real-mixed-1",
+      "profile": "deepseek",
+      "category": "real-history-replay",
+      "native_estimate": 12733,
+      "old_estimate": 16473,
+      "sha256": "ad471169ced4ac9f74ccace762ed56065216ee89f10cee4181a53f4c5c9d329e",
+      "payload_location": "local-only artifacts/final-p1/manifest.json"
+    },
+    {
+      "id": "deepseek-real-mixed-2",
+      "profile": "deepseek",
+      "category": "real-history-replay",
+      "native_estimate": 50151,
+      "old_estimate": 55356,
+      "sha256": "d012757fd05ed38677eab86cac6e161db44995ca2fe78cbc90dc33c1057cf8d2",
+      "payload_location": "local-only artifacts/final-p1/manifest.json"
+    },
+    {
+      "id": "deepseek-boundary-119000",
+      "profile": "deepseek",
+      "category": "boundary",
+      "native_estimate": 119000,
+      "old_estimate": 272580,
+      "sha256": "5bc2ea5bc27be87c4591a7b0920f83c6d741b20db83592e9671a4ebb25ed9472",
+      "payload_location": "tests/fixtures/token_boundaries.json.gz"
+    },
+    {
+      "id": "deepseek-boundary-124000",
+      "profile": "deepseek",
+      "category": "boundary",
+      "native_estimate": 124000,
+      "old_estimate": 284875,
+      "sha256": "813b7bf6cb0c59a37e16dce6a23deef3816f2765832ee515c3979752a110fb60",
+      "payload_location": "tests/fixtures/token_boundaries.json.gz"
+    },
+    {
+      "id": "qwen-english",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 746,
+      "old_estimate": 1404,
+      "sha256": "de0505c6b492d8fc04ec5f7b9fe0c9f48c0e78e70b0cd21fb6b766ebd68bfa44",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-chinese",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 1061,
+      "old_estimate": 1884,
+      "sha256": "3902342e933bda34e8bf4238a7da57e8e0517e3e56db959ba8b940232a4922f5",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-python",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 409,
+      "old_estimate": 619,
+      "sha256": "40ccf9f704b284b6e41f48b4dfcb304a92f26e7c9cd474372b79c70d469859ea",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-json",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 1449,
+      "old_estimate": 1577,
+      "sha256": "77bc46aa6e3c924c237a27adf4c676ec178e5a6d9eef4f733d796fed96a3896c",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-repeated-log",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 3826,
+      "old_estimate": 2754,
+      "sha256": "c7a257b7aaa283e90df904536ce677866c004e05dd96ea00f5d979b9aaa345e1",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-tool-schema",
+      "profile": "qwen",
+      "category": "first",
+      "native_estimate": 293,
+      "old_estimate": 140,
+      "sha256": "769121ed70ed60c77a23b78f6174e4383c155ce143ee2c1ce01395990a9ebc98",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-tool-result",
+      "profile": "qwen",
+      "category": "continuous",
+      "native_estimate": 729,
+      "old_estimate": 814,
+      "sha256": "329e5a072386b9c2a94049d51f486108df9f480233d7f4ed369ecb14fd5ee1e9",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-tool-call-only",
+      "profile": "qwen",
+      "category": "controlled",
+      "native_estimate": 352,
+      "old_estimate": 253,
+      "sha256": "c4296fd111483f8728a577641a3490c688b13e21e6a685c123776a6e8f150d1d",
+      "payload_location": "tests/fixtures/token_usage.json"
+    },
+    {
+      "id": "qwen-real-mixed-1",
+      "profile": "qwen",
+      "category": "real-history-replay",
+      "native_estimate": 12203,
+      "old_estimate": 16473,
+      "sha256": "a0894f3b0639b5e97c4e524faf7c526d1f4cdb01fcdd0e881d12275410f5fffe",
+      "payload_location": "local-only artifacts/final-p1/manifest.json"
+    },
+    {
+      "id": "qwen-real-mixed-2",
+      "profile": "qwen",
+      "category": "real-history-replay",
+      "native_estimate": 48596,
+      "old_estimate": 55356,
+      "sha256": "bd7bdd1a353b4aefb48fbed88bff001141d6f4ebe9e022da5e0462949cc94487",
+      "payload_location": "local-only artifacts/final-p1/manifest.json"
+    },
+    {
+      "id": "qwen-boundary-119000",
+      "profile": "qwen",
+      "category": "boundary",
+      "native_estimate": 119000,
+      "old_estimate": 277834,
+      "sha256": "fc792f98986d363745276f84bd0665623e2a2a4d4f0feb96767dca7aef7c8e9a",
+      "payload_location": "tests/fixtures/token_boundaries.json.gz"
+    },
+    {
+      "id": "qwen-boundary-124000",
+      "profile": "qwen",
+      "category": "boundary",
+      "native_estimate": 124000,
+      "old_estimate": 288901,
+      "sha256": "5790e552a8d4f55157a1d964d9d72693ffb75ea0a2bdb7bd39cf68f11b936332",
+      "payload_location": "tests/fixtures/token_boundaries.json.gz"
+    }
+  ]
+}

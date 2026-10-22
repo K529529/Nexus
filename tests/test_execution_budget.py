@@ -40,20 +40,21 @@ def test_request_copy_preserves_source_and_metadata(role: Literal["system", "use
 
 def test_counter_changes_keep_calibration_but_other_prefix_changes_reset_it() -> None:
     context = Context(Limits())
-    logical = [Message("system", "rules / plan"), Message("user", "task")]
+    logical = [Message("system", "rules / plan"), Message("user", "task " * 200)]
     for change in ("plan", "schema", "nudge"):
         context.execution_budget = execution_budget(9, 40)
         request = context.task_request(logical)
         context.check(request, [])
         response = reply(text="observed")
-        response.usage = Usage(1234, 1, 1235, "reported")
+        reported = math.ceil(estimate(request, []) * 1.05)
+        response.usage = Usage(reported, 1, reported + 1, "reported")
         context.observe(response, request, [])
         assert context.last_estimate == estimate(request, []) > estimate(logical, [])
         context.execution_budget = execution_budget(10, 40)
         following = context.task_request(logical)
-        expected = math.ceil(estimate(following, []) * 1234 / estimate(request, []))
+        expected = math.ceil(estimate(following, []) * (reported / estimate(request, [])))
         assert context.tokens(following, []) == expected
-        assert context.last_report == 1234
+        assert context.last_report == reported
         tools = []
         if change == "plan":
             following[0].content = following[0].content.replace("rules / plan", "rules / new plan")
@@ -63,9 +64,9 @@ def test_counter_changes_keep_calibration_but_other_prefix_changes_reset_it() ->
             following = context.task_request(logical, GUIDANCE)
         if change == "nudge":
             assert context.tokens(following, tools) == math.ceil(
-                estimate(following, tools) * 1234 / estimate(request, [])
+                estimate(following, tools) * (reported / estimate(request, []))
             )
-            assert context.last_report == 1234
+            assert context.last_report == reported
         else:
             assert context.tokens(following, tools) == estimate(following, tools)
             assert context.last_report is None

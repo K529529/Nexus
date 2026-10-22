@@ -4,15 +4,39 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 import time
 from dataclasses import asdict
 from typing import Any
+from urllib.parse import urlsplit
 
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
 from nexus.app.config import ModelConfig
 from nexus.core.tokens import wire_message, wire_tools
 from nexus.core.types import Emit, Json, Message, ModelError, ModelReply, ToolCall, ToolSpec, Usage
+
+
+def context_overflow(status: int, body: object, base_url: str) -> bool:
+    if not isinstance(body, dict):
+        return False
+    inner = body.get("error", body)
+    if not isinstance(inner, dict):
+        return False
+    if inner.get("code") in {"context_length_exceeded", "context_length_error"}:
+        return True
+    # Provider-specific wording, not a generic 400 or quota classification. The
+    # quota_limit_reached code is also used for account/usage limits; require text.
+    if status != 400 or urlsplit(base_url).hostname != "api.deepseek.com":
+        return False
+    message = inner.get("message")
+    if not isinstance(message, str):
+        return False
+    return bool(
+        re.match(r"input[\s_-]tokens?\s+exceed(?:s|ed)?\s+the\s+limit\b", message, re.I)
+        or re.match(r"this model's maximum context length is \d+ tokens\b", message, re.I)
+        or re.match(r"the input is longer than the model's context length\b", message, re.I)
+    )
 
 
 class CompactionModel:
@@ -217,12 +241,7 @@ class ChatModel:
                 status = exc.status_code if isinstance(exc, APIStatusError) else None
                 code = "model_transport" if status is None else f"model_http_{status}"
                 if isinstance(exc, APIStatusError):
-                    body = exc.body if isinstance(exc.body, dict) else {}
-                    inner = body.get("error", body)
-                    if isinstance(inner, dict) and inner.get("code") in {
-                        "context_length_exceeded",
-                        "context_length_error",
-                    }:
+                    if context_overflow(exc.status_code, exc.body, self.config.base_url):
                         code = "context_limit"
                 await emit(
                     "model_finished",

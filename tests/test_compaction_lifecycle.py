@@ -211,7 +211,8 @@ def test_estimate_calibration_reset_and_usage_missing() -> None:
     messages = [Message("user", "task")]
     response = reply(text="done")
     context.observe(response, messages, [])
-    assert context.tokens(messages, []) == 10
+    # Tiny receipts cannot impose a content-independent ratio on future long inputs.
+    assert context.tokens(messages, []) == estimate(messages, [])
     shaped = messages + [Message("assistant", "done")]
     assert context.tokens(shaped, []) == estimate(shaped, [])
     response.usage = Usage()

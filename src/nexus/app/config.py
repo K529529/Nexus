@@ -114,7 +114,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
         if value := os.environ.get(f"NEXUS_{section.upper()}_{field_name.upper()}"):
             model[field_name] = value
     name = _text(model.get("name"), f"{section}.name")
-    window = _integer(model.get("context_window"), f"{section}.context_window")
+    window = _integer(model.get("context_window", 128000), f"{section}.context_window")
     maximum = _integer(model.get("max_output_tokens", 8192), f"{section}.max_output_tokens")
     if window - maximum - 1024 <= 0:
         raise ConfigError(f"{section}.context_window must exceed max_output_tokens + 1024")

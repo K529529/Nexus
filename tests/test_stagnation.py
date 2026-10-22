@@ -12,7 +12,7 @@ import pytest
 from nexus.app.events import Events
 from nexus.app.session import SessionLog, read_records, replay, resume_session
 from nexus.core.agent import append_message, run_turn
-from nexus.core.context import Context, estimate, execution_budget, groups, project_guidance
+from nexus.core.context import execution_budget, groups, project_guidance
 from nexus.core.plan import SNAPSHOT_HEADER
 from nexus.core.stagnation import (
     GUIDANCE,
@@ -442,21 +442,14 @@ async def test_scheduled_does_not_mean_included_when_protected_context_cannot_fi
     events = Recorder()
     await append_message(session, Message("system", "root rules"), events)
     tools = registry(session)
-    specs = [t.spec for t in tools.values()]
-    projected = (
-        Context(Limits())
-        .project(session, session.messages + [Message("user", "continue", seq=2, run_id="run")])
-        .messages
-    )
-    context = Context(Limits())
-    context.execution_budget = execution_budget(9, 40)
-    base = estimate(context.task_request(projected), specs)
-    total = estimate(context.task_request(projected, GUIDANCE), specs)
-    budget = (base + total) // 2
+    budget = 8000
     responses = reads(8) + [reply(text="must not request")]
-    # Provider calibration reveals insufficient protected capacity at the boundary
-    # where the nudge is scheduled, even though earlier requests fit.
-    responses[7].usage = Usage(100_000, 5, 100_005, "reported")
+    # All earlier requests fit. The last assistant payload makes the complete request
+    # too large just as the nudge is scheduled. Do not rely on an unbounded fake ratio
+    # to collapse history to 10 tokens and then inflate it to 100,000 tokens.
+    for response in responses:
+        response.usage = Usage()
+    responses[7].message.content = "Recorded inspection evidence. " * 2000
     model = ScriptedModel(responses)
     result = await run_turn(
         session,

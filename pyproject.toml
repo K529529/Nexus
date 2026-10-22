@@ -17,6 +17,8 @@ dependencies = [
     "prompt-toolkit>=3,<4",
     "rich>=14,<15",
     "pyyaml>=6,<7",
+    "tokenizers>=0.23.3,<0.24",
+    "jinja2>=3.1.6,<4",
 ]
 
 [project.urls]
@@ -41,7 +43,7 @@ packages = ["src/nexus"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src", "/tests", "/scripts/swebench_v0.py", "/docs/next",
+    "/src", "/tests", "/scripts/swebench_v0.py", "/scripts/token_accuracy.py", "/docs/next",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [
@@ -55,10 +57,13 @@ exclude = [
 [tool.pytest.ini_options]
 addopts = "-ra"
 asyncio_mode = "auto"
+tmp_path_retention_policy = "failed"
+tmp_path_retention_count = 3
 testpaths = ["tests"]
 pythonpath = ["src", "."]
 
 [tool.ruff]
+extend-exclude = ["src/nexus/_vendor"]
 line-length = 100
 target-version = "py312"
 
@@ -69,3 +74,7 @@ select = ["ASYNC", "B", "E", "F", "I", "UP"]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = "nexus._vendor.*"
+ignore_errors = true
