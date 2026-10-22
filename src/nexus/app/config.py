@@ -46,6 +46,7 @@ class Config:
     response_language: str = "zh-CN"
     compaction_model: ModelConfig | None = None
     memory_enabled: bool = True
+    memory_qmd_command: tuple[str, ...] = ("qmd",)
 
 
 def config_path() -> Path:
@@ -180,10 +181,17 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     execution = _table(data, "execution", {"shell", "output_limit_bytes"})
     mcp = _table(data, "mcp", {"servers"})
     servers = mcp.get("servers", {})
-    memory = _table(data, "memory", {"enabled"})
+    memory = _table(data, "memory", {"enabled", "qmd_command"})
     memory_enabled = memory.get("enabled", True)
     if type(memory_enabled) is not bool:
         raise ConfigError("memory.enabled: expected boolean")
+    qmd_command = memory.get("qmd_command", ["qmd"])
+    if (
+        not isinstance(qmd_command, list)
+        or not qmd_command
+        or any(not isinstance(part, str) or not part.strip() for part in qmd_command)
+    ):
+        raise ConfigError("memory.qmd_command: expected nonempty command argument array")
     if not isinstance(servers, dict):
         raise ConfigError("mcp.servers: expected table")
     limits = Limits(
@@ -201,4 +209,6 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         settings.key()
         if compaction is not None:
             compaction.key()
-    return Config(settings, limits, servers, language, compaction, memory_enabled)
+    return Config(
+        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command)
+    )

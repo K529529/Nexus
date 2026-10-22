@@ -55,14 +55,14 @@ def test_recovery_failure_never_deletes(tmp_path: Path, monkeypatch: Any) -> Non
 def test_delete_failure_after_recovery_can_be_restored(tmp_path: Path, monkeypatch: Any) -> None:
     store = MemoryStore(tmp_path)
     a = store.write("MEMORY.md", "keep this")
-    original = memory.atomic_write
+    original = Path.unlink
 
-    def fail(path: Path, text: str) -> None:
+    def fail(path: Path, missing_ok: bool = False) -> None:
         if path.name == "MEMORY.md":
-            raise OSError("replace failed")
-        original(path, text)
+            raise OSError("remove failed")
+        original(path, missing_ok=missing_ok)
 
-    monkeypatch.setattr(memory, "atomic_write", fail)
+    monkeypatch.setattr(Path, "unlink", fail)
     with pytest.raises(OSError):
         store.forget("MEMORY.md", a["id"], a["revision"])
     recovery = next((tmp_path / "recovery").glob("*.json"))

@@ -1,0 +1,435 @@
+{
+  "status": "PASS",
+  "queries": [
+    {
+      "query": "FilePilot 清理目录时如何处理 junction 和拒绝访问？",
+      "seconds": 17.93699999997625,
+      "response": {
+        "results": [
+          {
+            "docid": "#78e9da",
+            "file": "nexus-memory/daily/2026-09-01.md",
+            "title": "2026-09-01",
+            "score": 1,
+            "context": null,
+            "line": 2,
+            "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:9e680e48d1fc4348bb708b2fd7324be2 -->\n4: FilePilot filesystem decision: do not traverse directory junctions during cleanup. Preserve inaccessible paths and report permission errors.\n5: <!-- /nexus-memory -->\n6: "
+          },
+          {
+            "docid": "#be886e",
+            "file": "nexus-memory/daily/2026-09-04.md",
+            "title": "2026-09-04",
+            "score": 0.38,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n3: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#0744a5",
+            "file": "nexus-memory/daily/2026-09-02.md",
+            "title": "2026-09-02",
+            "score": 0.25,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#54ca01",
+            "file": "nexus-memory/MEMORY.md",
+            "title": "MEMORY",
+            "score": 0.15,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n3: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#52bd2a",
+            "file": "nexus-memory/daily/2026-09-03.md",
+            "title": "2026-09-03",
+            "score": 0.12,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+          }
+        ],
+        "discarded_stale_results": 0,
+        "index_status": "ready",
+        "retrieval": "qmd-hybrid-rerank"
+      }
+    },
+    {
+      "query": "恢复 session 是否会重新执行之前的 shell 命令",
+      "seconds": 1.327999999979511,
+      "response": {
+        "results": [
+          {
+            "docid": "#be886e",
+            "file": "nexus-memory/daily/2026-09-04.md",
+            "title": "2026-09-04",
+            "score": 0.99,
+            "context": null,
+            "line": 2,
+            "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n4: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n5: <!-- /nexus-memory -->\n6: "
+          },
+          {
+            "docid": "#0744a5",
+            "file": "nexus-memory/daily/2026-09-02.md",
+            "title": "2026-09-02",
+            "score": 0.38,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#54ca01",
+            "file": "nexus-memory/MEMORY.md",
+            "title": "MEMORY",
+            "score": 0.25,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n3: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#78e9da",
+            "file": "nexus-memory/daily/2026-09-01.md",
+            "title": "2026-09-01",
+            "score": 0.15,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:9e680e48d1fc4348bb708b2fd7324be2 -->\n3: FilePilot filesystem decision: do not traverse directory junctions during cleanup. Preserve inaccessible paths and report permission errors.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#52bd2a",
+            "file": "nexus-memory/daily/2026-09-03.md",
+            "title": "2026-09-03",
+            "score": 0.12,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+          }
+        ],
+        "discarded_stale_results": 0,
+        "index_status": "ready",
+        "retrieval": "qmd-hybrid-rerank"
+      }
+    },
+    {
+      "query": "Python regression pytest",
+      "seconds": 1.0940000000409782,
+      "response": {
+        "results": [
+          {
+            "docid": "#54ca01",
+            "file": "nexus-memory/MEMORY.md",
+            "title": "MEMORY",
+            "score": 1,
+            "context": null,
+            "line": 2,
+            "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n4: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n5: <!-- /nexus-memory -->\n6: "
+          },
+          {
+            "docid": "#52bd2a",
+            "file": "nexus-memory/daily/2026-09-03.md",
+            "title": "2026-09-03",
+            "score": 0.38,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#be886e",
+            "file": "nexus-memory/daily/2026-09-04.md",
+            "title": "2026-09-04",
+            "score": 0.25,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n3: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#0744a5",
+            "file": "nexus-memory/daily/2026-09-02.md",
+            "title": "2026-09-02",
+            "score": 0.15,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+          },
+          {
+            "docid": "#78e9da",
+            "file": "nexus-memory/daily/2026-09-01.md",
+            "title": "2026-09-01",
+            "score": 0.12,
+            "context": null,
+            "line": 1,
+            "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:9e680e48d1fc4348bb708b2fd7324be2 -->\n3: FilePilot filesystem decision: do not traverse directory junctions during cleanup. Preserve inaccessible paths and report permission errors.\n4: <!-- /nexus-memory -->"
+          }
+        ],
+        "discarded_stale_results": 0,
+        "index_status": "ready",
+        "retrieval": "qmd-hybrid-rerank"
+      }
+    }
+  ],
+  "qmd_status": {
+    "totalDocuments": 5,
+    "needsEmbedding": 0,
+    "hasVectorIndex": true,
+    "collections": [
+      {
+        "name": "nexus-memory",
+        "path": "<acceptance-memory>",
+        "pattern": "{MEMORY.md,SCRATCHPAD.md,daily/*.md}",
+        "documents": 5,
+        "lastUpdated": "2026-10-22T21:12:32.841Z"
+      }
+    ]
+  },
+  "after_write": {
+    "results": [
+      {
+        "docid": "#f54349",
+        "file": "nexus-memory/daily/2026-09-05.md",
+        "title": "2026-09-05",
+        "score": 1,
+        "context": null,
+        "line": 2,
+        "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:c7ff807aa779434291160cda6359495b -->\n4: FilePilot acceptance sentinel: cobalt-otter-927.\n5: <!-- /nexus-memory -->\n6: "
+      },
+      {
+        "docid": "#0744a5",
+        "file": "nexus-memory/daily/2026-09-02.md",
+        "title": "2026-09-02",
+        "score": 0.38,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#54ca01",
+        "file": "nexus-memory/MEMORY.md",
+        "title": "MEMORY",
+        "score": 0.25,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n3: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#be886e",
+        "file": "nexus-memory/daily/2026-09-04.md",
+        "title": "2026-09-04",
+        "score": 0.15,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n3: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#52bd2a",
+        "file": "nexus-memory/daily/2026-09-03.md",
+        "title": "2026-09-03",
+        "score": 0.12,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+      }
+    ],
+    "discarded_stale_results": 0,
+    "index_status": "ready",
+    "retrieval": "qmd-hybrid-rerank"
+  },
+  "after_forget": {
+    "results": [
+      {
+        "docid": "#0744a5",
+        "file": "nexus-memory/daily/2026-09-02.md",
+        "title": "2026-09-02",
+        "score": 0.75,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#54ca01",
+        "file": "nexus-memory/MEMORY.md",
+        "title": "MEMORY",
+        "score": 0.38,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n3: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#be886e",
+        "file": "nexus-memory/daily/2026-09-04.md",
+        "title": "2026-09-04",
+        "score": 0.25,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n3: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#52bd2a",
+        "file": "nexus-memory/daily/2026-09-03.md",
+        "title": "2026-09-03",
+        "score": 0.15,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#78e9da",
+        "file": "nexus-memory/daily/2026-09-01.md",
+        "title": "2026-09-01",
+        "score": 0.12,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:9e680e48d1fc4348bb708b2fd7324be2 -->\n3: FilePilot filesystem decision: do not traverse directory junctions during cleanup. Preserve inaccessible paths and report permission errors.\n4: <!-- /nexus-memory -->"
+      }
+    ],
+    "discarded_stale_results": 0,
+    "index_status": "ready",
+    "retrieval": "qmd-hybrid-rerank"
+  },
+  "after_restore": {
+    "results": [
+      {
+        "docid": "#f54349",
+        "file": "nexus-memory/daily/2026-09-05.md",
+        "title": "2026-09-05",
+        "score": 1,
+        "context": null,
+        "line": 2,
+        "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:c7ff807aa779434291160cda6359495b -->\n4: FilePilot acceptance sentinel: cobalt-otter-927.\n5: <!-- /nexus-memory -->\n6: "
+      },
+      {
+        "docid": "#0744a5",
+        "file": "nexus-memory/daily/2026-09-02.md",
+        "title": "2026-09-02",
+        "score": 0.38,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:09369d62f9a84bb2b7a18a9c469818d9 -->\n3: The development web server listens on port 4317. The client polls operation status every two seconds.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#52bd2a",
+        "file": "nexus-memory/daily/2026-09-03.md",
+        "title": "2026-09-03",
+        "score": 0.25,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:a78e8b6a67554c23a295b1cbe2ef1a75 -->\n3: The build uses TypeScript strict mode. Keep package-lock.json committed for reproducible npm installs.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#54ca01",
+        "file": "nexus-memory/MEMORY.md",
+        "title": "MEMORY",
+        "score": 0.15,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:c0c79d15e70d46f29b0cf30ead68776e -->\n3: Nexus engineering preference: use pytest for Python regression tests. Keep failed evaluation attempts and never count mocks as real acceptance.\n4: <!-- /nexus-memory -->"
+      },
+      {
+        "docid": "#be886e",
+        "file": "nexus-memory/daily/2026-09-04.md",
+        "title": "2026-09-04",
+        "score": 0.12,
+        "context": null,
+        "line": 1,
+        "snippet": "1: @@ -1,3 @@ (0 before, 1 after)\n2: <!-- nexus-memory:7713330acc9145cf8b48d9592e428ee5 -->\n3: Nexus uses one message-driven agent loop. Session JSONL recovery restores conversation without replaying shell side effects.\n4: <!-- /nexus-memory -->"
+      }
+    ],
+    "discarded_stale_results": 0,
+    "index_status": "ready",
+    "retrieval": "qmd-hybrid-rerank"
+  },
+  "reused_mcp_connection": true,
+  "seconds": 86.67200000002049,
+  "events": [
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "a0b4c6ecb54ca95b0caf280fb10f1c497b4ce6335e88ceb1677318bfcf832ff3"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "20ceb643d7544bd5e10edcb7635c9ee3a48f45ad07ce25ba0dcc80d29a91c53a"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "a0b4c6ecb54ca95b0caf280fb10f1c497b4ce6335e88ceb1677318bfcf832ff3"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "20ceb643d7544bd5e10edcb7635c9ee3a48f45ad07ce25ba0dcc80d29a91c53a"
+      }
+    }
+  ]
+}

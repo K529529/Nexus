@@ -1,0 +1,16 @@
+{
+  "status": "FAIL",
+  "queries": [],
+  "error": "RuntimeError: {'status': 'unavailable', 'embedding_model': 'hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf', 'detail': 'Unexpected private QMD collection/configuration; inspect .retrieval'}",
+  "seconds": 0.3119999999762513,
+  "events": [
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "unavailable",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "detail": "Unexpected private QMD collection/configuration; inspect .retrieval"
+      }
+    }
+  ]
+}

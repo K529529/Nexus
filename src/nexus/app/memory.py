@@ -114,7 +114,12 @@ class MemoryStore:
         atomic_write(self.path(".dirty"), uuid4().hex)
         if invalidate:
             atomic_write(self.path(".epoch"), uuid4().hex)
-        atomic_write(self.path(name), new)
+        if new.strip():
+            atomic_write(self.path(name), new)
+        else:
+            # QMD 2.8.3 skips empty files without retiring their previous indexed body.
+            # Removing the now-empty authority file makes qmd update deactivate that document.
+            self.path(name).unlink(missing_ok=True)
 
     def inspect(self, name: str) -> Json:
         text = self.read(name)

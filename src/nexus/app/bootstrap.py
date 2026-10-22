@@ -13,6 +13,7 @@ from pathlib import Path
 from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
+from nexus.app.memory_index import MemoryIndex
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
@@ -89,10 +90,20 @@ class Conversation:
         # Custom/evaluation registries never inherit the operator's global memory.
         self.memory = (
             MemoryStore((home or Path.home() / ".nexus") / "memory")
-            if registry is None and config.memory_enabled else None
+            if registry is None and config.memory_enabled
+            else None
         )
-        if self.memory is not None:
-            self.base_registry.update(create_memory_tools(self.memory))
+        self.memory_index = (
+            MemoryIndex(self.memory, config.memory_qmd_command) if self.memory is not None else None
+        )
+        if self.memory is not None and self.memory_index is not None:
+            self.base_registry.update(
+                create_memory_tools(
+                    self.memory,
+                    search=self.memory_index.search,
+                    changed=self.memory_index.changed,
+                )
+            )
             self.registry.update(self.base_registry)
         # Custom registries (including fixed eval) opt in explicitly; never inherit host Skills.
         self.catalog = (
@@ -175,6 +186,8 @@ class Conversation:
         self.config.model.key()  # Validate credentials only when actually running a task.
         self.ensure_events(text)
         assert self.events is not None
+        if self.memory_index is not None:
+            self.memory_index.start(self.events)
         for warning in self.warnings:
             await self.events("warning", {"detail": warning})
         self.warnings.clear()
@@ -324,6 +337,8 @@ class Conversation:
             return
         self.closed = True
         try:
+            if self.memory_index is not None:
+                await self.memory_index.close()
             await self.resources.aclose()
         finally:
             if self.writer:
