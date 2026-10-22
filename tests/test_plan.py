@@ -395,7 +395,10 @@ async def test_default_assembly_isolation_custom_override_and_resume(
     second = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path)
     custom = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path, registry={})
     assert not custom.registry
-    assert set(first.registry) == {"exec_command", "apply_patch", "update_plan"}
+    assert set(first.registry) == {
+        "exec_command", "apply_patch", "update_plan", "memory_write", "memory_read",
+        "memory_search", "memory_forget", "memory_restore", "scratchpad",
+    }
     try:
         await first.turn("task 0")
         await second.turn("task 1")

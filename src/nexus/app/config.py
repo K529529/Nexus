@@ -45,6 +45,7 @@ class Config:
     mcp_servers: Json = field(default_factory=dict)
     response_language: str = "zh-CN"
     compaction_model: ModelConfig | None = None
+    memory_enabled: bool = True
 
 
 def config_path() -> Path:
@@ -167,7 +168,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
 def load_config(path: Path | None = None, *, require_key: bool = True) -> Config:
     path = path or config_path()
     data = read_toml(path)
-    unknown = data.keys() - {"model", "compaction_model", "runtime", "execution", "mcp"}
+    unknown = data.keys() - {"model", "compaction_model", "runtime", "execution", "mcp", "memory"}
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
     settings = parse_model(data, "model")
@@ -179,6 +180,10 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     execution = _table(data, "execution", {"shell", "output_limit_bytes"})
     mcp = _table(data, "mcp", {"servers"})
     servers = mcp.get("servers", {})
+    memory = _table(data, "memory", {"enabled"})
+    memory_enabled = memory.get("enabled", True)
+    if type(memory_enabled) is not bool:
+        raise ConfigError("memory.enabled: expected boolean")
     if not isinstance(servers, dict):
         raise ConfigError("mcp.servers: expected table")
     limits = Limits(
@@ -196,4 +201,4 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         settings.key()
         if compaction is not None:
             compaction.key()
-    return Config(settings, limits, servers, language, compaction)
+    return Config(settings, limits, servers, language, compaction, memory_enabled)

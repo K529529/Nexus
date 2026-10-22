@@ -12,6 +12,7 @@ from pathlib import Path
 
 from nexus.app.config import Config
 from nexus.app.events import Events, redact
+from nexus.app.memory import MemoryStore
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
@@ -22,6 +23,7 @@ from nexus.core.skills import check_active
 from nexus.core.tokens import TokenEstimator
 from nexus.core.types import Message, ModelError, RunResult, RuntimeEvent, Session, Tool, json_text
 from nexus.tools.mcp import connect_servers
+from nexus.tools.memory import create_memory_tools
 from nexus.tools.registry import default_tools
 from nexus.tools.skills import create_load_skill_tool
 
@@ -84,6 +86,14 @@ class Conversation:
         resolved = registry(self.session) if callable(registry) else registry
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
         self.registry = dict(self.base_registry)
+        # Custom/evaluation registries never inherit the operator's global memory.
+        self.memory = (
+            MemoryStore((home or Path.home() / ".nexus") / "memory")
+            if registry is None and config.memory_enabled else None
+        )
+        if self.memory is not None:
+            self.base_registry.update(create_memory_tools(self.memory))
+            self.registry.update(self.base_registry)
         # Custom registries (including fixed eval) opt in explicitly; never inherit host Skills.
         self.catalog = (
             SkillCatalog(
