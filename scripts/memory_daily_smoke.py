@@ -22,7 +22,7 @@ from nexus.app.bootstrap import Conversation
 from nexus.app.config import load_config
 from nexus.app.memory import entries
 from nexus.app.memory_index import installed_command
-from nexus.app.session import session_directory
+from nexus.app.session import read_records, session_directory
 from nexus.core.history import ContextBuilder
 from nexus.core.types import RuntimeEvent
 
@@ -124,7 +124,22 @@ async def run(args: argparse.Namespace) -> None:
         report["exit_estimated_input_tokens"] = convo.context.main_estimator.count(request[0], [])
         report["exit_input_budget"] = request[1]
         report["input_truncated"] = "Transcript truncated" in request[0][1].content
+        exit_start_seq = convo.writer.seq if convo.writer is not None else 0
         await convo.summarize_exit("slash-exit")
+        assert convo.writer is not None
+        with convo.writer.path.open("rb") as stream:
+            records, _ = read_records(stream)
+        # Exit diagnostics are log-only after interactive terminal teardown.
+        events.extend(
+            {"kind": r["kind"], "data": r["data"]}
+            for r in records
+            if r["seq"] > exit_start_seq and (
+                r["kind"] == "memory_daily" or (
+                    r["kind"] == "warning"
+                    and r["data"].get("detail", "").startswith("Memory exit summary skipped:")
+                )
+            )
+        )
         report["exit_written"] = any(
             e["kind"] == "memory_daily" and e["data"].get("status") == "written" for e in events
         )

@@ -71,6 +71,8 @@ class Events:
         data: Json,
         *,
         protocol_data: Json | None = None,
+        # Shutdown diagnostics remain durable without reviving terminal output.
+        publish: bool = True,
     ) -> int:
         if kind in DELTA_KINDS:
             key = (kind, str(data.get("call_id", "")), str(data.get("stream", "")))
@@ -103,5 +105,6 @@ class Events:
         clean = redact(data, self.secrets)
         event = RuntimeEvent(kind, now(), self.session.session_id, self.session.run_id, clean)
         seq = self.writer.append(event, protocol_data)
-        await self._publish(kind, clean)
+        if publish:
+            await self._publish(kind, clean)
         return seq

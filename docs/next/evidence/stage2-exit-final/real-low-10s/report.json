@@ -1,0 +1,61 @@
+{
+  "source": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-daily-acceptance-5qwdyz4d\\sessions\\bca7b89a6a50f2d727f0c5ae\\2925ee2af1b441a4af9b5d91298e44eb.jsonl",
+  "source_sha256": "f54cf874d8111e7051f9a6d5da8f7757ba1d2a6ce6bf0a4b793021d2a4af5e37",
+  "isolated_home": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-exit-low-eph0hebo",
+  "copied_session": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-exit-low-eph0hebo\\sessions\\bca7b89a6a50f2d727f0c5ae\\2925ee2af1b441a4af9b5d91298e44eb.jsonl",
+  "exit_timeout_seconds": 10,
+  "output_limit": 2048,
+  "coding_reasoning_effort": "high",
+  "compaction_called": false,
+  "qmd_started": false,
+  "wire_requests": [
+    {
+      "model": "deepseek-flash",
+      "reasoning_effort": "low",
+      "max_tokens": 2048,
+      "tools_present": false,
+      "system_prompt_sha256": "3a5ab7fe21cad4a1f71627c7553ccd66804f899e35dd6f7f334dc14939ae6dcf",
+      "request_body_sha256": "5c5e5657860dcec65540ff64a9fa2c2f1d5c224772d01273645cc3d54f887a52"
+    }
+  ],
+  "input_budget": 25600,
+  "estimated_input_tokens": 25339,
+  "summary_and_model_cleanup_seconds": 9.062,
+  "exit_events": [
+    {
+      "kind": "warning",
+      "data": {
+        "detail": "Resumed interrupted/idle session; awaiting input."
+      }
+    },
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "summarizing",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "written",
+        "reason": "slash-exit",
+        "model": "deepseek-flash",
+        "input_budget": 25600,
+        "estimated_input_tokens": 25339,
+        "usage": {
+          "input_tokens": 25339,
+          "output_tokens": 1120,
+          "total_tokens": 26459,
+          "source": "reported",
+          "cached_input_tokens": 0
+        },
+        "duration_ms": 9061
+      }
+    }
+  ],
+  "daily_written": true,
+  "terminal_output": "",
+  "source_unchanged": true,
+  "config_unchanged": true
+}

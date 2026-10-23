@@ -491,9 +491,11 @@ class Conversation:
             await self.events(
                 "memory_daily",
                 {"status": "summarizing", "timeout_seconds": memory_daily.EXIT_TIMEOUT},
+                publish=False,
             )
             config = replace(
                 self.config.model,
+                reasoning_effort="low",
                 max_output_tokens=min(
                     self.config.model.max_output_tokens, memory_daily.EXIT_OUTPUT_TOKENS
                 ),
@@ -532,6 +534,7 @@ class Conversation:
                     "usage": asdict(reply.usage),
                     "duration_ms": int((time.monotonic() - started) * 1000),
                 },
+                publish=False,
             )
         except Exception as exc:
             # Daily is best effort; a network/disk/log failure must not trap exit.
@@ -545,10 +548,12 @@ class Conversation:
                             "model": self.config.model.name,
                             "duration_ms": int((time.monotonic() - started) * 1000),
                         },
+                        publish=False,
                     )
                     await self.events(
                         "warning",
                         {"detail": f"Memory exit summary skipped: {type(exc).__name__}: {exc}"},
+                        publish=False,
                     )
                 except Exception:
                     pass
