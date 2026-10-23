@@ -1,0 +1,4 @@
+# Preserve raw JSONL byte measurements across Windows/Linux checkouts.
+*.jsonl -text whitespace=cr-at-eol
+# Rich pads terminal rows to console width; retain that captured whitespace.
+*-tui.txt -text whitespace=-blank-at-eol

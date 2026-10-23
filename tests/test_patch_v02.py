@@ -161,7 +161,8 @@ async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> 
         "         netloc, path = path, netloc\n"
         '+\n+    if auth:\n+        netloc = "{}@{}".format(auth, netloc)'
     )
-    result = await apply_patch({"patch": patch}, execution, Recorder())
+    events = Recorder()
+    result = await apply_patch({"patch": patch}, execution, events)
     expected = before.replace(
         "    if scheme is None:", addition + "    if scheme is None:"
     ).encode()
@@ -170,7 +171,9 @@ async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> 
     fact = result.data["files"][0]
     assert fact["before_hash"] == hashlib.sha256(before.encode()).hexdigest()
     assert fact["after_hash"] == hashlib.sha256(expected).hexdigest()
-    assert "--- a/a" in fact["diff"] and "+    if auth:" in fact["diff"]
+    assert "diff" not in fact
+    audit = events.events[0][1]
+    assert "--- a/a" in audit["diff"] and "+    if auth:" in audit["diff"]
 
 
 @pytest.mark.parametrize(
@@ -456,8 +459,8 @@ async def test_capacity_checks_and_bounded_facts(execution: ExecutionContext) ->
     result = await apply_patch(
         {"patch": wrapped("*** Add File: b\n+" + "x" * 20000)}, execution, Recorder()
     )
-    assert result.ok and result.truncated and result.data["changed_files"] == 1
-    assert len(result.data["files"][0]["diff"].encode()) < 1024
+    assert result.ok and not result.truncated and result.data["changed_files"] == 1
+    assert "diff" not in result.data["files"][0]
     assert (execution.workspace / "b").read_bytes() == b"x" * 20000 + b"\n"
 
 

@@ -79,6 +79,7 @@ class Transcript:
         self.last_flush = 0.0
         self.assistant_streamed = False
         self.tools: dict[str, str] = {}
+        self.patch_previews: dict[tuple[str | None, str], set[int]] = {}
         self.activity: Live | None = None
 
     def stop_activity(self) -> None:
@@ -98,6 +99,17 @@ class Transcript:
             self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
             self.buffer = ""
         self.last_flush = time.monotonic()
+
+    def patch_preview(self, file: Json) -> None:
+        label = (
+            f"› {file['status'].capitalize()} {file['path']} "
+            f"(+{file['added_lines']} -{file['deleted_lines']})"
+        )
+        self.console.print(Text(short_line(label)))
+        if file.get("diff"):
+            self.console.print(Syntax(output_preview(file["diff"], lines=6), "diff"))
+        if file.get("omitted") or file.get("truncated"):
+            self.console.print(Text("  … audit diff omitted/truncated", style="dim"))
 
     async def __call__(self, event: RuntimeEvent) -> None:
         data, kind = event.data, event.kind
@@ -134,6 +146,14 @@ class Transcript:
                 )
                 self.activity.start(refresh=True)
             self.last_flush = 0.0
+        elif kind == "patch_diff":
+            self.stop_activity()
+            key = (event.run_id, data["call_id"])
+            previews = self.patch_previews.setdefault(key, set())
+            index = data["file_index"]
+            if 1 <= index <= 3 and index not in previews:
+                self.patch_preview(data)
+                previews.add(index)
         elif kind == "message" and data["role"] == "assistant":
             if data["content"] and not self.assistant_streamed:
                 self.console.print(Text(terminal_text(data["content"])))
@@ -149,15 +169,17 @@ class Transcript:
                 status += f" · exit {result['exit_code']}"
             status += f" · {value['duration_ms'] / 1000:.1f}s"
             self.tool_status(title, status, "dim" if value["ok"] else "yellow")
-            files = result.get("files", [])
-            for file in files[:3]:
-                label = (
-                    f"› {file['status'].capitalize()} {file['path']} "
-                    f"(+{file['added_lines']} -{file['deleted_lines']})"
-                )
-                self.console.print(Text(short_line(label)))
-                self.console.print(Syntax(output_preview(file["diff"], lines=6), "diff"))
-            omitted = max(0, len(files) - 3) + result.get("omitted_files", 0)
+            key = (event.run_id, value["call_id"])
+            previews = self.patch_previews.pop(key, set())
+            if previews:
+                omitted = max(0, result.get("changed_files", 0) - len(previews))
+            else:
+                # Old JSONL observations can still be rendered when no audit event
+                # preceded them. New results have metadata but no diff body.
+                files = result.get("files", [])
+                for file in files[:3]:
+                    self.patch_preview(file)
+                omitted = max(0, len(files) - 3) + result.get("omitted_files", 0)
             if omitted:
                 self.console.print(Text(f"  … {omitted} more changed files", style="dim"))
             if not value["ok"]:
@@ -234,6 +256,7 @@ class Transcript:
         elif kind == "run_finished":
             self.stop_activity()
             self.tools.clear()
+            self.patch_previews.clear()
             handoff = data.get("handoff")
             if handoff:
                 self.console.print(

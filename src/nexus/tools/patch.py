@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import difflib
 import hashlib
 import os
@@ -12,7 +13,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path, PureWindowsPath
 
-from nexus.core.types import Emit, ExecutionContext, Json, ToolResult, json_text
+from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult, json_text
 from nexus.tools.patch_format import (
     MAX_ERROR_DETAIL_BYTES,
     FilePatch,
@@ -24,6 +25,10 @@ from nexus.tools.patch_format import (
 )
 
 MAX_BYTES = 1024 * 1024
+# Independent of the model observation budget. Oversize diffs are omitted whole,
+# so a cut through a configured secret cannot bypass Events' exact redaction.
+MAX_DIFF_BYTES = 64 * 1024
+MAX_CALL_DIFF_BYTES = 256 * 1024
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)$")
 
 
@@ -210,12 +215,14 @@ def _hash(data: bytes | None) -> str | None:
     return hashlib.sha256(data).hexdigest() if data is not None else None
 
 
-def _commit(path: Path, change: Change) -> None:
+def _commit(path: Path, change: Change) -> OSError | None:
     if change.after is None:
         path.unlink()
-        return
+        return None
     descriptor, name = tempfile.mkstemp(prefix=".nexus-patch-", dir=path.parent)
     temporary = Path(name)
+    committed = False
+    cleanup_error = None
     try:
         with os.fdopen(descriptor, "wb") as stream:
             stream.write(change.after)
@@ -226,8 +233,18 @@ def _commit(path: Path, change: Change) -> None:
             os.link(temporary, path)
         else:
             os.replace(temporary, path)
+        committed = True
     finally:
-        temporary.unlink(missing_ok=True)
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError as exc:
+            if committed:
+                # The destination already changed. Let the caller record that fact
+                # before reporting cleanup failure and stopping the batch.
+                cleanup_error = exc
+            else:
+                raise
+    return cleanup_error
 
 
 def _fact(change: Change) -> Json:
@@ -247,8 +264,8 @@ def _fact(change: Change) -> Json:
     return {
         "path": change.path,
         "status": change.kind,
-        "added_lines": sum(s.startswith("+") and not s.startswith("+++") for s in diff),
-        "deleted_lines": sum(s.startswith("-") and not s.startswith("---") for s in diff),
+        "added_lines": sum(s.startswith("+") for s in diff[2:]),
+        "deleted_lines": sum(s.startswith("-") for s in diff[2:]),
         "before_hash": _hash(change.before),
         "after_hash": _hash(change.after),
         "diff": rendered,
@@ -264,6 +281,9 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
     failed_file: str | None = None
     failed_hunk: int | None = None
     framing_normalized = False
+    audit_remaining = MAX_CALL_DIFF_BYTES
+    emitting = False
+    cancelled = False
     try:
         if set(arguments) != {"patch"} or not isinstance(arguments["patch"], str):
             raise PatchError("invalid_arguments", "Expected only patch: string")
@@ -319,8 +339,33 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
                 parent.mkdir()
                 created.append(parent.relative_to(context.workspace).as_posix())
             checked_path(context.workspace, change.path)
-            _commit(path, change)
-            facts.append(_fact(change))
+            cleanup_error = _commit(path, change)
+            fact = _fact(change)
+            diff = fact.pop("diff")
+            facts.append(fact)
+            diff_bytes = len(diff.encode("utf-8"))
+            limit = min(MAX_DIFF_BYTES, audit_remaining)
+            omitted = diff_bytes > limit
+            if not omitted:
+                audit_remaining -= diff_bytes
+            emitting = True
+            await emit(
+                "patch_diff",
+                {
+                    "call_id": context.call_id,
+                    "file_index": len(facts),
+                    **fact,
+                    "diff": "" if omitted else diff,
+                    "diff_bytes": diff_bytes,
+                    "diff_limit_bytes": limit,
+                    "truncated": omitted,
+                    "omitted": omitted,
+                    "omission_reason": "diff_capacity" if omitted else None,
+                },
+            )
+            emitting = False
+            if cleanup_error is not None:
+                raise cleanup_error
         failed_file = None
     except PatchError as exc:
         error, detail = exc.code, str(exc)
@@ -329,22 +374,24 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
     except UnicodeError:
         error, detail = "unsupported_patch", "Patch and target must be UTF-8 text"
     except OSError as exc:
+        if emitting:
+            # A failed audit sink must stop execution, not become a recoverable
+            # file error that lets the model dispatch more side effects.
+            raise
         error, detail = "patch_io_error", type(exc).__name__
-    # Bound the actual result, retaining counts/hashes and explicit omissions.
+    except asyncio.CancelledError:
+        cancelled = True
+        error, detail = "cancelled", "Patch interrupted; completed file changes are recorded."
+    # Bound metadata only. Audit capacity never consumes the model result budget.
     remaining = context.output_limit_bytes
     visible: list[Json] = []
     truncated = False
     for fact in facts:
-        raw = fact.pop("diff").encode("utf-8")
         cost = len(json_text(fact).encode("utf-8")) + 64
         if cost > remaining:
             truncated = True
             continue
-        allowed = max(0, remaining - cost)
-        fact["diff"] = raw[:allowed].decode("utf-8", errors="ignore")
-        fact["truncated"] = len(raw) > allowed
-        truncated |= fact["truncated"]
-        remaining -= cost + min(len(raw), allowed)
+        remaining -= cost
         visible.append(fact)
     data = {
         "files": visible,
@@ -358,7 +405,7 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         "failed_hunk": failed_hunk,
         "detail": bounded_text(detail, MAX_ERROR_DETAIL_BYTES),
     }
-    return ToolResult(
+    result = ToolResult(
         context.call_id,
         error is None,
         data,
@@ -366,3 +413,6 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         int((time.monotonic() - started) * 1000),
         truncated,
     )
+    if cancelled:
+        raise ToolCancelled(result)
+    return result

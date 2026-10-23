@@ -1,0 +1,85 @@
+上下文约 707 tokens · 压缩阈值 900,000
+› Modified components/view0.ts (+30 -30)
+--- a/components/view0.ts                                                                 
++++ b/components/view0.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view1.ts (+30 -30)
+--- a/components/view1.ts                                                                 
++++ b/components/view1.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view2.ts (+30 -30)
+--- a/components/view2.ts                                                                 
++++ b/components/view2.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Apply patch  ✓ · 0.0s
+  … 1 more changed files
+上下文约 7,470 tokens · 压缩阈值 900,000
+› Modified components/view4.ts (+30 -30)
+--- a/components/view4.ts                                                                 
++++ b/components/view4.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view5.ts (+30 -30)
+--- a/components/view5.ts                                                                 
++++ b/components/view5.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view6.ts (+30 -30)
+--- a/components/view6.ts                                                                 
++++ b/components/view6.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Apply patch  ✓ · 0.0s
+  … 1 more changed files
+上下文约 14,233 tokens · 压缩阈值 900,000
+› Modified components/view8.ts (+30 -30)
+--- a/components/view8.ts                                                                 
++++ b/components/view8.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view9.ts (+30 -30)
+--- a/components/view9.ts                                                                 
++++ b/components/view9.ts                                                                 
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Modified components/view10.ts (+30 -30)
+--- a/components/view10.ts                                                                
++++ b/components/view10.ts                                                                
+@@ -1,30 +1,30 @@                                                                         
+-export const label0 = (item: Item) => item.display_name + "row-0";                       
+-export const label1 = (item: Item) => item.display_name + "row-1";                       
+-export const label2 = (item: Item) => item.display_name + "row-2";                       
+…                                                                                         
+› Apply patch  ✓ · 0.0s
+  … 1 more changed files
+上下文约 20,997 tokens · 压缩阈值 900,000
+Offline scripted rename finished.
+
+completed · tokens unknown · 0.0s 
