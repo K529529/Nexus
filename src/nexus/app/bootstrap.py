@@ -14,7 +14,8 @@ from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_context import root_id, snapshot
-from nexus.app.memory_index import MemoryIndex, installed_command
+from nexus.app.memory_index import MemoryIndex
+from nexus.app.memory_setup import DependencyBootstrap
 from nexus.app.session import SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
@@ -97,9 +98,10 @@ class Conversation:
         self.memory_index = (
             MemoryIndex(
                 self.memory,
-                installed_command()
-                if home is None and config.memory_qmd_command == ("qmd",)
-                else config.memory_qmd_command,
+                config.memory_qmd_command,
+                prepare=DependencyBootstrap(home / "dependencies" if home else None).ensure
+                if config.memory_qmd_command == ("qmd",)
+                else None,
             )
             if self.memory is not None
             else None
@@ -149,6 +151,13 @@ class Conversation:
             )
         self.events = Events(self.session, self.writer, self.consumer, self.secret_values())
 
+    async def start_memory(self) -> None:
+        """Start once per Conversation; dependency failure never blocks the coding loop."""
+        if self.memory_index is not None:
+            self.ensure_events("Memory startup")
+            assert self.events is not None
+            self.memory_index.start(self.events)
+
     def refresh_skills(self) -> None:
         if self.catalog is None:
             return
@@ -196,8 +205,7 @@ class Conversation:
         self.ensure_events(text)
         assert self.events is not None
         prefix += await self.memory_prefix()
-        if self.memory_index is not None:
-            self.memory_index.start(self.events)
+        await self.start_memory()
         for warning in self.warnings:
             await self.events("warning", {"detail": warning})
         self.warnings.clear()

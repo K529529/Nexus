@@ -285,6 +285,9 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
             self.resume = kwargs.get("resume")
             instances.append(self)
 
+        async def start_memory(self) -> None:
+            pass
+
         async def close(self) -> None:
             self.closed = True
 

@@ -75,7 +75,7 @@ async def test_interactive_select_switch_off_new_no_model_calls(
     assert len(conversations) == 2 and all(c.closed for c in conversations)
     assert conversations[0].session.selected_skill is not None
     assert conversations[1].session.selected_skill is None
-    assert conversations[1].writer is None
+    assert conversations[1].writer is not None  # Background Memory startup initializes the session.
     writer = conversations[0].writer
     assert writer
     with writer.path.open("rb") as stream:

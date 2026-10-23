@@ -23,6 +23,17 @@ from nexus.core.types import (
 )
 
 
+@pytest.fixture(autouse=True)
+def offline_memory_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unit suites must never install/download dependencies from Conversation startup."""
+
+    class Offline:
+        async def ensure(self, emit: Emit) -> tuple[str, ...]:
+            raise RuntimeError("Dependency setup disabled in offline unit suite")
+
+    monkeypatch.setattr("nexus.app.bootstrap.DependencyBootstrap", lambda *args: Offline())
+
+
 class Recorder:
     def __init__(self) -> None:
         self.events: list[tuple[str, Json]] = []

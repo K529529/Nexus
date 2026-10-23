@@ -205,6 +205,10 @@ class Transcript:
                     style="dim",
                 )
             )
+        elif kind == "memory_setup":
+            self.console.print(Text(terminal_text(str(data.get("detail", ""))), style="dim"))
+        elif kind == "memory_index" and data.get("status") == "ready":
+            self.console.print("Memory Ready", style="dim")
         elif kind == "memory_index" and data.get("status") in {"failed", "unavailable"}:
             self.console.print(
                 Text(

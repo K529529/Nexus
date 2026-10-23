@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Any
@@ -40,8 +41,15 @@ def installed_command() -> tuple[str, ...]:
 
 
 class MemoryIndex:
-    def __init__(self, store: MemoryStore, command: tuple[str, ...] = ("qmd",)) -> None:
+    def __init__(
+        self,
+        store: MemoryStore,
+        command: tuple[str, ...] = ("qmd",),
+        *,
+        prepare: Callable[[Emit], Awaitable[tuple[str, ...]]] | None = None,
+    ) -> None:
         self.store, self.command = store, command
+        self.prepare = prepare
         self.state: Json = {"status": "not_started"}
         self.task: asyncio.Task[None] | None = None
         self.queue: asyncio.Queue[tuple[str, int, asyncio.Future[Json]] | None] = asyncio.Queue()
@@ -50,6 +58,7 @@ class MemoryIndex:
         self.client: Any = None
         self.synced = ""
         self.closed = False
+        self.search_announced = False
         self.updated = asyncio.Event()
         self.state_dir = store.root / ".retrieval"
         self.env = {
@@ -130,6 +139,11 @@ class MemoryIndex:
             await self._command(
                 "collection", "add", str(self.store.root), "--name", COLLECTION, "--mask", MASK
             )
+            if self.emit:
+                await self.emit(
+                    "memory_setup",
+                    {"stage": "collection", "detail": "Memory collection initialized"},
+                )
         # The file is owned by this integration, and must not run hooks or index other roots.
         import yaml
 
@@ -164,6 +178,14 @@ class MemoryIndex:
         await self._status("updating")
         await self._command("update")
         await self._status("embedding")
+        if self.emit:
+            await self.emit(
+                "memory_setup",
+                {
+                    "stage": "models",
+                    "detail": "Preparing index / embedding model (first use may download GGUF)",
+                },
+            )
         await self._command("embed")
         if self.fingerprint() != before:
             self.changed()
@@ -190,6 +212,13 @@ class MemoryIndex:
     async def _worker(self) -> None:
         pending: asyncio.Future[Json] | None = None
         try:
+            if self.prepare is not None:
+                assert self.emit
+                self.state = {"status": "preparing_dependencies"}
+                self.command = await self.prepare(self.emit)
+                self.env["PATH"] = (
+                    str(Path(self.command[0]).parent) + os.pathsep + self.env.get("PATH", "")
+                )
             await self._setup()
             self.dirty = bool(self.store.read(".dirty")) or self.synced != self.fingerprint()
             async with AsyncExitStack() as stack:
@@ -244,6 +273,24 @@ class MemoryIndex:
                     try:
                         if self.state.get("status") != "ready" or self.client is None:
                             raise RuntimeError(f"QMD index unavailable: {self.state}")
+                        if not self.search_announced:
+                            cache = (
+                                Path(self.env.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+                                / "qmd/models"
+                            )
+                            names = [
+                                "hf_ggml-org_qwen3-reranker-0.6b-q8_0.gguf",
+                                "hf_tobil_qmd-query-expansion-1.7B-q4_k_m.gguf",
+                            ]
+                            if self.emit and not all((cache / name).is_file() for name in names):
+                                await self.emit(
+                                    "memory_setup",
+                                    {
+                                        "stage": "search_models",
+                                    "detail": "Preparing search models; first use downloads GGUF",
+                                    },
+                                )
+                            self.search_announced = True
                         response = await self.client.call_tool(
                             "query",
                             {

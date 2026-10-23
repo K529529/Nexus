@@ -46,6 +46,7 @@ include = [
     "/src", "/tests", "/scripts/swebench_v0.py", "/scripts/token_accuracy.py", "/docs/next",
     "/scripts/token_performance.py",
     "/scripts/memory_qmd_smoke.py", "/scripts/memory_agent_acceptance.py",
+    "/scripts/memory_setup_smoke.py",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [

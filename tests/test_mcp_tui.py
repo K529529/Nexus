@@ -492,6 +492,9 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
             self.closed = False
             instances.append(self)
 
+        async def start_memory(self) -> None:
+            pass
+
         async def close(self) -> None:
             self.closed = True
 

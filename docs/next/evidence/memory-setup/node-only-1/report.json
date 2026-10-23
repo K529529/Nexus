@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "command": [
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-memory-setup-clean-20261023-a\\dependencies\\node-v22.23.4\\node.EXE",
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-memory-setup-node-only-20261023-a\\dependencies\\qmd-2.8.3\\node_modules\\@tobilu\\qmd\\dist\\cli\\qmd.js"
+  ],
+  "events": [
+    {
+      "kind": "memory_setup",
+      "data": {
+        "stage": "starting",
+        "detail": "Nexus Memory Setup"
+      }
+    },
+    {
+      "kind": "memory_setup",
+      "data": {
+        "stage": "node_ready",
+        "detail": "Node.js ready"
+      }
+    },
+    {
+      "kind": "memory_setup",
+      "data": {
+        "stage": "qmd",
+        "detail": "Installing verified QMD 2.8.3 (npm dependencies may download)"
+      }
+    },
+    {
+      "kind": "memory_setup",
+      "data": {
+        "stage": "qmd_ready",
+        "detail": "QMD 2.8.3 installed"
+      }
+    }
+  ]
+}

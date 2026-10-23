@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "command": [
+    "D:\\software\\nvm4w\\nodejs\\node.EXE",
+    "C:\\Users\\Archer\\AppData\\Local\\Nexus\\qmd\\node_modules\\@tobilu\\qmd\\dist\\cli\\qmd.js"
+  ],
+  "setup_events": []
+}

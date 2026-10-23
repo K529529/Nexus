@@ -137,6 +137,7 @@ async def application(args: argparse.Namespace) -> int:
     select = args.command == "resume"
     console.print("Nexus · trusted local execution · /help for commands")
     try:
+        await conversation.start_memory()
         if getattr(args, "skill", None):
             await conversation.select_skill(args.skill)
             console.print(Text(f"Skill selected for this session: {args.skill}"))
@@ -163,6 +164,7 @@ async def application(args: argparse.Namespace) -> int:
                         continue
                     await conversation.close()
                     conversation = candidate
+                    await conversation.start_memory()
                     console.print(
                         "Session opened. Enter a task or continuation; no saved tool is replayed."
                     )
@@ -196,6 +198,7 @@ async def application(args: argparse.Namespace) -> int:
             elif text == "/new":
                 await conversation.close()
                 conversation = Conversation(workspace, load_config(), profile or transcript)
+                await conversation.start_memory()
             elif text == "/resume":
                 select = True
             elif text == "/compact":
