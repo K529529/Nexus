@@ -376,8 +376,26 @@ def test_report_cache_aggregation_includes_old_reports_as_unknown(tmp_path: Path
 
 
 @pytest.mark.parametrize("container", [False, True])
-async def test_wrong_command_field_is_rejected_before_execution(
-    tmp_path: Path, monkeypatch: Any, container: bool
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"command": "echo no", "cmd": "echo no"},
+        {"command": "echo no", "cmd": None},
+        {"cmd": 1},
+        {"cmd": None},
+        {"cmd": ""},
+        {"cmd": " \t"},
+        {"cmd": "echo no", "unknown": True},
+        {"cmd": "echo no", "timeout_ms": True},
+        {"cmd": "echo no", "timeout_ms": 0},
+        {"cmd": "echo no", "timeout_ms": 600001},
+        {"cmd": "echo no", "timeout_ms": "100"},
+        {"cmd": "echo no", "workdir": 1},
+        {"cmd": "echo no", "workdir": ""},
+    ],
+)
+async def test_invalid_command_alias_is_rejected_before_execution(
+    tmp_path: Path, monkeypatch: Any, container: bool, arguments: Json
 ) -> None:
     async def forbidden(*args: Any, **kwargs: Any) -> None:
         pytest.fail("Invalid tool arguments must not start a process")
@@ -386,9 +404,7 @@ async def test_wrong_command_field_is_rejected_before_execution(
     env = Environment(Docker([]), load_case(CASE_IDS[-1]), tmp_path)
     execute = env.execute if container else native_execute
     recorder = Recorder()
-    result = await execute(
-        {"cmd": "echo should-not-run"}, ExecutionContext(tmp_path, "invalid", "/bin/sh"), recorder
-    )
+    result = await execute(arguments, ExecutionContext(tmp_path, "invalid", "/bin/sh"), recorder)
     assert not result.ok and result.error_code == "invalid_arguments"
     assert "non-empty 'command' string" in result.data["detail"]
     assert "no other fields" in result.data["detail"]

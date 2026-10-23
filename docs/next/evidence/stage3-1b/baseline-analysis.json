@@ -1,0 +1,1069 @@
+{
+  "method": "Read-only saved JSONL/results; recovery windows may overlap; same-path followup is a proxy. Ineffective exploration requires manual review. Alias marked, process exit and ok are separate metrics.",
+  "baseline": {
+    "run": "20261023T143533Z-46a28d3d",
+    "manifest": {
+      "schema_version": 1,
+      "evaluation_run_id": "20261023T143533Z-46a28d3d",
+      "started_at": "2026-10-23T14:35:33.061484+00:00",
+      "selected": [
+        "pvlib__pvlib-python-1707",
+        "matplotlib__matplotlib-22835",
+        "django__django-11734",
+        "psf__requests-6028",
+        "sphinx-doc__sphinx-10323",
+        "click__path-generic-type",
+        "pytest__doctest-optionflag-leak",
+        "rich__double-width-wrap"
+      ],
+      "nexus": {
+        "commit": "709dab8efa1c25e4e232b13a85c1d51e717b8e3c",
+        "runtime_file_hashes": {
+          "evaluation/next-dev-v0/cases/click__path-generic-type/case.toml": "5b9e52150209b3f29333bd46dd3f2f2ff99f8a62d7f461ea24913238cf1356e6",
+          "evaluation/next-dev-v0/cases/click__path-generic-type/task.md": "1ca4a66be799aed8eb7944573713a5bbde7efdf33bd16c0660a47b18c971c162",
+          "evaluation/next-dev-v0/cases/django__django-11734/case.toml": "3e84b8819e43d703de525b733f6c07d076147a1f0f637df95d9446d4e75eff5f",
+          "evaluation/next-dev-v0/cases/django__django-11734/task.md": "0776749c8cc9c775b6a93aec06660856bb45a6cd0f30ece5071e0916082ca5b3",
+          "evaluation/next-dev-v0/cases/matplotlib__matplotlib-22835/case.toml": "5442fe6a9b75a951896db8bb5072ada26f7f5377e25c5db5762f1de02d58bbc3",
+          "evaluation/next-dev-v0/cases/matplotlib__matplotlib-22835/task.md": "0e40a16640977e4d216c41a8fef5411ae326e3d94206bfb8512e81dc1de32ef1",
+          "evaluation/next-dev-v0/cases/psf__requests-6028/case.toml": "9c6525321ef6f9ad809cd3b4a61701735304d71b8c9298c2f96deec8ba1bf062",
+          "evaluation/next-dev-v0/cases/psf__requests-6028/task.md": "14d3a5b04d20af9cd580fb4d431ee0678673b4dccb9e196c961a8bef91023c8e",
+          "evaluation/next-dev-v0/cases/pvlib__pvlib-python-1707/case.toml": "87d74463e6d485eaf22af499355123029f2a97ee687e17ab9ef8cb479f0ba544",
+          "evaluation/next-dev-v0/cases/pvlib__pvlib-python-1707/task.md": "68256900a82223432d3f81e5c86cd0683109cd60e7983dcedb17611089a0fde4",
+          "evaluation/next-dev-v0/cases/pytest__doctest-optionflag-leak/case.toml": "d8eccba79dc304c09ac3e5b21bcd947d4ec81617a06bfa044dc62e6087268b57",
+          "evaluation/next-dev-v0/cases/pytest__doctest-optionflag-leak/task.md": "b2ba0853d581ddbbebd15850939244295039ede2de54c1ce9e77f958656cc3c4",
+          "evaluation/next-dev-v0/cases/rich__double-width-wrap/case.toml": "5bec7f79f5fdf8aa6e09b851fa5b5d73a2bc1faedc58944cead2c9d7b62d4930",
+          "evaluation/next-dev-v0/cases/rich__double-width-wrap/task.md": "daf313eec1fa29b53f360b32a0746017ce62d05250ba600b600ca0799dc5e708",
+          "evaluation/next-dev-v0/cases/sphinx-doc__sphinx-10323/case.toml": "98fe46ba9b7a98dd228a0596b88b6ac9890d39c02a25c6ed8fea9d57f049c321",
+          "evaluation/next-dev-v0/cases/sphinx-doc__sphinx-10323/task.md": "2819c8b48505fea704ead6bee0441b12eced45676a05241d5908dd5690a720d8",
+          "evaluation/next-dev-v0/contamination-qualification.json": "9ac3aa52cfe1f4d5882bd3ee8426e6e7cfdffc9f45ea10feab651b6d37c9448e",
+          "evaluation/next-dev-v0/environments/click/Dockerfile": "d1d165f70fef21443a1be7b7b432fc8b6c701b4b464cf05958888bd28d4e6196",
+          "evaluation/next-dev-v0/environments/django/Dockerfile": "0912c752cca314445fede2f1fc13ddbaf9db6c6f033206094977bffbb24d0904",
+          "evaluation/next-dev-v0/environments/isolate_target.py": "556b28c7260f8c0004a6214031f1eac2a310a71cd5c5f115de2e5f88a29f9488",
+          "evaluation/next-dev-v0/environments/matplotlib/Dockerfile": "bc309b454dc89dd889b46245b5ce0ef30e0135b546c9cf8447d5c7a74fb78c6a",
+          "evaluation/next-dev-v0/environments/pvlib/Dockerfile": "b38eb88f240207cd639db83dfa8dca2abc592e5eceaf5cf840fce4e2078a93ba",
+          "evaluation/next-dev-v0/environments/pytest/Dockerfile": "eb342a076016ee023d5f8bc042ce37b8f30a320ecad709b81868f9cabcac3481",
+          "evaluation/next-dev-v0/environments/requests/Dockerfile": "2047cb136760024b37e2f43447d15d19aa6e05f2aebb98b30075b7937e4a62e2",
+          "evaluation/next-dev-v0/environments/rich/Dockerfile": "b81b8758b278f7e8c666fe6c9dbc1579ce0129beb1b4e7408354c6d17aa1a733",
+          "evaluation/next-dev-v0/environments/sphinx/Dockerfile": "f75826d28f35deea0ce5168d2d85105557b2a69c05bae14518a2a92b9d58666b",
+          "evaluation/next-dev-v0/qualification.json": "37396653eaab9e7188c484780640416fe7c040f44abb9d20a23345133d1a4dc1",
+          "evaluation/next-dev-v0/README.md": "efd54157d3402d0fee169ad8e6d4e181391c7e3d6f75289650cd155398b76833",
+          "evaluation/next-dev-v0/runtime-qualification.json": "3b02a367bc34b3ad3ea87f5bf4cffcd3b42969edee4569a13db1b8bc9869ecd2",
+          "evaluation/next-dev-v0/support/_nexus_eval_results.py": "a9c8a9fb02761de1c738078ca6df29f985c27ef00e1bac8d5133df5ed3facde9",
+          "evaluation/next-dev-v0/support/_nexus_eval_unittest.py": "78c5793a5d0a424852e3ef4bfb2fd65f7d620993c61f165f567354030e04b8f6",
+          "evaluation/next-dev-v0/validators/click__path-generic-type/mypy.ini": "3ee8452e1588bb6fbde938fcd4d8d9cc09e3dbca17502b9c34e24bdaf13fb29b",
+          "evaluation/next-dev-v0/validators/click__path-generic-type/targets.json": "82222bda5e346fd61a57229364597fbb9437c5a918fb43277bce148dfa10b36d",
+          "evaluation/next-dev-v0/validators/click__path-generic-type/test.patch": "2188e0567da9f68ddae3a2540fd3cdc581331feade4f95a53e9c73090738d89b",
+          "evaluation/next-dev-v0/validators/click__path-generic-type/validator.toml": "dcdcfb18dddfceadcde2bfc5e8e7e3f27d76b33bdfb26d528efcfc6e77f5055f",
+          "evaluation/next-dev-v0/validators/django__django-11734/targets.json": "e4a5397bde5e91642b553c9f41b3b195d25971ba22992719291d4b6fbb9afc36",
+          "evaluation/next-dev-v0/validators/django__django-11734/test.patch": "3ac18462a338ea32b3840a9d3fcc298db104b82a7a830bddeb4c97b395e60d1d",
+          "evaluation/next-dev-v0/validators/django__django-11734/validator.toml": "91900fa74243476ee8581a83df86c08f615c10606b17dabb3037dabb4d8f5257",
+          "evaluation/next-dev-v0/validators/matplotlib__matplotlib-22835/targets.json": "ceead856337e7b7561aa0b728160b9469303e2c501e22494cf904769e0131bf5",
+          "evaluation/next-dev-v0/validators/matplotlib__matplotlib-22835/test.patch": "7f86d56e7313ae837b89dd063b13ace306f1a7c0a439de899d785d663fc0f635",
+          "evaluation/next-dev-v0/validators/matplotlib__matplotlib-22835/validator.toml": "e4dac6229420795a16922dfc6e4d578dd40eed5e01adaac6da8fbd6559654029",
+          "evaluation/next-dev-v0/validators/psf__requests-6028/targets.json": "81eab234b6a0a31d953e6f27ea14b2e0d5ae49d2ac80fc014ed39261aee1717b",
+          "evaluation/next-dev-v0/validators/psf__requests-6028/test.patch": "cc4b0007afd140c1737b08e14d0cbb9dbccfbee483146d5112971dd7b9bcb142",
+          "evaluation/next-dev-v0/validators/psf__requests-6028/validator.toml": "3b3a8866f5c02b98efdac5ff0e8a50ca8913201121a47c504277af1eecd7997e",
+          "evaluation/next-dev-v0/validators/pvlib__pvlib-python-1707/targets.json": "8e3c2bfd824b24fcfa70c6a910b84b3fdf645d3f415555102e693fbfcce2cea5",
+          "evaluation/next-dev-v0/validators/pvlib__pvlib-python-1707/test.patch": "59a9961413ff1def45a927b3939cee682daead885984a753715238a0de9dd1f2",
+          "evaluation/next-dev-v0/validators/pvlib__pvlib-python-1707/validator.toml": "3cfb6f386eb91e1a7b186689f1215c57022ec5c72bde759f411916b1df1ef14c",
+          "evaluation/next-dev-v0/validators/pytest__doctest-optionflag-leak/targets.json": "9ae8c22e3d90deb2dde0f806a16a88d295dc4576ea813cfad0a396b0cf69b47a",
+          "evaluation/next-dev-v0/validators/pytest__doctest-optionflag-leak/test.patch": "d05655af4b044bc16fae68f861e0dcd4d859c1016997da819429ca9074d95a44",
+          "evaluation/next-dev-v0/validators/pytest__doctest-optionflag-leak/validator.toml": "3f2629061100aa5ac489bad6d558fca5dc6794f80511c95e68e8fdf93d4f567f",
+          "evaluation/next-dev-v0/validators/rich__double-width-wrap/targets.json": "235a356462bc5989f6ff2e38383947e02f1b4b62ccd86a5db02a0cee635e2366",
+          "evaluation/next-dev-v0/validators/rich__double-width-wrap/test.patch": "857919cb22da6ab5958c38fbc6fc4cd1992b95bf42b71e6e48ebaf2746d4a59e",
+          "evaluation/next-dev-v0/validators/rich__double-width-wrap/validator.toml": "6a38a1c2901c3fa52a70bba2ffa432cd0fab8df5e0b1aa0a8dc6921d187113e9",
+          "evaluation/next-dev-v0/validators/sphinx-doc__sphinx-10323/targets.json": "263f5e6af23dbabf2361404274c886b4bb197c2a35af4aacc9aa77471362d461",
+          "evaluation/next-dev-v0/validators/sphinx-doc__sphinx-10323/test.patch": "6acbd2c641e21aea1adad8c9630746cd41d6d432a9bb2f79137b5c1939566231",
+          "evaluation/next-dev-v0/validators/sphinx-doc__sphinx-10323/validator.toml": "e980bcc99e1031804db4bbf63f6fb7caf51b4c83821b4d32aee4f7c49eb1517d",
+          "pyproject.toml": "a759a2c8aa8642bf0b405d4c7427e78abea83271c75a9dc6263d403ff73d6376",
+          "src/nexus/__init__.py": "c9a14cb7d0f81eb008cfff48b542f8bf516bd3f8a5c7307dad88fddb8c0874b7",
+          "src/nexus/__main__.py": "7b59337d9ddf21ca4851fc04996d46c75c08df169b0c9f4c78a3b38591da98e1",
+          "src/nexus/_vendor/__init__.py": "f216a4214718bf9bd662b64e647cc83e07e2f7bae9e66f3084cd3b4d5041ad2d",
+          "src/nexus/_vendor/encoding_dsv4.py": "bdbd57c132a1b3725042323d02b98b9d1df28e5f388f134399555d041f5055e0",
+          "src/nexus/app/__init__.py": "b2cf894251c4cb1a068197f001c9d7ba912a2e92b1180a1f809e496fa895328b",
+          "src/nexus/app/bootstrap.py": "36e6998980a6d8ae96f4cf369368fbb566b6e5a02c61a2ff8d0246c796e5f256",
+          "src/nexus/app/cli.py": "30042852f57b3d34592283f64f5f0cecebd0ae9f63fea2bf670ca23ffa5c7728",
+          "src/nexus/app/config.py": "5ad648ec5499e36a19a32d09f2bfeaf285c8d7dee4221de2f27291d14d6c6252",
+          "src/nexus/app/events.py": "7ace23c0bc1d522dc9fa92b89d088cf9c0b8e1d0b392cf96e4aa2afcaea9a953",
+          "src/nexus/app/memory.py": "b922bcc4cb910974baa38b16a80b0764d11c5a4417a0b6f6e78f2c298bec979e",
+          "src/nexus/app/memory_context.py": "f0a37754bcdd68006d57c0d03516ae5b50899727cddc8021143b0194e1932cae",
+          "src/nexus/app/memory_index.py": "225401642bc680c601115a840afa7c483e471762baf555ed8cc1fbd3718eee6d",
+          "src/nexus/app/memory_setup.py": "787b55aff5d827f0857ef77b177023ccb362cdfd5cc1ed1774c7d3caee1994c7",
+          "src/nexus/app/profile.py": "b2abc749619bea3b35c7344242fa6e454ebf7bbf2e7bb98c956ecbfd35f120df",
+          "src/nexus/app/session.py": "b1716ab003497db4f99134e2a303e8d1f62f6d5b5c16fb81e3d89a3e32b9919e",
+          "src/nexus/app/skills.py": "6e6bab276c59537697c0cd42432e7f0bb71776f84b024ae6488c7faf94f75bf4",
+          "src/nexus/app/tui.py": "419b0afa08b079ff2da84ddd1807b58479879f8f905e4677ff983c0436f734fe",
+          "src/nexus/core/__init__.py": "273e995edccc7f9fad8c3c9b314fd8897f2b44a7751d25bebcabb7f17e204721",
+          "src/nexus/core/agent.py": "92c1a00b214fab5f2d30a1f8b1d28210e9704949de12801c508f733e7a670b34",
+          "src/nexus/core/compaction.py": "dc699dbebabc98e0dc1797f8cf01b7950a5b0789ca2abe5855af176468809d39",
+          "src/nexus/core/compaction_input.py": "582d9d55310ff55c5a90ae456affd50806966c17998c89b0c301c3a5283d3f2f",
+          "src/nexus/core/context.py": "bd65634047cd32f9b6b92523c7ff25b59382db2f72f1a1f8ee50065d03ff1a20",
+          "src/nexus/core/handoff.py": "66804dfe392008e6db5f9a1801e6ab144a6a1bf97d26ce042962da0847bf7010",
+          "src/nexus/core/history.py": "0fcbd8a8c86a3227c2f5c3152977c89b4cfa87bf0ac11721abee6df0c5da02d8",
+          "src/nexus/core/memory_snapshot.py": "3f5333ef0089b290fd5e811911a7fae36c37f9245ffa58af5d73d1098db12069",
+          "src/nexus/core/model.py": "b8c12e8c5cd4b1a09ffd51af2184d878a6b346a1b7260fd472a9476ff583760d",
+          "src/nexus/core/plan.py": "621e404670c63b3fac28f3db3183553d4c46f5eca186257a79718e66dd1b8343",
+          "src/nexus/core/request_context.py": "18047e8e6fe888e3acb616201676e0d07a5200ce5dcbf15a10c90a6e205c9ffd",
+          "src/nexus/core/runtime_facts.py": "d88a4516f12426621882d2ce84605eac6f21a7c00f6b09b0bb87a8757dfe7f1c",
+          "src/nexus/core/skills.py": "87ba3caf2c9a5bebb20bc9cd544576dd39fbd15560e7cac212901361e4fc17f2",
+          "src/nexus/core/stagnation.py": "b7b8b427a5e23a60ab6bd9ade1639c1c4db66f6d9a65269f669ec097cf152540",
+          "src/nexus/core/tokens.py": "6ab1aaec23d38847af8df8b3338f4a69be7676301e02ef9024edfaa71daac1e8",
+          "src/nexus/core/types.py": "f6b0f87dc8887629c8485a323cefb44d314f1682c9dff39b8e145f8667597110",
+          "src/nexus/evaluation/__init__.py": "40011e34d16fac65c3f92a481a22a6ef6cb3a970d2db9a3e96513d3c8c6e37cc",
+          "src/nexus/evaluation/cases.py": "7268bd53b5d4b3b019941a840a2b5e12d8c2d994964504283f188533ebf9b693",
+          "src/nexus/evaluation/environment.py": "539db0ac4ba426be34bc444639030fe10801d6e754549be275aca88dd6777ae2",
+          "src/nexus/evaluation/report.py": "0dd90e578f38050db450d56b3820aa823d8dad917b2d3fcd83f1e117b119a766",
+          "src/nexus/evaluation/runner.py": "5f84e2cef2ae674f1daea79818d9ddefbc23bc3e54ab6b8712f66f3760e01175",
+          "src/nexus/evaluation/validation.py": "7b9e3d15d77095e3f3fe477814df168a2b3bfb070ee1d2652ff058c47df0b5b7",
+          "src/nexus/tools/__init__.py": "162f218b404cdf70e74990f565fe9478c140d5e431670facff33adf6671ff1ce",
+          "src/nexus/tools/execution.py": "d3ee368173a6165f54fd665095a3d6f3340f3db1a46171e1f3a5bb42e9dc372b",
+          "src/nexus/tools/mcp.py": "6229f1daa90e47b7bb703c9da8b6f6d95c5ec002a7bb660aa11b19a702d11e6f",
+          "src/nexus/tools/memory.py": "06ad76898d2fe96ae9a2dfcfb676b6f60665f4b54b7994932ad08232475bf6bc",
+          "src/nexus/tools/patch.py": "8a8dce71d5545653d3e93a04bc9523fdbe91da187eaa3c9fae266893f33643fa",
+          "src/nexus/tools/patch_format.py": "1a700dea4e5c0db2513381d8024a8c23614918996e0e4f56aee5c6b009b57a8c",
+          "src/nexus/tools/plan.py": "3cc9c6d57dbb8d2dc1455cd0695de8dca05874254ddeeec8c33e2507b74d0428",
+          "src/nexus/tools/registry.py": "27be0a9d52e12a578aa2cec8ec9d1ef941950a782e0820baf8df1c7de6f41508",
+          "src/nexus/tools/skills.py": "b96233a0ece707242d789c83ccd68546b781d2026180466cf0e7dca2ca52aa6e",
+          "uv.lock": "fe346f9fe1e10855a0b64e0024471655a196fa10e768f07a97f36f477866bf8f"
+        },
+        "runtime_digest": "c154048294267deee10188a8ea1b32e3366d91f68b9ff7e1cba4e5827ab190da"
+      },
+      "model": {
+        "name": "deepseek-flash",
+        "context_window": 128000,
+        "base_url": "https://api.deepseek.com",
+        "api_key_env": "DEEPSEEK_API_KEY",
+        "max_output_tokens": 32768,
+        "reasoning_effort": "high",
+        "include_usage": true,
+        "request_timeout_seconds": 300,
+        "output_token_parameter": "max_tokens",
+        "enable_thinking": null
+      },
+      "compaction_model": {
+        "name": "Qwen/Qwen3.5-35B-A3B",
+        "context_window": 128000,
+        "base_url": "https://api.siliconflow.cn/v1",
+        "api_key_env": "SILICONFLOW_API_KEY",
+        "max_output_tokens": 4096,
+        "reasoning_effort": null,
+        "include_usage": true,
+        "request_timeout_seconds": 120,
+        "output_token_parameter": "max_tokens",
+        "enable_thinking": false
+      },
+      "limits": {
+        "max_steps": 40,
+        "context_window": 128000,
+        "max_output_tokens": 32768,
+        "output_limit_bytes": 32768,
+        "shell": "/bin/sh"
+      },
+      "context_policy": "Context Runtime V0.3 session-v1",
+      "conversation_projection": {
+        "version": "continuous-session-v1"
+      },
+      "compaction": {
+        "version": 4,
+        "prompt_version": "facts-v4",
+        "trigger_fraction": 0.9,
+        "keep_recent_tokens": 20000
+      },
+      "cases": [
+        {
+          "case_id": "pvlib__pvlib-python-1707",
+          "source": "swe-bench-lite/dev",
+          "repo": "pvlib/pvlib-python",
+          "base_commit": "40e9e978c170bdde4eeee1547729417665dbc34c",
+          "image": "sha256:2888c3e2a07507677081161630001dc78da24f64c2333aef365807115280e997",
+          "task_hash": "68256900a82223432d3f81e5c86cd0683109cd60e7983dcedb17611089a0fde4",
+          "validator_hash": "78206b01be2b412364167e0a441bada5d0977842f1919c9a291774e8c436c27f",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "e6a4d8eef0a196421bafd5e04a64f157b6f25f91",
+          "workspace_base_commit": "be53b43934be488356c08692c5666f9082bdc65b"
+        },
+        {
+          "case_id": "matplotlib__matplotlib-22835",
+          "source": "swe-bench-lite/test",
+          "repo": "matplotlib/matplotlib",
+          "base_commit": "c33557d120eefe3148ebfcf2e758ff2357966000",
+          "image": "sha256:2fd6dcf3e140c658b59e9c4aae41c6fbbde81e7da73b9174f907080ddcf93eea",
+          "task_hash": "0e40a16640977e4d216c41a8fef5411ae326e3d94206bfb8512e81dc1de32ef1",
+          "validator_hash": "290057cae8d83c714a9c9e58d352e9298596870d34bc6460c3d78714cde4fcde",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "e7299aa0b60bae02d2fe60aa52595b9eeb94173e",
+          "workspace_base_commit": "62e8f060e69a733081b7188cab112674166f13d4"
+        },
+        {
+          "case_id": "django__django-11734",
+          "source": "swe-bench-verified/test",
+          "repo": "django/django",
+          "base_commit": "999891bd80b3d02dd916731a7a239e1036174885",
+          "image": "sha256:221a943944b673c247110ecb250970be2d985640ea766e0a60d4a5fe11a75c53",
+          "task_hash": "0776749c8cc9c775b6a93aec06660856bb45a6cd0f30ece5071e0916082ca5b3",
+          "validator_hash": "8d9ca8e2721cfbf61edc56921a7b9853e192fe43b06fd0a46ef009659e157575",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "5bc06ca2beefc0a3dd022d170b4074514c729be2",
+          "workspace_base_commit": "909e96acf83c901e9c4f4b77c75639e220cbd812"
+        },
+        {
+          "case_id": "psf__requests-6028",
+          "source": "swe-bench-verified/test",
+          "repo": "psf/requests",
+          "base_commit": "0192aac24123735b3eaf9b08df46429bb770c283",
+          "image": "sha256:7f1bbc5e6f0c02a72329d92664a6fa859a53af6d0d70f5061e3810540ac61cc5",
+          "task_hash": "14d3a5b04d20af9cd580fb4d431ee0678673b4dccb9e196c961a8bef91023c8e",
+          "validator_hash": "ad68f9ac02e04556fa4e48d5fe2275fc461399f4ac0d4ea41c9aa3078a51c88c",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "94369dd609f8ae984d2397ca8bde82369e348a60",
+          "workspace_base_commit": "c9fafd19f340a345ae67d8f2acb5d16999c908f7"
+        },
+        {
+          "case_id": "sphinx-doc__sphinx-10323",
+          "source": "swe-bench-verified/test",
+          "repo": "sphinx-doc/sphinx",
+          "base_commit": "31eba1a76dd485dc633cae48227b46879eda5df4",
+          "image": "sha256:d4923b1a7b44c15cec293e8e800cc6a190ea4b58c8b22c2dd928a567ae468cf6",
+          "task_hash": "2819c8b48505fea704ead6bee0441b12eced45676a05241d5908dd5690a720d8",
+          "validator_hash": "05bdce3e8cfc9bc1df8926f9fcc193f990deb5284cd3f80c58663a0f6a6d80fd",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "221989e45dffcf98538e72da2ced67bbad548cd6",
+          "workspace_base_commit": "5f216d8e2f6a0fb8a94238aa979047908be77a8e"
+        },
+        {
+          "case_id": "click__path-generic-type",
+          "source": "curated",
+          "repo": "pallets/click",
+          "base_commit": "7944461a80b780d060899c8835acab3c273a04a6",
+          "image": "sha256:67e973fe31f33221c1462f48ac87a7a3d991170aecdb902ecc5b39563244c39e",
+          "task_hash": "1ca4a66be799aed8eb7944573713a5bbde7efdf33bd16c0660a47b18c971c162",
+          "validator_hash": "ef2ff597b4c39816d44ac46cdf91cf4cabfd2c23d4a2aaafd5947b8c444392ae",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "014c6c60967424c964e69a4517b1a310b38d9c54",
+          "workspace_base_commit": "87a9a18c2c961f9eb008c5df1507ab8838393a7b"
+        },
+        {
+          "case_id": "pytest__doctest-optionflag-leak",
+          "source": "curated",
+          "repo": "pytest-dev/pytest",
+          "base_commit": "f8ad1f6f95307ed5b7da9b73f1c585695bf2b51a",
+          "image": "sha256:5377942c004dcf865b2d9a9e57aca3471c7aec0275aa58b5119adac2113e18d7",
+          "task_hash": "b2ba0853d581ddbbebd15850939244295039ede2de54c1ce9e77f958656cc3c4",
+          "validator_hash": "73aea8913bfd6efe5b494add5facdcfe93ed3c91ce2a4e43f4928de00b8636ba",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "07d0e9f3c2fe5e611136a95e08f9f3ac55713ae5",
+          "workspace_base_commit": "92566555c793ed3dbfe7545a93397dd6cfe2db43"
+        },
+        {
+          "case_id": "rich__double-width-wrap",
+          "source": "curated",
+          "repo": "Textualize/rich",
+          "base_commit": "e76f3c3ea78481342e21a7b3328075462ab69c2b",
+          "image": "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa",
+          "task_hash": "daf313eec1fa29b53f360b32a0746017ce62d05250ba600b600ca0799dc5e708",
+          "validator_hash": "b7703ca113ee1eae35efd562d361de5b77ab7e1e100dd19af5f87736fcdfeb3f",
+          "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+          "manifest": "../manifest.json",
+          "base_tree": "e1e3e8e8b1462e55c6076a3bcd668dcf8a29c966",
+          "workspace_base_commit": "2515dd1654548b4d7d76ee3577f09942573900a6"
+        }
+      ]
+    },
+    "status_counts": {
+      "PASS": 7,
+      "FAIL": 1,
+      "ERROR": 0,
+      "ABORTED": 0,
+      "NOT_RUN": 0
+    },
+    "reported_totals": {
+      "input_tokens": {
+        "reported": 8169091,
+        "coverage": 230,
+        "calls": 230
+      },
+      "output_tokens": {
+        "reported": 147898,
+        "coverage": 230,
+        "calls": 230
+      },
+      "total_tokens": {
+        "reported": 8316989,
+        "coverage": 230,
+        "calls": 230
+      },
+      "cached_input_tokens": {
+        "reported": 7649664,
+        "coverage": 230,
+        "calls": 230
+      },
+      "model_calls": 230,
+      "tool_calls": 352,
+      "duration_ms": 1464172,
+      "usage_coverage": 230
+    },
+    "event_totals": {
+      "model_calls": 230,
+      "tool_calls": 352,
+      "apply_patch_calls": 38,
+      "invalid_patch": 6,
+      "patch_conflict": 1,
+      "patch_failure_same_path_followups": 6,
+      "raw_cmd_calls": 37,
+      "invalid_arguments_all": 38,
+      "exec_invalid_arguments": 37,
+      "cmd_invalid_arguments": 37,
+      "alias_marked": 0,
+      "alias_with_exit_code": 0,
+      "alias_ok": 0,
+      "patch_results_with_diff": 26,
+      "patch_diff_events": 0,
+      "alias_raw_call_mismatches": 0
+    },
+    "cases": [
+      {
+        "id": "pvlib__pvlib-python-1707",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "aa77220226e24c578d2ae963002d4419",
+          "run_id": "374cb1404a164457bc167fbd0a47e9bc"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 18,
+          "tool_calls": 26,
+          "apply_patch_calls": 3,
+          "invalid_patch": 0,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 0,
+          "raw_cmd_calls": 0,
+          "invalid_arguments_all": 0,
+          "exec_invalid_arguments": 0,
+          "cmd_invalid_arguments": 0,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 3,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 18,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 348860,
+            "coverage": 18,
+            "calls": 18
+          },
+          "output_tokens": {
+            "reported": 15417,
+            "coverage": 18,
+            "calls": 18
+          },
+          "total_tokens": {
+            "reported": 364277,
+            "coverage": 18,
+            "calls": 18
+          },
+          "cached_input_tokens": {
+            "reported": 313216,
+            "coverage": 18,
+            "calls": 18
+          }
+        },
+        "timing": {
+          "prepare": 28.03200000000652,
+          "agent": 105.813,
+          "validation": 26.219000000040978,
+          "total": 176.78200000000652
+        },
+        "tool_errors": {},
+        "patch_recovery_windows": [],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "matplotlib__matplotlib-22835",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "f452a78050254aff91fd3d52d7c4d111",
+          "run_id": "be843ec2c8b340ceb11c89c0398e4aae"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 20,
+          "tool_calls": 35,
+          "apply_patch_calls": 4,
+          "invalid_patch": 1,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 1,
+          "raw_cmd_calls": 0,
+          "invalid_arguments_all": 0,
+          "exec_invalid_arguments": 0,
+          "cmd_invalid_arguments": 0,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 2,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 20,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 341121,
+            "coverage": 20,
+            "calls": 20
+          },
+          "output_tokens": {
+            "reported": 11558,
+            "coverage": 20,
+            "calls": 20
+          },
+          "total_tokens": {
+            "reported": 352679,
+            "coverage": 20,
+            "calls": 20
+          },
+          "cached_input_tokens": {
+            "reported": 309504,
+            "coverage": 20,
+            "calls": 20
+          }
+        },
+        "timing": {
+          "prepare": 37.28099999995902,
+          "agent": 124.343,
+          "validation": 51.10899999999674,
+          "total": 259.125
+        },
+        "tool_errors": {
+          "command_exit_nonzero": 1,
+          "path_escape": 1,
+          "invalid_patch": 1
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_9z269CXvGtsbmoQYKUZ03826",
+            "failed_seq": 133,
+            "error_code": "path_escape",
+            "failed_file": "/workspace/lib/matplotlib/artist.py",
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 9,
+            "intervening_tool_calls": 11
+          },
+          {
+            "failed_call_id": "call_00_fXp2ZhKz4jznQQvRaHtQ6084",
+            "failed_seq": 169,
+            "error_code": "invalid_patch",
+            "failed_file": "lib/matplotlib/tests/test_image.py",
+            "next_same_path_patch_call_id": "call_00_O7AIFGIY1jaTUQvcs5kJ0649",
+            "identical_arguments": false,
+            "intervening_model_calls": 1,
+            "intervening_tool_calls": 0
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "django__django-11734",
+        "status": "FAIL",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "2b529fdede094996a388a9ab5bf8aade",
+          "run_id": "76b7ae5a1f4a47fbb01cce12b3c00e93"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 31,
+          "tool_calls": 57,
+          "apply_patch_calls": 5,
+          "invalid_patch": 0,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 0,
+          "raw_cmd_calls": 4,
+          "invalid_arguments_all": 5,
+          "exec_invalid_arguments": 4,
+          "cmd_invalid_arguments": 4,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 4,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 31,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 1613458,
+            "coverage": 31,
+            "calls": 31
+          },
+          "output_tokens": {
+            "reported": 21931,
+            "coverage": 31,
+            "calls": 31
+          },
+          "total_tokens": {
+            "reported": 1635389,
+            "coverage": 31,
+            "calls": 31
+          },
+          "cached_input_tokens": {
+            "reported": 1516800,
+            "coverage": 31,
+            "calls": 31
+          }
+        },
+        "timing": {
+          "prepare": 52.54700000002049,
+          "agent": 331.657,
+          "validation": 78.20299999997951,
+          "total": 538.75
+        },
+        "tool_errors": {
+          "invalid_arguments": 5,
+          "command_exit_nonzero": 1
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_jIU1LuANfgoXKmjwuxhk6018",
+            "failed_seq": 103,
+            "error_code": "invalid_arguments",
+            "failed_file": null,
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 23,
+            "intervening_tool_calls": 38
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "psf__requests-6028",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "f7f24ff270b74d7d923fd5e34d37da89",
+          "run_id": "80f72c6d599c4eae98ada0c8af75e1ee"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 25,
+          "tool_calls": 54,
+          "apply_patch_calls": 2,
+          "invalid_patch": 0,
+          "patch_conflict": 1,
+          "patch_failure_same_path_followups": 1,
+          "raw_cmd_calls": 2,
+          "invalid_arguments_all": 2,
+          "exec_invalid_arguments": 2,
+          "cmd_invalid_arguments": 2,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 1,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 25,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 1304994,
+            "coverage": 25,
+            "calls": 25
+          },
+          "output_tokens": {
+            "reported": 17884,
+            "coverage": 25,
+            "calls": 25
+          },
+          "total_tokens": {
+            "reported": 1322878,
+            "coverage": 25,
+            "calls": 25
+          },
+          "cached_input_tokens": {
+            "reported": 1213824,
+            "coverage": 25,
+            "calls": 25
+          }
+        },
+        "timing": {
+          "prepare": 8.34399999998277,
+          "agent": 152.0,
+          "validation": 10.437000000034459,
+          "total": 176.34399999998277
+        },
+        "tool_errors": {
+          "invalid_arguments": 2,
+          "patch_conflict": 1,
+          "command_exit_nonzero": 5
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_RrCxTx3NxEqdFRwSdtAW8540",
+            "failed_seq": 202,
+            "error_code": "patch_conflict",
+            "failed_file": "tests/test_utils.py",
+            "next_same_path_patch_call_id": "call_00_gcWlJjVSvZF3l1a0RbRg3534",
+            "identical_arguments": false,
+            "intervening_model_calls": 2,
+            "intervening_tool_calls": 1
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "sphinx-doc__sphinx-10323",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "8bee74041c5445f89c16e3604f4f8b16",
+          "run_id": "351633b340a4457d99d70fc2087fde18"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 40,
+          "tool_calls": 54,
+          "apply_patch_calls": 10,
+          "invalid_patch": 3,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 2,
+          "raw_cmd_calls": 7,
+          "invalid_arguments_all": 7,
+          "exec_invalid_arguments": 7,
+          "cmd_invalid_arguments": 7,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 7,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 40,
+        "at_step_limit": true,
+        "usage": {
+          "input_tokens": {
+            "reported": 1776985,
+            "coverage": 40,
+            "calls": 40
+          },
+          "output_tokens": {
+            "reported": 24468,
+            "coverage": 40,
+            "calls": 40
+          },
+          "total_tokens": {
+            "reported": 1801453,
+            "coverage": 40,
+            "calls": 40
+          },
+          "cached_input_tokens": {
+            "reported": 1687936,
+            "coverage": 40,
+            "calls": 40
+          }
+        },
+        "timing": {
+          "prepare": 16.78200000000652,
+          "agent": 296.579,
+          "validation": 27.51600000000326,
+          "total": 360.75
+        },
+        "tool_errors": {
+          "invalid_arguments": 7,
+          "command_exit_nonzero": 5,
+          "command_timeout": 1,
+          "invalid_patch": 3
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_3XGtSH3aSWrsuZCNMrFy9365",
+            "failed_seq": 260,
+            "error_code": "invalid_patch",
+            "failed_file": "/workspace/sphinx/directives/code.py",
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 14,
+            "intervening_tool_calls": 13
+          },
+          {
+            "failed_call_id": "call_00_px9fWJz7vXNk0Cll79HX7729",
+            "failed_seq": 284,
+            "error_code": "invalid_patch",
+            "failed_file": "sphinx/directives/code.py",
+            "next_same_path_patch_call_id": "call_00_R6T0zyBfM6hGuqghcB6h1968",
+            "identical_arguments": false,
+            "intervening_model_calls": 1,
+            "intervening_tool_calls": 0
+          },
+          {
+            "failed_call_id": "call_00_ScP5PeuyuyoOFQzP3pMG7219",
+            "failed_seq": 308,
+            "error_code": "invalid_patch",
+            "failed_file": "tests/test_directive_code.py",
+            "next_same_path_patch_call_id": "call_00_heQjLBZwVgZu6Kv4uVWW0058",
+            "identical_arguments": false,
+            "intervening_model_calls": 2,
+            "intervening_tool_calls": 1
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "click__path-generic-type",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "b4f926f350ff456e9ca704338a0ab0e9",
+          "run_id": "4fd88d59f9344e7ebd6dfb44b3df12de"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 37,
+          "tool_calls": 44,
+          "apply_patch_calls": 5,
+          "invalid_patch": 0,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 0,
+          "raw_cmd_calls": 13,
+          "invalid_arguments_all": 13,
+          "exec_invalid_arguments": 13,
+          "cmd_invalid_arguments": 13,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 4,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 37,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 831740,
+            "coverage": 37,
+            "calls": 37
+          },
+          "output_tokens": {
+            "reported": 13244,
+            "coverage": 37,
+            "calls": 37
+          },
+          "total_tokens": {
+            "reported": 844984,
+            "coverage": 37,
+            "calls": 37
+          },
+          "cached_input_tokens": {
+            "reported": 783872,
+            "coverage": 37,
+            "calls": 37
+          }
+        },
+        "timing": {
+          "prepare": 3.5459999999729916,
+          "agent": 119.953,
+          "validation": 10.09399999998277,
+          "total": 138.875
+        },
+        "tool_errors": {
+          "invalid_arguments": 13,
+          "path_escape": 1,
+          "command_exit_nonzero": 4
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_FrLpHnYvxhfht7t6tQOM7145",
+            "failed_seq": 200,
+            "error_code": "path_escape",
+            "failed_file": "/workspace/src/click/types.py",
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 16,
+            "intervening_tool_calls": 15
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "pytest__doctest-optionflag-leak",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "6bc92154a49b424db7c7cf1dae123c99",
+          "run_id": "e4e9afd8450c4f15bfa3b8fec8e3b44a"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 28,
+          "tool_calls": 40,
+          "apply_patch_calls": 4,
+          "invalid_patch": 1,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 1,
+          "raw_cmd_calls": 3,
+          "invalid_arguments_all": 3,
+          "exec_invalid_arguments": 3,
+          "cmd_invalid_arguments": 3,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 2,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 28,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 848018,
+            "coverage": 28,
+            "calls": 28
+          },
+          "output_tokens": {
+            "reported": 19570,
+            "coverage": 28,
+            "calls": 28
+          },
+          "total_tokens": {
+            "reported": 867588,
+            "coverage": 28,
+            "calls": 28
+          },
+          "cached_input_tokens": {
+            "reported": 790272,
+            "coverage": 28,
+            "calls": 28
+          }
+        },
+        "timing": {
+          "prepare": 30.0,
+          "agent": 149.327,
+          "validation": 41.0,
+          "total": 229.67199999996228
+        },
+        "tool_errors": {
+          "invalid_arguments": 3,
+          "path_escape": 1,
+          "invalid_patch": 1,
+          "command_exit_nonzero": 1,
+          "invalid_plan": 1
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_Nat9zhXNNF54lZhw5feJ8323",
+            "failed_seq": 152,
+            "error_code": "path_escape",
+            "failed_file": "/workspace/src/_pytest/doctest.py",
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 14,
+            "intervening_tool_calls": 15
+          },
+          {
+            "failed_call_id": "call_00_cKtXEFkE5mjXucFGH0q33472",
+            "failed_seq": 201,
+            "error_code": "invalid_patch",
+            "failed_file": "testing/test_doctest.py",
+            "next_same_path_patch_call_id": "call_00_zXZbftYcjYxJJVX41A019702",
+            "identical_arguments": false,
+            "intervening_model_calls": 1,
+            "intervening_tool_calls": 0
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      },
+      {
+        "id": "rich__double-width-wrap",
+        "status": "PASS",
+        "agent": {
+          "outcome": "completed",
+          "reason": null,
+          "session_id": "01ffa69eb662493a827c04fe0f80922d",
+          "run_id": "2212f72ea47f4b0d850998809753c18f"
+        },
+        "metrics_available": true,
+        "counts": {
+          "model_calls": 31,
+          "tool_calls": 42,
+          "apply_patch_calls": 5,
+          "invalid_patch": 1,
+          "patch_conflict": 0,
+          "patch_failure_same_path_followups": 1,
+          "raw_cmd_calls": 8,
+          "invalid_arguments_all": 8,
+          "exec_invalid_arguments": 8,
+          "cmd_invalid_arguments": 8,
+          "alias_marked": 0,
+          "alias_with_exit_code": 0,
+          "alias_ok": 0,
+          "patch_results_with_diff": 3,
+          "patch_diff_events": 0,
+          "alias_raw_call_mismatches": 0
+        },
+        "steps": 31,
+        "at_step_limit": false,
+        "usage": {
+          "input_tokens": {
+            "reported": 1103915,
+            "coverage": 31,
+            "calls": 31
+          },
+          "output_tokens": {
+            "reported": 23826,
+            "coverage": 31,
+            "calls": 31
+          },
+          "total_tokens": {
+            "reported": 1127741,
+            "coverage": 31,
+            "calls": 31
+          },
+          "cached_input_tokens": {
+            "reported": 1034240,
+            "coverage": 31,
+            "calls": 31
+          }
+        },
+        "timing": {
+          "prepare": 8.73499999998603,
+          "agent": 184.5,
+          "validation": 11.547000000020489,
+          "total": 214.03200000000652
+        },
+        "tool_errors": {
+          "invalid_arguments": 8,
+          "path_escape": 1,
+          "invalid_patch": 1,
+          "command_exit_nonzero": 2
+        },
+        "patch_recovery_windows": [
+          {
+            "failed_call_id": "call_00_unwtvTRx6W349rVpF9rB6817",
+            "failed_seq": 196,
+            "error_code": "path_escape",
+            "failed_file": "/workspace/rich/cells.py",
+            "next_same_path_patch_call_id": null,
+            "identical_arguments": null,
+            "intervening_model_calls": 12,
+            "intervening_tool_calls": 11
+          },
+          {
+            "failed_call_id": "call_00_P8pWmKKdbtddOAEeuU7n1837",
+            "failed_seq": 220,
+            "error_code": "invalid_patch",
+            "failed_file": "tests/test_cells.py",
+            "next_same_path_patch_call_id": "call_00_dJ9V63k7QdC2ep3NPtg21247",
+            "identical_arguments": false,
+            "intervening_model_calls": 1,
+            "intervening_tool_calls": 0
+          }
+        ],
+        "paired_calls": true,
+        "audit_linked_to_patch": true
+      }
+    ],
+    "artifact_fingerprints": [
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\manifest.json",
+        "sha256": "6b334d863f6bb096557bf936f592525926870619dcf9e34bdad385e8187f9a77"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\summary.json",
+        "sha256": "4a746d5297ee1afef4be35e6b85e89744e395851bee1cf1b9ea490232fe99fde"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\pvlib__pvlib-python-1707\\session\\sessions\\22e19931d548e30e2a847e86\\aa77220226e24c578d2ae963002d4419.jsonl",
+        "sha256": "cfe7cc46ff91206c3188fcccf4566fd2a39f691c29754b09073776cd1d6106bd"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\pvlib__pvlib-python-1707\\result.json",
+        "sha256": "6b46d43c690a33c905fec92db8cd7c68928d1068104006464eb6251d36832ae9"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\matplotlib__matplotlib-22835\\session\\sessions\\0f75170baa68906edcd01351\\f452a78050254aff91fd3d52d7c4d111.jsonl",
+        "sha256": "1b32c2c2169e9d24c69fec39908c48ae9a524035868c50cba6ee9e30aa995a32"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\matplotlib__matplotlib-22835\\result.json",
+        "sha256": "17b6e61f623ae9fc9cba120a29b80bf44cdd5928b610aa65200af3fea9645fb4"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\django__django-11734\\session\\sessions\\5a6c33b7259a21eab582d0e2\\2b529fdede094996a388a9ab5bf8aade.jsonl",
+        "sha256": "3c6690d4186f0f76c678a611d0eb79312e4ea0cc03c4abd6044d922ac644f0ca"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\django__django-11734\\result.json",
+        "sha256": "1789f772743a2b643f371ceba208c22de03246100d0e7b13f0162d94013439de"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\psf__requests-6028\\session\\sessions\\1a826db51903df39beb06b53\\f7f24ff270b74d7d923fd5e34d37da89.jsonl",
+        "sha256": "9fb9d25483ee9053ba53bdcdd0132ec910219f6fa760b053f891b29619045960"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\psf__requests-6028\\result.json",
+        "sha256": "2aca6b38e0d187b5edb8c0993190dbe79181ae4a6ee8201dc23f75a91c9def9c"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\sphinx-doc__sphinx-10323\\session\\sessions\\a5689881df12930496639528\\8bee74041c5445f89c16e3604f4f8b16.jsonl",
+        "sha256": "e91884a7fe9fb7c9a2884d10c151d0f9bb5d97c1806137989851d2bb90776ffa"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\sphinx-doc__sphinx-10323\\result.json",
+        "sha256": "8881a7171d1d8d9a026e0f6643cf684ea99bd037aa619bd7de4b6752992113c4"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\click__path-generic-type\\session\\sessions\\2142f39f6522dcbbbfb3c773\\b4f926f350ff456e9ca704338a0ab0e9.jsonl",
+        "sha256": "c03c6124220a5a3073dcd010061944bc42b8f4abd7a092646cea1c0ca79ce286"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\click__path-generic-type\\result.json",
+        "sha256": "88bc1c49afae4d21336320665fd308462358afe29537af993c189f19243c8c93"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\pytest__doctest-optionflag-leak\\session\\sessions\\90ebe9fd6bbc6d381397ddd4\\6bc92154a49b424db7c7cf1dae123c99.jsonl",
+        "sha256": "736be378a1d2e2d9cb8a5566ebe2648a8dbd044311ebecf6671e624e8b6520e9"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\pytest__doctest-optionflag-leak\\result.json",
+        "sha256": "d6be06993a22e3ea2dd58c8bd5cfc5cbd9ba3d43568b72f4454552d51a83c529"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\rich__double-width-wrap\\session\\sessions\\361258f54b01a2fed8a003c6\\01ffa69eb662493a827c04fe0f80922d.jsonl",
+        "sha256": "5f17a2189bb46158e16f2cacf0e4b879b0b18b2f14bedfe11db4f6d57a4b74be"
+      },
+      {
+        "path": "C:\\Users\\Archer\\.nexus\\evaluation\\results\\20261023T143533Z-46a28d3d\\rich__double-width-wrap\\result.json",
+        "sha256": "1fa2d3631ee0c29d1fbbd7367c21565a46ca70e58cbec96459136816edfc8bfa"
+      }
+    ]
+  }
+}

@@ -11,7 +11,8 @@ from nexus.tools.skills import create_load_skill_tool
 EXEC_SPEC = ToolSpec(
     "exec_command",
     "Execute a command in the actual local shell. Use for reading/searching files, git, "
-    "tests and builds. Default cwd is workspace; stdin is closed. Inspect exit_code and "
+    'tests and builds. Use the required key command, not cmd: {"command":"pytest -q"}. '
+    "Default cwd is workspace; stdin is closed. Inspect exit_code and "
     "truncation. command is executed directly in the shell named in Environment; "
     "do not wrap it in another shell unless deliberately switching languages. "
     "Use workdir instead of shell-specific cd syntax. "
@@ -29,25 +30,26 @@ EXEC_SPEC = ToolSpec(
 )
 PATCH_SPEC = ToolSpec(
     "apply_patch",
-    "Edit UTF-8 text files inside the workspace with Nexus patch format. "
-    "The patch string starts with *** Begin Patch and ends with *** End Patch. "
-    "No Markdown fences. Only a missing Begin marker before complete file sections "
-    "with an End marker is normalized; truncated patches are rejected.\n\n"
+    "Edit UTF-8 files inside the workspace. Pass JSON with one patch string. "
+    "Start with *** Begin Patch and finish with *** End Patch on separate lines; "
+    "no Markdown fences. Do not omit the End marker.\n\n"
+    "Each path may appear only once: put all edits to that file in one File Section. "
+    "Each @@ starts a separate Update chunk and must be followed by its own edit body "
+    "containing '+' or '-'. An anchor-only or context-only chunk is invalid. "
+    "Keep context and edits together until the next @@ or File Section. "
+    "Use chunks in source order.\n\n"
+    "Update lines: space = unchanged, '-' = removed, '+' = added. Copy current old text, "
+    "including leading indentation. An @@ anchor starts searching AFTER that line; "
+    "it does not define a function/class scope. Use enough context for one unique match. "
+    "Add File: EVERY body line needs '+', including empty lines (a lone '+').\n\n"
     "Example:\n"
     "*** Begin Patch\n"
-    "*** Update File: src/app.py\n@@ def run():\n-old()\n+new()\n"
-    "*** Add File: tests/new_case.txt\n+fixture\n"
+    "*** Update File: src/app.py\n@@ def run():\n-    old()\n+    new()\n"
+    "*** Add File: tests/new_case.txt\n+fixture\n+\n+second line\n"
     "*** Delete File: obsolete.txt\n*** End Patch\n\n"
-    "Use workspace-relative paths. Each path may appear only once; for multiple edits "
-    "in one file, use multiple @@ chunks under one Update File.\n\n"
-    "Update body lines start with one space for unchanged context, '-' for removed text, "
-    "or '+' for added text. A bare blank line inside an Update chunk is empty unchanged "
-    "context.\n\n"
-    "An @@ anchor only sets where searching begins; it does not define a function/class "
-    "scope. Include enough unchanged/removed context to identify the intended old block "
-    "uniquely. For later chunks use bare @@ or a later anchor.\n\n"
-    "Do not provide line numbers or hunk counts. No rename, binary, mode-change, or "
-    "absolute-path edits.",
+    "Use relative paths. Do not provide line numbers or hunk counts. "
+    "No rename, binary or mode changes. On conflict, read the failed file and rebuild "
+    "the indicated chunk against current content; do not resend unchanged old text.",
     {
         "type": "object",
         "properties": {

@@ -57,6 +57,7 @@ class FilePatch:
     kind: str
     chunks: list[Chunk] = field(default_factory=list)
     added: list[str] = field(default_factory=list)
+    normalized_blank_lines: int = 0
 
 
 def _error(code: str, detail: str, file: FilePatch | None, hunk: int | None = None) -> PatchError:
@@ -75,6 +76,13 @@ def parse_nexus_patch(patch: str) -> list[FilePatch]:
         lines.pop()
     if not lines or lines[0] != "*** Begin Patch" or lines[-1] != "*** End Patch":
         raise PatchError("invalid_patch", "Expected *** Begin Patch and *** End Patch boundaries")
+    # One linear pass avoids rescanning long runs of malformed bare blank lines.
+    followed_by_add_body = [False] * len(lines)
+    next_is_add_body = False
+    for index in range(len(lines) - 1, -1, -1):
+        followed_by_add_body[index] = next_is_add_body
+        if lines[index]:
+            next_is_add_body = lines[index].startswith("+")
     files: list[FilePatch] = []
     current: FilePatch | None = None
     chunk: Chunk | None = None
@@ -146,6 +154,16 @@ def parse_nexus_patch(patch: str) -> list[FilePatch]:
                 )
         elif current.kind == "added" and line.startswith("+"):
             current.added.append(line[1:])
+        elif (
+            current.kind == "added"
+            and line == ""
+            and current.added
+            and followed_by_add_body[number - 1]
+        ):
+            # Only interior, truly empty lines between explicit '+' body lines.
+            # Section-boundary separators, indentation and nonempty text are ambiguous.
+            current.added.append("")
+            current.normalized_blank_lines += 1
         elif current.kind == "added":
             raise _error(
                 "invalid_patch",
@@ -164,6 +182,12 @@ def parse_nexus_patch(patch: str) -> list[FilePatch]:
 
 
 def _find_unique(source: list[str], old: list[str], start: int, label: str) -> int:
+    sample = bounded_text("\n".join(old), MAX_ERROR_EXCERPT_BYTES)
+    location = f"Search starts at line {start + 1}; current file has {len(source)} lines."
+    recovery = (
+        "Read the failed file in this range and rebuild this chunk against current content; "
+        "preserve leading indentation and do not retry the unchanged patch."
+    )
     for tolerant in (False, True):
         needle = [line.rstrip() for line in old] if tolerant else old
         haystack = [line.rstrip() for line in source] if tolerant else source
@@ -178,14 +202,13 @@ def _find_unique(source: list[str], old: list[str], start: int, label: str) -> i
             raise PatchError(
                 "patch_conflict",
                 f"{label} matched {len(matches)} locations; "
-                "add more unchanged context or a more specific @@ anchor",
+                f"candidate start lines (first 5): {[i + 1 for i in matches[:5]]}. "
+                f"Expected old text: {sample!r}. {location} "
+                f"Add more unchanged context or a more specific @@ anchor. {recovery}",
             )
-    sample = bounded_text("\n".join(old), MAX_ERROR_EXCERPT_BYTES)
     raise PatchError(
         "patch_conflict",
-        f"{label} not found. Expected old text: {sample!r}. "
-        "Read the failed file near this text and rebuild this chunk against current content; "
-        "do not retry the unchanged patch.",
+        f"{label} not found. Expected old text: {sample!r}. {location} {recovery}",
     )
 
 

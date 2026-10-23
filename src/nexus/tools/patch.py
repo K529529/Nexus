@@ -281,6 +281,7 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
     failed_file: str | None = None
     failed_hunk: int | None = None
     framing_normalized = False
+    normalized_blank_lines = 0
     audit_remaining = MAX_CALL_DIFF_BYTES
     emitting = False
     cancelled = False
@@ -289,6 +290,9 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
             raise PatchError("invalid_arguments", "Expected only patch: string")
         patch, framing_normalized = normalize_framing(arguments["patch"])
         changes = parse_patch(patch)
+        normalized_blank_lines = sum(
+            change.nexus.normalized_blank_lines for change in changes if change.nexus is not None
+        )
         normalized: set[Path] = set()
         for change in changes:
             failed_file = change.path
@@ -405,6 +409,8 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
         "failed_hunk": failed_hunk,
         "detail": bounded_text(detail, MAX_ERROR_DETAIL_BYTES),
     }
+    if normalized_blank_lines:
+        data["add_file_blank_lines_normalized"] = normalized_blank_lines
     result = ToolResult(
         context.call_id,
         error is None,

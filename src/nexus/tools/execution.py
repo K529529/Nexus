@@ -16,8 +16,27 @@ from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolRe
 
 COMMAND_ARGUMENTS_DETAIL = (
     "Expected a non-empty 'command' string, optional 'workdir' string and "
-    "'timeout_ms' integer (1..600000); no other fields."
+    "'timeout_ms' integer (1..600000); no other fields. "
+    "Use command (not cmd); never supply both names."
 )
+
+
+def normalize_command_arguments(arguments: Json) -> tuple[Json, bool]:
+    """Admit only the unambiguous legacy spelling; never mutate the model call.
+
+    Value/range/workdir validation still belongs to each execution environment.
+    Conflicting names and unknown fields remain untouched so validation rejects them.
+    """
+    if (
+        "command" not in arguments
+        and isinstance(arguments.get("cmd"), str)
+        and arguments["cmd"].strip()
+        and not arguments.keys() - {"cmd", "workdir", "timeout_ms"}
+    ):
+        return {
+            ("command" if key == "cmd" else key): value for key, value in arguments.items()
+        }, True
+    return arguments, False
 
 
 class OutputBuffer:
@@ -110,6 +129,7 @@ async def _cleanup(process: asyncio.subprocess.Process) -> bool:
 
 async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
     started = time.monotonic()
+    arguments, alias_used = normalize_command_arguments(arguments)
     command = arguments.get("command")
     workdir = arguments.get("workdir", ".")
     timeout = arguments.get("timeout_ms", 120000)
@@ -141,6 +161,8 @@ async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> Too
         "truncated": False,
         "cleanup_incomplete": False,
     }
+    if alias_used:
+        data["argument_alias_used"] = "cmd_to_command"
     if not cwd.is_dir():
         return ToolResult(context.call_id, False, data, "invalid_workdir")
     spawn_options: Json

@@ -17,7 +17,11 @@ from uuid import uuid4
 
 from nexus.core.types import Emit, ExecutionContext, Json, Tool, ToolCancelled, ToolResult
 from nexus.evaluation.cases import SUITE, EvalCase
-from nexus.tools.execution import COMMAND_ARGUMENTS_DETAIL, OutputBuffer
+from nexus.tools.execution import (
+    COMMAND_ARGUMENTS_DETAIL,
+    OutputBuffer,
+    normalize_command_arguments,
+)
 from nexus.tools.registry import native_tools
 
 
@@ -335,6 +339,7 @@ class Environment:
 
     async def execute(self, arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
         started = time.monotonic()
+        arguments, alias_used = normalize_command_arguments(arguments)
         text, cwd, timeout = (
             arguments.get("command"),
             arguments.get("workdir", "/workspace"),
@@ -366,6 +371,8 @@ class Environment:
             cancelled=False,
             cleanup_incomplete=False,
         )
+        if alias_used:
+            data["argument_alias_used"] = "cmd_to_command"
         pidfile = "/tmp/nexus-command-" + uuid4().hex
         argv = self.docker.argv + [
             "exec",

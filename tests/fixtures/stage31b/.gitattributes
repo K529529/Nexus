@@ -1,0 +1,2 @@
+# Preserve the exact historical source hash across checkouts.
+create_delete_harness.js -text

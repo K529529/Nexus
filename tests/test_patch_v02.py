@@ -114,14 +114,14 @@ async def test_legacy_dispatch_and_mixed_format_unchanged(
 async def test_actual_toolspec_example_and_schema(execution: ExecutionContext) -> None:
     root = execution.workspace
     (root / "src").mkdir()
-    (root / "src/app.py").write_bytes(b"def run():\nold()\n")
+    (root / "src/app.py").write_bytes(b"def run():\n    old()\n")
     (root / "obsolete.txt").write_bytes(b"obsolete\n")
     description = PATCH_SPEC.description
     example = description.split("Example:\n", 1)[1].split("\n\n", 1)[0]
     result = await apply_patch({"patch": "\n \t\n" + example + "\n\n"}, execution, Recorder())
     assert result.ok and result.data["changed_files"] == 3
-    assert (root / "src/app.py").read_bytes() == b"def run():\nnew()\n"
-    assert (root / "tests/new_case.txt").read_bytes() == b"fixture\n"
+    assert (root / "src/app.py").read_bytes() == b"def run():\n    new()\n"
+    assert (root / "tests/new_case.txt").read_bytes() == b"fixture\n\nsecond line\n"
     assert not (root / "obsolete.txt").exists()
     assert result.data["created_directories"] == ["tests"]
     assert PATCH_SPEC.input_schema == {
