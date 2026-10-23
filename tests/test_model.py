@@ -320,7 +320,7 @@ async def test_safety_snapshot_keeps_continuation_private(tmp_path: Path) -> Non
             await append_message(
                 session, ToolResult(ident, True, {"stdout": "x" * 4000}).message(), events
             )
-        context = Context(Limits(context_window=8192, max_output_tokens=512))
+        context = Context(Limits(context_window=6656, max_output_tokens=512))
         builder = ContextBuilder()
         projected = context.project(session, builder.build_active_context(session, "run"))
         assert await context.prepare(session, projected.messages, [], model, events, force=True)
@@ -713,8 +713,7 @@ def test_config_env_validation_and_no_repo_config(tmp_path: Path, monkeypatch: A
     assert config.model.key() == "secret"
     assert "secret" not in json.dumps(asdict(config))
     path.write_text('[model]\nname="test"\ncontext_window=8192\n', encoding="utf-8")
-    with pytest.raises(ConfigError, match="exceed"):
-        load_config(path)
+    assert load_config(path, require_key=False).limits.context_window == 8192
     path.write_text('[model]\napi_key="secret"\n', encoding="utf-8")
     with pytest.raises(ConfigError, match="unknown"):
         load_config(path)
@@ -733,7 +732,7 @@ async def test_output_limit_config_reaches_wire_and_context(
     config = load_config(path, require_key=False)
     selected = parameter or "max_tokens"
     assert config.model.output_token_parameter == selected
-    assert Context(config.limits).budget == 32768 - 1234 - 1024
+    assert Context(config.limits).budget == 32768
     requests: list[Json] = []
 
     def handle(request: httpx.Request) -> httpx.Response:

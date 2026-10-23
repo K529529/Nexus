@@ -124,8 +124,11 @@ def test_model_default_windows_and_independent_overrides(tmp_path: Path) -> None
         text = '[model]\nname="main"\n[compaction_model]\nname="compact"\n'
         text = text.replace(f"[{section}]", f"[{section}]\nmax_output_tokens=126976")
         path.write_text(text)
-        with pytest.raises(ConfigError, match="must exceed"):
-            load_config(path, require_key=False)
+        if section == "compaction_model":
+            with pytest.raises(ConfigError, match="must exceed"):
+                load_config(path, require_key=False)
+        else:
+            assert load_config(path, require_key=False).model.max_output_tokens == 126976
 
 
 async def test_capacity_boundary_preserves_history_and_durable_log(tmp_path: Path) -> None:

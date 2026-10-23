@@ -495,6 +495,9 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
         async def start_memory(self) -> None:
             pass
 
+        async def summarize_exit(self, reason: str) -> None:
+            assert reason == "slash-exit"
+
         async def close(self) -> None:
             self.closed = True
 

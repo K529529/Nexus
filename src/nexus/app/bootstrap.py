@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime
 from pathlib import Path
 
+from nexus.app import memory_daily
 from nexus.app.config import Config
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
@@ -24,7 +27,16 @@ from nexus.core.context import Context, ContextBuilder, instructions
 from nexus.core.model import ChatModel, CompactionModel
 from nexus.core.skills import check_active
 from nexus.core.tokens import TokenEstimator
-from nexus.core.types import Message, ModelError, RunResult, RuntimeEvent, Session, Tool, json_text
+from nexus.core.types import (
+    Json,
+    Message,
+    ModelError,
+    RunResult,
+    RuntimeEvent,
+    Session,
+    Tool,
+    json_text,
+)
 from nexus.tools.mcp import connect_servers
 from nexus.tools.memory import create_memory_tools
 from nexus.tools.registry import default_tools
@@ -84,6 +96,7 @@ class Conversation:
         self.resources = AsyncExitStack()
         self.unavailable: list[str] = []
         self.closed = False
+        self.exit_summary_attempted = False
         if resume:
             self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
             if not config.memory_enabled and (
@@ -128,6 +141,7 @@ class Conversation:
             else None
         )
         if self.memory is not None and self.memory_index is not None:
+            self.context.before_compact = self.before_compact
             self.base_registry.update(
                 create_memory_tools(
                     self.memory,
@@ -347,7 +361,6 @@ class Conversation:
             return False
         self.ensure_events("Context compaction")
         assert self.events is not None
-        await self.refresh_memory()
         if self.compaction_model is None and self.config.compaction_model is not None:
             self.compaction_model = CompactionModel(self.config.compaction_model)
             self.resources.push_async_callback(self.compaction_model.close)
@@ -372,7 +385,7 @@ class Conversation:
             self.session.run_id = old_run
             self.context.execution_budget = old_budget
 
-    async def memory_prefix(self) -> str:
+    async def memory_prefix(self, *, refresh: bool = False) -> str:
         if self.memory is None:
             return ""
         assert self.events is not None
@@ -381,12 +394,13 @@ class Conversation:
             epoch = self.memory.epoch()
             identity = root_id(self.memory)
             if (
-                previous is not None
+                not refresh
+                and previous is not None
                 and previous["epoch"] == epoch
                 and previous["root_id"] == identity
             ):
                 return str(previous["content"])
-            if previous is None and self.resumed:
+            if not refresh and previous is None and self.resumed:
                 # Old sessions never had a snapshot; preserve that original absence on resume.
                 value = {
                     "version": 1,
@@ -414,12 +428,12 @@ class Conversation:
         self.session.memory_snapshot = value
         return str(value["content"])
 
-    async def refresh_memory(self) -> None:
-        """Only a durable invalidation changes an existing session's snapshot."""
+    async def refresh_memory(self, *, force: bool = False) -> None:
+        """Refresh on explicit invalidation or an actual compaction boundary."""
         if self.memory is None or self.events is None:
             return
         previous = self.session.memory_snapshot
-        suffix = await self.memory_prefix()
+        suffix = await self.memory_prefix(refresh=force)
         if previous == self.session.memory_snapshot:
             return
         current = next((m for m in self.session.messages if m.role == "system"), None)
@@ -434,6 +448,117 @@ class Conversation:
             m for m in self.session.messages if m.role != "system"
         ]
         self.context.reset_calibration()
+
+    async def before_compact(self) -> None:
+        if self.memory is None or self.events is None:
+            return
+        try:
+            now = datetime.now().astimezone()
+            text = memory_daily.handoff(self.memory, self.session.session_id, now)
+            if text:
+                self.memory.write(memory_daily.daily_name(now), redact(text, self.secret_values()))
+                if self.memory_index is not None:
+                    self.memory_index.changed()
+        except (OSError, ValueError) as exc:
+            await self.events("warning", {"detail": f"Memory handoff skipped: {exc}"})
+        finally:
+            await self.refresh_memory(force=True)
+
+    async def summarize_exit(self, reason: str) -> None:
+        """Called only after interactive terminal teardown, never by ordinary close."""
+        if (
+            self.closed
+            or self.exit_summary_attempted
+            or self.memory is None
+            or reason not in {"slash-exit", "eof"}
+        ):
+            return
+        self.exit_summary_attempted = True
+        started = time.monotonic()
+        model: ChatModel | None = None
+        try:
+            prepared = memory_daily.exit_request(
+                self.session,
+                self.context.main_estimator,
+                self.config.limits.context_window,
+                self.secret_values(),
+            )
+            if prepared is None:
+                return
+            request, budget = prepared
+            self.ensure_events("Memory exit summary")
+            assert self.events is not None
+            await self.events(
+                "memory_daily",
+                {"status": "summarizing", "timeout_seconds": memory_daily.EXIT_TIMEOUT},
+            )
+            config = replace(
+                self.config.model,
+                max_output_tokens=min(
+                    self.config.model.max_output_tokens, memory_daily.EXIT_OUTPUT_TOKENS
+                ),
+                request_timeout_seconds=memory_daily.EXIT_TIMEOUT,
+            )
+
+            async def quiet(kind: str, data: Json, **_: object) -> int:
+                # No assistant stream, tool state, or main-run profile mutations.
+                return 0
+
+            async with asyncio.timeout(memory_daily.EXIT_TIMEOUT):
+                model = ChatModel(config)
+                reply = await model.complete(request, [], quiet)
+            text = str(redact(reply.message.content, self.secret_values())).strip()
+            written = (
+                not reply.message.tool_calls
+                and reply.finish_reason == "stop"
+                and memory_daily.valid_summary(text)
+            )
+            if written:
+                now = datetime.now().astimezone()
+                self.memory.write(
+                    memory_daily.daily_name(now),
+                    memory_daily.summary_entry(text, reason, self.session.session_id, now),
+                )
+                if self.memory_index is not None:
+                    self.memory_index.changed()
+            await self.events(
+                "memory_daily",
+                {
+                    "status": "written" if written else "skipped",
+                    "reason": reason if written else "empty_or_invalid_summary",
+                    "model": config.name,
+                    "input_budget": budget,
+                    "estimated_input_tokens": self.context.main_estimator.count(request, []),
+                    "usage": asdict(reply.usage),
+                    "duration_ms": int((time.monotonic() - started) * 1000),
+                },
+            )
+        except Exception as exc:
+            # Daily is best effort; a network/disk/log failure must not trap exit.
+            if self.events is not None:
+                try:
+                    await self.events(
+                        "memory_daily",
+                        {
+                            "status": "skipped",
+                            "reason": type(exc).__name__,
+                            "model": self.config.model.name,
+                            "duration_ms": int((time.monotonic() - started) * 1000),
+                        },
+                    )
+                    await self.events(
+                        "warning",
+                        {"detail": f"Memory exit summary skipped: {type(exc).__name__}: {exc}"},
+                    )
+                except Exception:
+                    pass
+        finally:
+            if model is not None:
+                try:
+                    async with asyncio.timeout(1):
+                        await model.close()
+                except Exception:
+                    pass
 
     async def close(self) -> None:
         if self.closed:

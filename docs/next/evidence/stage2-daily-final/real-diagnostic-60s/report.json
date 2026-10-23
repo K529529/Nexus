@@ -1,0 +1,84 @@
+{
+  "source_sha256": "f54cf874d8111e7051f9a6d5da8f7757ba1d2a6ce6bf0a4b793021d2a4af5e37",
+  "source_session": "2925ee2af1b441a4af9b5d91298e44eb",
+  "isolated_home": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-daily-acceptance-jwvtl7v1",
+  "mode": "real completed dogfood session, isolated resume; no coding Run",
+  "exit_timeout_seconds": 60,
+  "model": "deepseek-flash",
+  "context_window": 128000,
+  "max_output_tokens": 32768,
+  "qmd_command": [
+    "D:\\software\\nvm4w\\nodejs\\node.EXE",
+    "D:\\software\\node\\node_global\\node_modules\\@tobilu\\qmd\\dist\\cli\\qmd.js"
+  ],
+  "active_messages_before": 48,
+  "tokens_before": 24650,
+  "compacted": false,
+  "snapshot_has_handoff": true,
+  "exit_estimated_input_tokens": 25260,
+  "exit_input_budget": 25600,
+  "input_truncated": false,
+  "exit_written": true,
+  "original_daily_preserved": true,
+  "fresh_snapshot_has_daily": true,
+  "source_unchanged": true,
+  "gguf_unchanged": true,
+  "duration_seconds": 125.703,
+  "events": [
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "summarizing",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "written",
+        "reason": "slash-exit",
+        "model": "deepseek-flash",
+        "input_budget": 25600,
+        "estimated_input_tokens": 25260,
+        "usage": {
+          "input_tokens": 25260,
+          "output_tokens": 1709,
+          "total_tokens": 26969,
+          "source": "reported",
+          "cached_input_tokens": 25088
+        },
+        "duration_ms": 12281
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "connecting",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "67a99218b91758d051b214fe3a4bbabe1f31c60ff5b128cf9c00edd884b78386"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "67a99218b91758d051b214fe3a4bbabe1f31c60ff5b128cf9c00edd884b78386"
+      }
+    }
+  ]
+}

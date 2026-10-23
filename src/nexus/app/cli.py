@@ -202,6 +202,7 @@ async def application(args: argparse.Namespace) -> int:
     profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
     conversation = Conversation(workspace, config, profile or transcript)
     select = args.command == "resume"
+    exit_reason: str | None = None
     console.print("Nexus · trusted local execution · /help for commands")
     try:
         await conversation.start_memory()
@@ -247,10 +248,12 @@ async def application(args: argparse.Namespace) -> int:
             except KeyboardInterrupt:
                 continue
             except EOFError:
+                exit_reason = "eof"
                 return 0
             if not text:
                 continue
             if text == "/exit":
+                exit_reason = "slash-exit"
                 return 0
             if text == "/help":
                 console.print(
@@ -354,10 +357,14 @@ async def application(args: argparse.Namespace) -> int:
                     console.print("Session cannot continue; restart and resume the saved history.")
                     return 1
     finally:
+        # prompt_async has already restored terminal input; stop any Rich live
+        # output before the bounded summary. Session switches use plain close().
+        transcript.stop_activity()
         try:
-            await conversation.close()
+            if exit_reason is not None:
+                await conversation.summarize_exit(exit_reason)
         finally:
-            transcript.stop_activity()
+            await conversation.close()
 
 
 def main() -> None:

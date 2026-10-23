@@ -6,6 +6,7 @@ import asyncio
 import math
 import platform
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
@@ -198,7 +199,9 @@ class Context:
         main_estimator: TokenEstimator | None = None,
         compaction_estimator: TokenEstimator | None = None,
     ) -> None:
-        self.budget = limits.context_window - limits.max_output_tokens - 1024
+        # Nexus's managed input window is independent of the provider output cap.
+        self.budget = limits.context_window
+        self.before_compact: Callable[[], Awaitable[None]] | None = None
         self.trigger = math.floor(limits.context_window * TRIGGER_FRACTION)
         self.compaction_window = compaction_window
         self.summary_tokens = summary_tokens
@@ -271,14 +274,14 @@ class Context:
             "calibration_factor": self.main_estimator.factor,
             "reported_input_tokens": self.last_report,
             "compaction_trigger": self.trigger,
-            "safe_input_tokens": self.budget,
+            "managed_context_window": self.budget,
         }
 
     def check(self, messages: list[Message], tools: list[ToolSpec]) -> None:
         if self.tokens(messages, tools) > self.budget:
             raise ModelError(
                 "context_limit",
-                "Session exceeds safe input capacity; configure compaction or start a new session",
+                "Session exceeds the managed context window; compact or start a new session",
             )
 
     async def prepare(
@@ -296,7 +299,7 @@ class Context:
         logical = logical_messages(active)
         task_context = self.task_request(self.with_state(session, logical), guidance)
         before = self.tokens(task_context, tools)
-        if not force and before < min(self.trigger, self.budget):
+        if not force and before < self.trigger:
             return False
         if model is None:
             await emit(
@@ -340,6 +343,20 @@ class Context:
                 "warning", {"detail": "Context near threshold; no safe compaction boundary yet."}
             )
             return True
+        if self.before_compact is not None:
+            # Only after finding a real compaction boundary. The application may
+            # refresh the stable system prefix; history and its seqs stay intact.
+            await self.before_compact()
+            systems = [m for m in session.messages if m.role == "system"]
+            fixed = count(self.task_request(self.with_state(session, systems), guidance), tools)
+            available = self.budget - fixed - self.summary_tokens - FACT_TOKENS
+            target = min(KEEP_RECENT_TOKENS, max(0, available))
+            prefix, recent = split_history(history, target, count=count)
+            if not prefix or available <= 0:
+                raise ModelError("context_limit", "Refreshed context leaves no compaction capacity")
+            before = self.tokens(
+                self.task_request(self.with_state(session, systems + history), guidance), tools
+            )
         request = summary_input(session, prefix, self.summary_tokens, self.secrets)
         compact_timing = self.compaction_estimator.timing_snapshot()
 
@@ -358,9 +375,7 @@ class Context:
         await emit(
             "compaction_started",
             {
-                "reason": reason
-                if reason != "threshold"
-                else ("capacity" if before < self.trigger else "threshold"),
+                "reason": reason,
                 "tokens_before": before,
                 "recent_tokens_kept": count(recent, []),
                 "keep_recent_target": target,

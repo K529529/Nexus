@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-24",
+  "platform": "Windows",
+  "base_commit": "709dab8efa1c25e4e232b13a85c1d51e717b8e3c",
+  "branch": "codex/nexus-v0.3-stage2-long-term-memory",
+  "workspace": {"pytest_passed": 658, "pytest_skipped": 10, "mypy_files": 93, "ruff": "PASS"},
+  "isolated_index_candidate": {"pytest_passed": 654, "pytest_skipped": 10, "seconds": 44.57, "mypy_files": 91, "ruff": "PASS"},
+  "skipped": "10 opt-in Docker tests; no Linux/macOS live run in this task",
+  "candidate_first_attempt": {"pytest_passed": 648, "pytest_failed": 6, "pytest_skipped": 10, "cause": "Windows test temp path too long for .jsonl.lock; unchanged code passed with shorter dedicated temp parent"},
+  "isolated_candidate_build": {"wheel": "PASS", "sdist": "PASS", "installed_or_published": false},
+  "real_sessions": "Isolated copies of completed FilePilot dogfood session; actual configured providers and QMD 2.8.3, no coding Run",
+  "product_exit_timeout_seconds": 10,
+  "final_prompt_default_timeout": "SKIPPED_TIMEOUT",
+  "final_prompt_diagnostic_60s": {"status": "WRITTEN", "input_tokens": 25339, "output_tokens": 1571, "duration_ms": 12202},
+  "retrieval": {"handoff_hybrid": "PASS", "concise_prompt_daily_hybrid": "PASS_WITH_GPU_WARNINGS", "diagnostic_60s_hybrid": "FAIL_MEMORY_ALLOCATION", "final_prompt_daily_mcp_lexical": "PASS"},
+  "gguf_reused_all_attempts": true,
+  "original_session_unchanged_all_attempts": true
+}

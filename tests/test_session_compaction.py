@@ -147,7 +147,7 @@ async def test_session_checkpoint_incremental_replay_and_no_raw_rewrite(tmp_path
 def test_128k_trigger_pair_boundary_and_schema() -> None:
     context = Context(Limits(context_window=128000))
     assert context.trigger == 115200
-    assert context.budget == 128000 - 8192 - 1024
+    assert context.budget == 128000
     messages = [Message("user", "goal")]
     for i in range(6):
         messages += [
@@ -251,7 +251,7 @@ def test_compaction_evidence_has_no_private_protocol_or_known_secret(tmp_path: P
 
 async def test_missing_compaction_config_never_falls_back_to_main(tmp_path: Path) -> None:
     model = ScriptedModel([reply(text="must not run")])
-    session = Session(tmp_path, messages=[Message("user", "x" * 10000)])
+    session = Session(tmp_path, messages=[Message("user", "x" * 20000)])
     result = await run_turn(
         session, "next", model, {}, Recorder(), Limits(context_window=5000, max_output_tokens=1000)
     )

@@ -64,8 +64,10 @@ Qwen 示例不设 `reasoning_effort`，不假定它与 DeepSeek 的该参数同�
 ## 3. 触发和保留范围
 
 - 语义阈值是 `context_window × 0.90`：128000 对应 115200 tokens。
-- 安全输入预算独立计算为 `context_window - max_output_tokens - 1024`。
-  主模型示例对应 118784；如果配置使安全预算更小，会先触发容量保护。
+- `context_window` 是 Nexus 管理的输入窗口，不是 Provider 的真实容量。
+  Stage 2 封版修正：`check`、历史保留量和压缩后容量检查统一使用该窗口，
+  `max_output_tokens` 仅限制 API 输出，不从管理窗口扣减，不提前触发压缩。
+  独立压缩模型的输入/输出容量检查、Provider overflow 的一次恢复仍保留。
 - 近期目标是约 20000 tokens 的完整消息组，包含工具结果；优先 user 边界，
   否则完整 assistant/tool 批次边界。用户边界优先最多允许约 25% 目标偏差；单个不可拆组
   可能更大，最终仍须容量校验。System、动态状态与摘要预留过大时可降低目标，并记录实际值。

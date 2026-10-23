@@ -111,7 +111,14 @@ class Transcript:
                 self.flush()
             return
         self.flush()
-        if kind == "model_started":
+        if kind == "memory_daily":
+            status = data["status"]
+            detail = (
+                f"Preparing daily summary (up to {data['timeout_seconds']:g}s)…"
+                if status == "summarizing" else f"Daily summary {status}."
+            )
+            self.console.print(Text(detail, style="dim"))
+        elif kind == "model_started":
             self.assistant_streamed = False
             self.last_flush = 0.0
         elif kind == "tool_started":

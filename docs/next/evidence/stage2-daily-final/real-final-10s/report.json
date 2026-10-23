@@ -1,0 +1,107 @@
+{
+  "source_sha256": "f54cf874d8111e7051f9a6d5da8f7757ba1d2a6ce6bf0a4b793021d2a4af5e37",
+  "source_session": "2925ee2af1b441a4af9b5d91298e44eb",
+  "isolated_home": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-daily-acceptance-5h_5j8k7",
+  "mode": "real completed dogfood session, isolated resume; no coding Run",
+  "exit_timeout_seconds": 10,
+  "model": "deepseek-flash",
+  "context_window": 128000,
+  "max_output_tokens": 32768,
+  "summary_output_tokens": 2048,
+  "prompt_system_sha256": "3a5ab7fe21cad4a1f71627c7553ccd66804f899e35dd6f7f334dc14939ae6dcf",
+  "qmd_command": [
+    "D:\\software\\nvm4w\\nodejs\\node.EXE",
+    "D:\\software\\node\\node_global\\node_modules\\@tobilu\\qmd\\dist\\cli\\qmd.js"
+  ],
+  "active_messages_before": 48,
+  "tokens_before": 24650,
+  "compacted": false,
+  "snapshot_has_handoff": true,
+  "exit_estimated_input_tokens": 25339,
+  "exit_input_budget": 25600,
+  "input_truncated": false,
+  "exit_written": false,
+  "original_daily_preserved": true,
+  "fresh_snapshot_has_daily": false,
+  "search": {
+    "results": [
+      {
+        "docid": "#d9efa5",
+        "file": "nexus-memory/SCRATCHPAD.md",
+        "title": "SCRATCHPAD",
+        "score": 1,
+        "context": null,
+        "line": 2,
+        "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:2eeb11144ddb41f5974eae011075bbce -->\n4: - [ ] Nexus: improve patch matching and long-context patch history; ask FilePilot dogfooding for feedback after the change.\n5: <!-- /nexus-memory -->\n6: "
+      },
+      {
+        "docid": "#b684d9",
+        "file": "nexus-memory/daily/2026-10-24.md",
+        "title": "2026-10-24",
+        "score": 0.5,
+        "context": null,
+        "line": 2,
+        "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:bedb5e44c41f4e5ea8bb5076bcc90125 -->\n4: Acceptance fixture: FilePilot Rename dogfood session; preserve failures. Nexus patch/history improvements are pending, not implemented by this test.\n5: <!-- /nexus-memory -->\n6: "
+      }
+    ]
+  },
+  "search_mode": "qmd-mcp-lexical-no-rerank",
+  "daily_retrieved": true,
+  "source_unchanged": true,
+  "gguf_unchanged": true,
+  "duration_seconds": 28.828,
+  "events": [
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "summarizing",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "kind": "memory_daily",
+      "data": {
+        "status": "skipped",
+        "reason": "TimeoutError",
+        "model": "deepseek-flash",
+        "duration_ms": 10032
+      }
+    },
+    {
+      "kind": "warning",
+      "data": {
+        "detail": "Memory exit summary skipped: TimeoutError: "
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "updating",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "embedding",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "connecting",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "aef771071690c7036745cb3358aa820eb2ecf0ecfc47a88e4c05709f830f990f"
+      }
+    },
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "aef771071690c7036745cb3358aa820eb2ecf0ecfc47a88e4c05709f830f990f"
+      }
+    }
+  ]
+}

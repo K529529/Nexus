@@ -49,6 +49,7 @@ include = [
     "/scripts/memory_qmd_smoke.py", "/scripts/memory_agent_acceptance.py",
     "/scripts/memory_setup_smoke.py",
     "/scripts/memory_controls_smoke.py",
+    "/scripts/memory_daily_smoke.py",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [
@@ -68,7 +69,7 @@ testpaths = ["tests"]
 pythonpath = ["src", "."]
 
 [tool.ruff]
-extend-exclude = ["src/nexus/_vendor"]
+extend-exclude = ["src/nexus/_vendor", "docs/next/evidence"]
 line-length = 100
 target-version = "py312"
 

@@ -90,7 +90,7 @@ async def test_protected_budget_overflow_is_honest_and_does_not_call_model(tmp_p
         model,
         {},
         events,
-        Limits(context_window=budget + 1524, max_output_tokens=500),
+        Limits(context_window=budget, max_output_tokens=500),
     )
     assert result.outcome == "limited" and result.reason and "context_limit" in result.reason
     assert not model.requests and session.checkpoint is None
