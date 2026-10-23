@@ -58,3 +58,27 @@ Remove-Item Env:NEXUS_TEST_DOCKER
 ```
 
 Compare `summary.json` by case ID after checking manifests. Keep tasks, validators, image IDs, model settings and budgets fixed. A future Context implementation may change Nexus source hashes and the Context policy label; other differences must be reported explicitly. No compaction changes, automatic RCA, parallel execution, resume, comparison CLI or generic benchmark platform are introduced here.
+
+## Offline history dashboard
+
+Each evaluation now rebuilds `~/.nexus/evaluation/history.html` after saving its final report.
+Open that file in a browser and refresh after subsequent runs. No server, network assets,
+model calls or database are required. Existing `results/*/summary.json` and `manifest.json`
+are imported automatically; original evidence is never rewritten. A dashboard failure is
+reported separately and does not change the evaluation exit code.
+
+To rebuild historical data without running evaluation:
+
+```powershell
+.\.venv\Scripts\python.exe -m nexus.evaluation.history
+# Optional alternate evaluation root:
+.\.venv\Scripts\python.exe -m nexus.evaluation.history --home D:\eval-history
+```
+
+The page contains resource/result trends, a case history matrix, selectable baseline
+comparisons and a searchable archive. Only fixed eight-case runs with terminal
+PASS/FAIL/ERROR states enter the main trend; incomplete and subset attempts stay in
+the archive. Missing usage remains unknown; partial usage is shown as a lower bound
+and excluded from trend lines and deltas. Dashed segments indicate saved configuration
+or task/validator identity differences, not causal improvement. Keep `history.html`
+beside its `results` directory so links to individual reports remain valid.

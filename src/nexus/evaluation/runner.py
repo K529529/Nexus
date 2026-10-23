@@ -244,6 +244,13 @@ async def evaluate(selected: list[str], config: Config, home: Path | None = None
         write_json(directory / case.id / "result.json", results[index])
         save_report(directory, results, selected)
     print(save_report(directory, results, selected), end="", flush=True)
+    # A derived developer report must never alter evaluation outcomes.
+    try:
+        from nexus.evaluation.history import build_history
+
+        print(f"History: {build_history(home)}", flush=True)
+    except Exception as exc:
+        print(f"History report could not be updated: {exc}", flush=True)
     statuses = {r["status"] for r in results}
     return (
         130
