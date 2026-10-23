@@ -8,8 +8,15 @@ The V0.3 Stage 2 source branch adds model-driven global Markdown memory, private
 hybrid search, recoverable deletion, and stable session snapshots. This is not in the
 published V0.2 package. See the [Stage 2 implementation report](v0.3-stage2-memory.md)
 and [setup instructions](usage-guide.zh-CN.md#v03-stage-2长期记忆).
-`nexus memory status` and interactive `/memory` show index diagnostics without a model call.
-Set `[memory] enabled = false` in the global config to disable memory for new Conversations.
+Memory defaults to ON. Session startup automatically prepares missing user-local Node/QMD
+dependencies; subsequent sessions reuse installed dependencies, indexes and GGUF caches.
+`nexus memory status` and `/memory [status]` show diagnostics without a model call.
+Interactive `/memory on/off` persists the choice and opens a fresh Session when changing modes,
+so OFF cannot carry memory-derived tool results or summaries into the next request. Prior sessions
+are preserved; enable Memory before resuming an older session that used it.
+`nexus memory on/off` also persists the choice for new Sessions; it does not control other running
+processes. OFF preserves all memory files, Recovery, indexes and models.
+See [setup, platform verification and boundaries](memory-setup-and-controls.md).
 
 ## Configure
 

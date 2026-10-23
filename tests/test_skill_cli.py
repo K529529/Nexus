@@ -133,7 +133,8 @@ async def test_offline_memory_status_without_config_or_key(
     monkeypatch.setattr(cli, "load_config", lambda: pytest.fail("No model configuration needed"))
     assert await cli.application(argparse.Namespace(command="memory")) == 0
     result = json.loads(capsys.readouterr().out)
-    assert result["pending"] is False and result["last_index_status"] == "not_started"
+    assert result["pending"] is False and result["index"]["status"] == "not_started"
+    assert result["configured_enabled"] is True
     assert not (tmp_path / ".nexus").exists()
 
 

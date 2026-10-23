@@ -16,7 +16,7 @@ from nexus.app.memory import MemoryStore
 from nexus.app.memory_context import root_id, snapshot
 from nexus.app.memory_index import MemoryIndex
 from nexus.app.memory_setup import DependencyBootstrap
-from nexus.app.session import SessionLog, resume_session
+from nexus.app.session import SessionError, SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
 from nexus.core.compaction import provenance
@@ -86,6 +86,27 @@ class Conversation:
         self.closed = False
         if resume:
             self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
+            if not config.memory_enabled and (
+                (self.session.memory_snapshot or {}).get("content")
+                or any(
+                    call.name
+                    in {
+                        "memory_read",
+                        "memory_write",
+                        "memory_search",
+                        "memory_forget",
+                        "memory_restore",
+                        "scratchpad",
+                    }
+                    for message in self.session.messages
+                    for call in message.tool_calls
+                )
+            ):
+                self.writer.close()
+                raise SessionError(
+                    "Memory is OFF. This saved session contains memory context. "
+                    "Use a new session, or /memory on before resuming it; history is preserved."
+                )
         resolved = registry(self.session) if callable(registry) else registry
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
         self.registry = dict(self.base_registry)

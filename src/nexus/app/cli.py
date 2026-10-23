@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import signal
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from prompt_toolkit import PromptSession
@@ -14,9 +16,17 @@ from rich.text import Text
 
 from nexus import __version__
 from nexus.app.bootstrap import Conversation
-from nexus.app.config import ConfigError, config_path, load_config, read_toml
+from nexus.app.config import (
+    ConfigError,
+    config_path,
+    load_config,
+    memory_settings,
+    read_toml,
+    set_memory_enabled,
+)
 from nexus.app.memory import MemoryStore
-from nexus.app.memory_index import installed_command
+from nexus.app.memory_index import MemoryIndex, installed_command
+from nexus.app.memory_setup import DependencyBootstrap
 from nexus.app.profile import ProfileConsumer
 from nexus.app.session import SessionError, list_sessions
 from nexus.app.skills import SkillCatalog
@@ -28,7 +38,75 @@ from nexus.app.tui import (
     show_skills,
     terminal_text,
 )
-from nexus.core.types import ModelError, RunResult, Session, json_text
+from nexus.core.types import Json, ModelError, RunResult, Session, json_text
+
+
+def memory_status(conversation: Conversation | None = None) -> Json:
+    enabled, configured_command = memory_settings()
+    store = MemoryStore(Path.home() / ".nexus" / "memory")
+    index = conversation.memory_index if conversation else None
+    snapshot = conversation.session.memory_snapshot if conversation else None
+    raw = store.read(".index.json")
+    try:
+        saved = json.loads(raw) if raw else {"status": "not_started"}
+    except ValueError:
+        saved = {"status": "invalid", "detail": "Cannot parse saved .index.json"}
+    return {
+        "configured_enabled": enabled,
+        "active_enabled": conversation.memory is not None if conversation else None,
+        "search_state": "disabled"
+        if (conversation.memory is None if conversation else not enabled)
+        else index.state.get("status", "not_started")
+        if index
+        else "no_active_connection",
+        "root": str(store.root),
+        "qmd_configured_command": configured_command,
+        "qmd_detected_command": installed_command(),
+        "qmd_active_command": index.command if index else None,
+        "pending": bool(store.read(".dirty")),
+        "index": index.state if index else saved,
+        "index_source": "active_conversation" if index else "last_saved_status",
+        "snapshot": {
+            "present": bool(snapshot and snapshot.get("content")),
+            "tokens": (snapshot or {}).get("tokens", 0),
+        },
+    }
+
+
+async def memory_command(action: str) -> int:
+    if action == "status":
+        print(json_text(memory_status()))
+        return 0
+    enabled = action == "on"
+    set_memory_enabled(enabled)
+    print(
+        f"Memory {'ON' if enabled else 'OFF'} saved. Applies to new Sessions; "
+        "other running processes are unchanged."
+    )
+    if not enabled:
+        return 0
+    _, configured = memory_settings()
+    index = MemoryIndex(
+        MemoryStore(Path.home() / ".nexus" / "memory"),
+        configured,
+        prepare=DependencyBootstrap().ensure if configured == ("qmd",) else None,
+    )
+
+    async def progress(kind: str, data: Json, **kwargs: object) -> int:
+        if kind == "memory_setup":
+            print(terminal_text(str(data.get("detail", ""))), flush=True)
+        return 0
+
+    try:
+        index.start(progress)
+        await index.wait_ready()
+        print("Memory Ready")
+        return 0
+    except (OSError, RuntimeError, TimeoutError) as exc:
+        print("Memory ON is saved; search temporarily unavailable: " + terminal_text(str(exc)))
+        return 1
+    finally:
+        await index.close()
 
 
 async def drive(conversation: Conversation, text: str, *, compact: bool = False) -> RunResult:
@@ -69,18 +147,7 @@ async def drive(conversation: Conversation, text: str, *, compact: bool = False)
 
 async def application(args: argparse.Namespace) -> int:
     if args.command == "memory":
-        store = MemoryStore(Path.home() / ".nexus" / "memory")
-        print(
-            json_text(
-                {
-                    "root": str(store.root),
-                    "detected_qmd_command": installed_command(),
-                    "pending": bool(store.read(".dirty")),
-                    "last_index_status": store.read(".index.json") or "not_started",
-                }
-            )
-        )
-        return 0
+        return await memory_command(getattr(args, "action", "status"))
     if args.command == "skills":
         listing = SkillCatalog(Path.home() / ".nexus" / "skills")
         show_skills(
@@ -188,7 +255,8 @@ async def application(args: argparse.Namespace) -> int:
             if text == "/help":
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
-                    "/resume recent sessions · /compact summarize history · /memory status · "
+                    "/resume recent sessions · /compact summarize history · "
+                    "/memory [on|off|status] · "
                     "/new new conversation · /exit quit. "
                     "Each input starts a new run with continuous session history; "
                     "/resume continues the "
@@ -206,20 +274,46 @@ async def application(args: argparse.Namespace) -> int:
                     await drive(conversation, "", compact=True)
                 except (ModelError, ConfigError) as exc:
                     console.print(Text(terminal_text(str(exc)), style="yellow"))
-            elif text == "/memory":
-                index = conversation.memory_index
-                saved = conversation.session.memory_snapshot or {}
-                console.print(
-                    Text(
-                        json_text(
-                            {
-                                "enabled": conversation.memory is not None,
-                                "snapshot_tokens": saved.get("tokens", 0),
-                                "index": index.state if index else {"status": "disabled"},
-                            }
-                        )
-                    )
+            elif text == "/memory" or text.startswith("/memory "):
+                action = text.removeprefix("/memory").strip() or "status"
+                if action not in {"status", "on", "off"}:
+                    console.print("Use /memory [on|off|status].")
+                    continue
+                if action == "status":
+                    console.print(Text(json_text(memory_status(conversation))))
+                    continue
+                enabled = action == "on"
+                try:
+                    updated_config = replace(load_config(require_key=False), memory_enabled=enabled)
+                    set_memory_enabled(enabled)
+                except (OSError, ConfigError) as exc:
+                    console.print(Text(terminal_text(str(exc)), style="yellow"))
+                    continue
+                retry = (
+                    enabled
+                    and conversation.memory_index is not None
+                    and (conversation.memory_index.state.get("status") in {"failed", "unavailable"})
                 )
+                if enabled != conversation.config.memory_enabled or retry:
+                    # A fresh boundary prevents old tool results/summaries leaking memory while OFF.
+                    await conversation.close()
+                    conversation = Conversation(workspace, updated_config, profile or transcript)
+                    await conversation.start_memory()
+                    console.print(
+                        f"Memory {'ON' if enabled else 'OFF'} saved. New Session opened; "
+                        "effective for the next Run. Previous history is preserved."
+                    )
+                else:
+                    await conversation.start_memory()
+                    console.print(
+                        f"Memory {'ON' if enabled else 'OFF'} saved; already effective "
+                        "in this Session."
+                    )
+                if enabled:
+                    console.print(
+                        "Search becomes available when Memory Ready is shown; "
+                        "coding remains available."
+                    )
             elif text == "/skills" or text == "/skill":
                 conversation.refresh_skills()
                 catalog = conversation.catalog
@@ -275,7 +369,7 @@ def main() -> None:
     parser.add_argument("--skill", help="Select a local Skill for this session")
     subparsers = parser.add_subparsers(dest="command")
     memory = subparsers.add_parser("memory", help="Inspect memory/index state without a model call")
-    memory.add_argument("action", choices=["status"], default="status", nargs="?")
+    memory.add_argument("action", choices=["on", "off", "status"], default="status", nargs="?")
     skills = subparsers.add_parser("skills", help="List local Skills without a model connection")
     skills.add_argument("action", nargs="?", choices=["list"], default="list")
     evaluation = subparsers.add_parser("eval", help="Run fixed Next Dev Set V0 cases")

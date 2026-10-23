@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "authority_and_recovery_preserved": true,
+  "index_preserved": true,
+  "model_files_unchanged": true,
+  "unrelated_config_preserved": true,
+  "receipts": [
+    {
+      "action": "off",
+      "returncode": 0,
+      "stdout": "Memory OFF saved. Applies to new Sessions; other running processes are unchanged.\n",
+      "stderr": ""
+    },
+    {
+      "action": "status",
+      "returncode": 0,
+      "stdout": "{\"configured_enabled\":false,\"active_enabled\":null,\"root\":\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-memory-controls-clean-20261023-a\\\\.nexus\\\\memory\",\"qmd_configured_command\":[\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/node-v22.23.4/node.exe\",\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/qmd-2.8.3/node_modules/@tobilu/qmd/dist/cli/qmd.js\"],\"qmd_detected_command\":[\"qmd\"],\"qmd_active_command\":null,\"pending\":true,\"index\":{\"status\":\"not_started\"},\"index_source\":\"last_saved_status\",\"snapshot\":{\"present\":false,\"tokens\":0}}\n",
+      "stderr": ""
+    },
+    {
+      "action": "on",
+      "returncode": 0,
+      "stdout": "Memory ON saved. Applies to new Sessions; other running processes are unchanged.\nMemory collection initialized\nPreparing index / embedding model (first use may download GGUF)\nMemory Ready\n",
+      "stderr": "Shutting down (stdin closed)...\n"
+    },
+    {
+      "action": "status",
+      "returncode": 0,
+      "stdout": "{\"configured_enabled\":true,\"active_enabled\":null,\"root\":\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-memory-controls-clean-20261023-a\\\\.nexus\\\\memory\",\"qmd_configured_command\":[\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/node-v22.23.4/node.exe\",\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/qmd-2.8.3/node_modules/@tobilu/qmd/dist/cli/qmd.js\"],\"qmd_detected_command\":[\"qmd\"],\"qmd_active_command\":null,\"pending\":false,\"index\":{\"status\":\"ready\",\"embedding_model\":\"hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf\",\"fingerprint\":\"61472a50162949c81c0218e47d3fee0b4e992b045d01e4a6a7908f491dd81d55\"},\"index_source\":\"last_saved_status\",\"snapshot\":{\"present\":false,\"tokens\":0}}\n",
+      "stderr": ""
+    },
+    {
+      "action": "off",
+      "returncode": 0,
+      "stdout": "Memory OFF saved. Applies to new Sessions; other running processes are unchanged.\n",
+      "stderr": ""
+    },
+    {
+      "action": "status",
+      "returncode": 0,
+      "stdout": "{\"configured_enabled\":false,\"active_enabled\":null,\"root\":\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-memory-controls-clean-20261023-a\\\\.nexus\\\\memory\",\"qmd_configured_command\":[\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/node-v22.23.4/node.exe\",\"C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp/nexus-memory-setup-clean-20261023-a/dependencies/qmd-2.8.3/node_modules/@tobilu/qmd/dist/cli/qmd.js\"],\"qmd_detected_command\":[\"qmd\"],\"qmd_active_command\":null,\"pending\":false,\"index\":{\"status\":\"ready\",\"embedding_model\":\"hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf\",\"fingerprint\":\"61472a50162949c81c0218e47d3fee0b4e992b045d01e4a6a7908f491dd81d55\"},\"index_source\":\"last_saved_status\",\"snapshot\":{\"present\":false,\"tokens\":0}}\n",
+      "stderr": ""
+    }
+  ]
+}

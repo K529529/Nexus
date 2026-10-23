@@ -1,0 +1,54 @@
+{
+  "phase": "reuse",
+  "status": "PASS",
+  "node_on_path": false,
+  "qmd_on_path": false,
+  "command": [
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-memory-setup-clean-20261023-a\\dependencies\\node-v22.23.4\\node.exe",
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-memory-setup-clean-20261023-a\\dependencies\\qmd-2.8.3\\node_modules\\@tobilu\\qmd\\dist\\cli\\qmd.js"
+  ],
+  "search": {
+    "results": [
+      {
+        "docid": "#452670",
+        "file": "nexus-memory/daily/2026-09-01.md",
+        "title": "2026-09-01",
+        "score": 1,
+        "context": null,
+        "line": 2,
+        "snippet": "2: @@ -1,4 @@ (0 before, 0 after)\n3: <!-- nexus-memory:ac529298973f478a8287d5e9d0f81899 -->\n4: FilePilot directory cleanup must skip junctions and preserve inaccessible paths; never change permissions to bypass access denied.\n5: <!-- /nexus-memory -->\n6: "
+      }
+    ],
+    "discarded_stale_results": 0,
+    "index_status": "ready",
+    "retrieval": "qmd-hybrid-rerank"
+  },
+  "models": {
+    "cache\\qmd\\models\\hf_ggml-org_qwen3-reranker-0.6b-q8_0.gguf": [
+      639153184,
+      1792751477230175300
+    ],
+    "cache\\qmd\\models\\hf_Qwen_Qwen3-Embedding-0.6B-Q8_0.gguf": [
+      639150592,
+      1792751225631429900
+    ],
+    "cache\\qmd\\models\\hf_tobil_qmd-query-expansion-1.7B-q4_k_m.gguf": [
+      1282438912,
+      1792751390316499200
+    ]
+  },
+  "models_unchanged": true,
+  "index_reused": true,
+  "dependencies_reused": true,
+  "seconds": 7.719000000040978,
+  "events": [
+    {
+      "kind": "memory_index",
+      "data": {
+        "status": "ready",
+        "embedding_model": "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "fingerprint": "99a87bb881557e48502648a5dc6bded2e2897c8bc6f5320d2799afc693a4e1e6"
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ from typing import Any
 from mcp import Client, StdioServerParameters
 
 from nexus.app.memory import MemoryStore, atomic_write, digest
+from nexus.app.memory_setup import NODE_VERSION, QMD_VERSION, managed_root
 from nexus.core.types import Emit, Json, json_text
 
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
@@ -28,11 +29,14 @@ def installed_command() -> tuple[str, ...]:
     """Resolve a user-local install without editing PATH or running an npm installer."""
     executable = shutil.which("qmd")
     node = shutil.which("node")
+    managed = managed_root()
+    local_node = managed / f"node-v{NODE_VERSION}" / ("node.exe" if os.name == "nt" else "bin/node")
+    if node is None and local_node.is_file():
+        node = str(local_node)
     if executable and not executable.lower().endswith((".cmd", ".bat")):
         return (executable,)
     folders = [Path(executable).parent] if executable else []
-    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
-        folders.append(Path(os.environ["LOCALAPPDATA"]) / "Nexus" / "qmd")
+    folders += [managed / f"qmd-{QMD_VERSION}", managed / "qmd"]
     for folder in folders:
         entry = folder / "node_modules" / "@tobilu" / "qmd" / "dist" / "cli" / "qmd.js"
         if node and entry.is_file():
@@ -287,7 +291,7 @@ class MemoryIndex:
                                     "memory_setup",
                                     {
                                         "stage": "search_models",
-                                    "detail": "Preparing search models; first use downloads GGUF",
+                                        "detail": "Preparing search models / GGUF downloads",
                                     },
                                 )
                             self.search_announced = True
@@ -373,3 +377,13 @@ class MemoryIndex:
                 await self.task
             except asyncio.CancelledError:
                 pass
+
+    async def wait_ready(self) -> None:
+        async with asyncio.timeout(1800):
+            while self.state.get("status") != "ready" or self.client is None:
+                if self.state.get("status") in {"failed", "unavailable"} or (
+                    self.task is not None and self.task.done()
+                ):
+                    raise RuntimeError(str(self.state))
+                self.updated.clear()
+                await self.updated.wait()

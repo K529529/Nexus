@@ -78,13 +78,10 @@ Sphinx 修复也 PASS，但当时服务权限错误中断了收尾。权限恢�
 普通追加在下一新 Session 纳入快照；当前会话可用工具读取最新原文。更正、删除、恢复会使旧快照失效。
 记忆为历史参考，可能过期；关键决策仍须结合当前源码和用户指令确认。
 
-混合搜索需要单独安装 QMD（本轮验证 2.8.3）及 Node，模型由 QMD 下载并缓存：
-
-```powershell
-npm install --prefix "$env:LOCALAPPDATA/Nexus/qmd" @tobilu/qmd@2.8.3
-```
-
-Windows 默认检测以上用户目录；其他安装位置可在配置中指定：
+Memory 默认开启。首次启动 Session 时自动检测并复用 QMD 2.8.3；缺失时在用户目录安装，
+没有可用 Node/npm 时自动准备经校验的 Node Runtime。安装在后台执行，会显示准备阶段；
+普通编码仍可使用。模型由 QMD 下载并缓存，不会在 pip/uv 安装阶段准备。
+需要使用自行管理的 QMD 时，可在配置中指定（该命令不会被自动安装器覆盖）：
 
 ```toml
 [memory]
@@ -93,9 +90,14 @@ qmd_command = ["node", "C:/path/to/node_modules/@tobilu/qmd/dist/cli/qmd.js"]
 ```
 
 第一次索引可能下载约 2.5 GB GGUF 模型并耗时；索引异步执行，写工具成功不代表索引已经就绪。
-`nexus memory status` 查看上次索引状态，交互中 `/memory` 查看当前状态与快照 Token。
+`nexus memory status` 查看配置与上次索引状态，交互中 `/memory` 或 `/memory status`
+查看当前配置、索引和快照。交互中 `/memory on`、`/memory off` 持久化开关；改变开关时
+自动开始新 Session，下一 Run 生效，原历史保留。这样 off 后不会继续携带旧记忆工具结果或摘要。
+关闭时恢复含记忆的旧会话会提示先开启；off 会话本身可以正常恢复。
 QMD 不可用时仍可读写 Markdown 和完成普通编码任务，搜索会返回明确错误。
-将 `enabled = false` 可关闭工具和快照；配置变更在新 Conversation 生效。
+`nexus memory on/off` 也可保存选择，无需 API key；只影响随后新建的 Session，不控制其他已运行进程。
+关闭不删除原 Markdown、Recovery、索引或模型。Windows x64 已实测，其他平台安装实现尚未实机验收。
+首次安装及开关边界详见 [Memory Setup 与控制报告](memory-setup-and-controls.md)。
 完整数据流、验收入口与限制见 [Stage 2 实现报告](v0.3-stage2-memory.md)。
 
 ```sh

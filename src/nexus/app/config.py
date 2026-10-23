@@ -6,11 +6,15 @@ import os
 import re
 import shutil
 import tomllib
+from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+import tomlkit
+
+from nexus.app.memory import atomic_write
 from nexus.core.types import Json, Limits
 
 
@@ -63,6 +67,43 @@ def read_toml(path: Path) -> Json:
         raise ConfigError(
             f"Cannot read TOML at {path} ({type(exc).__name__}); file unchanged."
         ) from None
+
+
+def memory_settings(path: Path | None = None) -> tuple[bool, tuple[str, ...]]:
+    """Memory diagnostics and switches do not require model configuration or credentials."""
+    memory = _table(read_toml(path or config_path()), "memory", {"enabled", "qmd_command"})
+    enabled, command = memory.get("enabled", True), memory.get("qmd_command", ["qmd"])
+    if type(enabled) is not bool:
+        raise ConfigError("memory.enabled: expected boolean")
+    if (
+        not isinstance(command, list)
+        or not command
+        or any(not isinstance(part, str) or not part.strip() for part in command)
+    ):
+        raise ConfigError("memory.qmd_command: expected nonempty command argument array")
+    return enabled, tuple(command)
+
+
+def set_memory_enabled(enabled: bool, path: Path | None = None) -> None:
+    """Preserve TOML comments/structure and every setting except memory.enabled."""
+    path = path or config_path()
+    if path.is_symlink() or path.is_junction():
+        raise ConfigError("Memory switch cannot replace a linked config file; file unchanged")
+    original = path.read_bytes() if path.exists() else b""
+    memory_settings(path)  # Validate before mutation; never repair malformed configuration.
+    expected = deepcopy(tomllib.loads(original.decode("utf-8")))
+    expected.setdefault("memory", {})["enabled"] = enabled
+    document = tomlkit.parse(original.decode("utf-8"))
+    if "memory" not in document:
+        document["memory"] = tomlkit.table()
+    table: Any = document["memory"]
+    table["enabled"] = enabled
+    updated = tomlkit.dumps(document)
+    if tomllib.loads(updated) != expected:
+        raise ConfigError("Memory configuration update changed unrelated values; file unchanged")
+    if (path.read_bytes() if path.exists() else b"") != original:
+        raise ConfigError("Configuration changed during update; file unchanged")
+    atomic_write(path, updated)
 
 
 def _table(data: Json, name: str, allowed: set[str]) -> Json:

@@ -40,7 +40,7 @@ async def run(args: argparse.Namespace) -> None:
             "never change permissions to bypass access denied.",
         )
     index = MemoryIndex(store, prepare=installer.ensure)
-    index.env.update(env)
+    index.env.update({key: env[key] for key in ("PATH", "XDG_CACHE_HOME")})
     events = []
     report = {"phase": args.phase, "status": "RUNNING", "node_on_path": False, "qmd_on_path": False}
     before = {

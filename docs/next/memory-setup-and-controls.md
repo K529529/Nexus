@@ -62,4 +62,61 @@ python scripts/memory_setup_smoke.py --phase reuse --home <同一隔离目录> -
 
 ## Memory UX
 
-实现与最终验证结果在后续功能提交补充。
+默认 `enabled=true`。`/memory` 与 `/memory status` 查看配置值、活动状态、QMD 命令、
+当前或上次保存的索引状态、Snapshot tokens；查看状态不会启动 npm、QMD 或模型。
+
+| 操作 | 生效方式 |
+|---|---|
+| `/memory off` | 空闲提示符处保存配置，关闭当前资源，自动开启 Memory Off 的新 Session；下一 Run 不含旧记忆历史、Snapshot 或六个 Memory Tools |
+| `/memory on` | 保存配置，在同一空闲边界开启新 Session 并异步准备依赖和索引；普通编码可继续，Memory Ready 后可搜索 |
+| 重复相同开关 | 保留当前 Session，不重复安装；若 on 时索引已失败，则建立新 Session 做一次恢复尝试 |
+| `nexus memory off` | 无模型调用，保存配置；后续新 Session 生效，不远程控制其他已运行进程 |
+| `nexus memory on` | 无模型调用，保存配置并等待依赖/索引就绪；失败明确返回非零，开启选择仍保存，下次启动可重试 |
+
+切换时创建新 Session 的原因：旧 Memory 内容可能已经出现在工具结果或 Semantic Summary，
+只移除 system Snapshot 不能保证真正关闭。保留原 JSONL、Plan、旧摘要，不清洗或重写历史。
+因此切换会重置当前工作会话的历史、Plan 和显式 Skill 选择；原会话保留供恢复。
+关闭状态下 `/resume` 选择含 Memory Snapshot/工具调用的旧会话会明确拒绝并提示先 on；
+关闭状态下的会话仍能正常 Resume。默认开启时原 Resume/Compaction 语义保持。
+命令由 CLI 的串行交互循环在 Run 结束后处理，不会中途更换正在请求的模型上下文或工具。
+
+使用 [TOML Kit](https://tomlkit.readthedocs.io/en/latest/quickstart/) 保留原文件结构和注释，
+只更新 `memory.enabled`。保存前用 stdlib TOML 解析比较全部值，只允许目标布尔值变化；
+检查文件是否被并发编辑，再 fsync 临时文件和原子 replace。普通表、点号键和内联表均测试。
+损坏 TOML、链接配置文件或写盘失败会明确报错；不会自动修复或覆盖其他配置。
+未实现多进程配置写事务；并发编辑检测与 replace 之间仍有很小的竞态窗口。
+
+### 验收
+
+- 24项 UX/Snapshot/CLI 定向测试通过：开关持久化、关闭后模型请求中没有 sentinel、
+  没有 Memory 工具、恢复保护、旧 Snapshot/压缩语义回归。模型请求隔离采用 scripted model，
+  不是付费主模型 Dogfooding。
+- `scripts/memory_controls_smoke.py` 运行6个真实独立 CLI 进程：off/status/on/status/off/status。
+  使用隔离用户配置及先前干净安装的真实 QMD；on 真正创建索引，全部退出码0。
+  Markdown/Recovery 内容哈希、GGUF 大小与mtime不变，SQLite 在 off 后仍存在，其他 TOML 值
+  和注释保留。证据 `evidence/memory-setup/controls-1/report.json`。
+- 首轮 UX 全量 **623 passed / 10 skipped，44.67秒**；Ruff/Mypy 通过。10项为未启用的
+  Docker 验收，本轮未扩大 Docker/Stage1 功能范围。
+- 最终全量仍为 **623 passed / 10 skipped，44.98秒**，见 `ux-final-pytest.txt`。
+  Ruff、Mypy（89个源文件）、`uv lock --check`、`uv build` 全部通过。
+  最终真实 QMD 复核 `reuse-final` 继续通过，依赖、索引和 GGUF 均复用。
+- 一次 UX 测试父临时目录未成功创建，4 passed / 20 setup errors；重新创建专用目录后24项通过。
+  该次没有执行失败用例主体，不计作产品行为失败或成功。
+
+## 平台与边界
+
+- **已验证**：Windows x64 官方 Node/QMD 真实安装、已有安装复用、独立进程缓存/索引复用、
+  真实 CLI 开关及数据保留、全量自动化回归。
+- **已实现但未实机验证**：Linux/macOS x64/arm64、Windows arm64；平台选择和 archive摘要映射
+  只有单元测试。不能把这些测试当作实际 native module 安装成功。
+- **未充分验证**：极慢网络、代理证书环境、低内存/显存机器、所有 npm 原生模块构建回退情况。
+- 不安装管理员级系统依赖，不改 PATH，不下载到包安装阶段，不新增记忆功能或运行时编排。
+  显式 `qmd_command` 视作用户管理的命令，不自动覆盖它；错误会报告为 Search unavailable。
+- 本轮没有调用付费主模型或压缩模型。GGUF 首次准备约2.56GB，后续验收未重复下载。
+  干净验收的依赖和模型缓存在系统临时隔离目录保留，供复核使用。
+
+## Git 交付
+
+- Dependency Bootstrap：`8c358fdaf1b6b6d6d0598506d3bb31d140c323e5`，已推送 Stage2，远端SHA一致。
+- Memory UX：本报告所属 `feat(memory): persist on-off controls with safe session boundaries` 提交；
+  交付回复记录最终 SHA。没有合并 main 或发布 PyPI。
