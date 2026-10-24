@@ -50,15 +50,19 @@ async def test_multiline_input_never_submits_without_explicit_key(
         pending = asyncio.create_task(editor.read())
         await until(lambda: prompt.app.is_running)
         data = TASK.replace("\n", ending)
-        pipe.send_text("\x1b[200~" + data + "\x1b[201~" if bracketed else data)
-        await until(lambda: prompt.default_buffer.text.endswith("```\n  "))
-        assert prompt.default_buffer.text == TASK
+        if bracketed:
+            pipe.send_text("\x1b[200~" + data + "\x1b[201~")
+        else:
+            pipe.send_text("\x1bOQ" + data + "\x1bOQ")  # F2 capture, then finish
+        await until(lambda: editor.expand(prompt.default_buffer.text) == TASK)
+        assert len(prompt.default_buffer.text) < 100
+        assert editor.expand(prompt.default_buffer.text) == TASK
         assert not pending.done()
         # Another rapid paste still belongs to the same draft.
-        pipe.send_text("more\ntext")
-        await until(lambda: prompt.default_buffer.text.endswith("more\ntext"))
+        pipe.send_text("\x1b[200~more\ntext\x1b[201~")
+        await until(lambda: editor.expand(prompt.default_buffer.text).endswith("more\ntext"))
         assert not pending.done()
-        pipe.send_text("\x1b\r")
+        pipe.send_text("\r")
         assert await asyncio.wait_for(pending, 5) == TASK + "more\ntext"
 
 
@@ -124,7 +128,7 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
         pending = asyncio.create_task(editor.read())
         await until(lambda: prompt.app.is_running)
         assert prompt.default_buffer.text == ""
-        pipe.send_text("continue\x1b\r")
+        pipe.send_text("continue\r")
         assert await pending == "continue"
         assert calls == ["one"]
         assert (await cli.drive(conversation, "continue", editor=editor)).outcome == "completed"
@@ -144,7 +148,7 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
 
 
 @pytest.mark.parametrize("exit_keys,reason", [
-    ("/exit\x1b\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+    ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
     (None, "eof"),
 ])
 async def test_real_cli_one_task_one_run_replay_and_exit(
@@ -190,11 +194,11 @@ async def test_real_cli_one_task_one_run_replay_and_exit(
         monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
         app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
         await until(lambda: prompt.app.is_running)
-        pipe.send_text(TASK)
-        await until(lambda: prompt.default_buffer.text == TASK)
+        pipe.send_text("\x1b[200~" + TASK + "\x1b[201~")
+        await until(lambda: len(prompt.default_buffer.text) == 1)
         assert not model.requests
         assert not any(e.kind in {"run_started", "model_started"} for e in events)
-        pipe.send_text("\x1b\r")
+        pipe.send_text("\r")
         await until(lambda: any(e.kind == "run_finished" for e in events))
         await until(lambda: prompt.app.is_running)
         if exit_keys is None:
@@ -243,7 +247,9 @@ async def test_transient_preview_classifies_public_content_once(monkeypatch: Any
 
     class Live:
         def __init__(self, text: Any, **kwargs: Any) -> None:
-            assert kwargs["transient"] and not kwargs["auto_refresh"]
+            assert kwargs["transient"]
+            if kwargs["auto_refresh"]:
+                assert kwargs["refresh_per_second"] == 8
             self.updates = [text]
             self.stopped = False
             live.append(self)

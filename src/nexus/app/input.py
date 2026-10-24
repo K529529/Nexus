@@ -6,51 +6,265 @@ import asyncio
 import signal
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.document import Document
+from prompt_toolkit.filters import Condition
+from prompt_toolkit.formatted_text import StyleAndTextTuples
+from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.input.typeahead import clear_typeahead, get_typeahead
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.styles import Style
+
+PURPLE = "#a78bfa"
+INPUT_HELP = (
+    "Enter: send · Ctrl+J/F4: newline · F2: paste mode · F3: expand paste · Ctrl+C: clear/exit"
+)
+INPUT_STYLE = Style.from_dict({
+    "frame.border": PURPLE,
+    "prompt": PURPLE + " bold",
+    "paste": "bg:#302044 " + PURPLE,
+    "bottom-toolbar": "noreverse #888888",
+    "completion-menu.completion": "bg:#241b30 #dddddd",
+    "completion-menu.completion.current": "bg:#7c3aed #ffffff bold",
+    "completion-menu.meta.completion": "bg:#241b30 #aaaaaa",
+    "completion-menu.meta.completion.current": "bg:#7c3aed #ffffff",
+})
+COMMANDS = {
+    "/help": "Commands and shortcuts",
+    "/new": "New conversation",
+    "/resume": "Choose a saved session",
+    "/compact": "Compact current history",
+    "/memory": "Memory status",
+    "/memory on": "Enable Memory",
+    "/memory off": "Disable Memory",
+    "/memory status": "Memory status",
+    "/skills": "List local skills",
+    "/skill": "Show skill selection",
+    "/skill off": "Clear selected skill",
+    "/exit": "Exit safely",
+}
+
+
+class SlashCompleter(Completer):
+    def get_completions(self, document: Document, complete_event: CompleteEvent
+                        ) -> Iterator[Completion]:
+        text = document.text_before_cursor
+        if not text.startswith("/") or "\n" in text or text in COMMANDS:
+            return
+        for command, description in COMMANDS.items():
+            if command.startswith(text):
+                yield Completion(command, start_position=-len(text), display_meta=description)
+
+
+@dataclass
+class Paste:
+    text: str
+    number: int
+    folded: bool = True
+
+    @property
+    def label(self) -> str:
+        if not self.folded:
+            return self.text
+        lines = self.text.count("\n") + 1 if self.text else 0
+        return f"[paste #{self.number} +{lines} lines]"
+
+
+class PasteDisplay(Processor):
+    def __init__(self, blocks: dict[str, Paste]) -> None:
+        self.blocks = blocks
+
+    def apply_transformation(self, ti: TransformationInput) -> Transformation:
+        # Each paste is one editable buffer atom; only its display is expanded.
+        fragments: StyleAndTextTuples = []
+        source_to_display = [0]
+        display_to_source: list[int] = []
+        for style, text, *_ in ti.fragments:
+            for char in text:
+                paste = self.blocks.get(char)
+                label = paste.label if paste else char
+                fragments.append((style + " class:paste" if paste else style, label))
+                display_to_source.extend([len(source_to_display) - 1] * len(label))
+                source_to_display.append(source_to_display[-1] + len(label))
+        display_to_source.append(len(source_to_display) - 1)
+        return Transformation(
+            fragments,
+            lambda i: source_to_display[min(i, len(source_to_display) - 1)],
+            lambda i: display_to_source[min(i, len(display_to_source) - 1)],
+        )
+
+
+class ExpandedHistory(InMemoryHistory):
+    def __init__(self, expand: Callable[[str], str]) -> None:
+        super().__init__()
+        self.expand = expand
+
+    def append_string(self, string: str) -> None:
+        super().append_string(self.expand(string))
+
+
+class ExpandedClipboard(InMemoryClipboard):
+    def __init__(self, expand: Callable[[str], str]) -> None:
+        super().__init__()
+        self.expand = expand
+
+    def set_data(self, data: ClipboardData) -> None:
+        super().set_data(ClipboardData(self.expand(data.text), data.type))
 
 
 class TaskInput:
-    """Enter always edits: unbracketed paste cannot accidentally submit a task."""
+    """Enter sends; marked paste and explicit F2 capture never execute newlines."""
 
     def __init__(self, prompt: PromptSession[str]) -> None:
         self.prompt = prompt
         self.prompt.app.erase_when_done = True
         self.bindings = KeyBindings()
+        self.blocks: dict[str, Paste] = {}
+        self.capture: str | None = None
+        self.number = 0
+        self.history = ExpandedHistory(self.expand)
+        self.clipboard = ExpandedClipboard(self.expand)
 
         @self.bindings.add("enter")
-        @self.bindings.add("c-j")
-        def newline(event: KeyPressEvent) -> None:
-            # Raw CRLF is one logical newline too, without auto-indenting pasted code.
-            previous = event.previous_key_sequence
-            if (event.key_sequence[0].key == Keys.ControlJ and previous
-                    and previous[-1].key == Keys.ControlM):
+        def submit(event: KeyPressEvent) -> None:
+            buffer = event.current_buffer
+            if self.capture is not None:
+                self.blocks[self.capture].text += "\n"
                 return
-            event.current_buffer.insert_text("\n")
+            if buffer.complete_state is not None:
+                state = buffer.complete_state
+                completion = state.current_completion or state.completions[0]
+                buffer.apply_completion(completion)
+            elif self.expand(buffer.text).strip():
+                buffer.validate_and_handle()
+
+        @self.bindings.add("c-j")
+        @self.bindings.add("f4")
+        @self.bindings.add("escape", "enter")
+        def newline(event: KeyPressEvent) -> None:
+            if (self.capture is not None and event.key_sequence[0].key == Keys.ControlJ
+                    and event.previous_key_sequence
+                    and event.previous_key_sequence[-1].key == Keys.ControlM):
+                return  # raw CRLF in F2 capture is a single logical newline
+            self.insert("\n")
+
+        @self.bindings.add("f2")
+        def capture(event: KeyPressEvent) -> None:
+            if self.capture is None:
+                self.capture = self.atom("")
+                event.current_buffer.insert_text(self.capture)
+            else:
+                self.capture = None
+
+        @self.bindings.add("f3")
+        def expand_block(event: KeyPressEvent) -> None:
+            if self.capture is not None:
+                self.capture = None
+            buffer = event.current_buffer
+            pos = buffer.cursor_position
+            if buffer.text[pos:pos + 1] not in self.blocks:
+                pos -= 1
+            if pos >= 0 and (block := self.blocks.get(buffer.text[pos:pos + 1])):
+                buffer.save_to_undo_stack()
+                text = self.literal(block.text)
+                buffer.document = Document(buffer.text[:pos] + text + buffer.text[pos + 1:],
+                                           pos + len(text))
+
+        @self.bindings.add(Keys.BracketedPaste)
+        def paste(event: KeyPressEvent) -> None:
+            self.paste(event.data)
+
+        @self.bindings.add("c-y")
+        def yank(event: KeyPressEvent) -> None:
+            self.paste(self.clipboard.get_data().text)
+
+        @self.bindings.add(Keys.Any)
+        def typed(event: KeyPressEvent) -> None:
+            self.insert(event.data)
 
         @self.bindings.add("tab")
         def tab(event: KeyPressEvent) -> None:
-            event.current_buffer.insert_text("\t")
+            if self.capture is None and event.current_buffer.text.startswith("/"):
+                event.current_buffer.start_completion(select_first=True)
+            else:
+                self.insert("\t")
 
-        @self.bindings.add("escape", "enter")
-        def submit(event: KeyPressEvent) -> None:
-            if event.current_buffer.text.strip():
-                event.current_buffer.validate_and_handle()
+        @self.bindings.add("backspace", filter=Condition(lambda: self.capture is not None))
+        def backspace(event: KeyPressEvent) -> None:
+            assert self.capture is not None
+            self.blocks[self.capture].text = self.blocks[self.capture].text[:-1]
+
+        # Capture is an explicit modal operation: no history/cursor/clipboard edits
+        # may delete its atom while subsequent input still appends to that paste.
+        for key in ("left", "right", "up", "down", "home", "end", "delete",
+                    "c-a", "c-e", "c-d", "c-k", "c-u", "c-w", "c-y", "c-_", "c-t"):
+            self.bindings.add(key, filter=Condition(lambda: self.capture is not None))(
+                lambda event: None
+            )
 
         @self.bindings.add("c-c")
         @self.bindings.add("<sigint>")
         def cancel(event: KeyPressEvent) -> None:
-            if event.current_buffer.text:
+            if event.current_buffer.text or self.capture is not None:
                 event.current_buffer.reset()
-                # Do not turn queued paste/submit keys into a second draft or run.
+                self.clear()
                 event.app.key_processor.empty_queue()
                 self.discard()
             else:
                 event.app.exit(exception=KeyboardInterrupt)
+
+    def clear(self) -> None:
+        self.blocks.clear()
+        self.capture = None
+        self.number = 0
+
+    def atom(self, text: str, *, folded: bool = True) -> str:
+        # Supplementary private-use characters never leave this editor. Expanding
+        # is single-pass, so literal marker text or nested atom characters stay literal.
+        buffer = self.prompt.default_buffer
+        used = buffer.text + text + "".join(self.history.get_strings())
+        char = next(chr(i) for i in range(0xF0000, 0xFFFFE)
+                    if chr(i) not in self.blocks and chr(i) not in used)
+        if folded:
+            self.number += 1
+        self.blocks[char] = Paste(text, self.number, folded)
+        return char
+
+    def expand(self, text: str) -> str:
+        return "".join(self.blocks[c].text if c in self.blocks else c for c in text)
+
+    def literal(self, text: str) -> str:
+        return "".join(self.atom(c, folded=False) if c in self.blocks else c for c in text)
+
+    def insert(self, text: str) -> None:
+        if self.capture is not None:
+            self.blocks[self.capture].text += text
+        else:
+            self.prompt.default_buffer.insert_text(self.literal(text))
+
+    def paste(self, text: str) -> None:
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        if self.capture is not None:
+            self.blocks[self.capture].text += text
+        elif text.count("\n") >= 3 or len(text) >= 500:
+            self.prompt.default_buffer.insert_text(self.atom(text))
+        else:
+            self.insert(text)
+
+    def prepare(self) -> None:
+        self.prompt.default_buffer.history = self.history
+
+    def toolbar(self) -> str:
+        if self.capture is not None:
+            return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
+        return "Enter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit"
 
     def discard(self, interrupt: Callable[[], None] | None = None) -> None:
         source = self.prompt.app.input
@@ -77,16 +291,28 @@ class TaskInput:
         previous = signal.signal(signal.SIGINT, interrupt)
         try:
             with patch_stdout(raw=True):
-                return await self.prompt.prompt_async(
-                    "You › ",
+                result = await self.prompt.prompt_async(
+                    [("class:prompt", " Nexus › ")],
                     multiline=True,
                     wrap_lines=True,
                     key_bindings=self.bindings,
                     prompt_continuation="    · ",
-                    bottom_toolbar="Enter: newline · Esc then Enter: submit · Ctrl+C: clear / exit",
+                    bottom_toolbar=self.toolbar,
+                    show_frame=True,
+                    style=INPUT_STYLE,
+                    input_processors=[PasteDisplay(self.blocks)],
+                    completer=SlashCompleter(),
+                    complete_while_typing=Condition(
+                        lambda: self.capture is None
+                        and self.prompt.default_buffer.text.startswith("/")
+                    ),
+                    clipboard=self.clipboard,
+                    pre_run=self.prepare,
                     handle_sigint=False,
                 )
+                return self.expand(result)
         finally:
+            self.clear()
             active = False
             signal.signal(signal.SIGINT, previous)
 

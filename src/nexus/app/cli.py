@@ -26,7 +26,7 @@ from nexus.app.config import (
     read_toml,
     set_memory_enabled,
 )
-from nexus.app.input import TaskInput
+from nexus.app.input import INPUT_HELP, TaskInput
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_index import MemoryIndex, installed_command
 from nexus.app.memory_setup import DependencyBootstrap
@@ -220,7 +220,11 @@ async def application(args: argparse.Namespace) -> int:
     exit_reason: str | None = None
     console.print("Nexus · trusted local execution · /help for commands")
     console.print(Text(
-        "Enter: newline · Esc then Enter: submit · Ctrl+C: clear / exit", style="dim",
+        INPUT_HELP, style="dim",
+    ))
+    console.print(Text(
+        "No bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.",
+        style="dim",
     ))
     try:
         await conversation.start_memory()
@@ -284,7 +288,8 @@ async def application(args: argparse.Namespace) -> int:
                     "Each input starts a new run with continuous session history; "
                     "/resume continues the "
                     "selected session's unfinished run. "
-                    "Enter inserts a newline; Esc then Enter submits. "
+                    "Enter sends; Ctrl+J/F4 inserts a newline. F2 toggles safe paste capture; "
+                    "F3 expands a paste for editing. "
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
                     "Input typed during execution/cleanup is discarded."
                 )

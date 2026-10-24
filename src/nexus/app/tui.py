@@ -17,13 +17,16 @@ from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
-from rich.console import Console
+from rich.console import Console, Group
 from rich.live import Live
 from rich.markdown import Markdown
+from rich.spinner import Spinner
 from rich.syntax import Syntax
 from rich.text import Text
+from rich.theme import Theme
 
 from nexus.app.config import ConfigError, read_toml
+from nexus.app.input import PURPLE
 from nexus.core.skills import active_skills
 from nexus.core.types import Json, RuntimeEvent, Session, SkillInfo, json_text
 
@@ -86,6 +89,7 @@ class Transcript:
         self.preview_tail = ""
         self.finish_reason: str | None = None
         self.flush_handle: asyncio.TimerHandle | None = None
+        self.working: Spinner | None = None
 
     @property
     def live_output(self) -> bool:
@@ -98,6 +102,7 @@ class Transcript:
         if self.preview is not None:
             self.preview.stop()
             self.preview = None
+        self.working = None
 
     def stop_activity(self) -> None:
         self.stop_preview()
@@ -121,7 +126,7 @@ class Transcript:
                 # Bounded temporary content, classified only after a committed message.
                 self.preview_tail = (self.preview_tail + self.buffer)[-4000:]
                 rows = self.preview_tail.splitlines()[-10:]
-                self.show_preview(Text("Generating…\n" + "\n".join(rows), style="dim italic"))
+                self.show_preview(Text("\n".join(rows), style="dim italic"))
             else:
                 self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
             self.buffer = ""
@@ -129,13 +134,15 @@ class Transcript:
 
     def show_preview(self, text: Text) -> None:
         if self.preview is None:
+            self.working = Spinner("dots", text=Text("Working...", style="dim"), style=PURPLE)
             self.preview = Live(
-                text, console=self.console, transient=True, auto_refresh=False,
-                vertical_overflow="ellipsis",
+                Group(self.working, text), console=self.console, transient=True,
+                auto_refresh=True, refresh_per_second=8, vertical_overflow="ellipsis",
             )
             self.preview.start(refresh=True)
         else:
-            self.preview.update(text, refresh=True)
+            assert self.working is not None
+            self.preview.update(Group(self.working, text), refresh=False)
 
     def assistant_message(self, data: Json) -> None:
         self.stop_preview()
@@ -155,7 +162,13 @@ class Transcript:
                     block.append_text(line)
                 self.console.print(block)
             elif content:
-                self.console.print(Markdown(content, code_theme="monokai"))
+                with self.console.use_theme(Theme({
+                    "markdown.h1": "bold " + PURPLE,
+                    "markdown.h2": "bold " + PURPLE,
+                    "markdown.h3": "bold " + PURPLE,
+                    "markdown.link": "underline " + PURPLE,
+                })):
+                    self.console.print(Markdown(content, code_theme="monokai"))
         elif not self.assistant_streamed and content:
             self.console.print(Text(content))
         elif self.assistant_streamed:
@@ -208,7 +221,7 @@ class Transcript:
             self.finish_reason = None
             self.last_flush = 0.0
             if self.live_output:
-                self.show_preview(Text("Thinking…", style="dim italic"))
+                self.show_preview(Text(""))
         elif kind == "model_finished":
             self.finish_reason = data.get("finish_reason")
         elif kind == "tool_started":

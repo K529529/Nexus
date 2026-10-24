@@ -1,0 +1,10 @@
+.F..........                                                             [100%]
+================================== FAILURES ===================================
+________________ test_folded_display_frame_and_cursor_mapping _________________
+tests\test_input_v02.py:77: in test_folded_display_frame_and_cursor_mapping
+    prompt.default_buffer_control, Document(source), 0, lambda i: i,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'PromptSession' object has no attribute 'default_buffer_control'
+=========================== short test summary info ===========================
+FAILED tests/test_input_v02.py::test_folded_display_frame_and_cursor_mapping
+1 failed, 11 passed in 3.17s

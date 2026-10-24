@@ -1,0 +1,46 @@
+OFFLINE UI FIXTURE — no model or tool executed
+Actual prompt screen: folded paste
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Nexus › [paste #1 +83 lines]                                                         │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+Actual prompt screen: slash menu
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Nexus › /help                                                                        │
+│           /help           Commands and shortcuts                                     │
+│           /new            New conversation                                           │
+│           /resume         Choose a saved session                                     │
+│           /compact        Compact current history                                    │
+│           /memory         Memory status                                              │
+│           /memory on      Enable Memory                                              │
+│           /memory off     Disable Memory                                             │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+Thinking
+│ 我先检查输入区和已有测试，再确认粘贴及取消行为。
+│ 工具结果继续按独立状态行展示。
+› Inspect git diff  ✓ · 0.2s
+交互结果示例
+
+完整原文在发送时恢复；输入区域显示紧凑的 paste 块。
+
+
+ 操作   行为
+ ─────────────────────────────────────
+ Enter  发送；候选菜单打开时先选择命令
+ F2     开始/结束安全粘贴
+ F3     展开粘贴块编辑
+
+
+ 1 粘贴完整任务。
+ 2 确认后按 Enter 发送。
+
+▌ 本页是离线展示夹具，不代表真实任务验收结果。
+
+
+ print("你好，Nexus")
+
+
+
+ src/nexus/app/
+ ├── cli.py
+ ├── input.py
+ └── tui.py

@@ -382,7 +382,7 @@ async def test_real_estimator_boundary_compacts_at_115200(tmp_path: Path, monkey
         await convo.close()
 
 
-@pytest.mark.parametrize("keys,reason", [("/exit\x1b\r", "slash-exit"), ("\x04", "eof")])
+@pytest.mark.parametrize("keys,reason", [("/exit\r", "slash-exit"), ("\x04", "eof")])
 async def test_real_prompt_is_stopped_before_summary(
     tmp_path: Path, monkeypatch: Any, keys: str, reason: str
 ) -> None:
