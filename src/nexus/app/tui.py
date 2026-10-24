@@ -128,7 +128,7 @@ class Transcript:
                 # Bounded temporary content, classified only after a committed message.
                 self.preview_tail = (self.preview_tail + self.buffer)[-4000:]
                 rows = self.preview_tail.splitlines()[-10:]
-                self.show_preview(Text("\n".join(rows), style="dim italic"))
+                self.show_preview(Text("\n".join(rows), style="#b8b3c4 italic"))
             else:
                 self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
             self.buffer = ""
@@ -178,14 +178,14 @@ class Transcript:
             if content and (data.get("tool_calls") or self.finish_reason == "tool_calls"):
                 # These are public Assistant Content, never private reasoning_content.
                 self.console.print()
-                self.console.print(Text("  Thinking", style="#b3acbf italic"))
+                self.console.print(Text("Thinking", style="#ece9f4 italic"))
                 # Wrap before prefixing so every physical line retains its gutter.
-                lines = Text(content).wrap(self.console, max(1, self.console.width - 4))
-                block = Text(style="dim italic")
+                lines = Text(content).wrap(self.console, max(1, self.console.width - 2))
+                block = Text(style="#b8b3c4 italic")
                 for i, line in enumerate(lines):
                     if i:
                         block.append("\n")
-                    block.append("  │ ", style="#685b7d")
+                    block.append("│ ", style="#82798e")
                     block.append_text(line)
                 self.console.print(block)
                 self.console.print()
@@ -196,7 +196,7 @@ class Transcript:
                     "markdown.h3": "bold " + PURPLE,
                     "markdown.link": "underline " + PURPLE,
                 })):
-                    self.console.print(Markdown(content, code_theme="monokai"))
+                    self.console.print(Markdown(content, code_theme="monokai", style="#e5e7eb"))
         elif not self.assistant_streamed and content:
             self.console.print(Text(content))
         elif self.assistant_streamed:
@@ -322,7 +322,7 @@ class Transcript:
                     Text(
                         f"上下文约 {data['calibrated_context_tokens']:,} tokens · "
                         f"压缩阈值 {data['compaction_trigger']:,}",
-                        style="dim italic",
+                        style="#b8b3c4 italic",
                     )
                 )
         elif kind == "compaction_started":
@@ -375,7 +375,8 @@ class Transcript:
                 partial = (self.preview_tail + self.buffer)[-4000:]
                 if partial:
                     self.console.print(Text(
-                        "Interrupted preview (not a final answer):\n" + partial, style="dim italic",
+                        "Interrupted preview (not a final answer):\n" + partial,
+                        style="#b8b3c4 italic",
                     ))
             elif self.assistant_streamed:
                 self.console.print()

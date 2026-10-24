@@ -23,7 +23,7 @@ from tests.test_input_v02 import editor_session, paste
 
 
 @pytest.mark.parametrize("text", ["你好", "a中文b", "中é文", "中文👋abc"])
-async def test_cjk_cells_cursor_and_backspace_in_open_editor(text: str) -> None:
+async def test_cjk_cells_cursor_and_backspace_in_framed_editor(text: str) -> None:
     captured = io.StringIO()
     output = Vt100_Output(captured, lambda: Size(rows=24, columns=60), term="xterm-256color")
     async with editor_session(output) as (editor, prompt, pipe, pending):
@@ -33,9 +33,9 @@ async def test_cjk_cells_cursor_and_backspace_in_open_editor(text: str) -> None:
                     and text in captured.getvalue())
         screen = prompt.app.renderer.last_rendered_screen
         assert screen is not None
-        assert screen.height == 2
+        assert screen.height == 3
         cursor = screen.get_cursor_position(prompt.app.layout.current_window)
-        assert (cursor.x, cursor.y) == (4 + get_cwidth(text), 1)
+        assert (cursor.x, cursor.y) == (10 + get_cwidth(text), 1)
         assert prompt.app.cursor.get_cursor_shape(prompt.app) == CursorShape.BLINKING_BEAM
         # Ordinary CJK text must pass through without a custom index mapping.
         fragments: StyleAndTextTuples = [("", text)]
@@ -66,7 +66,7 @@ async def test_idle_input_does_not_repaint_or_grow_with_terminal_rows() -> None:
         prompt.app.invalidate()
         await asyncio.sleep(0.2)
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 2
+        assert screen is not None and screen.height == 3
         pipe.send_text("\r")
         assert await pending == "中文"
 
@@ -83,7 +83,7 @@ async def test_cjk_cursor_after_folded_paste_and_resize() -> None:
         screen = prompt.app.renderer.last_rendered_screen
         assert screen is not None
         cursor = screen.get_cursor_position(prompt.app.layout.current_window)
-        assert cursor.x == 4 + 2 + len(next(iter(editor.blocks.values())).label) + 2
+        assert cursor.x == 10 + 2 + len(next(iter(editor.blocks.values())).label) + 2
         size[0] = Size(rows=24, columns=20)
         prompt.app.invalidate()
         await asyncio.sleep(0.2)
@@ -146,12 +146,57 @@ async def test_thinking_hierarchy_preserves_public_content_and_tool_rows(monkeyp
                               "tool_calls": [{"id": "c"}],
                               "protocol_data": {"reasoning_content": "PRIVATE"}}))
     titles = [x for x in rendered if isinstance(x, Text) and x.plain.strip() == "Thinking"]
-    assert len(titles) == 1 and titles[0].style == "#b3acbf italic"
+    assert len(titles) == 1 and titles[0].style == "#ece9f4 italic"
     blocks = [x for x in rendered if isinstance(x, Text) and "│" in x.plain]
-    assert len(blocks) == 1 and blocks[0].style == "dim italic"
-    assert all(line.startswith("  │ ") for line in blocks[0].plain.splitlines())
-    assert "".join(line[4:] for line in blocks[0].plain.splitlines()) == content
+    assert len(blocks) == 1 and blocks[0].style == "#b8b3c4 italic"
+    assert all(line.startswith("│ ") for line in blocks[0].plain.splitlines())
+    assert "".join(line[2:] for line in blocks[0].plain.splitlines()) == content
     assert "PRIVATE" not in output.getvalue()
     before = output.tell()
     ui.tool_status("Read src/app.py", "✓ · 0.2s", "dim")
     assert terminal_text(output.getvalue()[before:]) == "› Read src/app.py  ✓ · 0.2s\n"
+
+
+async def test_complete_frame_returns_on_each_prompt() -> None:
+    captured = io.StringIO()
+    output = Vt100_Output(captured, lambda: Size(rows=24, columns=60), term="xterm-256color")
+    async with editor_session(output) as (editor, prompt, pipe, pending):
+        for turn in range(2):
+            if turn:
+                pending = asyncio.create_task(editor.read())
+                await until(lambda: prompt.app.is_running)
+            try:
+                await asyncio.sleep(0.2)
+                screen = prompt.app.renderer.last_rendered_screen
+                assert screen is not None and screen.height == 3
+                assert screen.data_buffer[0][0].char == "┌"
+                assert screen.data_buffer[0][59].char == "┐"
+                assert screen.data_buffer[2][0].char == "└"
+                assert screen.data_buffer[2][59].char == "┘"
+                assert screen.data_buffer[1][59].char == "│"
+                pipe.send_text(f"第{turn}轮\r")
+                assert await pending == f"第{turn}轮"
+            finally:
+                if not pending.done():
+                    pending.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await pending
+
+
+def test_summary_readable_styles_preserve_zero_call_semantics(monkeypatch: Any) -> None:
+    from nexus.app.profile import InteractionSummary
+
+    async def consume(value: Any) -> None:
+        pass
+
+    out = io.StringIO()
+    console = Console(file=out, width=100, record=True, force_terminal=True,
+                      color_system="truecolor", legacy_windows=False)
+    summary = InteractionSummary(consume)
+    summary.render(console)
+    summary.render(console)
+    result = terminal_text(out.getvalue())
+    assert result.count("Nexus powering down") == 1
+    assert "N/A" in result and "0%" not in result
+    html = console.export_html(inline_styles=True)
+    assert "#8bdc65" in html and "#f2f2f2" in html and "#e5e7eb" in html

@@ -265,14 +265,6 @@ class TaskInput:
     def prepare(self) -> None:
         self.prompt.default_buffer.history = self.history
 
-    def prompt_message(self) -> StyleAndTextTuples:
-        # An open frame has no trailing right/bottom border to repaint after input.
-        # Keep the editable cursor on the last row, away from full-width autowrap.
-        width = max(1, min(100, self.prompt.app.output.get_size().columns - 1))
-        heading = "╭─ Nexus "
-        return [("class:prompt", heading[:width] + "─" * max(0, width - len(heading))),
-                ("", "\n"), ("class:prompt", "│ › ")]
-
     def toolbar(self) -> str:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
@@ -304,13 +296,13 @@ class TaskInput:
         try:
             with patch_stdout(raw=True):
                 result = await self.prompt.prompt_async(
-                    self.prompt_message,
+                    [("class:prompt", " Nexus › ")],
                     multiline=True,
                     wrap_lines=True,
                     key_bindings=self.bindings,
                     prompt_continuation=[("class:prompt", "│   ")],
                     bottom_toolbar=self.toolbar,
-                    show_frame=False,
+                    show_frame=True,
                     cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
                     refresh_interval=0,
                     style=INPUT_STYLE,

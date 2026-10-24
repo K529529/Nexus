@@ -438,12 +438,14 @@ class InteractionSummary:
         if self.rendered:
             return
         self.rendered = True
-        console.print("\nNexus powering down. Goodbye!")
-        console.print(Text("Interaction Summary · this CLI lifetime", style="bold"))
+        console.print(Text("\nNexus powering down. Goodbye!", style="bold #f2f2f2"))
+        console.rule(style="#55505e")
+        console.print(Text("Interaction Summary · this CLI lifetime", style="bold #f2f2f2"))
         table = Table.grid(padding=(0, 2))
 
-        def row(label: str, value: str) -> None:
-            table.add_row(Text(label), Text(terminal_text(value)))
+        def row(label: str, value: str, value_style: str = "#e5e7eb") -> None:
+            table.add_row(Text(label, style="#8bdc65"),
+                          Text(terminal_text(value), style=value_style))
 
         def measured(value: int, covered: int, calls: int, *, duration: bool = False) -> str:
             if calls and not covered:
@@ -456,12 +458,12 @@ class InteractionSummary:
         row("Session ID", ", ".join(sorted(self.sessions)) or "none")
         row("Runs", str(self.runs))
         row("Tool Calls", str(self.tools))
-        row("Tool Success", f"{self.successes} · {rate}")
-        row("Tool Failures", str(self.failures))
+        row("Tool Success", f"{self.successes} · {rate}", "#8bdc65" if finished else "#e5e7eb")
+        row("Tool Failures", str(self.failures), "#ff7b72" if self.failures else "#e5e7eb")
         row("Tool Unfinished", str(max(0, self.tools - finished)))
         row("Model Calls", str(self.models))
         console.print(table)
-        console.print(Text("Performance", style="bold"))
+        console.print(Text("\nPerformance", style="bold #f2f2f2"))
         table = Table.grid(padding=(0, 2))
         row("Wall Time", f"{time.monotonic() - self.started:.1f}s (includes editing/cleanup)")
         row("Model Time", measured(self.model_ms, self.model_timed, self.models, duration=True))
@@ -470,5 +472,5 @@ class InteractionSummary:
         console.print(table)
         console.print(Text(
             "Live run/compaction events only; excludes history and private Memory exit summary. "
-            "Tool success is not task success. Times are not additive.", style="dim",
+            "Tool success is not task success. Times are not additive.", style="#a3a3ad",
         ))

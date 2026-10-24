@@ -56,7 +56,7 @@ async def test_enter_sends_and_explicit_newline_edits() -> None:
         assert not pending.done()
         pipe.send_text("\r")
         assert await asyncio.wait_for(pending, 5) == "first\nsecond\nthird"
-        assert prompt.show_frame is False
+        assert prompt.show_frame is True
 
 
 async def test_folded_display_frame_and_cursor_mapping(monkeypatch: Any) -> None:
@@ -71,8 +71,8 @@ async def test_folded_display_frame_and_cursor_mapping(monkeypatch: Any) -> None
         await until(lambda: "[paste #1 +83 lines]" in capture.getvalue())
         assert "SECRET_BODY" not in capture.getvalue()
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 2  # no empty menu reserve
-        assert "Nexus" in capture.getvalue() and "╭" in capture.getvalue()
+        assert screen is not None and screen.height == 3  # no empty menu reserve
+        assert "Nexus" in capture.getvalue() and "┌" in capture.getvalue()
         assert "38;2;167;139;250" in capture.getvalue()  # theme purple, not a mock layout
         source = "a" + prompt.default_buffer.text + "z"
         processor = PasteDisplay(editor.blocks)
