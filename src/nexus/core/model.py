@@ -10,11 +10,22 @@ from dataclasses import asdict
 from typing import Any
 from urllib.parse import urlsplit
 
-from openai import APIConnectionError, APIStatusError, AsyncOpenAI
+import httpx
+from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI
 
 from nexus.app.config import ModelConfig
 from nexus.core.tokens import wire_message, wire_tools
 from nexus.core.types import Emit, Json, Message, ModelError, ModelReply, ToolCall, ToolSpec, Usage
+
+CLEANUP_TIMEOUT_SECONDS = 2.0
+TRANSPORT_ERRORS = (
+    APIConnectionError,
+    httpx.NetworkError,
+    httpx.RemoteProtocolError,
+    httpx.ProxyError,
+    httpx.TimeoutException,
+    TimeoutError,
+)
 
 
 def context_overflow(status: int, body: object, base_url: str) -> bool:
@@ -82,18 +93,56 @@ class ChatModel:
     ) -> None:
         self.config = config
         self.json_object = json_object
-        self.client: Any = client or AsyncOpenAI(
+        self._owns_client = client is None
+        self._client_retired = False
+        self._cleanup_incomplete = False
+        self.client: Any = client or self._new_client()
+        self.binding = hashlib.sha256(
+            f"{config.base_url.rstrip('/')}\n{config.name}".encode(),
+        ).hexdigest()
+
+    def _new_client(self) -> AsyncOpenAI:
+        config = self.config
+        return AsyncOpenAI(
             api_key=config.key(),
             base_url=config.base_url,
             timeout=config.request_timeout_seconds,
             max_retries=0,
         )
-        self.binding = hashlib.sha256(
-            f"{config.base_url.rstrip('/')}\n{config.name}".encode(),
-        ).hexdigest()
 
     async def close(self) -> None:
         await self.client.close()
+
+    async def _close_stream(self, stream: Any) -> tuple[Json | None, BaseException | None]:
+        try:
+            async with asyncio.timeout(CLEANUP_TIMEOUT_SECONDS):
+                await stream.close()
+            return None, None
+        except (Exception, asyncio.CancelledError) as exc:
+            # Never trust Response.is_closed: HTTPX sets it before transport cleanup.
+            # Retire the entire pool rather than reuse a possibly live connection.
+            self._client_retired = True
+            warning: Json = {
+                "phase": "close",
+                "exception_type": type(exc).__name__[:80],
+            }
+            try:
+                async with asyncio.timeout(CLEANUP_TIMEOUT_SECONDS):
+                    await self.client.close()
+            except (Exception, asyncio.CancelledError) as cleanup:
+                self._cleanup_incomplete = True
+                warning.update(
+                    recovery="failed",
+                    recovery_exception_type=type(cleanup).__name__[:80],
+                )
+                if isinstance(exc, asyncio.CancelledError):
+                    return warning, exc
+                if isinstance(cleanup, asyncio.CancelledError):
+                    return warning, cleanup
+                return warning, ModelError("model_cleanup_incomplete")
+            warning["recovery"] = "client_closed"
+            # A programming error in cleanup is not a recoverable transport warning.
+            return warning, None if isinstance(exc, TRANSPORT_ERRORS) else exc
 
     def wire_messages(self, messages: list[Message]) -> list[Json]:
         result: list[Json] = []
@@ -119,6 +168,13 @@ class ChatModel:
         tools: list[ToolSpec],
         emit: Emit,
     ) -> ModelReply:
+        if self._cleanup_incomplete:
+            raise ModelError("model_cleanup_incomplete")
+        if self._client_retired:
+            if not self._owns_client:
+                raise ModelError("model_client_closed")
+            self.client = self._new_client()
+            self._client_retired = False
         request: Json = {
             "model": self.config.name,
             "messages": self.wire_messages(messages),
@@ -140,10 +196,16 @@ class ChatModel:
             started = time.monotonic()
             seen_delta = False
             stream = None
+            reply = None
+            failure: BaseException | None = None
+            diagnostic: Json = {}
+            phase = "create"
+            retry = False
             await emit("model_started", {"model": self.config.name, "attempt": attempt})
             try:
                 async with asyncio.timeout(self.config.request_timeout_seconds):
                     stream = await self.client.chat.completions.create(**request)
+                    phase = "stream"
                     content: list[str] = []
                     reasoning: list[str] = []
                     calls: dict[int, Json] = {}
@@ -173,7 +235,13 @@ class ChatModel:
                             raise ModelError("invalid_choices")
                         choice = chunk.choices[0]
                         delta = choice.delta
-                        if delta.model_dump(exclude_none=True):
+                        # Role-only/empty heartbeat chunks do not constitute output.
+                        if (
+                            delta.content
+                            or delta.tool_calls
+                            or delta.refusal
+                            or getattr(delta, "reasoning_content", None)
+                        ):
                             seen_delta = True
                         if delta.refusal:
                             raise ModelError("model_refusal")
@@ -186,7 +254,9 @@ class ChatModel:
                             reasoning.append(fragment)
                         if delta.content:
                             content.append(delta.content)
+                            phase = "publish"
                             await emit("assistant_delta", {"text": delta.content})
+                            phase = "stream"
                         for call in delta.tool_calls or []:
                             if call.index < 0 or (call.type and call.type != "function"):
                                 raise ModelError("invalid_tool_delta")
@@ -226,53 +296,104 @@ class ChatModel:
                         and not reply.message.content.strip()
                     ):
                         raise ModelError("empty_or_invalid_final")
+                diagnostic.update(finish_reason=finish, usage=asdict(usage))
+            except (*TRANSPORT_ERRORS, APIStatusError) as exc:
+                if phase == "publish":
+                    # Sink failures are neither provider errors nor safe retry signals.
+                    failure = exc
+                    diagnostic.update(error="runtime_error", failure_kind="internal")
+                else:
+                    status = exc.status_code if isinstance(exc, APIStatusError) else None
+                    code = "model_transport" if status is None else f"model_http_{status}"
+                    if isinstance(exc, APIStatusError):
+                        if context_overflow(exc.status_code, exc.body, self.config.base_url):
+                            code = "context_limit"
+                    diagnostic.update(
+                        error=code,
+                        failure_kind="http"
+                        if status is not None
+                        else (
+                            "timeout"
+                            if isinstance(
+                                exc,
+                                (TimeoutError, httpx.TimeoutException, APITimeoutError),
+                            )
+                            else "transport"
+                        ),
+                    )
+                    transient = status is None or status == 429 or status >= 500
+                    retry = (
+                        attempt == 1 and not seen_delta and transient and code != "context_limit"
+                    )
+                    failure = ModelError(code)
+                diagnostic["exception_type"] = type(exc).__name__[:80]
+            except (ModelError, asyncio.CancelledError) as exc:
+                failure = exc
+                empty = isinstance(exc, ModelError) and exc.code == "empty_or_invalid_final"
+                diagnostic.update(
+                    error=exc.code if isinstance(exc, ModelError) else "cancelled",
+                    failure_kind="protocol" if isinstance(exc, ModelError) else "cancelled",
+                    exception_type=type(exc).__name__[:80],
+                )
+                if empty:
+                    # Preserve the existing fully received empty-stop recovery exception.
+                    diagnostic.update(finish_reason=finish, usage=asdict(usage))
+                    retry = attempt == 1
+            except Exception as exc:
+                # Record completion but re-raise: never relabel parser/programming bugs.
+                failure = exc
+                diagnostic.update(
+                    error="runtime_error",
+                    failure_kind="internal",
+                    exception_type=type(exc).__name__[:80],
+                )
+            finally:
+                if stream is not None:
+                    warning, cleanup_failure = await self._close_stream(stream)
+                    if warning is not None:
+                        diagnostic["cleanup_warning"] = warning
+                    if cleanup_failure is not None:
+                        retry = False
+                        if failure is None or isinstance(cleanup_failure, asyncio.CancelledError):
+                            failure = cleanup_failure
+                            phase = "close"
+                            diagnostic.update(
+                                error="cancelled"
+                                if isinstance(failure, asyncio.CancelledError)
+                                else (
+                                    failure.code
+                                    if isinstance(failure, ModelError)
+                                    else "runtime_error"
+                                ),
+                                failure_kind="cancelled"
+                                if isinstance(failure, asyncio.CancelledError)
+                                else "cleanup",
+                                exception_type=type(failure).__name__[:80],
+                            )
+                if self._client_retired and not self._owns_client:
+                    retry = False
                 await emit(
                     "model_finished",
                     {
                         "model": self.config.name,
                         "attempt": attempt,
+                        "phase": phase,
                         "duration_ms": int((time.monotonic() - started) * 1000),
-                        "finish_reason": finish,
-                        "usage": asdict(usage),
+                        "seen_delta": seen_delta,
+                        "retry": retry,
+                        **diagnostic,
                     },
                 )
-                return reply
-            except (APIConnectionError, APIStatusError, TimeoutError) as exc:
-                status = exc.status_code if isinstance(exc, APIStatusError) else None
-                code = "model_transport" if status is None else f"model_http_{status}"
-                if isinstance(exc, APIStatusError):
-                    if context_overflow(exc.status_code, exc.body, self.config.base_url):
-                        code = "context_limit"
-                await emit(
-                    "model_finished",
-                    {
-                        "error": code,
-                        "attempt": attempt,
-                        "duration_ms": int((time.monotonic() - started) * 1000),
-                    },
-                )
-                transient = status is None or status == 429 or status >= 500
-                if attempt == 1 and not seen_delta and transient:
-                    await asyncio.sleep(0.25)
-                    continue
-                raise ModelError(code) from None
-            except (ModelError, asyncio.CancelledError) as exc:
-                # A fully received empty stop has no action to replay. Keep partial streams,
-                # malformed tool calls and visible answers outside this narrow retry case.
-                empty = isinstance(exc, ModelError) and exc.code == "empty_or_invalid_final"
-                await emit(
-                    "model_finished",
-                    {
-                        "error": "empty_or_invalid_final" if empty else "stream_interrupted",
-                        "attempt": attempt,
-                        "duration_ms": int((time.monotonic() - started) * 1000),
-                        **({"finish_reason": finish, "usage": asdict(usage)} if empty else {}),
-                    },
-                )
-                if empty and attempt == 1:
-                    continue
-                raise
-            finally:
-                if stream is not None:
-                    await stream.close()
+            if retry:
+                await asyncio.sleep(0.25)
+                if self._client_retired:
+                    if not self._owns_client:
+                        raise ModelError("model_client_closed")
+                    self.client = self._new_client()
+                    self._client_retired = False
+                continue
+            if failure is not None:
+                raise failure from None
+            assert reply is not None
+            return reply
         raise AssertionError("unreachable")

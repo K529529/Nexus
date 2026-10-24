@@ -1,0 +1,12 @@
+E501 Line too long (101 > 100)
+   --> src\nexus\core\model.py:325:101
+    |
+323 |                     )
+324 |                     transient = status is None or status == 429 or status >= 500
+325 |                     retry = attempt == 1 and not seen_delta and transient and code != "context_limit"
+    |                                                                                                     ^
+326 |                     failure = ModelError(code)
+327 |                 diagnostic["exception_type"] = type(exc).__name__[:80]
+    |
+
+Found 1 error.

@@ -1,0 +1,23 @@
+........................................................................ [ 84%]
+...........FF                                                            [100%]
+================================== FAILURES ===================================
+________________ test_loop_replay_tui_and_eval_metrics[False] _________________
+tests\test_model_transport.py:343: in test_loop_replay_tui_and_eval_metrics
+    rows = read_records(path)
+           ^^^^^^^^^^^^^^^^^^
+src\nexus\app\session.py:64: in read_records
+    stream.seek(0)
+    ^^^^^^^^^^^
+E   AttributeError: 'WindowsPath' object has no attribute 'seek'
+_________________ test_loop_replay_tui_and_eval_metrics[True] _________________
+tests\test_model_transport.py:343: in test_loop_replay_tui_and_eval_metrics
+    rows = read_records(path)
+           ^^^^^^^^^^^^^^^^^^
+src\nexus\app\session.py:64: in read_records
+    stream.seek(0)
+    ^^^^^^^^^^^
+E   AttributeError: 'WindowsPath' object has no attribute 'seek'
+=========================== short test summary info ===========================
+FAILED tests/test_model_transport.py::test_loop_replay_tui_and_eval_metrics[False]
+FAILED tests/test_model_transport.py::test_loop_replay_tui_and_eval_metrics[True]
+2 failed, 83 passed in 9.44s

@@ -1,0 +1,2 @@
+Using CPython 3.12.10 interpreter at: D:\Tools\python\py312\python.exe
+Resolved 66 packages in 251ms
