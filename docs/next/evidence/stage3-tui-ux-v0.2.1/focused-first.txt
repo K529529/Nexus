@@ -1,0 +1,15 @@
+......F..F.............................................................. [ 80%]
+.................                                                        [100%]
+================================== FAILURES ===================================
+___ test_user_echo_is_distinct_bounded_literal_and_keeps_original[False-18] ___
+tests\test_tui_polish.py:120: in test_user_echo_is_distinct_bounded_literal_and_keeps_original
+    assert "**这不是模型回复**" in result
+E   AssertionError: assert '**这不是模型回复**' in '\n你 ›\n**这不是模型回\n复**\n    保留缩进\n额外内容\n额外内容\n额外内容\n… 102 lines · 521 \ncharacters\n\n'
+___ test_user_echo_is_distinct_bounded_literal_and_keeps_original[True-18] ____
+tests\test_tui_polish.py:120: in test_user_echo_is_distinct_bounded_literal_and_keeps_original
+    assert "**这不是模型回复**" in result
+E   AssertionError: assert '**这不是模型回复**' in '\n你 ›\n**这不是模型回\n复**\n    保留缩进\n额外内容\n额外内容\n额外内容\n… 102 lines · 521 \ncharacters\n\n'
+=========================== short test summary info ===========================
+FAILED tests/test_tui_polish.py::test_user_echo_is_distinct_bounded_literal_and_keeps_original[False-18]
+FAILED tests/test_tui_polish.py::test_user_echo_is_distinct_bounded_literal_and_keeps_original[True-18]
+2 failed, 87 passed in 18.87s

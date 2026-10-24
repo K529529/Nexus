@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from prompt_toolkit import PromptSession
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
@@ -82,6 +83,9 @@ class PasteDisplay(Processor):
         self.blocks = blocks
 
     def apply_transformation(self, ti: TransformationInput) -> Transformation:
+        # Ordinary input (including CJK) keeps prompt_toolkit's own cursor mapping.
+        if not any(c in self.blocks for _, text, *_ in ti.fragments for c in text):
+            return Transformation(ti.fragments)
         # Each paste is one editable buffer atom; only its display is expanded.
         fragments: StyleAndTextTuples = []
         source_to_display = [0]
@@ -261,6 +265,14 @@ class TaskInput:
     def prepare(self) -> None:
         self.prompt.default_buffer.history = self.history
 
+    def prompt_message(self) -> StyleAndTextTuples:
+        # An open frame has no trailing right/bottom border to repaint after input.
+        # Keep the editable cursor on the last row, away from full-width autowrap.
+        width = max(1, min(100, self.prompt.app.output.get_size().columns - 1))
+        heading = "╭─ Nexus "
+        return [("class:prompt", heading[:width] + "─" * max(0, width - len(heading))),
+                ("", "\n"), ("class:prompt", "│ › ")]
+
     def toolbar(self) -> str:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
@@ -292,13 +304,15 @@ class TaskInput:
         try:
             with patch_stdout(raw=True):
                 result = await self.prompt.prompt_async(
-                    [("class:prompt", " Nexus › ")],
+                    self.prompt_message,
                     multiline=True,
                     wrap_lines=True,
                     key_bindings=self.bindings,
-                    prompt_continuation="    · ",
+                    prompt_continuation=[("class:prompt", "│   ")],
                     bottom_toolbar=self.toolbar,
-                    show_frame=True,
+                    show_frame=False,
+                    cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
+                    refresh_interval=0,
                     style=INPUT_STYLE,
                     input_processors=[PasteDisplay(self.blocks)],
                     completer=SlashCompleter(),

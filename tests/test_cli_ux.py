@@ -283,7 +283,7 @@ async def test_transient_preview_classifies_public_content_once(monkeypatch: Any
     assert live[0].stopped
     blocks = [obj for obj in rendered if isinstance(obj, Text) and "│" in obj.plain]
     assert len(blocks) == 1 and blocks[0].style == "dim italic"
-    assert all(line.startswith("│ ") for line in blocks[0].plain.splitlines())
+    assert all(line.startswith("  │ ") for line in blocks[0].plain.splitlines())
     await ui(event("tool_started", {"call_id": "c", "name": "exec_command"}))
     from nexus.core.types import ToolResult
     await ui(event("message", ToolResult("c", True, {}).message().public()))

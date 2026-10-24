@@ -38,7 +38,6 @@ from nexus.app.tui import (
     json_consumer,
     select_session,
     setup,
-    short_line,
     show_skills,
     terminal_text,
 )
@@ -373,12 +372,7 @@ async def application(args: argparse.Namespace) -> int:
             else:
                 if profile:
                     profile.reset()
-                console.print(Text(f"You › {short_line(draft)}", style="bold"))
-                if "\n" in draft or len(draft) > 100:
-                    console.print(Text(
-                        f"  Submitted {len(draft):,} characters · {len(draft.splitlines())} lines",
-                        style="dim",
-                    ))
+                transcript.user_message(draft)
                 result = await drive(conversation, draft, editor=editor)
                 if profile:
                     profile.render(

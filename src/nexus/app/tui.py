@@ -17,9 +17,11 @@ from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
+from rich import box
 from rich.console import Console, Group
 from rich.live import Live
 from rich.markdown import Markdown
+from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.syntax import Syntax
 from rich.text import Text
@@ -144,6 +146,30 @@ class Transcript:
             assert self.working is not None
             self.preview.update(Group(self.working, text), refresh=False)
 
+    def user_message(self, content: str) -> None:
+        """A bounded, recognizable local echo; never changes the submitted message."""
+        clean = terminal_text(content)
+        width = min(100, self.console.width)
+        # Bound both wrapping work and physical rows, while preserving useful whitespace.
+        lines = Text(clean[:1200], tab_size=4).wrap(self.console, max(1, width - 4))
+        preview = Text("\n").join(lines[:6])
+        if len(clean) > 1200 or len(lines) > 6:
+            preview.append(
+                f"\n… {len(content.splitlines()):,} lines · {len(content):,} characters",
+                style="dim",
+            )
+        self.console.print()
+        if self.live_output and width >= 20:
+            self.console.print(Panel(
+                preview, title=Text("你", style="bold " + PURPLE), title_align="left",
+                border_style=PURPLE, style="on #211b2e", box=box.ROUNDED,
+                width=width, padding=(0, 1),
+            ))
+        else:
+            self.console.print(Text("你 ›", style="bold " + PURPLE))
+            self.console.print(preview)
+        self.console.print()
+
     def assistant_message(self, data: Json) -> None:
         self.stop_preview()
         self.buffer = ""
@@ -151,16 +177,18 @@ class Transcript:
         if self.live_output:
             if content and (data.get("tool_calls") or self.finish_reason == "tool_calls"):
                 # These are public Assistant Content, never private reasoning_content.
-                self.console.print(Text("Thinking", style="dim italic"))
+                self.console.print()
+                self.console.print(Text("  Thinking", style="#b3acbf italic"))
                 # Wrap before prefixing so every physical line retains its gutter.
-                lines = Text(content).wrap(self.console, max(1, self.console.width - 2))
+                lines = Text(content).wrap(self.console, max(1, self.console.width - 4))
                 block = Text(style="dim italic")
                 for i, line in enumerate(lines):
                     if i:
                         block.append("\n")
-                    block.append("│ ")
+                    block.append("  │ ", style="#685b7d")
                     block.append_text(line)
                 self.console.print(block)
+                self.console.print()
             elif content:
                 with self.console.use_theme(Theme({
                     "markdown.h1": "bold " + PURPLE,
