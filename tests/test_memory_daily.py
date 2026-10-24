@@ -289,7 +289,14 @@ async def test_cli_terminal_stops_before_exit_summary(
     answers = iter(["/new", "/resume", "/exit"])
 
     class Prompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             value = next(answers)
             if value == "/exit" and end == "eof":
                 raise EOFError
@@ -313,7 +320,8 @@ async def test_cli_terminal_stops_before_exit_summary(
     monkeypatch.setattr(cli, "Console", lambda **_: Console(file=io.StringIO()))
     monkeypatch.setattr(Transcript, "stop_activity", lambda self: order.append("stop"))
     monkeypatch.setattr(bootstrap.Conversation, "summarize_exit", summarize)
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert order == ["stop", end]
 
 
@@ -374,7 +382,7 @@ async def test_real_estimator_boundary_compacts_at_115200(tmp_path: Path, monkey
         await convo.close()
 
 
-@pytest.mark.parametrize("keys,reason", [("/exit\n", "slash-exit"), ("\x04", "eof")])
+@pytest.mark.parametrize("keys,reason", [("/exit\x1b\r", "slash-exit"), ("\x04", "eof")])
 async def test_real_prompt_is_stopped_before_summary(
     tmp_path: Path, monkeypatch: Any, keys: str, reason: str
 ) -> None:
@@ -392,13 +400,13 @@ async def test_real_prompt_is_stopped_before_summary(
         pass
 
     with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
-        prompt: PromptSession[str] = PromptSession()
+        prompt: PromptSession[str] = PromptSession(output=DummyOutput())
 
         async def summarize(self: Any, actual_reason: str) -> None:
             assert not prompt.app.is_running
             seen.append(actual_reason)
 
-        monkeypatch.setattr(cli, "PromptSession", lambda: prompt)
+        monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
         monkeypatch.setattr(bootstrap.Conversation, "start_memory", start)
         monkeypatch.setattr(bootstrap.Conversation, "summarize_exit", summarize)
         pipe.send_text(keys)

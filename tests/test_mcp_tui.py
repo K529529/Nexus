@@ -502,7 +502,14 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
             self.closed = True
 
     class FakePrompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             assert len(instances) == 1 and not instances[0].closed
             return next(answers)
 
@@ -518,7 +525,8 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
     monkeypatch.setattr(cli, "Conversation", FakeConversation)
     monkeypatch.setattr(cli, "list_sessions", lambda _: [])
     monkeypatch.setattr(cli, "select_session", cancel)
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert len(instances) == 1 and instances[0].closed
 
 

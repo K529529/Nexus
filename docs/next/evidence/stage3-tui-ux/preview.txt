@@ -1,0 +1,49 @@
+OFFLINE UI FIXTURE — no model or tool was executed
+You › 检查目录结构，说明修改并列出验证结果
+Thinking
+│ 我先检查目录和已有测试，再确认这次交互修改涉及的边界。
+│ 工具的真实结果仍会按独立状态行展示。
+› Inspect git diff  ✓ · 0.2s
+交互结果示例
+
+多行输入 保留缩进和空行，使用 Esc 后按 Enter 提交。
+
+
+ 操作    行为
+ ────────────────────────────────────
+ Enter   插入换行
+ Ctrl+C  清稿、取消运行或退出空提示符
+
+
+ 1 粘贴完整任务。
+ 2 确认内容后提交。
+
+▌ 这是离线展示夹具，表格不代表真实任务验收结果。
+
+
+ print("你好，Nexus")
+
+
+
+ src/nexus/app/
+ ├── cli.py
+ ├── input.py
+ └── tui.py
+
+
+Nexus powering down. Goodbye!
+Interaction Summary · this CLI lifetime
+Session ID       offline-ui-fixture
+Runs             1
+Tool Calls       1
+Tool Success     1 · 100% of finished calls
+Tool Failures    0
+Tool Unfinished  0
+Model Calls      0
+Performance
+Wall Time   0.0s (includes editing/cleanup)
+Model Time  0.0s
+Tool Time   0.2s
+Tokens      0
+Live run/compaction events only; excludes history and private Memory exit summary. Tool
+success is not task success. Times are not additive.

@@ -7,10 +7,12 @@ import asyncio
 import json
 import signal
 import sys
+from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application import get_app_session
 from rich.console import Console
 from rich.text import Text
 
@@ -24,10 +26,11 @@ from nexus.app.config import (
     read_toml,
     set_memory_enabled,
 )
+from nexus.app.input import TaskInput
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_index import MemoryIndex, installed_command
 from nexus.app.memory_setup import DependencyBootstrap
-from nexus.app.profile import ProfileConsumer
+from nexus.app.profile import InteractionSummary, ProfileConsumer
 from nexus.app.session import SessionError, list_sessions
 from nexus.app.skills import SkillCatalog
 from nexus.app.tui import (
@@ -35,6 +38,7 @@ from nexus.app.tui import (
     json_consumer,
     select_session,
     setup,
+    short_line,
     show_skills,
     terminal_text,
 )
@@ -109,7 +113,10 @@ async def memory_command(action: str) -> int:
         await index.close()
 
 
-async def drive(conversation: Conversation, text: str, *, compact: bool = False) -> RunResult:
+async def drive(
+    conversation: Conversation, text: str, *, compact: bool = False,
+    editor: TaskInput | None = None,
+) -> RunResult:
     loop = asyncio.get_running_loop()
     # MCP async contexts must be opened and closed in the same owning task.
     # Keep turns in the CLI task across prompts; SIGINT still cancels the active turn.
@@ -134,10 +141,12 @@ async def drive(conversation: Conversation, text: str, *, compact: bool = False)
 
     previous = signal.signal(signal.SIGINT, interrupt)
     try:
-        if compact:
-            await conversation.compact()
-            return RunResult("completed")
-        return await conversation.turn(text)
+        guard = editor.busy(lambda: interrupt(signal.SIGINT, None)) if editor else nullcontext()
+        with guard:
+            if compact:
+                await conversation.compact()
+                return RunResult("completed")
+            return await conversation.turn(text)
     finally:
         active = False
         signal.signal(signal.SIGINT, previous)
@@ -170,7 +179,11 @@ async def application(args: argparse.Namespace) -> int:
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
     console = Console(highlight=False)
-    prompt: PromptSession[str] | None = PromptSession() if interactive else None
+    # Explicit output keeps our bindings active even under TERM=dumb; otherwise
+    # PromptSession silently substitutes its separate single-line dumb prompt.
+    prompt: PromptSession[str] | None = (
+        PromptSession(output=get_app_session().output) if interactive else None
+    )
     if interactive and not read_toml(config_path()).get("model"):
         assert prompt is not None
         if not await setup(config_path(), prompt.prompt_async, console):
@@ -200,10 +213,15 @@ async def application(args: argparse.Namespace) -> int:
     assert prompt is not None
     transcript = Transcript(console)
     profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
-    conversation = Conversation(workspace, config, profile or transcript)
+    summary = InteractionSummary(profile or transcript)
+    editor = TaskInput(prompt)
+    conversation = Conversation(workspace, config, summary)
     select = args.command == "resume"
     exit_reason: str | None = None
     console.print("Nexus · trusted local execution · /help for commands")
+    console.print(Text(
+        "Enter: newline · Esc then Enter: submit · Ctrl+C: clear / exit", style="dim",
+    ))
     try:
         await conversation.start_memory()
         if getattr(args, "skill", None):
@@ -221,13 +239,13 @@ async def application(args: argparse.Namespace) -> int:
                         await conversation.close()
                     try:
                         candidate = Conversation(
-                            workspace, load_config(), profile or transcript, resume=path
+                            workspace, load_config(), summary, resume=path
                         )
                     except (SessionError, OSError, ValueError) as exc:
                         console.print(Text(terminal_text(str(exc)), style="yellow"))
                         if same:
                             conversation = Conversation(
-                                workspace, load_config(), profile or transcript
+                                workspace, load_config(), summary
                             )
                         continue
                     await conversation.close()
@@ -244,9 +262,11 @@ async def application(args: argparse.Namespace) -> int:
                         if message.role in {"user", "assistant"} and message.content:
                             console.print(Text(f"{message.role}: {terminal_text(message.content)}"))
             try:
-                text = (await prompt.prompt_async("You › ")).strip()
+                draft = await editor.read()
+                text = draft.strip()
             except KeyboardInterrupt:
-                continue
+                exit_reason = "ctrl-c"
+                return 0
             except EOFError:
                 exit_reason = "eof"
                 return 0
@@ -264,17 +284,19 @@ async def application(args: argparse.Namespace) -> int:
                     "Each input starts a new run with continuous session history; "
                     "/resume continues the "
                     "selected session's unfinished run. "
-                    "Ctrl+C aborts the current turn; at the prompt it clears input."
+                    "Enter inserts a newline; Esc then Enter submits. "
+                    "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
+                    "Input typed during execution/cleanup is discarded."
                 )
             elif text == "/new":
                 await conversation.close()
-                conversation = Conversation(workspace, load_config(), profile or transcript)
+                conversation = Conversation(workspace, load_config(), summary)
                 await conversation.start_memory()
             elif text == "/resume":
                 select = True
             elif text == "/compact":
                 try:
-                    await drive(conversation, "", compact=True)
+                    await drive(conversation, "", compact=True, editor=editor)
                 except (ModelError, ConfigError) as exc:
                     console.print(Text(terminal_text(str(exc)), style="yellow"))
             elif text == "/memory" or text.startswith("/memory "):
@@ -300,7 +322,7 @@ async def application(args: argparse.Namespace) -> int:
                 if enabled != conversation.config.memory_enabled or retry:
                     # A fresh boundary prevents old tool results/summaries leaking memory while OFF.
                     await conversation.close()
-                    conversation = Conversation(workspace, updated_config, profile or transcript)
+                    conversation = Conversation(workspace, updated_config, summary)
                     await conversation.start_memory()
                     console.print(
                         f"Memory {'ON' if enabled else 'OFF'} saved. New Session opened; "
@@ -346,7 +368,13 @@ async def application(args: argparse.Namespace) -> int:
             else:
                 if profile:
                     profile.reset()
-                result = await drive(conversation, text)
+                console.print(Text(f"You › {short_line(draft)}", style="bold"))
+                if "\n" in draft or len(draft) > 100:
+                    console.print(Text(
+                        f"  Submitted {len(draft):,} characters · {len(draft.splitlines())} lines",
+                        style="dim",
+                    ))
+                result = await drive(conversation, draft, editor=editor)
                 if profile:
                     profile.render(
                         console,
@@ -360,11 +388,19 @@ async def application(args: argparse.Namespace) -> int:
         # prompt_async has already restored terminal input; stop any Rich live
         # output before the bounded summary. Session switches use plain close().
         transcript.stop_activity()
+        previous = signal.signal(signal.SIGINT, signal.SIG_IGN)
         try:
-            if exit_reason is not None:
-                await conversation.summarize_exit(exit_reason)
+            with editor.busy(lambda: None):
+                try:
+                    if exit_reason is not None:
+                        # Preserve the existing once-only, bounded Memory exit hook.
+                        # The interaction statistics below make no model request.
+                        await conversation.summarize_exit(exit_reason)
+                finally:
+                    await conversation.close()
         finally:
-            await conversation.close()
+            signal.signal(signal.SIGINT, previous)
+            summary.render(console)
 
 
 def main() -> None:

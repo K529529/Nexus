@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from prompt_toolkit.application import create_app_session
+from prompt_toolkit.output import DummyOutput
 from rich.console import Console
 
 from nexus.app import bootstrap, cli
@@ -126,7 +128,14 @@ async def test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume(
     )
 
     class Prompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)
 
     output = io.StringIO()
@@ -134,7 +143,8 @@ async def test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume(
     monkeypatch.setattr(cli, "Console", lambda **k: Console(file=output, width=160))
     monkeypatch.setattr(cli, "Conversation", conversation)
     monkeypatch.setattr(bootstrap, "ChatModel", model)
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert len(conversations) == 3 and all(c.closed for c in conversations)
     assert "PRIVATE_MEMORY_SENTINEL" in models[0].requests[0][0].content
     assert "PRIVATE_MEMORY_SENTINEL" not in str(models[1].requests)

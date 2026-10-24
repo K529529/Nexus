@@ -19,6 +19,7 @@ from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from rich.console import Console
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.syntax import Syntax
 from rich.text import Text
 
@@ -81,8 +82,25 @@ class Transcript:
         self.tools: dict[str, str] = {}
         self.patch_previews: dict[tuple[str | None, str], set[int]] = {}
         self.activity: Live | None = None
+        self.preview: Live | None = None
+        self.preview_tail = ""
+        self.finish_reason: str | None = None
+        self.flush_handle: asyncio.TimerHandle | None = None
+
+    @property
+    def live_output(self) -> bool:
+        return self.console.is_terminal and not self.console.is_dumb_terminal
+
+    def stop_preview(self) -> None:
+        if self.flush_handle is not None:
+            self.flush_handle.cancel()
+            self.flush_handle = None
+        if self.preview is not None:
+            self.preview.stop()
+            self.preview = None
 
     def stop_activity(self) -> None:
+        self.stop_preview()
         if self.activity is not None:
             self.activity.stop()
             self.activity = None
@@ -95,10 +113,55 @@ class Transcript:
         self.console.print(label + suffix, overflow="ellipsis", no_wrap=True)
 
     def flush(self) -> None:
+        if self.flush_handle is not None:
+            self.flush_handle.cancel()
+            self.flush_handle = None
         if self.buffer:
-            self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
+            if self.live_output:
+                # Bounded temporary content, classified only after a committed message.
+                self.preview_tail = (self.preview_tail + self.buffer)[-4000:]
+                rows = self.preview_tail.splitlines()[-10:]
+                self.show_preview(Text("Generating…\n" + "\n".join(rows), style="dim italic"))
+            else:
+                self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
             self.buffer = ""
         self.last_flush = time.monotonic()
+
+    def show_preview(self, text: Text) -> None:
+        if self.preview is None:
+            self.preview = Live(
+                text, console=self.console, transient=True, auto_refresh=False,
+                vertical_overflow="ellipsis",
+            )
+            self.preview.start(refresh=True)
+        else:
+            self.preview.update(text, refresh=True)
+
+    def assistant_message(self, data: Json) -> None:
+        self.stop_preview()
+        self.buffer = ""
+        content = terminal_text(data.get("content", ""))
+        if self.live_output:
+            if content and (data.get("tool_calls") or self.finish_reason == "tool_calls"):
+                # These are public Assistant Content, never private reasoning_content.
+                self.console.print(Text("Thinking", style="dim italic"))
+                # Wrap before prefixing so every physical line retains its gutter.
+                lines = Text(content).wrap(self.console, max(1, self.console.width - 2))
+                block = Text(style="dim italic")
+                for i, line in enumerate(lines):
+                    if i:
+                        block.append("\n")
+                    block.append("│ ")
+                    block.append_text(line)
+                self.console.print(block)
+            elif content:
+                self.console.print(Markdown(content, code_theme="monokai"))
+        elif not self.assistant_streamed and content:
+            self.console.print(Text(content))
+        elif self.assistant_streamed:
+            self.console.print()
+        self.assistant_streamed = False
+        self.preview_tail = ""
 
     def patch_preview(self, file: Json) -> None:
         label = (
@@ -118,11 +181,18 @@ class Transcript:
             return
         if kind == "assistant_delta":
             self.assistant_streamed = True
-            self.buffer += data["text"]
-            if len(self.buffer) >= 2048 or time.monotonic() - self.last_flush >= 0.05:
+            self.buffer += terminal_text(data["text"])
+            if self.live_output:
+                self.buffer = self.buffer[-4000:]
+            elapsed = time.monotonic() - self.last_flush
+            if elapsed >= 0.1:
                 self.flush()
+            elif self.live_output and self.flush_handle is None:
+                self.flush_handle = asyncio.get_running_loop().call_later(0.1 - elapsed, self.flush)
             return
-        self.flush()
+        # Do not redraw the same preview for every usage/diagnostic event.
+        if not self.live_output:
+            self.flush()
         if kind == "memory_daily":
             status = data["status"]
             detail = (
@@ -131,8 +201,16 @@ class Transcript:
             )
             self.console.print(Text(detail, style="dim"))
         elif kind == "model_started":
+            self.stop_activity()
             self.assistant_streamed = False
+            self.preview_tail = ""
+            self.buffer = ""
+            self.finish_reason = None
             self.last_flush = 0.0
+            if self.live_output:
+                self.show_preview(Text("Thinking…", style="dim italic"))
+        elif kind == "model_finished":
+            self.finish_reason = data.get("finish_reason")
         elif kind == "tool_started":
             self.stop_activity()
             title = tool_title(data)
@@ -155,10 +233,7 @@ class Transcript:
                 self.patch_preview(data)
                 previews.add(index)
         elif kind == "message" and data["role"] == "assistant":
-            if data["content"] and not self.assistant_streamed:
-                self.console.print(Text(terminal_text(data["content"])))
-            elif self.assistant_streamed:
-                self.console.print()
+            self.assistant_message(data)
         elif kind == "message" and data["role"] == "tool":
             self.stop_activity()
             value = json.loads(data["content"])
@@ -206,7 +281,7 @@ class Transcript:
                     Text(
                         f"上下文约 {data['calibrated_context_tokens']:,} tokens · "
                         f"压缩阈值 {data['compaction_trigger']:,}",
-                        style="dim",
+                        style="dim italic",
                     )
                 )
         elif kind == "compaction_started":
@@ -255,6 +330,17 @@ class Transcript:
             )
         elif kind == "run_finished":
             self.stop_activity()
+            if self.live_output and self.assistant_streamed:
+                partial = (self.preview_tail + self.buffer)[-4000:]
+                if partial:
+                    self.console.print(Text(
+                        "Interrupted preview (not a final answer):\n" + partial, style="dim italic",
+                    ))
+            elif self.assistant_streamed:
+                self.console.print()
+            self.buffer = ""
+            self.preview_tail = ""
+            self.assistant_streamed = False
             self.tools.clear()
             self.patch_previews.clear()
             handoff = data.get("handoff")
