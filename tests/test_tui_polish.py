@@ -200,3 +200,53 @@ def test_summary_readable_styles_preserve_zero_call_semantics(monkeypatch: Any) 
     assert "N/A" in result and "0%" not in result
     html = console.export_html(inline_styles=True)
     assert "#8bdc65" in html and "#f2f2f2" in html and "#e5e7eb" in html
+
+
+@pytest.mark.parametrize("columns", [60, 80, 120, 205])
+async def test_reworked_frame_leaves_room_for_host_ime_preedit(
+    monkeypatch: Any, columns: int,
+) -> None:
+    monkeypatch.setenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", "1")
+    captured = io.StringIO()
+    size = [Size(rows=24, columns=columns)]
+    output = Vt100_Output(captured, lambda: size[0], term="xterm-256color")
+    async with editor_session(output) as (editor, prompt, pipe, pending):
+        pipe.send_text("中文")
+        await until(lambda: "中文" in captured.getvalue())
+        screen = prompt.app.renderer.last_rendered_screen
+        assert screen is not None and screen.height == 3
+        right = min(columns, 100, max(40, columns - 32)) - 1
+        assert screen.data_buffer[0][right].char == "┐"
+        assert screen.data_buffer[1][right].char == "│"
+        assert screen.data_buffer[2][right].char == "┘"
+        # Model the documented HOST inline-inlay overflow, not an IME event sent
+        # to Python: before this fix a full-width row + this preedit exceeded cols.
+        preedit_cells = get_cwidth("fen'xi'xiang'mu")
+        assert right + 1 + preedit_cells <= columns
+        assert all(cell.char == " " for x, cell in screen.data_buffer[1].items() if x > right)
+        cursor = screen.get_cursor_position(prompt.app.layout.current_window)
+        assert (cursor.x, cursor.y) == (14, 1)
+        assert prompt.default_buffer.text == "中文" and not pending.done()
+        # The same wrapper adapts to resize, without rebuilding input state.
+        size[0] = Size(rows=24, columns=columns + 20)
+        prompt.app.invalidate()
+        await asyncio.sleep(0.2)
+        screen = prompt.app.renderer.last_rendered_screen
+        assert screen is not None
+        right = min(columns + 20, 100, max(40, columns - 12)) - 1
+        assert screen.data_buffer[1][right].char == "│"
+        pipe.send_text("\r")
+        assert await pending == "中文"
+
+
+async def test_other_terminal_keeps_full_width_frame(monkeypatch: Any) -> None:
+    monkeypatch.delenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", raising=False)
+    captured = io.StringIO()
+    output = Vt100_Output(captured, lambda: Size(rows=24, columns=80), term="xterm-256color")
+    async with editor_session(output) as (_, prompt, pipe, pending):
+        pipe.send_text("hello")
+        await until(lambda: "hello" in captured.getvalue())
+        screen = prompt.app.renderer.last_rendered_screen
+        assert screen is not None and screen.data_buffer[1][79].char == "│"
+        pipe.send_text("\r")
+        assert await pending == "hello"

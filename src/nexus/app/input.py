@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import signal
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -19,6 +20,8 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.input.typeahead import clear_typeahead, get_typeahead
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.layout.containers import HSplit, VSplit
+from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
@@ -129,6 +132,13 @@ class TaskInput:
     def __init__(self, prompt: PromptSession[str]) -> None:
         self.prompt = prompt
         self.prompt.app.erase_when_done = True
+        if os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1":
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # A full-width right border then soft-wraps. Leave unpainted headroom;
+            # keep the same Frame, bindings, buffer and layout focus.
+            layout = self.prompt.app.layout
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
         self.bindings = KeyBindings()
         self.blocks: dict[str, Paste] = {}
         self.capture: str | None = None
@@ -223,6 +233,10 @@ class TaskInput:
                 self.discard()
             else:
                 event.app.exit(exception=KeyboardInterrupt)
+
+    def ime_width(self) -> Dimension:
+        columns = self.prompt.app.output.get_size().columns
+        return Dimension.exact(min(columns, 100, max(40, columns - 32)))
 
     def clear(self) -> None:
         self.blocks.clear()
