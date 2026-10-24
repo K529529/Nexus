@@ -20,7 +20,7 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.input.typeahead import clear_typeahead, get_typeahead
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout.containers import HSplit, VSplit
+from prompt_toolkit.layout.containers import HSplit, VSplit, Window
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -135,9 +135,18 @@ class TaskInput:
         if os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1":
             # Reworked places IME preedit inline, increasing the host editor's line
             # width before Python receives any committed text (IJPL-248517).
-            # A full-width right border then soft-wraps. Leave unpainted headroom;
-            # keep the same Frame, bindings, buffer and layout focus.
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
             layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
             layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
         self.bindings = KeyBindings()
         self.blocks: dict[str, Paste] = {}

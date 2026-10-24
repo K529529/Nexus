@@ -203,7 +203,7 @@ def test_summary_readable_styles_preserve_zero_call_semantics(monkeypatch: Any) 
 
 
 @pytest.mark.parametrize("columns", [60, 80, 120, 205])
-async def test_reworked_frame_leaves_room_for_host_ime_preedit(
+async def test_reworked_frame_has_no_right_rail_for_host_ime_to_displace(
     monkeypatch: Any, columns: int,
 ) -> None:
     monkeypatch.setenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", "1")
@@ -217,15 +217,19 @@ async def test_reworked_frame_leaves_room_for_host_ime_preedit(
         assert screen is not None and screen.height == 3
         right = min(columns, 100, max(40, columns - 32)) - 1
         assert screen.data_buffer[0][right].char == "┐"
-        assert screen.data_buffer[1][right].char == "│"
+        assert screen.data_buffer[1][0].char == "│"
+        assert screen.data_buffer[1][right].char == " "
+        assert "frame.border" not in screen.data_buffer[1][right].style
         assert screen.data_buffer[2][right].char == "┘"
-        # Model the documented HOST inline-inlay overflow, not an IME event sent
-        # to Python: before this fix a full-width row + this preedit exceeded cols.
+        # Inspect what Nexus paints, not native IME composition (which is not
+        # delivered by PipeInput). No border/text is painted after the draft.
         preedit_cells = get_cwidth("fen'xi'xiang'mu")
         assert right + 1 + preedit_cells <= columns
         assert all(cell.char == " " for x, cell in screen.data_buffer[1].items() if x > right)
         cursor = screen.get_cursor_position(prompt.app.layout.current_window)
         assert (cursor.x, cursor.y) == (14, 1)
+        assert all(cell.char == " " for x, cell in screen.data_buffer[1].items()
+                   if x >= cursor.x)
         assert prompt.default_buffer.text == "中文" and not pending.done()
         # The same wrapper adapts to resize, without rebuilding input state.
         size[0] = Size(rows=24, columns=columns + 20)
@@ -234,7 +238,9 @@ async def test_reworked_frame_leaves_room_for_host_ime_preedit(
         screen = prompt.app.renderer.last_rendered_screen
         assert screen is not None
         right = min(columns + 20, 100, max(40, columns - 12)) - 1
-        assert screen.data_buffer[1][right].char == "│"
+        assert screen.data_buffer[1][0].char == "│"
+        assert screen.data_buffer[1][right].char == " "
+        assert "frame.border" not in screen.data_buffer[1][right].style
         pipe.send_text("\r")
         assert await pending == "中文"
 
@@ -250,3 +256,35 @@ async def test_other_terminal_keeps_full_width_frame(monkeypatch: Any) -> None:
         assert screen is not None and screen.data_buffer[1][79].char == "│"
         pipe.send_text("\r")
         assert await pending == "hello"
+
+
+async def test_reworked_multiline_paste_cancel_and_completion(monkeypatch: Any) -> None:
+    monkeypatch.setenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", "1")
+    captured = io.StringIO()
+    output = Vt100_Output(captured, lambda: Size(rows=24, columns=80), term="xterm-256color")
+    async with editor_session(output) as (editor, prompt, pipe, pending):
+        pipe.send_text("你好\x0a第二行")
+        await until(lambda: "第二行" in captured.getvalue())
+        screen = prompt.app.renderer.last_rendered_screen
+        assert screen is not None and screen.height == 4
+        right = 47
+        assert screen.data_buffer[0][right].char == "┐"
+        assert screen.data_buffer[3][right].char == "┘"
+        for y in (1, 2):
+            assert screen.data_buffer[y][0].char == "│"
+            assert screen.data_buffer[y][right].char == " "
+        # Mid-line editing still uses the original buffer and cursor mapping.
+        pipe.send_text("\x1b[D\x7f")
+        await until(lambda: prompt.default_buffer.text == "你好\n第行")
+        pipe.send_text(paste("粘贴正文\n" * 20))
+        await until(lambda: bool(editor.blocks))
+        pipe.send_text("\x03")
+        await until(lambda: not prompt.default_buffer.text and not editor.blocks)
+        assert not pending.done()
+        pipe.send_text("/hel")
+        await until(lambda: prompt.default_buffer.complete_state is not None)
+        pipe.send_text("\r")
+        await until(lambda: prompt.default_buffer.text == "/help")
+        assert not pending.done()  # selection is not submission
+        pipe.send_text("\r")
+        assert await pending == "/help"
