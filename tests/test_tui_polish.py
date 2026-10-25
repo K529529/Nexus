@@ -288,3 +288,43 @@ async def test_reworked_multiline_paste_cancel_and_completion(monkeypatch: Any) 
         assert not pending.done()  # selection is not submission
         pipe.send_text("\r")
         assert await pending == "/help"
+
+
+@pytest.mark.parametrize("reworked", [False, True])
+@pytest.mark.parametrize("draft,clear", [
+    ("第一行\n第二行\n第三行\n第四行", "backspace"),
+    ("自动换行的中文内容" * 12, "backspace"),
+    ("第一行\n第二行\n第三行\n第四行", "cancel"),
+])
+async def test_frame_shrinks_after_deleting_or_cancelling_draft(
+    monkeypatch: Any, reworked: bool, draft: str, clear: str,
+) -> None:
+    monkeypatch.setenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", "1" if reworked else "0")
+    captured = io.StringIO()
+    output = Vt100_Output(captured, lambda: Size(rows=24, columns=80), term="xterm-256color")
+    async with editor_session(output) as (_, prompt, pipe, pending):
+        def bottom_row() -> int:
+            screen = prompt.app.renderer.last_rendered_screen
+            assert screen is not None
+            return next(int(y) for y, row in screen.data_buffer.items() if row[0].char == "└")
+
+        await until(lambda: prompt.app.renderer.last_rendered_screen is not None)
+        assert bottom_row() == 2
+        pipe.send_text(draft)
+        await until(lambda: prompt.default_buffer.text == draft and bottom_row() > 2)
+        pipe.send_text("\x03" if clear == "cancel" else "\x7f" * len(draft))
+        await until(lambda: prompt.default_buffer.text == "")
+        # Wait for the empty buffer to be rendered, not just changed in memory.
+        def empty_cursor() -> bool:
+            screen = prompt.app.renderer.last_rendered_screen
+            assert screen is not None
+            cursor = screen.get_cursor_position(prompt.app.layout.current_window)
+            return (cursor.x, cursor.y) == (10, 1)
+
+        await until(empty_cursor)
+        assert bottom_row() == 2
+        assert not pending.done()
+        pipe.send_text("下一轮\x0a继续")
+        await until(lambda: prompt.default_buffer.text == "下一轮\n继续" and bottom_row() == 3)
+        pipe.send_text("\r")
+        assert await pending == "下一轮\n继续"

@@ -14,13 +14,14 @@ from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
 from prompt_toolkit.document import Document
-from prompt_toolkit.filters import Condition
+from prompt_toolkit.filters import Condition, to_filter
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.input.typeahead import clear_typeahead, get_typeahead
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -287,6 +288,12 @@ class TaskInput:
 
     def prepare(self) -> None:
         self.prompt.default_buffer.history = self.history
+        # The renderer retains previously occupied rows. Keep the input at its
+        # current content height instead of stretching the frame into that space.
+        for window in self.prompt.app.layout.find_all_windows():
+            if (isinstance(window.content, BufferControl)
+                    and window.content.buffer is self.prompt.default_buffer):
+                window.dont_extend_height = to_filter(True)
 
     def toolbar(self) -> str:
         if self.capture is not None:
