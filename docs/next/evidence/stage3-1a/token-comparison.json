@@ -1,0 +1,87 @@
+{
+  "base_commit": "a4248fa109b120d8e7fffc89685cd72b539d1609",
+  "baseline_patch_source_sha256": "8a8dce71d5545653d3e93a04bc9523fdbe91da187eaa3c9fae266893f33643fa",
+  "sample": "Deterministic equivalent rename; 12 TypeScript files, 30 changed lines each, 3 calls",
+  "model_calls": "NOT RUN (scripted model; actual filesystem edits)",
+  "measurement": "Sum TokenEstimator.raw([ToolResult.message()], []); duration_ms=0 on both sides; no calibration",
+  "fixture_sha256": "e75ad05b9d36576dfd417dfc8405ea7163034a58f72e7a8d7844e6f6f84d42a8",
+  "profiles": {
+    "deepseek": {
+      "before_tool_result_tokens": 19338,
+      "after_tool_result_tokens": 1635,
+      "saved_tokens": 17703,
+      "saved_percent": 91.5451,
+      "per_call_before": [
+        6446,
+        6446,
+        6446
+      ],
+      "per_call_after": [
+        545,
+        545,
+        545
+      ]
+    },
+    "fallback": {
+      "before_tool_result_tokens": 20360,
+      "after_tool_result_tokens": 1479,
+      "saved_tokens": 18881,
+      "saved_percent": 92.7358,
+      "per_call_before": [
+        6786,
+        6786,
+        6788
+      ],
+      "per_call_after": [
+        493,
+        493,
+        493
+      ]
+    }
+  },
+  "before": {
+    "session_jsonl_bytes": 186020,
+    "audit_event_count": 0,
+    "audit_jsonl_bytes": 0,
+    "audit_diff_utf8_bytes": 0,
+    "audit_omitted_count": 0,
+    "file_hashes": {
+      "components/view0.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view1.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view2.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view3.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view4.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view5.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view6.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view7.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view8.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view9.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view10.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view11.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b"
+    },
+    "resume": "PASS"
+  },
+  "after": {
+    "session_jsonl_bytes": 189055,
+    "audit_event_count": 12,
+    "audit_jsonl_bytes": 59682,
+    "audit_diff_utf8_bytes": 50404,
+    "audit_omitted_count": 0,
+    "file_hashes": {
+      "components/view0.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view1.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view2.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view3.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view4.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view5.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view6.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view7.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view8.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view9.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view10.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b",
+      "components/view11.ts": "ca6e1c62cf9fcf685c638b8fa40cb91a4d03158287b0b8c5761441f7ff114b2b"
+    },
+    "resume": "PASS"
+  },
+  "jsonl_total_delta_bytes": 3035
+}

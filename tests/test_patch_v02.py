@@ -114,14 +114,14 @@ async def test_legacy_dispatch_and_mixed_format_unchanged(
 async def test_actual_toolspec_example_and_schema(execution: ExecutionContext) -> None:
     root = execution.workspace
     (root / "src").mkdir()
-    (root / "src/app.py").write_bytes(b"def run():\nold()\n")
+    (root / "src/app.py").write_bytes(b"def run():\n    old()\n")
     (root / "obsolete.txt").write_bytes(b"obsolete\n")
     description = PATCH_SPEC.description
     example = description.split("Example:\n", 1)[1].split("\n\n", 1)[0]
     result = await apply_patch({"patch": "\n \t\n" + example + "\n\n"}, execution, Recorder())
     assert result.ok and result.data["changed_files"] == 3
-    assert (root / "src/app.py").read_bytes() == b"def run():\nnew()\n"
-    assert (root / "tests/new_case.txt").read_bytes() == b"fixture\n"
+    assert (root / "src/app.py").read_bytes() == b"def run():\n    new()\n"
+    assert (root / "tests/new_case.txt").read_bytes() == b"fixture\n\nsecond line\n"
     assert not (root / "obsolete.txt").exists()
     assert result.data["created_directories"] == ["tests"]
     assert PATCH_SPEC.input_schema == {
@@ -161,7 +161,8 @@ async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> 
         "         netloc, path = path, netloc\n"
         '+\n+    if auth:\n+        netloc = "{}@{}".format(auth, netloc)'
     )
-    result = await apply_patch({"patch": patch}, execution, Recorder())
+    events = Recorder()
+    result = await apply_patch({"patch": patch}, execution, events)
     expected = before.replace(
         "    if scheme is None:", addition + "    if scheme is None:"
     ).encode()
@@ -170,7 +171,9 @@ async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> 
     fact = result.data["files"][0]
     assert fact["before_hash"] == hashlib.sha256(before.encode()).hexdigest()
     assert fact["after_hash"] == hashlib.sha256(expected).hexdigest()
-    assert "--- a/a" in fact["diff"] and "+    if auth:" in fact["diff"]
+    assert "diff" not in fact
+    audit = events.events[0][1]
+    assert "--- a/a" in audit["diff"] and "+    if auth:" in audit["diff"]
 
 
 @pytest.mark.parametrize(
@@ -456,8 +459,8 @@ async def test_capacity_checks_and_bounded_facts(execution: ExecutionContext) ->
     result = await apply_patch(
         {"patch": wrapped("*** Add File: b\n+" + "x" * 20000)}, execution, Recorder()
     )
-    assert result.ok and result.truncated and result.data["changed_files"] == 1
-    assert len(result.data["files"][0]["diff"].encode()) < 1024
+    assert result.ok and not result.truncated and result.data["changed_files"] == 1
+    assert "diff" not in result.data["files"][0]
     assert (execution.workspace / "b").read_bytes() == b"x" * 20000 + b"\n"
 
 

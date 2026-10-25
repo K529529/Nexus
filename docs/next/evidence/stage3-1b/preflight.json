@@ -1,0 +1,102 @@
+{
+  "baseline_run": "20261023T143533Z-46a28d3d",
+  "baseline_commit": "709dab8efa1c25e4e232b13a85c1d51e717b8e3c",
+  "selected_matches": true,
+  "models": {
+    "model": {
+      "name": "deepseek-flash",
+      "context_window": 128000,
+      "base_url": "https://api.deepseek.com",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "max_output_tokens": 32768,
+      "reasoning_effort": "high",
+      "include_usage": true,
+      "request_timeout_seconds": 300,
+      "output_token_parameter": "max_tokens",
+      "enable_thinking": null
+    },
+    "compaction_model": {
+      "name": "Qwen/Qwen3.5-35B-A3B",
+      "context_window": 128000,
+      "base_url": "https://api.siliconflow.cn/v1",
+      "api_key_env": "SILICONFLOW_API_KEY",
+      "max_output_tokens": 4096,
+      "reasoning_effort": null,
+      "include_usage": true,
+      "request_timeout_seconds": 120,
+      "output_token_parameter": "max_tokens",
+      "enable_thinking": false
+    }
+  },
+  "model_matches": true,
+  "limits": {
+    "max_steps": 40,
+    "context_window": 128000,
+    "max_output_tokens": 32768,
+    "output_limit_bytes": 32768,
+    "shell": "/bin/sh"
+  },
+  "limits_match": true,
+  "key_present": {
+    "model": true,
+    "compaction_model": true
+  },
+  "cases": [
+    {
+      "id": "pvlib__pvlib-python-1707",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "matplotlib__matplotlib-22835",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "django__django-11734",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "psf__requests-6028",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "sphinx-doc__sphinx-10323",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "click__path-generic-type",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "pytest__doctest-optionflag-leak",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    },
+    {
+      "id": "rich__double-width-wrap",
+      "identity_matches": true,
+      "image_present": true,
+      "cached_base_tar": true,
+      "cached_tree": true
+    }
+  ]
+}

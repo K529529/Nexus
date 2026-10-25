@@ -1,0 +1,84 @@
+OFFLINE UI FIXTURE — no model or tool executed
+Actual prompt screen: complete frame / folded paste
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Nexus › [paste #1 +83 lines]                                                         │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+Actual prompt screen: slash menu
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Nexus › /help                                                                        │
+│           /help           Commands and shortcuts                                     │
+│           /new            New conversation                                           │
+│           /resume         Choose a saved session                                     │
+│           /compact        Compact current history                                    │
+│           /memory         Memory status                                              │
+│           /memory on      Enable Memory                                              │
+│           /memory off     Disable Memory                                             │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+╭─ 你 ─────────────────────────────────────────────────────────────────────────────────╮
+│ 分析当前项目：先看目录和已有测试，再说明修改范围。                                   │
+│ 不要修改 Agent 核心逻辑。                                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+
+Thinking
+│ 我先检查输入区和已有测试，再确认粘贴及取消行为。
+│ 工具结果继续按独立状态行展示。
+
+› Inspect git diff  ✓ · 0.2s
+交互结果示例
+
+完整原文在发送时恢复；输入区域显示紧凑的 paste 块。
+
+
+ 操作   行为
+ ─────────────────────────────────────
+ Enter  发送；候选菜单打开时先选择命令
+ F2     开始/结束安全粘贴
+ F3     展开粘贴块编辑
+
+
+ 1 粘贴完整任务。
+ 2 确认后按 Enter 发送。
+
+▌ 本页是离线展示夹具，不代表真实任务验收结果。
+
+
+ print("你好，Nexus")
+
+
+
+ src/nexus/app/
+ ├── cli.py
+ ├── input.py
+ └── tui.py
+
+
+╭─ 你 ─────────────────────────────────────────────────────────────────────────────────╮
+│ 这一版可以。再检查中文输入、长文本粘贴和 Ctrl+C 取消。                               │
+╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+
+Thinking
+│ 我会检查中英文混排的光标位置，再验证多行粘贴与取消后的输入清理。
+
+› Test pytest -q  ✓ · 0.3s
+
+Nexus powering down. Goodbye!
+────────────────────────────────────────────────────────────────────────────────────────
+Interaction Summary · this CLI lifetime
+Session ID       offline-ui-fixture
+Runs             0
+Tool Calls       0
+Tool Success     0 · N/A
+Tool Failures    0
+Tool Unfinished  0
+Model Calls      0
+
+Performance
+Wall Time   0.0s (includes editing/cleanup)
+Model Time  0.0s
+Tool Time   0.0s
+Tokens      0
+Live run/compaction events only; excludes history and private Memory exit summary. Tool
+success is not task success. Times are not additive.

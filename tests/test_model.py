@@ -449,10 +449,12 @@ async def test_partial_stream_not_retried_or_returned(monkeypatch: Any) -> None:
         with pytest.raises(ModelError, match="incomplete_stream"):
             await model.complete([Message("user", "test")], [], emit)
         assert attempts == 1
-        assert emit.events[-1] == (
-            "model_finished",
-            {"error": "stream_interrupted", "attempt": 1, "duration_ms": 1250},
-        )
+        kind, finished = emit.events[-1]
+        assert kind == "model_finished"
+        assert finished["error"] == "incomplete_stream"
+        assert finished["phase"] == "stream" and finished["seen_delta"]
+        assert finished["attempt"] == 1 and finished["duration_ms"] == 1250
+        assert not finished["retry"]
     finally:
         await model.close()
 
@@ -590,7 +592,9 @@ async def test_failed_request_duration_preserves_retries_and_errors(
     assert [data["duration_ms"] for data in finishes] == [1250, 2500][:expected]
     assert [data["attempt"] for data in finishes] == list(range(1, expected + 1))
     assert {data["error"] for data in finishes} == {
-        "model_transport" if retryable else "stream_interrupted"
+        "model_transport"
+        if retryable
+        else ("cancelled" if failure == "cancel" else "incomplete_stream")
     }
     assert "private exception detail" not in json.dumps(emit.events)
 
@@ -668,7 +672,7 @@ async def test_request_timeout_applies_to_sdk_and_whole_stream(monkeypatch: Any)
         assert model.client.timeout == 300
         reply = await model.complete([Message("user", "test")], [], Recorder())
         assert reply.message.content == "done"
-        assert observed == [300]
+        assert observed == [300, model_module.CLEANUP_TIMEOUT_SECONDS]
     finally:
         await model.close()
 

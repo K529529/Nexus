@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections import Counter
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -379,3 +380,97 @@ def profile_metrics(profile: RunProfile) -> dict[str, object]:
             "last": profile.projections[-1] if profile.projections else None,
         },
     }
+
+
+class InteractionSummary:
+    """CLI-lifetime counters over live public events, independent of --profile resets.
+
+    Historical replay and the private Memory exit summarizer are not counted.
+    No message bodies or new persistent statistics are retained.
+    """
+
+    def __init__(self, consumer: Callable[[RuntimeEvent], Awaitable[None]]) -> None:
+        self.consumer = consumer
+        self.started = time.monotonic()
+        self.rendered = False
+        self.sessions: set[str] = set()
+        self.runs = 0
+        self.models = 0
+        self.tools = 0
+        self.successes = 0
+        self.failures = 0
+        self.model_ms = 0
+        self.model_timed = 0
+        self.tool_ms = 0
+        self.tool_timed = 0
+        self.tokens = 0
+        self.usage_calls = 0
+
+    async def __call__(self, event: RuntimeEvent) -> None:
+        data, kind = event.data, event.kind
+        self.sessions.add(event.session_id)
+        if kind == "run_started":
+            self.runs += 1
+        elif kind == "model_started":
+            self.models += 1
+        elif kind == "model_finished":
+            duration = integer(data.get("duration_ms"))
+            if duration is not None:
+                self.model_ms += duration
+                self.model_timed += 1
+            usage = data.get("usage", {})
+            tokens = integer(usage.get("total_tokens"))
+            if usage.get("source") == "reported" and tokens is not None:
+                self.tokens += tokens
+                self.usage_calls += 1
+        elif kind == "tool_started":
+            self.tools += 1
+        elif kind == "tool_finished":
+            self.successes += data.get("ok") is True
+            self.failures += data.get("ok") is False
+            duration = integer(data.get("duration_ms"))
+            if duration is not None:
+                self.tool_ms += duration
+                self.tool_timed += 1
+        await self.consumer(event)
+
+    def render(self, console: Console) -> None:
+        if self.rendered:
+            return
+        self.rendered = True
+        console.print(Text("\nNexus powering down. Goodbye!", style="bold #f2f2f2"))
+        console.rule(style="#55505e")
+        console.print(Text("Interaction Summary · this CLI lifetime", style="bold #f2f2f2"))
+        table = Table.grid(padding=(0, 2))
+
+        def row(label: str, value: str, value_style: str = "#e5e7eb") -> None:
+            table.add_row(Text(label, style="#8bdc65"),
+                          Text(terminal_text(value), style=value_style))
+
+        def measured(value: int, covered: int, calls: int, *, duration: bool = False) -> str:
+            if calls and not covered:
+                return "unknown"
+            result = seconds(value) if duration else count(value)
+            return result if covered == calls else f">= {result} (partial)"
+
+        finished = self.successes + self.failures
+        rate = f"{self.successes / finished:.0%} of finished calls" if finished else "N/A"
+        row("Session ID", ", ".join(sorted(self.sessions)) or "none")
+        row("Runs", str(self.runs))
+        row("Tool Calls", str(self.tools))
+        row("Tool Success", f"{self.successes} · {rate}", "#8bdc65" if finished else "#e5e7eb")
+        row("Tool Failures", str(self.failures), "#ff7b72" if self.failures else "#e5e7eb")
+        row("Tool Unfinished", str(max(0, self.tools - finished)))
+        row("Model Calls", str(self.models))
+        console.print(table)
+        console.print(Text("\nPerformance", style="bold #f2f2f2"))
+        table = Table.grid(padding=(0, 2))
+        row("Wall Time", f"{time.monotonic() - self.started:.1f}s (includes editing/cleanup)")
+        row("Model Time", measured(self.model_ms, self.model_timed, self.models, duration=True))
+        row("Tool Time", measured(self.tool_ms, self.tool_timed, self.tools, duration=True))
+        row("Tokens", measured(self.tokens, self.usage_calls, self.models))
+        console.print(table)
+        console.print(Text(
+            "Live run/compaction events only; excludes history and private Memory exit summary. "
+            "Tool success is not task success. Times are not additive.", style="#a3a3ad",
+        ))

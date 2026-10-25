@@ -1,0 +1,142 @@
+{
+  "injection": {
+    "create": {
+      "before": {
+        "starts": 1,
+        "finishes": 0,
+        "requests": 1
+      },
+      "after": {
+        "starts": 2,
+        "finishes": 2,
+        "requests": 2
+      }
+    },
+    "before_delta": {
+      "before": {
+        "starts": 1,
+        "finishes": 0,
+        "requests": 1
+      },
+      "after": {
+        "starts": 2,
+        "finishes": 2,
+        "requests": 2
+      }
+    },
+    "partial": {
+      "before": {
+        "starts": 1,
+        "finishes": 0,
+        "requests": 1
+      },
+      "after": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      }
+    },
+    "close": {
+      "before": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      },
+      "after": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      }
+    },
+    "read_and_close": {
+      "before": {
+        "starts": 1,
+        "finishes": 0,
+        "requests": 1
+      },
+      "after": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      }
+    },
+    "cancel": {
+      "before": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      },
+      "after": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      }
+    },
+    "success": {
+      "before": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      },
+      "after": {
+        "starts": 1,
+        "finishes": 1,
+        "requests": 1
+      }
+    }
+  },
+  "bytes": {
+    "create": {
+      "before": 0,
+      "after": 371
+    },
+    "before_delta": {
+      "before": 0,
+      "after": 418
+    },
+    "partial": {
+      "before": 0,
+      "after": 185
+    },
+    "close": {
+      "before": 184,
+      "after": 335
+    },
+    "read_and_close": {
+      "before": 0,
+      "after": 277
+    },
+    "cancel": {
+      "before": 58,
+      "after": 277
+    },
+    "success": {
+      "before": 184,
+      "after": 233
+    }
+  },
+  "benchmark": {
+    "before": {
+      "unit": "microseconds per fake complete, includes construction",
+      "samples": [
+        23.640500148758292,
+        22.511999995913357,
+        22.74400001624599,
+        22.920499905012548,
+        22.01049996074289
+      ],
+      "median": 22.74400001624599
+    },
+    "after": {
+      "unit": "microseconds per fake complete, includes construction",
+      "samples": [
+        24.933500098995864,
+        23.59150006668642,
+        24.667999823577702,
+        24.862500140443444,
+        25.397999852430075
+      ],
+      "median": 24.862500140443444
+    }
+  }
+}

@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from prompt_toolkit.application import create_app_session
+from prompt_toolkit.output import DummyOutput
 
 from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ModelConfig, default_shell
@@ -295,7 +297,14 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
             self.closed = True
 
     class Prompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)
 
     async def select(items: Any) -> Path:
@@ -309,7 +318,8 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
     monkeypatch.setattr(cli, "Conversation", Conversation)
     monkeypatch.setattr(cli, "list_sessions", lambda _: [])
     monkeypatch.setattr(cli, "select_session", select)
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert len(instances) == 3 and all(c.closed for c in instances)
     assert instances[-1].resume == tmp_path / "history.jsonl"
 

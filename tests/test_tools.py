@@ -120,7 +120,8 @@ async def test_patch_multifile_crlf_no_newline(execution: ExecutionContext) -> N
         "--- /dev/null\n+++ b/sub/new.txt\n@@ -0,0 +1 @@\n+created\n"
         "--- a/delete.txt\n+++ /dev/null\n@@ -1 +0,0 @@\n-bye\n"
     )
-    result = await apply_patch({"patch": patch}, execution, Recorder())
+    events = Recorder()
+    result = await apply_patch({"patch": patch}, execution, events)
     assert result.ok, result
     assert (root / "a.txt").read_bytes() == b"first\r\nnew\r\nlast"
     assert (root / "sub/new.txt").read_bytes() == b"created\n"
@@ -128,7 +129,7 @@ async def test_patch_multifile_crlf_no_newline(execution: ExecutionContext) -> N
     assert (
         result.data["files"][0]["after_hash"] == hashlib.sha256(b"first\r\nnew\r\nlast").hexdigest()
     )
-    assert "No newline" in result.data["files"][0]["diff"]
+    assert "No newline" in events.events[0][1]["diff"]
     assert result.data["created_directories"] == ["sub"]
 
 

@@ -1,0 +1,56 @@
+Stage 3.1A check attempts (2026-10-24)
+
+1. Initial targeted run, sandbox:
+python -m pytest tests/test_patch_audit.py tests/test_patch_v02.py tests/test_tools.py tests/test_mcp_tui.py -q
+1 failed, 158 passed in 25.48s
+FAIL tests/test_tools.py::test_timeout_and_cancel_reap_child
+  assert result.data["timed_out"] and not result.data["cleanup_incomplete"]
+  E assert (True and not True)
+No exec_command code was modified.
+
+2. Initial Ruff/Mypy:
+Ruff: 2 unused imports and 5 long lines in tests/test_patch_audit.py.
+Mypy: src/nexus/tools/patch.py:221: Return value expected [return-value].
+Fixed unused imports/formatting and explicit return None for delete.
+Final Ruff and Mypy outputs are in separate files.
+
+3. Normal-user single-test retry without a fresh temp parent:
+python -m pytest tests/test_tools.py::test_timeout_and_cancel_reap_child -q
+1 error, 2 warnings in 2.38s
+PermissionError [WinError 5] at C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer.
+Warnings: the sandbox-created .pytest_cache/v/cache was not writable by this token.
+No ACL changes, ownership changes or deletion of the denied directories were attempted.
+
+4. Normal-user single-test retry using a newly created system temp parent,
+process PYTEST_DEBUG_TEMPROOT and cache_dir in that parent:
+1 passed in 4.64s.
+
+5. Full suite, normal-user token and new system temp parent:
+681 passed, 10 skipped in 51.75s. Full output in pytest-full.txt.
+Full temporary evidence parent:
+C:/Users/Archer/AppData/Local/Temp/nexus-stage3-full-cbe2de1d100644b481ba345d2629a1ad
+
+6. Final targeted compatibility suite:
+196 passed in 18.52s. Full output in pytest-targeted.txt.
+
+7. Initial uv lock/build sandbox attempts:
+uv 0.11.30 (4cb3d0366 2026-07-20 x86_64-pc-windows-msvc)
+Failed to initialize cache at D:/uv-cache
+failed to open D:/uv-cache/sdists-v9/.git: access denied (os error 5).
+
+8. Same offline checks with normal cache access:
+uv lock --check --offline
+Using CPython 3.12.10 interpreter at D:/Tools/python/py312/python.exe
+Resolved 66 packages in 25ms
+uv build --offline
+Building source distribution...
+Building wheel from source distribution...
+Successfully built dist/nexus_coding_agent-0.2.0.tar.gz
+Successfully built dist/nexus_coding_agent-0.2.0-py3-none-any.whl
+
+No paid model, downloads, full SWE-bench, or opt-in Docker tests were run.
+
+9. Initial staged whitespace check reported Rich terminal capture padding as
+trailing whitespace. Raw captures were retained. A directory-local .gitattributes
+preserves JSONL bytes and disables only end-of-line whitespace checks for *-tui.txt.
+Source/test whitespace checks remain enabled.

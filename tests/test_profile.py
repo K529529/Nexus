@@ -8,6 +8,8 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from prompt_toolkit.application import create_app_session
+from prompt_toolkit.output import DummyOutput
 from rich.console import Console
 
 from nexus.app import bootstrap, cli
@@ -479,7 +481,12 @@ async def test_interactive_profile_resets_after_each_drive(
     original_render = profile_module.render_profile
 
     class Prompt:
-        async def prompt_async(self, _: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, _: str, **kwargs: Any) -> str:
             return next(answers)
 
     def render(*args: Any, **kwargs: Any) -> None:
@@ -488,7 +495,8 @@ async def test_interactive_profile_resets_after_each_drive(
 
     monkeypatch.setattr(cli, "PromptSession", Prompt)
     monkeypatch.setattr(profile_module, "render_profile", render)
-    assert await cli.application(argparse.Namespace(command=None, profile=True)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None, profile=True)) == 0
     assert len(profiles) == 2 and profiles[0].run_id != profiles[1].run_id
     assert all(
         len(p.models) == 1 and p.steps == 1 and p.tokens("total_tokens") == 15 for p in profiles

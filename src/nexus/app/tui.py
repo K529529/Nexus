@@ -17,12 +17,18 @@ from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
-from rich.console import Console
+from rich import box
+from rich.console import Console, Group
 from rich.live import Live
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.spinner import Spinner
 from rich.syntax import Syntax
 from rich.text import Text
+from rich.theme import Theme
 
 from nexus.app.config import ConfigError, read_toml
+from nexus.app.input import PURPLE
 from nexus.core.skills import active_skills
 from nexus.core.types import Json, RuntimeEvent, Session, SkillInfo, json_text
 
@@ -79,9 +85,29 @@ class Transcript:
         self.last_flush = 0.0
         self.assistant_streamed = False
         self.tools: dict[str, str] = {}
+        self.patch_previews: dict[tuple[str | None, str], set[int]] = {}
         self.activity: Live | None = None
+        self.preview: Live | None = None
+        self.preview_tail = ""
+        self.finish_reason: str | None = None
+        self.flush_handle: asyncio.TimerHandle | None = None
+        self.working: Spinner | None = None
+
+    @property
+    def live_output(self) -> bool:
+        return self.console.is_terminal and not self.console.is_dumb_terminal
+
+    def stop_preview(self) -> None:
+        if self.flush_handle is not None:
+            self.flush_handle.cancel()
+            self.flush_handle = None
+        if self.preview is not None:
+            self.preview.stop()
+            self.preview = None
+        self.working = None
 
     def stop_activity(self) -> None:
+        self.stop_preview()
         if self.activity is not None:
             self.activity.stop()
             self.activity = None
@@ -94,10 +120,100 @@ class Transcript:
         self.console.print(label + suffix, overflow="ellipsis", no_wrap=True)
 
     def flush(self) -> None:
+        if self.flush_handle is not None:
+            self.flush_handle.cancel()
+            self.flush_handle = None
         if self.buffer:
-            self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
+            if self.live_output:
+                # Bounded temporary content, classified only after a committed message.
+                self.preview_tail = (self.preview_tail + self.buffer)[-4000:]
+                rows = self.preview_tail.splitlines()[-10:]
+                self.show_preview(Text("\n".join(rows), style="#b8b3c4 italic"))
+            else:
+                self.console.print(Text(terminal_text(self.buffer)), end="", soft_wrap=True)
             self.buffer = ""
         self.last_flush = time.monotonic()
+
+    def show_preview(self, text: Text) -> None:
+        if self.preview is None:
+            self.working = Spinner("dots", text=Text("Working...", style="dim"), style=PURPLE)
+            self.preview = Live(
+                Group(self.working, text), console=self.console, transient=True,
+                auto_refresh=True, refresh_per_second=8, vertical_overflow="ellipsis",
+            )
+            self.preview.start(refresh=True)
+        else:
+            assert self.working is not None
+            self.preview.update(Group(self.working, text), refresh=False)
+
+    def user_message(self, content: str) -> None:
+        """A bounded, recognizable local echo; never changes the submitted message."""
+        clean = terminal_text(content)
+        width = min(100, self.console.width)
+        # Bound both wrapping work and physical rows, while preserving useful whitespace.
+        lines = Text(clean[:1200], tab_size=4).wrap(self.console, max(1, width - 4))
+        preview = Text("\n").join(lines[:6])
+        if len(clean) > 1200 or len(lines) > 6:
+            preview.append(
+                f"\n… {len(content.splitlines()):,} lines · {len(content):,} characters",
+                style="dim",
+            )
+        self.console.print()
+        if self.live_output and width >= 20:
+            self.console.print(Panel(
+                preview, title=Text("你", style="bold " + PURPLE), title_align="left",
+                border_style=PURPLE, style="on #211b2e", box=box.ROUNDED,
+                width=width, padding=(0, 1),
+            ))
+        else:
+            self.console.print(Text("你 ›", style="bold " + PURPLE))
+            self.console.print(preview)
+        self.console.print()
+
+    def assistant_message(self, data: Json) -> None:
+        self.stop_preview()
+        self.buffer = ""
+        content = terminal_text(data.get("content", ""))
+        if self.live_output:
+            if content and (data.get("tool_calls") or self.finish_reason == "tool_calls"):
+                # These are public Assistant Content, never private reasoning_content.
+                self.console.print()
+                self.console.print(Text("Thinking", style="#ece9f4 italic"))
+                # Wrap before prefixing so every physical line retains its gutter.
+                lines = Text(content).wrap(self.console, max(1, self.console.width - 2))
+                block = Text(style="#b8b3c4 italic")
+                for i, line in enumerate(lines):
+                    if i:
+                        block.append("\n")
+                    block.append("│ ", style="#82798e")
+                    block.append_text(line)
+                self.console.print(block)
+                self.console.print()
+            elif content:
+                with self.console.use_theme(Theme({
+                    "markdown.h1": "bold " + PURPLE,
+                    "markdown.h2": "bold " + PURPLE,
+                    "markdown.h3": "bold " + PURPLE,
+                    "markdown.link": "underline " + PURPLE,
+                })):
+                    self.console.print(Markdown(content, code_theme="monokai", style="#e5e7eb"))
+        elif not self.assistant_streamed and content:
+            self.console.print(Text(content))
+        elif self.assistant_streamed:
+            self.console.print()
+        self.assistant_streamed = False
+        self.preview_tail = ""
+
+    def patch_preview(self, file: Json) -> None:
+        label = (
+            f"› {file['status'].capitalize()} {file['path']} "
+            f"(+{file['added_lines']} -{file['deleted_lines']})"
+        )
+        self.console.print(Text(short_line(label)))
+        if file.get("diff"):
+            self.console.print(Syntax(output_preview(file["diff"], lines=6), "diff"))
+        if file.get("omitted") or file.get("truncated"):
+            self.console.print(Text("  … audit diff omitted/truncated", style="dim"))
 
     async def __call__(self, event: RuntimeEvent) -> None:
         data, kind = event.data, event.kind
@@ -106,11 +222,18 @@ class Transcript:
             return
         if kind == "assistant_delta":
             self.assistant_streamed = True
-            self.buffer += data["text"]
-            if len(self.buffer) >= 2048 or time.monotonic() - self.last_flush >= 0.05:
+            self.buffer += terminal_text(data["text"])
+            if self.live_output:
+                self.buffer = self.buffer[-4000:]
+            elapsed = time.monotonic() - self.last_flush
+            if elapsed >= 0.1:
                 self.flush()
+            elif self.live_output and self.flush_handle is None:
+                self.flush_handle = asyncio.get_running_loop().call_later(0.1 - elapsed, self.flush)
             return
-        self.flush()
+        # Do not redraw the same preview for every usage/diagnostic event.
+        if not self.live_output:
+            self.flush()
         if kind == "memory_daily":
             status = data["status"]
             detail = (
@@ -119,8 +242,16 @@ class Transcript:
             )
             self.console.print(Text(detail, style="dim"))
         elif kind == "model_started":
+            self.stop_activity()
             self.assistant_streamed = False
+            self.preview_tail = ""
+            self.buffer = ""
+            self.finish_reason = None
             self.last_flush = 0.0
+            if self.live_output:
+                self.show_preview(Text(""))
+        elif kind == "model_finished":
+            self.finish_reason = data.get("finish_reason")
         elif kind == "tool_started":
             self.stop_activity()
             title = tool_title(data)
@@ -134,11 +265,16 @@ class Transcript:
                 )
                 self.activity.start(refresh=True)
             self.last_flush = 0.0
+        elif kind == "patch_diff":
+            self.stop_activity()
+            key = (event.run_id, data["call_id"])
+            previews = self.patch_previews.setdefault(key, set())
+            index = data["file_index"]
+            if 1 <= index <= 3 and index not in previews:
+                self.patch_preview(data)
+                previews.add(index)
         elif kind == "message" and data["role"] == "assistant":
-            if data["content"] and not self.assistant_streamed:
-                self.console.print(Text(terminal_text(data["content"])))
-            elif self.assistant_streamed:
-                self.console.print()
+            self.assistant_message(data)
         elif kind == "message" and data["role"] == "tool":
             self.stop_activity()
             value = json.loads(data["content"])
@@ -149,15 +285,17 @@ class Transcript:
                 status += f" · exit {result['exit_code']}"
             status += f" · {value['duration_ms'] / 1000:.1f}s"
             self.tool_status(title, status, "dim" if value["ok"] else "yellow")
-            files = result.get("files", [])
-            for file in files[:3]:
-                label = (
-                    f"› {file['status'].capitalize()} {file['path']} "
-                    f"(+{file['added_lines']} -{file['deleted_lines']})"
-                )
-                self.console.print(Text(short_line(label)))
-                self.console.print(Syntax(output_preview(file["diff"], lines=6), "diff"))
-            omitted = max(0, len(files) - 3) + result.get("omitted_files", 0)
+            key = (event.run_id, value["call_id"])
+            previews = self.patch_previews.pop(key, set())
+            if previews:
+                omitted = max(0, result.get("changed_files", 0) - len(previews))
+            else:
+                # Old JSONL observations can still be rendered when no audit event
+                # preceded them. New results have metadata but no diff body.
+                files = result.get("files", [])
+                for file in files[:3]:
+                    self.patch_preview(file)
+                omitted = max(0, len(files) - 3) + result.get("omitted_files", 0)
             if omitted:
                 self.console.print(Text(f"  … {omitted} more changed files", style="dim"))
             if not value["ok"]:
@@ -184,7 +322,7 @@ class Transcript:
                     Text(
                         f"上下文约 {data['calibrated_context_tokens']:,} tokens · "
                         f"压缩阈值 {data['compaction_trigger']:,}",
-                        style="dim",
+                        style="#b8b3c4 italic",
                     )
                 )
         elif kind == "compaction_started":
@@ -233,7 +371,20 @@ class Transcript:
             )
         elif kind == "run_finished":
             self.stop_activity()
+            if self.live_output and self.assistant_streamed:
+                partial = (self.preview_tail + self.buffer)[-4000:]
+                if partial:
+                    self.console.print(Text(
+                        "Interrupted preview (not a final answer):\n" + partial,
+                        style="#b8b3c4 italic",
+                    ))
+            elif self.assistant_streamed:
+                self.console.print()
+            self.buffer = ""
+            self.preview_tail = ""
+            self.assistant_streamed = False
             self.tools.clear()
+            self.patch_previews.clear()
             handoff = data.get("handoff")
             if handoff:
                 self.console.print(

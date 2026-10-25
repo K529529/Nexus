@@ -100,6 +100,11 @@ async def test_real_docker_snapshot_patch_timeout_cancel_and_isolation(tmp_path:
             emit,
         )
         assert isolation.ok
+        alias_args = {"cmd": "printf alias", "timeout_ms": 10000}
+        alias = await env.registry()["exec_command"].execute(alias_args, context, emit)
+        assert alias.ok and alias.data["stdout"] == "alias"
+        assert alias.data["argument_alias_used"] == "cmd_to_command"
+        assert alias_args == {"cmd": "printf alias", "timeout_ms": 10000}
         network = await env.execute(
             {"command": "python -c 'import socket; socket.create_connection((\"1.1.1.1\",443),1)'"},
             context,

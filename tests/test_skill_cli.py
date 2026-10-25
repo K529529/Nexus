@@ -54,7 +54,14 @@ async def test_interactive_select_switch_off_new_no_model_calls(
         return value
 
     class Prompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)
 
     def no_model(_: Any) -> None:
@@ -71,7 +78,8 @@ async def test_interactive_select_switch_off_new_no_model_calls(
     monkeypatch.setattr(bootstrap, "ChatModel", no_model)
     output = io.StringIO()
     monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=160))
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert len(conversations) == 2 and all(c.closed for c in conversations)
     assert conversations[0].session.selected_skill is not None
     assert conversations[1].session.selected_skill is None
@@ -172,7 +180,14 @@ async def test_resume_bad_selection_keeps_current(tmp_path: Path, monkeypatch: A
         return value
 
     class Prompt:
-        async def prompt_async(self, text: str) -> str:
+        def __init__(self, **kwargs: Any) -> None:
+            from types import SimpleNamespace
+
+            from prompt_toolkit.input import DummyInput
+
+            self.app = SimpleNamespace(input=DummyInput())
+
+        async def prompt_async(self, text: str, **kwargs: Any) -> str:
             assert len(instances) == 1 and not instances[0].closed
             return next(answers)
 
@@ -188,7 +203,8 @@ async def test_resume_bad_selection_keeps_current(tmp_path: Path, monkeypatch: A
     monkeypatch.setattr(cli, "PromptSession", Prompt)
     monkeypatch.setattr(cli, "Conversation", create)
     monkeypatch.setattr(cli, "select_session", select)
-    assert await cli.application(argparse.Namespace(command=None)) == 0
+    with create_app_session(output=DummyOutput()):
+        assert await cli.application(argparse.Namespace(command=None)) == 0
     assert len(instances) == 1 and instances[0].closed
 
 

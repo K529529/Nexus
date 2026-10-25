@@ -1,0 +1,139 @@
+{
+  "source_session": "2925ee2af1b441a4af9b5d91298e44eb.jsonl",
+  "source_sha256": "cffef6eb18b6fb0d4e8f4db5a15158477f58030ee7728fc2d2a16e2f62855543",
+  "samples": [
+    {
+      "original_result_seq": 86,
+      "original_detail": "app/fsops.py chunk 2: Chunk requires '+' or '-'. Each @@ starts a new chunk; keep its anchor/context and edit lines together before the next @@.",
+      "new_tool_result": {
+        "call_id": "call_00_u3q8XZ0isJsJ6as6pGnE0763",
+        "ok": false,
+        "data": {
+          "files": [],
+          "changed_files": 0,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": "app/fsops.py",
+          "failed_hunk": 2,
+          "detail": "app/fsops.py chunk 2: Chunk requires '+' or '-'. Each @@ starts a new chunk; keep its anchor/context and edit lines together before the next @@."
+        },
+        "error_code": "invalid_patch",
+        "duration_ms": 0,
+        "truncated": false
+      },
+      "requires_model_repair": true,
+      "real_repair_parses": true,
+      "filesystem_repair": "NOT RUN: original multi-file preimages not reconstructed"
+    },
+    {
+      "original_result_seq": 138,
+      "original_detail": "web/app.js chunk 2: Chunk requires '+' or '-'. Each @@ starts a new chunk; keep its anchor/context and edit lines together before the next @@.",
+      "new_tool_result": {
+        "call_id": "call_00_ewXXD6mLODNwNvrG5Evp2967",
+        "ok": false,
+        "data": {
+          "files": [],
+          "changed_files": 0,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": "web/app.js",
+          "failed_hunk": 2,
+          "detail": "web/app.js chunk 2: Chunk requires '+' or '-'. Each @@ starts a new chunk; keep its anchor/context and edit lines together before the next @@."
+        },
+        "error_code": "invalid_patch",
+        "duration_ms": 0,
+        "truncated": false
+      },
+      "requires_model_repair": true,
+      "real_repair_parses": true,
+      "filesystem_repair": "NOT RUN: original multi-file preimages not reconstructed"
+    },
+    {
+      "original_result_seq": 221,
+      "original_detail": "tests/test_web_rename_ui.py: line 241: every Add File body line must start with '+'; use a lone '+' for an empty source line",
+      "new_tool_result": {
+        "call_id": "call_00_yyq1oMdjLXfTSQPznUEG5282",
+        "ok": false,
+        "data": {
+          "files": [],
+          "changed_files": 0,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": "tests/test_web_rename_ui.py",
+          "failed_hunk": null,
+          "detail": "tests/test_web_rename_ui.py: line 241: every Add File body line must start with '+'; use a lone '+' for an empty source line"
+        },
+        "error_code": "invalid_patch",
+        "duration_ms": 16,
+        "truncated": false
+      },
+      "requires_model_repair": true,
+      "real_repair_parses": true,
+      "filesystem_repair": "NOT RUN: original multi-file preimages not reconstructed"
+    },
+    {
+      "original_result_seq": 229,
+      "original_detail": "tests/web/create_delete_harness.js chunk 5: old block not found. Expected old text: '  console.log(JSON.stringify(out));'. Read the failed file near this text and rebuild this chunk against current content; do not retry the unchanged patch.",
+      "new_tool_result": {
+        "call_id": "call_00_YSCnO6BL1ZkiELf74JZT9131",
+        "ok": false,
+        "data": {
+          "files": [],
+          "changed_files": 0,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": "tests/web/create_delete_harness.js",
+          "failed_hunk": 5,
+          "detail": "tests/web/create_delete_harness.js chunk 5: old block not found. Expected old text: '  console.log(JSON.stringify(out));'. Search starts at line 304; current file has 528 lines. Read the failed file in this range and rebuild this chunk against current content; preserve leading indentation and do not retry the unchanged patch."
+        },
+        "error_code": "patch_conflict",
+        "duration_ms": 15,
+        "truncated": false
+      },
+      "requires_model_repair": true,
+      "real_repair_parses": true,
+      "filesystem_repair": "PASS: matches historical after_hash",
+      "repaired_result": {
+        "call_id": "call_00_YSCnO6BL1ZkiELf74JZT9131",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "tests/web/create_delete_harness.js",
+              "status": "modified",
+              "added_lines": 203,
+              "deleted_lines": 2,
+              "before_hash": "274344f1938e1f2569512414e1307196342243c8b2810ab71d0fdc574c974f69",
+              "after_hash": "09bb8514537ef79afbb83a348911d00a74887c00da3830fb95e6d2ccdf7fed98"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 0,
+        "truncated": false
+      },
+      "audit_count": 1
+    }
+  ]
+}
