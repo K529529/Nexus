@@ -1,0 +1,283 @@
+{
+  "steps": [
+    {
+      "name": "setConsoleCtrlHandler",
+      "ms": 0.03359999999999985
+    },
+    {
+      "name": "openProcess",
+      "ms": 0.012000000000000455
+    },
+    {
+      "name": "openProcessToken",
+      "ms": 0.012199999999999989
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.0037999999999982492
+    },
+    {
+      "name": "createWellKnownSid",
+      "ms": 0.004399999999996851
+    },
+    {
+      "name": "isValidSid",
+      "ms": 0.001599999999996271
+    },
+    {
+      "name": "createWellKnownSid",
+      "ms": 0.0015000000000000568
+    },
+    {
+      "name": "isValidSid",
+      "ms": 0.001300000000000523
+    },
+    {
+      "name": "convertStringSidToSidW",
+      "ms": 0.01559999999999917
+    },
+    {
+      "name": "createFileW",
+      "ms": 0.1535999999999973
+    },
+    {
+      "name": "lockFileEx",
+      "ms": 0.008699999999997488
+    },
+    {
+      "name": "getNamedSecurityInfoW",
+      "root": "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e\\profile-work",
+      "ms": 0.3535000000000039
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.001300000000000523
+    },
+    {
+      "name": "localAlloc",
+      "ms": 0.0006999999999948159
+    },
+    {
+      "name": "initializeAcl",
+      "ms": 0.0005999999999986017
+    },
+    {
+      "name": "addMandatoryAce",
+      "ms": 0.0007000000000019213
+    },
+    {
+      "name": "setEntriesInAclW",
+      "ms": 0.0045000000000001705
+    },
+    {
+      "name": "localFree",
+      "ms": 0.000499999999995282
+    },
+    {
+      "name": "setNamedSecurityInfoW",
+      "root": "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e\\profile-work",
+      "ms": 44.672900000000006
+    },
+    {
+      "name": "localFree",
+      "ms": 0.0016999999999995907
+    },
+    {
+      "name": "localFree",
+      "ms": 0.00039999999999906777
+    },
+    {
+      "name": "unlockFileEx",
+      "ms": 0.0037999999999982492
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.027100000000004343
+    },
+    {
+      "name": "convertStringSidToSidW",
+      "ms": 0.003199999999992542
+    },
+    {
+      "name": "createFileW",
+      "ms": 0.13390000000001123
+    },
+    {
+      "name": "lockFileEx",
+      "ms": 0.00549999999999784
+    },
+    {
+      "name": "getNamedSecurityInfoW",
+      "root": "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e\\profile-temp",
+      "ms": 0.05859999999999843
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.0009000000000014552
+    },
+    {
+      "name": "localAlloc",
+      "ms": 0.0006999999999948159
+    },
+    {
+      "name": "initializeAcl",
+      "ms": 0.0006000000000057071
+    },
+    {
+      "name": "addMandatoryAce",
+      "ms": 0.0005000000000023874
+    },
+    {
+      "name": "setEntriesInAclW",
+      "ms": 0.0020999999999986585
+    },
+    {
+      "name": "localFree",
+      "ms": 0.0005000000000023874
+    },
+    {
+      "name": "setNamedSecurityInfoW",
+      "root": "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e\\profile-temp",
+      "ms": 0.2927999999999997
+    },
+    {
+      "name": "localFree",
+      "ms": 0.001300000000000523
+    },
+    {
+      "name": "localFree",
+      "ms": 0.0002999999999957481
+    },
+    {
+      "name": "unlockFileEx",
+      "ms": 0.003299999999995862
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.023099999999999454
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0027000000000043656
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0016999999999995907
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.0006000000000057071
+    },
+    {
+      "name": "copySid",
+      "ms": 0.0007000000000090267
+    },
+    {
+      "name": "createRestrictedToken",
+      "ms": 0.017899999999997362
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.0005999999999914962
+    },
+    {
+      "name": "setTokenInformation",
+      "ms": 0.007999999999995566
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0036999999999949296
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.001599999999996271
+    },
+    {
+      "name": "setEntriesInAclW",
+      "ms": 0.001999999999995339
+    },
+    {
+      "name": "setTokenInformation",
+      "ms": 0.003199999999992542
+    },
+    {
+      "name": "localFree",
+      "ms": 0.0006999999999948159
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.0020999999999986585
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.00039999999999906777
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.0002999999999957481
+    },
+    {
+      "name": "createJobObjectW",
+      "ms": 0.008600000000001273
+    },
+    {
+      "name": "setInformationJobObject",
+      "ms": 0.00359999999999161
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.002899999999996794
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0020000000000095497
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.001599999999996271
+    },
+    {
+      "name": "createProcessAsUserW",
+      "ms": 8.389300000000006
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0030000000000001137
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0016999999999995907
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.001599999999996271
+    },
+    {
+      "name": "assignProcessToJobObject",
+      "ms": 0.028400000000004866
+    },
+    {
+      "name": "resumeThread",
+      "ms": 0.004699999999999704
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.001600000000010482
+    },
+    {
+      "name": "waitForSingleObject",
+      "ms": 1030.4339
+    },
+    {
+      "name": "getExitCodeProcess",
+      "ms": 0.004699999999957072
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.0027999999999792635
+    }
+  ],
+  "binding_ms": 9.6109,
+  "exit_code": 0,
+  "total_ms": 1097.6381000000001
+}

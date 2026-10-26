@@ -1,0 +1,64 @@
+........................................................................ [  7%]
+......................ssssssssss....................FFFFFF.............. [ 15%]
+........................................................................ [ 23%]
+........................................................................ [ 30%]
+........................................................................ [ 38%]
+........................................................................ [ 46%]
+........................................................................ [ 53%]
+........................................................................ [ 61%]
+........................................................................ [ 69%]
+........................................................................ [ 76%]
+........................................................................ [ 84%]
+........................................................................ [ 92%]
+........................................................................ [ 99%]
+..                                                                       [100%]
+================================== FAILURES ===================================
+__ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[None-False] __
+tests\test_evaluation_v0.py:264: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert result["status"] == ("ERROR" if cleanup_failure else "PASS")
+E   AssertionError: assert 'ERROR' == 'PASS'
+E     
+E     - PASS
+E     + ERROR
+__ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[None-True] ___
+tests\test_evaluation_v0.py:264: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert result["status"] == ("ERROR" if cleanup_failure else "PASS")
+E   AssertionError: assert 'ERROR' == 'PASS'
+E     
+E     - PASS
+E     + ERROR
+_ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[conversation-False] _
+tests\test_evaluation_v0.py:265: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert stop is (cleanup_failure == "validator")
+E   AssertionError: assert True is ('conversation' == 'validator'
+E     
+E     - validator
+E     + conversation)
+_ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[conversation-True] _
+tests\test_evaluation_v0.py:265: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert stop is (cleanup_failure == "validator")
+E   AssertionError: assert True is ('conversation' == 'validator'
+E     
+E     - validator
+E     + conversation)
+_ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[validator-False] _
+tests\test_evaluation_v0.py:266: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert result["agent"]["outcome"] == ("limited" if limited else "completed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable
+_ test_runner_disables_mcp_and_keeps_limited_separate_from_pass[validator-True] _
+tests\test_evaluation_v0.py:266: in test_runner_disables_mcp_and_keeps_limited_separate_from_pass
+    assert result["agent"]["outcome"] == ("limited" if limited else "completed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[None-False]
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[None-True]
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[conversation-False]
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[conversation-True]
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[validator-False]
+FAILED tests/test_evaluation_v0.py::test_runner_disables_mcp_and_keeps_limited_separate_from_pass[validator-True]
+6 failed, 922 passed, 10 skipped in 80.15s (0:01:20)

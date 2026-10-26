@@ -1,0 +1,15 @@
+ordinary_user PASS
+read-only-0-powershell FAIL
+read-only-0-python-env-temp FAIL
+read-only-0-read-low-token PASS
+read-only-0-workspace-write PASS
+read-only-0-outside-create PASS
+read-only-0-outside-update PASS
+read-only-0-outside-delete PASS
+read-only-0-pytest FAIL
+read-only-0-patch-denied PASS
+read-only-0-temp-cleanup PASS
+workspace-write-1-powershell PASS
+workspace-write-1-python-env-temp FAIL
+workspace-write-1-read-low-token PASS
+HARNESS STOPPED: Native guard synchronous FFI wait stalled runner startup. Retained as failure; changed guard to nonblocking parent-handle polls.

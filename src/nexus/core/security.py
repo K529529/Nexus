@@ -1,4 +1,4 @@
-"""Deterministic tool dispatch with narrowly bound one-call SRT approvals."""
+"""Deterministic tool dispatch with narrowly bound one-call patch approvals."""
 
 from __future__ import annotations
 
@@ -38,6 +38,8 @@ class SecurityPolicy:
     denied_domains: tuple[str, ...] = ()
     node_path: str | None = None
     srt_package: str | None = None
+    windows_koffi: str | None = None
+    windows_acl_roots: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.mode not in {"local", "read-only", "workspace-write"}:

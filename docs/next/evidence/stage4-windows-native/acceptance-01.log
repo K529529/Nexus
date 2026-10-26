@@ -1,0 +1,35 @@
+Get-Acl : The 'Get-Acl' command was found in the module 'Microsoft.PowerShell.Security', but the module could not be lo
+aded. For more information, run 'Import-Module Microsoft.PowerShell.Security'.
+At line:1 char:2
++ (Get-Acl -LiteralPath 'C:\WINDOWS').Sddl
++  ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (Get-Acl:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CouldNotAutoloadMatchingModule
+ 
+Traceback (most recent call last):
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 214, in <module>
+    asyncio.run(main())
+  File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 78, in main
+    before = snapshots()
+             ^^^^^^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 75, in snapshots
+    return {str(p): {'sddl': ps(f'(Get-Acl -LiteralPath {quote(p)}).Sddl'),
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 31, in ps
+    return subprocess.check_output([PS, '-NoProfile', '-NonInteractive', '-Command', text],
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['C:\\WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe', '-NoProfile', '-NonInteractive', '-Command', "(Get-Acl -LiteralPath 'C:\\WINDOWS').Sddl"]' returned non-zero exit status 1.

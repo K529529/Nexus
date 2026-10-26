@@ -1,0 +1,25 @@
+
+ RUN  v5.0.5 D:/WorkSpace/nexus-native-runtime-20261026
+
+ ❯ tests/win32-cli.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/win32-cli.test.ts [ tests/win32-cli.test.ts ]
+Error: Cannot find module '../src/confine' imported from D:/WorkSpace/nexus-native-runtime-20261026/tests/win32-cli.test.ts
+ ❯ tests/win32-cli.test.ts:7:1
+      5| import { join } from "node:path";
+      6| import { parseArgs, requireDirectory, RUNNER_FAILURE_EXIT, RUNNER_SIGN…
+      7| import { classifyRunnerFailure, RUNNER_FAILURE_RULES } from "../src/co…
+       | ^
+      8|
+      9| const base = ["--workspace", "C:\\ws", "--temp", "C:\\tmp", "--mode", …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 7 passed (8)
+      Tests  57 passed | 1 skipped (58)
+   Start at  19:36:20
+   Duration  508ms (transform 51%, import 31%, tests 14%, worker 4%)
+

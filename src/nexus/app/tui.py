@@ -479,8 +479,8 @@ async def select_permissions(current: str, status: str, detail: str) -> str | No
     modes = ["local", "read-only", "workspace-write"]
     descriptions = [
         "Current user permissions; no sandbox; no default approval.",
-        "SRT: explore/read project; project writes and patch denied; private temp permitted.",
-        "SRT: edit workspace and configured writable roots; network deny by default.",
+        "Restricted: read project; project writes and patch denied.",
+        "Restricted: edit workspace and configured roots; Windows requires standing ACL consent.",
     ]
     selected = modes.index(current)
     bindings = KeyBindings()
@@ -496,8 +496,8 @@ async def select_permissions(current: str, status: str, detail: str) -> str | No
                     ("› " if i == selected else "  ") + f"{i + 1}. {mode}: {descriptions[i]}"
                     for i, mode in enumerate(modes)
                 ],
-                "Windows SRT is experimental; "
-                "initialization does not certify hostile-code isolation.",
+                "Windows partial enforcement · Network: unrestricted · sensitive env filtered. "
+                "Linux Docker pending manual acceptance; macOS unsupported.",
             ]
         )
 

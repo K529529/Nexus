@@ -1,0 +1,173 @@
+{
+  "root": "D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh",
+  "rows": [
+    {
+      "mode": "read-only",
+      "test": "identity",
+      "ms": 1636.1229999456555,
+      "result": {
+        "call_id": "identity",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; whoami; Get-Content hello.txt; $ExecutionContext.SessionState.LanguageMode; $env:TEMP : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1562,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "read-only",
+      "test": "write",
+      "ms": 1597.3815000616014,
+      "result": {
+        "call_id": "write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; Set-Content new.txt yes -ErrorAction Stop : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1594,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "read-only",
+      "test": "unicode",
+      "ms": 1452.8286000713706,
+      "result": {
+        "call_id": "unicode",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; Write-Output '\ufffd\ufffd\ufffd' : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1452,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "workspace-write",
+      "test": "identity",
+      "ms": 1607.5280999066308,
+      "result": {
+        "call_id": "identity",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; whoami; Get-Content hello.txt; $ExecutionContext.SessionState.LanguageMode; $env:TEMP : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1547,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "workspace-write",
+      "test": "write",
+      "ms": 1577.4596000555903,
+      "result": {
+        "call_id": "write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; Set-Content new.txt yes -ErrorAction Stop : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1577,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "workspace-write",
+      "test": "unicode",
+      "ms": 1441.072899964638,
+      "result": {
+        "call_id": "unicode",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "try { Set-Location -LiteralPath 'D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh\\work' -ErrorAction Stop } catch { Write-Error\r\n $_; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); $OutputEncoding = [Console]::OutputEncodi\r\nng; Write-Output '\ufffd\ufffd\ufffd' : \ufffd\u073e\ufffd\ufffd\ufffd\ufffd\u02a1\ufffd\r\n    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException\r\n    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1437,
+        "truncated": false
+      }
+    }
+  ]
+}

@@ -362,7 +362,7 @@ async def application(args: argparse.Namespace) -> int:
                     console.print(
                         Text(
                             f"Mode: {selected_mode}. New conversation; previous history saved. "
-                            "User config unchanged. SRT initializes on first tool call."
+                            "User config unchanged. Backend initializes on first tool call."
                         )
                     )
             elif text == "/new":

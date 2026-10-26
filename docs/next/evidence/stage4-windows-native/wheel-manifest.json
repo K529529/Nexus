@@ -1,0 +1,23 @@
+{
+  "wheel": "dist\\nexus_coding_agent-0.2.0-py3-none-any.whl",
+  "native_files": [
+    "nexus/_vendor/pi_windows/LICENSE",
+    "nexus/_vendor/pi_windows/LICENSE.deepseek",
+    "nexus/_vendor/pi_windows/NOTICE.md",
+    "nexus/_vendor/pi_windows/abi.js",
+    "nexus/_vendor/pi_windows/acl.js",
+    "nexus/_vendor/pi_windows/cli.js",
+    "nexus/_vendor/pi_windows/errors.js",
+    "nexus/_vendor/pi_windows/ffi.js",
+    "nexus/_vendor/pi_windows/package.json",
+    "nexus/_vendor/pi_windows/proc.js",
+    "nexus/_vendor/pi_windows/runner.js",
+    "nexus/_vendor/pi_windows/sid.js",
+    "nexus/_vendor/pi_windows/token.js",
+    "nexus/tools/windows_native.py",
+    "nexus/tools/windows_native_bridge.mjs",
+    "nexus/tools/windows_native_guard.mjs"
+  ],
+  "sha256": "6efac2f3bf8dc4aa6954f8b4895b1606124b03d70c720e4261af6dfb6503b3a8",
+  "note": "Built before comment-only runner attribution header update; executable logic matches the tested candidate."
+}

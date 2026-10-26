@@ -1,0 +1,117 @@
+{
+  "root": "D:\\WorkSpace\\nexus-native-fixture-86acd443303647baaa4e2ab0083151ff",
+  "rows": [
+    {
+      "mode": "read-only",
+      "test": "encoding",
+      "ms": 1490.209300071001,
+      "result": {
+        "call_id": "encoding",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "\ufffd\ufffd\ufffd\r\nConstrainedLanguage\r\n",
+          "stderr": "\ufffd\u07b7\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0361\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0123\u02bd\ufffd\ufffd\u05a7\ufffd\u05ba\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0361\ufffd\r\n\ufffd\ufffd\ufffd\ufffd\u03bb\ufffd\ufffd \ufffd\ufffd:1 \ufffd\u05b7\ufffd: 161\r\n+ ... ; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::n ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : InvalidOperation: (:) []\ufffd\ufffdRuntimeException\r\n    + FullyQualifiedErrorId : CannotCreateTypeConstrainedLanguage\r\n \r\n\ufffd\u07b7\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0521\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0123\u02bd\ufffd\ufffd\u05a7\ufffd\u05ba\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0375\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u00e1\ufffd\r\n\ufffd\ufffd\ufffd\ufffd\u03bb\ufffd\ufffd \ufffd\ufffd:1 \ufffd\u05b7\ufffd: 269\r\n+ ... utEncoding; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; W ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : InvalidOperation: (:) []\ufffd\ufffdRuntimeException\r\n    + FullyQualifiedErrorId : PropertySetterNotSupportedInConstrainedLanguage\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": null,
+        "duration_ms": 1422,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "read-only",
+      "test": "write",
+      "ms": 1425.3635000204667,
+      "result": {
+        "call_id": "write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\ufffd\u07b7\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0361\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0123\u02bd\ufffd\ufffd\u05a7\ufffd\u05ba\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0361\ufffd\r\n\ufffd\ufffd\ufffd\ufffd\u03bb\ufffd\ufffd \ufffd\ufffd:1 \ufffd\u05b7\ufffd: 161\r\n+ ... ; exit 1 }; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::n ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : InvalidOperation: (:) []\ufffd\ufffdRuntimeException\r\n    + FullyQualifiedErrorId : CannotCreateTypeConstrainedLanguage\r\n \r\nSet-Content : \ufffd\ufffd\u00b7\ufffd\ufffd\ufffd\ufffdD:\\WorkSpace\\nexus-native-fixture-86acd443303647baaa4e2ab0083151ff\\work\\new.txt\ufffd\ufffd\ufffd\u0137\ufffd\ufffd\u02b1\ufffd\ufffd\u073e\ufffd\ufffd\ufffd\r\n\ufffd\ufffd\ufffd\ufffd\u03bb\ufffd\ufffd \ufffd\ufffd:1 \ufffd\u05b7\ufffd: 269\r\n+ ...  [Console]::OutputEncoding; Set-Content new.txt yes -ErrorAction Stop\r\n+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...ff\\work\\new.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": true
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1420,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "workspace-write",
+      "test": "encoding",
+      "ms": 1284.4943000236526,
+      "result": {
+        "call_id": "encoding",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "\u4f60\u597d\r\nFullLanguage\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1217,
+        "truncated": false
+      }
+    },
+    {
+      "mode": "workspace-write",
+      "test": "write",
+      "ms": 1157.500599976629,
+      "result": {
+        "call_id": "write",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1157,
+        "truncated": false
+      }
+    }
+  ]
+}

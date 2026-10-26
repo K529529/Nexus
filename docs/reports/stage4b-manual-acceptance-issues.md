@@ -1,5 +1,15 @@
 # Stage 4B 人工验收问题记录
 
+## 2026-10-26 路线冻结后的状态
+
+SRT P0-01 的代码与实验结论作为历史成果保留，不继续扩展该专项。当前 Stage 4 改为
+Windows Native → 用户亲验 → Linux Docker 的顺序，未合并 V0.3。
+
+Windows Native 的 Shell/Patch/Git/RO/WW/Timeout/Cancel 已有真实证据；新增
+**NATIVE-P0-01：Python 0700 / pytest tmp_path 不兼容** 仍阻塞完整验收。
+详见 [Native 独立验收记录](stage4-windows-native-acceptance.md)。下文 SRT 安装入口仅为历史复核，
+不是新 Native 候选入口。
+
 ## P0-01：系统 PowerShell 首次 SRT 初始化失败
 
 2026-10-26，分支 `codex/nexus-v0.3-stage4-sandbox`，基线 `76c36d1`。

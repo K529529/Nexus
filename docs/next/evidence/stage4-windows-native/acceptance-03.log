@@ -1,0 +1,57 @@
+ordinary_user PASS
+read-only-0-powershell PASS
+read-only-0-python-env-temp FAIL
+read-only-0-read-low-token PASS
+read-only-0-workspace-write PASS
+read-only-0-outside-create PASS
+read-only-0-outside-update PASS
+read-only-0-outside-delete PASS
+read-only-0-pytest FAIL
+read-only-0-patch-denied PASS
+read-only-0-temp-cleanup PASS
+workspace-write-1-powershell PASS
+workspace-write-1-python-env-temp FAIL
+workspace-write-1-read-low-token PASS
+workspace-write-1-workspace-write PASS
+workspace-write-1-outside-create PASS
+workspace-write-1-outside-update PASS
+workspace-write-1-outside-delete PASS
+workspace-write-1-pytest FAIL
+workspace-write-1-patch PASS
+workspace-write-1-git PASS
+warm-0 PASS
+warm-1 PASS
+warm-2 PASS
+timeout-result FAIL
+timeout-descendant-gone FAIL
+workspace-write-1-temp-cleanup PASS
+Traceback (most recent call last):
+  File "D:\Tools\python\py312\Lib\asyncio\tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\locks.py", line 212, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 215, in <module>
+    asyncio.run(main())
+  File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_windows_native_acceptance.py", line 161, in main
+    await asyncio.wait_for(ready.wait(), 15)
+  File "D:\Tools\python\py312\Lib\asyncio\tasks.py", line 519, in wait_for
+    async with timeouts.timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\timeouts.py", line 115, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError

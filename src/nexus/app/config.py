@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import sys
 import tomllib
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -273,12 +274,20 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
             "denied_domains",
             "node_path",
             "srt_package",
+            "windows_koffi",
+            "windows_acl_roots",
         },
     )
     mode = security.get("mode", "local")
     if not isinstance(mode, str) or mode not in {"local", "read-only", "workspace-write"}:
         raise ConfigError("security.mode: expected local, read-only or workspace-write")
-    for name in ("writable_roots", "ask_tools", "allowed_domains", "denied_domains"):
+    for name in (
+        "writable_roots",
+        "ask_tools",
+        "allowed_domains",
+        "denied_domains",
+        "windows_acl_roots",
+    ):
         value = security.get(name, [])
         if not isinstance(value, list) or any(not isinstance(v, str) or not v for v in value):
             raise ConfigError(f"security.{name}: expected string array")
@@ -288,7 +297,18 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     for name in ("allow_host_memory", "allow_trusted_skills"):
         if name in security and type(security[name]) is not bool:
             raise ConfigError(f"security.{name}: expected boolean")
-    for name in ("node_path", "srt_package"):
+    if (
+        sys.platform == "win32"
+        and mode != "local"
+        and ("allowed_domains" in security or "denied_domains" in security)
+    ):
+        raise ConfigError(
+            "Windows Native: Network: unrestricted; remove legacy allowed_domains/denied_domains"
+        )
+    acl_roots = tuple(security.get("windows_acl_roots", []))
+    if any(not Path(root).is_absolute() for root in acl_roots):
+        raise ConfigError("security.windows_acl_roots: absolute paths required")
+    for name in ("node_path", "srt_package", "windows_koffi"):
         if name in security and (
             not isinstance(security[name], str) or not Path(security[name]).is_absolute()
         ):
@@ -303,6 +323,8 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         tuple(security.get("denied_domains", [])),
         security.get("node_path"),
         security.get("srt_package"),
+        security.get("windows_koffi"),
+        acl_roots,
     )
     return Config(
         settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "evaluation_run_id": "eval",
+  "case_id": "rich__double-width-wrap",
+  "status": "ERROR",
+  "agent": null,
+  "validation": {
+    "status": "not_run",
+    "reason": "Not started",
+    "checks": []
+  },
+  "metrics": {
+    "available": false,
+    "unavailable_reason": "Agent run did not start",
+    "steps": 0,
+    "duration_ms": null,
+    "model_calls": 0,
+    "retries": 0,
+    "failed_attempts": 0,
+    "tool_calls": 0,
+    "tool_failures": 0,
+    "tool_result_bytes": 0,
+    "usage_coverage": 0,
+    "usage_calls": 0,
+    "usage": {
+      "input_tokens": {
+        "reported": null,
+        "coverage": 0,
+        "calls": 0
+      },
+      "output_tokens": {
+        "reported": null,
+        "coverage": 0,
+        "calls": 0
+      },
+      "total_tokens": {
+        "reported": null,
+        "coverage": 0,
+        "calls": 0
+      },
+      "cached_input_tokens": {
+        "reported": null,
+        "coverage": 0,
+        "calls": 0
+      }
+    },
+    "first_context": null,
+    "peak_context": null,
+    "final_context": null,
+    "compaction_calls": 0,
+    "usage_by_purpose": {
+      "main": {
+        "calls": 0,
+        "reported_calls": 0,
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null
+      },
+      "compaction": {
+        "calls": 0,
+        "reported_calls": 0,
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null
+      }
+    },
+    "compactions": 0,
+    "context_requests": {
+      "requests": 0,
+      "last": null
+    }
+  },
+  "timing": {
+    "prepare": 0.0,
+    "agent": null,
+    "validation": null,
+    "total": 0.0
+  },
+  "provenance": {
+    "case_id": "rich__double-width-wrap",
+    "source": "curated",
+    "repo": "Textualize/rich",
+    "base_commit": "e76f3c3ea78481342e21a7b3328075462ab69c2b",
+    "image": "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa",
+    "task_hash": "daf313eec1fa29b53f360b32a0746017ce62d05250ba600b600ca0799dc5e708",
+    "validator_hash": "b7703ca113ee1eae35efd562d361de5b77ab7e1e100dd19af5f87736fcdfeb3f",
+    "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+    "manifest": "../manifest.json",
+    "base_tree": "tree",
+    "workspace_base_commit": "base"
+  },
+  "artifacts": {},
+  "diagnostics": [
+    {
+      "phase": "agent",
+      "category": "agent_runtime_error",
+      "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-tests-final-2679c7a27ec84a07b7b78c452018b16d\\\\pytest-of-Archer\\\\pytest-0\\\\test_runner_disables_mcp_and_k0\\\\rich__double-width-wrap\\\\session\\\\sessions\\\\7e1e24b8a3d19e22b47bdfa2\\\\e26cfa4722034eb7b6bad3e3f6f9ff6b.jsonl.lock'"
+    }
+  ]
+}

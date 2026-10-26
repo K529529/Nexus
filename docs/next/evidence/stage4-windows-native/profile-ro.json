@@ -1,0 +1,188 @@
+{
+  "steps": [
+    {
+      "name": "setConsoleCtrlHandler",
+      "ms": 0.03470000000000084
+    },
+    {
+      "name": "openProcess",
+      "ms": 0.012700000000002376
+    },
+    {
+      "name": "openProcessToken",
+      "ms": 0.007000000000005002
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.003500000000002501
+    },
+    {
+      "name": "createWellKnownSid",
+      "ms": 0.004699999999999704
+    },
+    {
+      "name": "isValidSid",
+      "ms": 0.0020000000000024443
+    },
+    {
+      "name": "createWellKnownSid",
+      "ms": 0.0016000000000033765
+    },
+    {
+      "name": "isValidSid",
+      "ms": 0.001300000000000523
+    },
+    {
+      "name": "convertStringSidToSidW",
+      "ms": 0.01950000000000074
+    },
+    {
+      "name": "createFileW",
+      "ms": 0.06839999999999691
+    },
+    {
+      "name": "lockFileEx",
+      "ms": 0.00730000000000075
+    },
+    {
+      "name": "getNamedSecurityInfoW",
+      "root": "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e\\profile-temp",
+      "ms": 0.42490000000000094
+    },
+    {
+      "name": "localFree",
+      "ms": 0.008099999999998886
+    },
+    {
+      "name": "unlockFileEx",
+      "ms": 0.004899999999999238
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.013100000000001444
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0031999999999996476
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.002100000000005764
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.0008999999999943498
+    },
+    {
+      "name": "copySid",
+      "ms": 0.0009999999999976694
+    },
+    {
+      "name": "createRestrictedToken",
+      "ms": 0.03549999999999898
+    },
+    {
+      "name": "getLengthSid",
+      "ms": 0.0009000000000014552
+    },
+    {
+      "name": "setTokenInformation",
+      "ms": 0.004699999999999704
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0020999999999986585
+    },
+    {
+      "name": "getTokenInformation",
+      "ms": 0.0011999999999972033
+    },
+    {
+      "name": "setEntriesInAclW",
+      "ms": 0.004399999999996851
+    },
+    {
+      "name": "setTokenInformation",
+      "ms": 0.0040000000000048885
+    },
+    {
+      "name": "localFree",
+      "ms": 0.0005999999999986017
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.0021999999999948727
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.0005999999999986017
+    },
+    {
+      "name": "getStdHandle",
+      "ms": 0.00039999999999906777
+    },
+    {
+      "name": "createJobObjectW",
+      "ms": 0.011299999999998533
+    },
+    {
+      "name": "setInformationJobObject",
+      "ms": 0.004800000000003024
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0031999999999996476
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0020999999999986585
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0020000000000024443
+    },
+    {
+      "name": "createProcessAsUserW",
+      "ms": 11.926099999999998
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.005099999999998772
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.001999999999995339
+    },
+    {
+      "name": "setHandleInformation",
+      "ms": 0.0020000000000024443
+    },
+    {
+      "name": "assignProcessToJobObject",
+      "ms": 0.039599999999992974
+    },
+    {
+      "name": "resumeThread",
+      "ms": 0.005500000000004945
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.002400000000001512
+    },
+    {
+      "name": "waitForSingleObject",
+      "ms": 1073.7712999999999
+    },
+    {
+      "name": "getExitCodeProcess",
+      "ms": 0.00479999999993197
+    },
+    {
+      "name": "closeHandle",
+      "ms": 0.0030999999999039574
+    }
+  ],
+  "binding_ms": 9.899100000000004,
+  "exit_code": 0,
+  "total_ms": 1099.3935
+}

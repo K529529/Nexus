@@ -1,0 +1,369 @@
+{
+  "root": "D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66",
+  "python": "D:\\WorkSpace\\releasePro\\github\\Nexus\\Nexus-next\\.venv\\Scripts\\python.exe",
+  "shell": "C:\\WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
+  "rows": [
+    {
+      "test": "ordinary_user",
+      "pass": true
+    },
+    {
+      "test": "read-only-0-powershell",
+      "pass": false,
+      "elapsed_ms": 120222.2,
+      "result": {
+        "call_id": "d200f81a805c4c569dd386c4ea3a43d9",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": true,
+          "cancelled": true,
+          "cleanup_incomplete": false,
+          "error_code": "command_timeout",
+          "requires_reset": false,
+          "stdout": "FullLanguage\r\n你好\r\nC:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-R1NEUq\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_timeout",
+        "duration_ms": 120155,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-python-env-temp",
+      "pass": false,
+      "elapsed_ms": 1294.1,
+      "result": {
+        "call_id": "9d2a368392f645aa92bc0b489526d5ec",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"<string>\", line 1, in <module>\r\nNameError: name 'owned' is not defined\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1297,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-read-low-token",
+      "pass": true,
+      "elapsed_ms": 1512.03,
+      "result": {
+        "call_id": "6f9ea50c4af94f78a3b2f2e5133bd5e2",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "hello\r\n\r\nGROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                          Type             SID                                            Attributes                                        \r\n=================================== ================ ============================================== ==================================================\r\nEveryone                            Well-known group S-1-1-0                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\本地帐户和管理员组成员 Well-known group S-1-5-114                                      Group used for deny only                          \r\nDESKTOP-4UJL9T1\\docker-users        Alias            S-1-5-21-2685058880-2366848957-2839040369-1004 Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Administrators              Alias            S-1-5-32-544                                   Group used for deny only                          \r\nBUILTIN\\Performance Log Users       Alias            S-1-5-32-559                                   Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Users                       Alias            S-1-5-32-545                                   Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\INTERACTIVE            Well-known group S-1-5-4                                        Mandatory group, Enabled by default, Enabled group\r\nCONSOLE LOGON                       Well-known group S-1-2-1                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Authenticated Users    Well-known group S-1-5-11                                       Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\This Organization      Well-known group S-1-5-15                                       Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\本地帐户               Well-known group S-1-5-113                                      Mandatory group, Enabled by default, Enabled group\r\nLOCAL                               Well-known group S-1-2-0                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\NTLM Authentication    Well-known group S-1-5-64-10                                    Mandatory group, Enabled by default, Enabled group\r\nMandatory Label\\Low Mandatory Level Label            S-1-16-4096                                                                                      \r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1500,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-workspace-write",
+      "pass": true,
+      "elapsed_ms": 1465.64,
+      "result": {
+        "call_id": "b3a25b8069ca4bd8be435d8ad657dc09",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66\\work\\write.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 272\r\n+ ... Console]::OutputEncoding; Set-Content write.txt yes -ErrorAction Stop\r\n+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...\\work\\write.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1469,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-outside-create",
+      "pass": true,
+      "elapsed_ms": 1436.67,
+      "result": {
+        "call_id": "be38463fbc224574a25b83e0f36dd539",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66\\outside\\new.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 272\r\n+ ... utEncoding; Set-Content 'D:\\WorkSpace\\nexus-native-acceptance-fbc21c3 ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...outside\\new.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1437,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-outside-update",
+      "pass": true,
+      "elapsed_ms": 1411.89,
+      "result": {
+        "call_id": "c0268b506a874e96a704c381e8997c85",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66\\outside\\keep.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 272\r\n+ ... utEncoding; Set-Content 'D:\\WorkSpace\\nexus-native-acceptance-fbc21c3 ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (:) [Set-Content], UnauthorizedAccessException\r\n    + FullyQualifiedErrorId : System.UnauthorizedAccessException,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1420,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-outside-delete",
+      "pass": true,
+      "elapsed_ms": 1427.08,
+      "result": {
+        "call_id": "c409c1531f6348e79418a63341fc7b13",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Remove-Item : 无法删除项 D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66\\outside\\keep.txt: 对路径“D:\\Work\r\nSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66\\outside\\keep.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 272\r\n+ ... utEncoding; Remove-Item 'D:\\WorkSpace\\nexus-native-acceptance-fbc21c3 ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...utside\\keep.txt:FileInfo) [Remove-Item], Unauthoriz \r\n   edAccessException\r\n    + FullyQualifiedErrorId : RemoveFileSystemItemUnAuthorizedAccess,Microsoft.PowerShell.Commands.RemoveItemCommand\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1422,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-pytest",
+      "pass": false,
+      "elapsed_ms": 1905.52,
+      "result": {
+        "call_id": "df34cfc90f984ee78e8eed87c213deab",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "E                                                                        [100%]\r\n=================================== ERRORS ====================================\r\n_________________________ ERROR at setup of test_one __________________________\r\n\r\nfixturedef = <FixtureDef argname='tmp_path' scope='function' baseid=''>\r\nrequest = <SubRequest 'tmp_path' for <Function test_one>>\r\n\r\n    @pytest.hookimpl(wrapper=True)\r\n    def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:\r\n        if (\r\n            fixturedef.argname == \"event_loop_policy\"\r\n            and fixturedef.func.__module__ != __name__\r\n        ):\r\n            warnings.warn(\r\n                PytestDeprecationWarning(_EVENT_LOOP_POLICY_FIXTURE_DEPRECATION_WARNING),\r\n            )\r\n        asyncio_mode = _get_asyncio_mode(request.config)\r\n        if not _is_asyncio_fixture_function(fixturedef.func):\r\n            if asyncio_mode == Mode.STRICT:\r\n                # Ignore async fixtures without explicit asyncio mark in strict mode\r\n                # This applies to pytest_trio fixtures, for example\r\n>               return (yield)\r\n                        ^^^^^\r\nE               PermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-R1NEUq\\\\pytest-of-Archer'\r\n\r\n..\\..\\releasePro\\github\\Nexus\\Nexus-next\\.venv\\Lib\\site-packages\\pytest_asyncio\\plugin.py:924: PermissionError\r\n=========================== short test summary info ===========================\r\nERROR test_sample.py::test_one - PermissionError: [WinError 5] 拒绝访问。: 'C...\r\n1 error in 0.10s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1907,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-patch-denied",
+      "pass": true,
+      "elapsed_ms": 0.47,
+      "result": {
+        "call_id": "dbdeb8e2de054cddb21da64d2da0fcec",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "detail": "",
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-0-temp-cleanup",
+      "pass": true
+    },
+    {
+      "test": "workspace-write-1-powershell",
+      "pass": true,
+      "elapsed_ms": 1451.92,
+      "result": {
+        "call_id": "529af1b32f644e25a5a546e8248dfb9c",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "FullLanguage\r\n你好\r\nC:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-7rTRD7\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1375,
+        "truncated": false
+      }
+    },
+    {
+      "test": "workspace-write-1-python-env-temp",
+      "pass": false,
+      "elapsed_ms": 1324.19,
+      "result": {
+        "call_id": "705d6f09ae2f4619b0c9eea1b4ed6e70",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"<string>\", line 1, in <module>\r\nNameError: name 'owned' is not defined\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1327,
+        "truncated": false
+      }
+    },
+    {
+      "test": "workspace-write-1-read-low-token",
+      "pass": true,
+      "elapsed_ms": 1329.8,
+      "result": {
+        "call_id": "f4838f1fb3ad443386dec5cb2b026cde",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "hello\r\n\r\nGROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                          Type             SID                                            Attributes                                        \r\n=================================== ================ ============================================== ==================================================\r\nEveryone                            Well-known group S-1-1-0                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\本地帐户和管理员组成员 Well-known group S-1-5-114                                      Group used for deny only                          \r\nDESKTOP-4UJL9T1\\docker-users        Alias            S-1-5-21-2685058880-2366848957-2839040369-1004 Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Administrators              Alias            S-1-5-32-544                                   Group used for deny only                          \r\nBUILTIN\\Performance Log Users       Alias            S-1-5-32-559                                   Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Users                       Alias            S-1-5-32-545                                   Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\INTERACTIVE            Well-known group S-1-5-4                                        Mandatory group, Enabled by default, Enabled group\r\nCONSOLE LOGON                       Well-known group S-1-2-1                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Authenticated Users    Well-known group S-1-5-11                                       Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\This Organization      Well-known group S-1-5-15                                       Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\本地帐户               Well-known group S-1-5-113                                      Mandatory group, Enabled by default, Enabled group\r\nLOCAL                               Well-known group S-1-2-0                                        Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\NTLM Authentication    Well-known group S-1-5-64-10                                    Mandatory group, Enabled by default, Enabled group\r\nMandatory Label\\Low Mandatory Level Label            S-1-16-4096                                                                                      \r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1329,
+        "truncated": false
+      }
+    }
+  ],
+  "protected_before": {
+    "C:\\WINDOWS": {
+      "sddl": "O:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464G:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464D:PAI(A;OICIIO;GA;;;CO)(A;OICIIO;GA;;;SY)(A;;0x1301bf;;;SY)(A;OICIIO;GA;;;BA)(A;;0x1301bf;;;BA)(A;OICIIO;GXGR;;;BU)(A;;0x1200a9;;;BU)(A;CIIO;GA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;FA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;0x1200a9;;;AC)(A;OICIIO;GXGR;;;AC)(A;;0x1200a9;;;S-1-15-2-2)(A;OICIIO;GXGR;;;S-1-15-2-2)",
+      "icacls_hex": "433a5c57494e444f5753204e5420534552564943455c54727573746564496e7374616c6c65723a2846290a20202020202020202020204e5420534552564943455c54727573746564496e7374616c6c65723a2843492928494f292846290a20202020202020202020204e5420415554484f524954595c53595354454d3a284d290a20202020202020202020204e5420415554484f524954595c53595354454d3a284f49292843492928494f292846290a20202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284d290a20202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284f49292843492928494f292846290a20202020202020202020204255494c54494e5c55736572733a285258290a20202020202020202020204255494c54494e5c55736572733a284f49292843492928494f292847522c4745290a202020202020202020202043524541544f52204f574e45523a284f49292843492928494f292846290a20202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a285258290a20202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a284f49292843492928494f292847522c4745290a20202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a285258290a20202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a284f49292843492928494f292847522c4745290a0a5375636365737366756c6c792070726f63657373656420312066696c65733b204661696c65642070726f63657373696e6720302066696c65730d0a"
+    },
+    "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0": {
+      "sddl": "O:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464G:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464D:PAI(A;OICIIO;GA;;;CO)(A;OICIIO;GA;;;SY)(A;;0x1301bf;;;SY)(A;OICIIO;GA;;;BA)(A;;0x1301bf;;;BA)(A;OICIIO;GXGR;;;BU)(A;;0x1200a9;;;BU)(A;CIIO;GA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;FA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;0x1200a9;;;AC)(A;OICIIO;GXGR;;;AC)(A;;0x1200a9;;;S-1-15-2-2)(A;OICIIO;GXGR;;;S-1-15-2-2)",
+      "icacls_hex": "433a5c57494e444f57535c53797374656d33325c57696e646f7773506f7765725368656c6c5c76312e30204e5420534552564943455c54727573746564496e7374616c6c65723a2846290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204e5420534552564943455c54727573746564496e7374616c6c65723a2843492928494f292846290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204e5420415554484f524954595c53595354454d3a284d290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204e5420415554484f524954595c53595354454d3a284f49292843492928494f292846290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284d290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284f49292843492928494f292846290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204255494c54494e5c55736572733a285258290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204255494c54494e5c55736572733a284f49292843492928494f292847522c4745290a2020202020202020202020202020202020202020202020202020202020202020202020202020202020202043524541544f52204f574e45523a284f49292843492928494f292846290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a285258290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a284f49292843492928494f292847522c4745290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a285258290a202020202020202020202020202020202020202020202020202020202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a284f49292843492928494f292847522c4745290a0a5375636365737366756c6c792070726f63657373656420312066696c65733b204661696c65642070726f63657373696e6720302066696c65730d0a"
+    },
+    "C:\\Program Files": {
+      "sddl": "O:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464G:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464D:PAI(A;OICIIO;GA;;;CO)(A;OICIIO;GA;;;SY)(A;;0x1301bf;;;SY)(A;OICIIO;GA;;;BA)(A;;0x1301bf;;;BA)(A;OICIIO;GXGR;;;BU)(A;;0x1200a9;;;BU)(A;CIIO;GA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;FA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;0x1200a9;;;AC)(A;OICIIO;GXGR;;;AC)(A;;0x1200a9;;;S-1-15-2-2)(A;OICIIO;GXGR;;;S-1-15-2-2)",
+      "icacls_hex": "433a5c50726f6772616d2046696c6573204e5420534552564943455c54727573746564496e7374616c6c65723a2846290a20202020202020202020202020202020204e5420534552564943455c54727573746564496e7374616c6c65723a2843492928494f292846290a20202020202020202020202020202020204e5420415554484f524954595c53595354454d3a284d290a20202020202020202020202020202020204e5420415554484f524954595c53595354454d3a284f49292843492928494f292846290a20202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284d290a20202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284f49292843492928494f292846290a20202020202020202020202020202020204255494c54494e5c55736572733a285258290a20202020202020202020202020202020204255494c54494e5c55736572733a284f49292843492928494f292847522c4745290a202020202020202020202020202020202043524541544f52204f574e45523a284f49292843492928494f292846290a20202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a285258290a20202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595c414c4c204150504c49434154494f4e205041434b414745533a284f49292843492928494f292847522c4745290a20202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a285258290a20202020202020202020202020202020204150504c49434154494f4e205041434b41474520415554484f524954595ccbf9d3d0cadccfded6c6b5c4d3a6d3c3b3ccd0f2b0fc3a284f49292843492928494f292847522c4745290a0a5375636365737366756c6c792070726f63657373656420312066696c65733b204661696c65642070726f63657373696e6720302066696c65730d0a"
+    },
+    "C:\\Users\\Archer": {
+      "sddl": "O:SYG:SYD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-21-2685058880-2366848957-2839040369-1001)",
+      "icacls_hex": "433a5c55736572735c417263686572204e5420415554484f524954595c53595354454d3a284f4929284349292846290a202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284f4929284349292846290a202020202020202020202020202020204445534b544f502d34554a4c3954315c4172636865723a284f4929284349292846290a0a5375636365737366756c6c792070726f63657373656420312066696c65733b204661696c65642070726f63657373696e6720302066696c65730d0a"
+    },
+    "C:\\Users\\Archer\\AppData\\Local\\Temp": {
+      "sddl": "O:S-1-5-21-2685058880-2366848957-2839040369-1001G:SYD:AI(A;OICI;0x1301bf;;;S-1-5-21-1741985565-2493257584-538289149-1754011349)(A;OICI;0x1301bf;;;S-1-5-21-2069092758-1630917462-421231105-2412493135)(A;OICI;0x1301bf;;;S-1-5-21-2685058880-2366848957-2839040369-1005)(A;OICI;0x1301bf;;;S-1-5-21-3704607448-3788347311-2624386301-4163500284)(A;OICI;0x1301bf;;;S-1-5-21-4143465716-3190748053-726890110-567179055)(A;OICI;0x1301bf;;;S-1-5-21-797093388-1788776874-3800163754-375837177)(A;OICIID;0x1200a9;;;S-1-5-21-2685058880-2366848957-2839040369-1005)(A;OICIID;FA;;;SY)(A;OICIID;FA;;;BA)(A;OICIID;FA;;;S-1-5-21-2685058880-2366848957-2839040369-1001)",
+      "icacls_hex": "433a5c55736572735c4172636865725c417070446174615c4c6f63616c5c54656d7020532d312d352d32312d333730343630373434382d333738383334373331312d323632343338363330312d343136333530303238343a284f492928434929284d290a2020202020202020202020202020202020202020202020202020202020202020202020532d312d352d32312d313734313938353536352d323439333235373538342d3533383238393134392d313735343031313334393a284f492928434929284d290a2020202020202020202020202020202020202020202020202020202020202020202020532d312d352d32312d3739373039333338382d313738383737363837342d333830303136333735342d3337353833373137373a284f492928434929284d290a2020202020202020202020202020202020202020202020202020202020202020202020532d312d352d32312d323036393039323735382d313633303931373436322d3432313233313130352d323431323439333133353a284f492928434929284d290a20202020202020202020202020202020202020202020202020202020202020202020204445534b544f502d34554a4c3954315c436f64657853616e64626f7855736572733a284f492928434929284d290a2020202020202020202020202020202020202020202020202020202020202020202020532d312d352d32312d343134333436353731362d333139303734383035332d3732363839303131302d3536373137393035353a284f492928434929284d290a20202020202020202020202020202020202020202020202020202020202020202020204445534b544f502d34554a4c3954315c436f64657853616e64626f7855736572733a284929284f492928434929285258290a20202020202020202020202020202020202020202020202020202020202020202020204e5420415554484f524954595c53595354454d3a284929284f4929284349292846290a20202020202020202020202020202020202020202020202020202020202020202020204255494c54494e5c41646d696e6973747261746f72733a284929284f4929284349292846290a20202020202020202020202020202020202020202020202020202020202020202020204445534b544f502d34554a4c3954315c4172636865723a284929284f4929284349292846290a0a5375636365737366756c6c792070726f63657373656420312066696c65733b204661696c65642070726f63657373696e6720302066696c65730d0a"
+    }
+  }
+}

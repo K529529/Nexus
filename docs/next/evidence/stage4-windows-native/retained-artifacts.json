@@ -1,0 +1,21 @@
+{
+  "workspaces": [
+    "D:\\WorkSpace\\nexus-native-acceptance-27952447b3934beaa97d0e52b5c79223",
+    "D:\\WorkSpace\\nexus-native-acceptance-b1fb82590c954c2b915f06d764960d78",
+    "D:\\WorkSpace\\nexus-native-acceptance-b7be769ffef24c7f89d00d6a1d007458",
+    "D:\\WorkSpace\\nexus-native-acceptance-f3cd77f5442648d6b2bedd097f48cc5e",
+    "D:\\WorkSpace\\nexus-native-acceptance-fbc21c3c2c994642932401f683bf3f66",
+    "D:\\WorkSpace\\nexus-native-fixture-86acd443303647baaa4e2ab0083151ff",
+    "D:\\WorkSpace\\nexus-native-smoke-8y7ojgnh",
+    "D:\\WorkSpace\\nexus-native-smoke-d063d4cdd3c6448db70facf9da7ebcc1"
+  ],
+  "crash_temp_residuals": [
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-LFau7d",
+    "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-goErxi"
+  ],
+  "dependencies": "D:/WorkSpace/nexus-native-runtime-20261026",
+  "candidate_install": "D:/WorkSpace/nexus-native-install-20261026",
+  "failed_pytest_fixture_parent": "C:/Users/Archer/AppData/Local/Temp/nexus-native-tests-final-2679c7a27ec84a07b7b78c452018b16d",
+  "reason": "Retained reproducible fixture/ACL/failure evidence. Do not reuse private TEMP or repair ACLs automatically.",
+  "other_early_attempt_residuals": "See smoke/acceptance logs; interrupted 02 had no reliable close. No blanket TEMP sweep was performed."
+}

@@ -62,9 +62,12 @@ class Conversation:
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
             # No Node import/process in Local; restricted startup stays lazy.
-            from nexus.tools.sandbox import SRTBackend
+            from nexus.tools.windows_native import platform_backend
 
-            self.gateway.backend = SRTBackend(config.security)
+            key_names = [config.model.api_key_env]
+            if config.compaction_model:
+                key_names.append(config.compaction_model.api_key_env)
+            self.gateway.backend = platform_backend(config.security, secret_env=tuple(key_names))
         self.session = Session(self.workspace)
         self.writer: SessionLog | None = None
         self.events: Events | None = None
@@ -350,8 +353,8 @@ class Conversation:
             if self.config.security.mode != "local":
                 environment += (
                     f"\n[Execution mode] {self.config.security.mode}. "
-                    "Shell/patch run through SRT; initialization errors never fall back to Local. "
-                    "No fallback to local execution. "
+                    f"{getattr(self.gateway.backend, 'detail', 'Restricted backend')}. "
+                    "Initialization/permission errors never fall back to Local. "
                     "MCP and background memory indexing are disabled."
                 )
             result = await run_turn(
