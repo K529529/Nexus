@@ -66,7 +66,8 @@ PATCH_SPEC = ToolSpec(
 
 
 def native_tools() -> dict[str, Tool]:
-    return {"exec_command": Tool(EXEC_SPEC, execute), "apply_patch": Tool(PATCH_SPEC, apply_patch)}
+    return {"exec_command": Tool(EXEC_SPEC, execute, "shell"),
+            "apply_patch": Tool(PATCH_SPEC, apply_patch, "patch")}
 
 
 def default_tools(

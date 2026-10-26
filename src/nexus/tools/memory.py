@@ -217,6 +217,8 @@ def create_memory_tools(
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 return ToolResult(context.call_id, False, {"detail": str(exc)}, "memory_error")
 
-        return Tool(schema, execute)
+        capability = {"memory_read": "memory-read", "memory_search": "memory-search",
+                      "scratchpad": "memory-scratchpad"}.get(schema.name, "memory-write")
+        return Tool(schema, execute, capability)
 
     return {s.name: make(s) for s in SPECS}

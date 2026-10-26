@@ -398,13 +398,25 @@ def resume_session(
             elif message.role == "tool" and pending:
                 pending.pop(0)
         for call_id in pending:
+            security_events = [
+                record for record in records
+                if record.get("run_id") == pending_run
+                and record["data"].get("call_id") == call_id
+                and record["kind"] in {"tool_policy", "approval_requested",
+                                       "approval_resolved", "tool_execution"}
+            ]
+            not_executed = bool(security_events) and not any(
+                row["kind"] == "tool_execution" for row in security_events
+            )
             message = ToolResult(
                 call_id,
                 False,
                 {
-                    "detail": "Interrupted; effects unknown. Inspect actual state before retry.",
+                    "detail": ("Interrupted before dispatch; approval is not restored."
+                               if not_executed else
+                               "Interrupted; effects unknown. Inspect actual state before retry."),
                 },
-                "interrupted_unknown",
+                "not_executed" if not_executed else "interrupted_unknown",
             ).message()
             message.run_id = pending_run
             message.seq = writer.append(
@@ -412,7 +424,9 @@ def resume_session(
             )
             session.messages.append(message)
         if pending:
-            warnings.append("Interrupted tool calls recorded as unknown; no calls were replayed.")
+            warnings.append(
+                "Interrupted calls recorded; no calls replayed and no one-time approvals restored."
+            )
         if records[-1]["kind"] != "run_finished":
             writer.append(
                 RuntimeEvent(

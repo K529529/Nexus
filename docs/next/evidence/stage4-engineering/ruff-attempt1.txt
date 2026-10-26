@@ -1,0 +1,12 @@
+E501 Line too long (104 > 100)
+   --> tests\test_sandbox_stage4.py:178:101
+    |
+176 |         "output_limit_bytes": 4096,
+177 |         "arguments": {
+178 |             "patch": "*** Begin Patch\n*** Add File: a\n+first\n*** Add File: b\n+second\n*** End Patch"
+    |                                                                                                     ^^^^
+179 |         },
+180 |     }
+    |
+
+Found 1 error.

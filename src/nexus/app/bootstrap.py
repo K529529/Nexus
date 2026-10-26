@@ -25,6 +25,7 @@ from nexus.core.agent import run_turn
 from nexus.core.compaction import provenance
 from nexus.core.context import Context, ContextBuilder, instructions
 from nexus.core.model import ChatModel, CompactionModel
+from nexus.core.security import SecurityGateway
 from nexus.core.skills import check_active
 from nexus.core.tokens import TokenEstimator
 from nexus.core.types import (
@@ -58,6 +59,12 @@ class Conversation:
     ) -> None:
         self.workspace = workspace.resolve()
         self.config, self.consumer, self.home = config, consumer, home
+        self.gateway = SecurityGateway(config.security)
+        if config.security.mode != "local":
+            # No Node import/process in Local. The unaccepted production backend is fail-closed.
+            from nexus.tools.sandbox import SRTBackend
+
+            self.gateway.backend = SRTBackend()
         self.session = Session(self.workspace)
         self.writer: SessionLog | None = None
         self.events: Events | None = None
@@ -120,6 +127,10 @@ class Conversation:
                     "Memory is OFF. This saved session contains memory context. "
                     "Use a new session, or /memory on before resuming it; history is preserved."
                 )
+        if config.security.mode != "local" and not config.security.allow_trusted_skills:
+            # Historical Skill selections are context, not authorization to reload a source.
+            self.session.selected_skill = None
+            self.session.loaded_skills = ()
         resolved = registry(self.session) if callable(registry) else registry
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
         self.registry = dict(self.base_registry)
@@ -137,7 +148,7 @@ class Conversation:
                 if config.memory_qmd_command == ("qmd",)
                 else None,
             )
-            if self.memory is not None
+            if self.memory is not None and config.security.mode == "local"
             else None
         )
         if self.memory is not None and self.memory_index is not None:
@@ -151,13 +162,18 @@ class Conversation:
                 )
             )
             self.registry.update(self.base_registry)
+        elif self.memory is not None:
+            # Explicit per-call host service only: no index, download, snapshot or daily writer.
+            self.base_registry.update(create_memory_tools(self.memory))
+            self.registry.update(self.base_registry)
         # Custom registries (including fixed eval) opt in explicitly; never inherit host Skills.
         self.catalog = (
             SkillCatalog(
                 skill_directory or (home or Path.home() / ".nexus") / "skills",
                 lambda value: str(redact(value, self.secret_values())),
             )
-            if registry is None or skill_directory is not None
+            if (registry is None or skill_directory is not None)
+            and (config.security.mode == "local" or config.security.allow_trusted_skills)
             else None
         )
         self.skill_tool: Tool | None = None
@@ -262,9 +278,13 @@ class Conversation:
                     if self.config.compaction_model is not None and self.compaction_model is None:
                         self.compaction_model = CompactionModel(self.config.compaction_model)
                         self.resources.push_async_callback(self.compaction_model.close)
-                    self.unavailable = await connect_servers(
-                        self.config.mcp_servers, self.registry, self.resources, self.events
-                    )
+                    if self.config.security.mode == "local":
+                        self.unavailable = await connect_servers(
+                            self.config.mcp_servers, self.registry, self.resources, self.events
+                        )
+                    else:
+                        # Connecting stdio MCP can itself spawn arbitrary host processes.
+                        self.unavailable = list(self.config.mcp_servers)
                 except BaseException:
                     # A partially opened conversation must not leak client/process handles.
                     await self.resources.aclose()
@@ -280,6 +300,7 @@ class Conversation:
                         if self.config.compaction_model
                         else None,
                         "response_language": self.config.response_language,
+                        "security": asdict(self.config.security),
                         "tools": [asdict(t.spec) for t in self.registry.values()],
                         **provenance(),
                     }
@@ -313,6 +334,7 @@ class Conversation:
                     if self.config.compaction_model
                     else None,
                     "response_language": self.config.response_language,
+                    "security": asdict(self.config.security),
                     **provenance(),
                 },
             )
@@ -323,6 +345,13 @@ class Conversation:
                 if self.unavailable
                 else ""
             )
+            if self.config.security.mode != "local":
+                environment += (
+                    f"\n[Execution mode] {self.config.security.mode}. "
+                    "Restricted shell/patch backend is blocked pending isolation acceptance. "
+                    "No fallback to local execution. "
+                    "MCP and background memory indexing are disabled."
+                )
             result = await run_turn(
                 self.session,
                 text,
@@ -333,6 +362,7 @@ class Conversation:
                 environment=environment,
                 compaction_model=self.compaction_model,
                 context=self.context,
+                gateway=self.gateway,
             )
             if result.outcome == "completed":
                 try:
@@ -386,7 +416,7 @@ class Conversation:
             self.context.execution_budget = old_budget
 
     async def memory_prefix(self, *, refresh: bool = False) -> str:
-        if self.memory is None:
+        if self.memory is None or self.config.security.mode != "local":
             return ""
         assert self.events is not None
         previous = self.session.memory_snapshot
@@ -450,7 +480,8 @@ class Conversation:
         self.context.reset_calibration()
 
     async def before_compact(self) -> None:
-        if self.memory is None or self.events is None:
+        if (self.memory is None or self.events is None
+                or self.config.security.mode != "local"):
             return
         try:
             now = datetime.now().astimezone()
@@ -470,6 +501,7 @@ class Conversation:
             self.closed
             or self.exit_summary_attempted
             or self.memory is None
+            or self.config.security.mode != "local"
             or reason not in {"slash-exit", "eof"}
         ):
             return

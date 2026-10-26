@@ -65,4 +65,4 @@ def create_load_skill_tool(session: Session, load: Callable[[str], SkillSnapshot
             },
         )
 
-    return Tool(SKILL_SPEC, execute)
+    return Tool(SKILL_SPEC, execute, "skill-read")

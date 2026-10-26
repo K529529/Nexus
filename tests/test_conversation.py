@@ -15,6 +15,7 @@ from prompt_toolkit.output import DummyOutput
 from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ModelConfig, default_shell
 from nexus.core.context import SYSTEM
+from nexus.core.security import SecurityGateway
 from nexus.core.types import Limits, ModelReply, RunResult, RuntimeEvent
 from nexus.tools.mcp import connect_servers, public_name
 from nexus.tools.registry import native_tools
@@ -278,6 +279,8 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
     answers = iter(["/new", "/resume", "/exit"])
 
     class Conversation:
+        gateway = SecurityGateway()
+
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             from types import SimpleNamespace
 
@@ -313,7 +316,7 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
-    monkeypatch.setattr(cli, "load_config", lambda: object())
+    monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
     monkeypatch.setattr(cli, "PromptSession", Prompt)
     monkeypatch.setattr(cli, "Conversation", Conversation)
     monkeypatch.setattr(cli, "list_sessions", lambda _: [])

@@ -174,7 +174,7 @@ async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, stat
     updates = [data for kind, data in events.events if kind == "plan_updated"]
     assert [data["call_id"] for data in updates] == ["p1", "p2"]
     assert all(data["step"] == 1 for data in updates)
-    kinds = [kind for kind, _ in events.events]
+    kinds = [kind for kind, _ in events.events if kind not in {"tool_policy", "tool_execution"}]
     for index, kind in enumerate(kinds):
         if kind == "plan_updated":
             assert kinds[index - 1] == "tool_started"

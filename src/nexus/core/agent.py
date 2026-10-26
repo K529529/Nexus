@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
 from nexus.core.handoff import make_handoff
+from nexus.core.security import SecurityGateway
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
     Emit,
@@ -59,7 +59,9 @@ async def run_turn(
     environment: str = "",
     compaction_model: Model | None = None,
     context: Context | None = None,
+    gateway: SecurityGateway | None = None,
 ) -> RunResult:
+    gateway = gateway or SecurityGateway()
     started = time.monotonic()
     first_message = len(session.messages)
     session.run_id = session.resume_run_id or uuid4().hex
@@ -116,7 +118,8 @@ async def run_turn(
         )
 
     try:
-        await observed("run_started", {"workspace": str(session.workspace)})
+        await observed("run_started", {"workspace": str(session.workspace),
+                                       "execution_mode": gateway.policy.mode})
         session.resume_run_id = None
         if environment:
             await append_message(session, Message("user", environment), observed)
@@ -236,27 +239,11 @@ async def run_turn(
                     },
                 )
                 result.tool_calls += 1
-                try:
-                    args = json.loads(active.arguments_json)
-                    if not isinstance(args, dict):
-                        raise ValueError("arguments must be an object")
-                except (ValueError, TypeError):
-                    value = ToolResult(active.id, False, {}, "invalid_arguments")
-                else:
-                    tool = registry.get(active.name)
-                    if tool is None:
-                        value = ToolResult(active.id, False, {}, "unknown_tool")
-                    else:
-                        value = await tool.execute(
-                            args,
-                            ExecutionContext(
-                                session.workspace,
-                                active.id,
-                                limits.shell,
-                                limits.output_limit_bytes,
-                            ),
-                            observed,
-                        )
+                value = await gateway.execute(
+                    active, registry, session,
+                    ExecutionContext(session.workspace, active.id, limits.shell,
+                                     limits.output_limit_bytes), observed,
+                )
                 if value.call_id != active.id:
                     raise RuntimeError("Tool returned mismatched call_id")
                 await record_tool(value)

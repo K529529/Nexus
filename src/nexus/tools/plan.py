@@ -66,4 +66,4 @@ def create_update_plan_tool(session: Session) -> Tool:
             {"updated": True, "plan": plan_data(items), "explanation": explanation},
         )
 
-    return Tool(PLAN_SPEC, update)
+    return Tool(PLAN_SPEC, update, "internal")

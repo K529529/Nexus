@@ -9,12 +9,13 @@ import tomllib
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import tomlkit
 
 from nexus.app.memory import atomic_write
+from nexus.core.security import Mode, SecurityPolicy
 from nexus.core.types import Json, Limits
 
 
@@ -51,6 +52,7 @@ class Config:
     compaction_model: ModelConfig | None = None
     memory_enabled: bool = True
     memory_qmd_command: tuple[str, ...] = ("qmd",)
+    security: SecurityPolicy = field(default_factory=SecurityPolicy)
 
 
 def config_path() -> Path:
@@ -210,7 +212,9 @@ def parse_model(data: Json, section: str) -> ModelConfig:
 def load_config(path: Path | None = None, *, require_key: bool = True) -> Config:
     path = path or config_path()
     data = read_toml(path)
-    unknown = data.keys() - {"model", "compaction_model", "runtime", "execution", "mcp", "memory"}
+    unknown = data.keys() - {
+        "model", "compaction_model", "runtime", "execution", "mcp", "memory", "security",
+    }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
     settings = parse_model(data, "model")
@@ -250,6 +254,23 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         settings.key()
         if compaction is not None:
             compaction.key()
-    return Config(
-        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command)
-    )
+    security = _table(data, "security", {"mode", "writable_roots", "ask_tools",
+                                         "allow_host_memory", "allow_trusted_skills"})
+    mode = security.get("mode", "local")
+    if not isinstance(mode, str) or mode not in {"local", "read-only", "workspace-write"}:
+        raise ConfigError("security.mode: expected local, read-only or workspace-write")
+    for name in ("writable_roots", "ask_tools"):
+        value = security.get(name, [])
+        if not isinstance(value, list) or any(not isinstance(v, str) or not v for v in value):
+            raise ConfigError(f"security.{name}: expected string array")
+    roots = tuple(security.get("writable_roots", []))
+    if any(not Path(root).is_absolute() for root in roots):
+        raise ConfigError("security.writable_roots: absolute paths required")
+    for name in ("allow_host_memory", "allow_trusted_skills"):
+        if name in security and type(security[name]) is not bool:
+            raise ConfigError(f"security.{name}: expected boolean")
+    policy = SecurityPolicy(cast(Mode, mode), roots, tuple(security.get("ask_tools", [])),
+                            security.get("allow_host_memory", False),
+                            security.get("allow_trusted_skills", True))
+    return Config(settings, limits, servers, language, compaction, memory_enabled,
+                  tuple(qmd_command), policy)

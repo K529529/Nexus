@@ -24,6 +24,7 @@ from nexus.app import bootstrap, cli, tui
 from nexus.app.input import TaskInput
 from nexus.app.profile import InteractionSummary
 from nexus.app.session import read_records, replay
+from nexus.core.security import SecurityGateway
 from nexus.core.types import Json, RunResult, RuntimeEvent
 from tests.conftest import ScriptedModel, reply
 from tests.test_conversation import config
@@ -37,6 +38,24 @@ async def until(condition: Callable[[], bool]) -> None:
     async with asyncio.timeout(5):
         while not condition():  # noqa: ASYNC110 - observe third-party UI state, no event hook
             await asyncio.sleep(0.01)
+
+
+@pytest.mark.parametrize("word", ["allow", "deny", "cancel"])
+async def test_approval_requires_fresh_typed_word_and_enter(word: str) -> None:
+    with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+        editor = TaskInput(PromptSession(output=DummyOutput()))
+        with editor.busy(lambda: None):
+            decision = asyncio.create_task(editor.approve())
+            await until(lambda: editor.approval is not None)
+            pipe.send_text("\x1b[200~allow\r\x1b[201~\r")
+            await asyncio.sleep(0.05)
+            assert not decision.done()
+            pipe.send_text(word)
+            await asyncio.sleep(0.05)
+            assert not decision.done()
+            pipe.send_text("\r")
+            assert await asyncio.wait_for(decision, 3) == word
+        assert editor.approval is None
 
 
 @pytest.mark.parametrize("bracketed", [False, True])
@@ -98,6 +117,8 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
     calls: list[str] = []
 
     class Conversation:
+        gateway = SecurityGateway()
+
         async def turn(self, text: str) -> RunResult:
             calls.append(text)
             if text == "continue":
@@ -395,6 +416,8 @@ async def test_ctrl_c_queued_just_after_submit_still_cancels_run() -> None:
     from prompt_toolkit.keys import Keys
 
     class Conversation:
+        gateway = SecurityGateway()
+
         async def turn(self, text: str) -> RunResult:
             try:
                 await asyncio.Event().wait()

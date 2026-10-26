@@ -139,6 +139,28 @@ async def drive(
             loop.call_soon_threadsafe(cancel_turn)
 
     previous = signal.signal(signal.SIGINT, interrupt)
+    old_approver = conversation.gateway.approver if editor is not None else None
+    if editor is not None:
+        from nexus.app.events import redact
+        from nexus.core.security import ApprovalDecision, ApprovalRequest
+
+        async def approve(request: ApprovalRequest) -> ApprovalDecision:
+            # Transcript spinners are stopped by the approval_requested event.
+            preview = str(redact(request.arguments_preview, conversation.secret_values()))
+            if len(preview) > 2000:
+                preview = preview[:2000] + "\n[Preview truncated; review the full tool call.]"
+            Console(highlight=False).print(Text(terminal_text(str(redact(
+                f"Approval: {request.tool_name}\n{preview}\n"
+                f"Scope: {request.capability_scope}\n"
+                "Type allow, deny or cancel, then Enter (Ctrl+C cancels).",
+                conversation.secret_values(),
+            )))))
+            choice = await editor.approve()
+            return ApprovalDecision(request.request_id,
+                                    "allow_once" if choice == "allow" else
+                                    "cancel" if choice == "cancel" else "deny")
+
+        conversation.gateway.approver = approve
     try:
         guard = editor.busy(lambda: interrupt(signal.SIGINT, None)) if editor else nullcontext()
         with guard:
@@ -147,6 +169,8 @@ async def drive(
                 return RunResult("completed")
             return await conversation.turn(text)
     finally:
+        if editor is not None:
+            conversation.gateway.approver = old_approver
         active = False
         signal.signal(signal.SIGINT, previous)
         if cancel_delivered:
@@ -217,7 +241,7 @@ async def application(args: argparse.Namespace) -> int:
     conversation = Conversation(workspace, config, summary)
     select = args.command == "resume"
     exit_reason: str | None = None
-    console.print("Nexus · trusted local execution · /help for commands")
+    console.print(f"Nexus · execution mode: {config.security.mode} · /help for commands")
     console.print(Text(
         INPUT_HELP, style="dim",
     ))

@@ -234,7 +234,9 @@ class Transcript:
         # Do not redraw the same preview for every usage/diagnostic event.
         if not self.live_output:
             self.flush()
-        if kind == "memory_daily":
+        if kind == "approval_requested":
+            self.stop_activity()
+        elif kind == "memory_daily":
             status = data["status"]
             detail = (
                 f"Preparing daily summary (up to {data['timeout_seconds']:g}s)…"

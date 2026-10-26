@@ -520,7 +520,7 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
-    monkeypatch.setattr(cli, "load_config", lambda: object())
+    monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
     monkeypatch.setattr(cli, "PromptSession", FakePrompt)
     monkeypatch.setattr(cli, "Conversation", FakeConversation)
     monkeypatch.setattr(cli, "list_sessions", lambda _: [])

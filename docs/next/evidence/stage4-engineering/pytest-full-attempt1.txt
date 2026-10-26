@@ -1,0 +1,540 @@
+........................................................................ [  8%]
+........F..F.......ssssssssss........................................... [ 16%]
+........................................................................ [ 24%]
+.........FF............................................................. [ 32%]
+........................................................................ [ 40%]
+........................................................................ [ 48%]
+........................................................................ [ 57%]
+.........................FF............................................. [ 65%]
+........................................................................ [ 73%]
+.......................................................F................ [ 81%]
+........................................................................ [ 89%]
+........................................................................ [ 97%]
+..................                                                       [100%]
+================================== FAILURES ===================================
+_________________ test_cli_new_and_resume_close_old_lifetimes _________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4-full-a3f1b99248374f4eb2a5106d5f7bbf01/pytest-of-Archer/pytest-0/test_cli_new_and_resume_close_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A244184FB0>
+
+    async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatch: Any) -> None:
+        instances: list[Any] = []
+        answers = iter(["/new", "/resume", "/exit"])
+
+        class Conversation:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+
+                # The replacement opens before the old conversation closes, so failure is safe.
+                self.closed = False
+                self.session = SimpleNamespace(messages=[], selected_skill=None)
+                self.resume = kwargs.get("resume")
+                instances.append(self)
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+
+            async def close(self) -> None:
+                self.closed = True
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+
+                from prompt_toolkit.input import DummyInput
+
+                self.app = SimpleNamespace(input=DummyInput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(items: Any) -> Path:
+            return tmp_path / "history.jsonl"
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: object())
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_conversation.py:322:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = Namespace(command=None)
+
+    async def application(args: argparse.Namespace) -> int:
+        if args.command == "memory":
+            return await memory_command(getattr(args, "action", "status"))
+        if args.command == "skills":
+            listing = SkillCatalog(Path.home() / ".nexus" / "skills")
+            show_skills(
+                Session(Path.cwd(), skill_catalog=listing.items),
+                listing.root,
+                listing.warnings,
+                Console(highlight=False),
+            )
+            return 0
+        if args.command == "eval":
+            from nexus.evaluation.cases import CASE_IDS, load_case
+            from nexus.evaluation.runner import evaluate
+
+            selected = list(CASE_IDS) if args.all else [args.case]
+            for case_id in selected:
+                load_case(case_id)
+            return await evaluate(selected, load_config())
+        workspace = Path.cwd().resolve()
+        interactive = args.command != "exec"
+        if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
+            raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
+        console = Console(highlight=False)
+        # Explicit output keeps our bindings active even under TERM=dumb; otherwise
+        # PromptSession silently substitutes its separate single-line dumb prompt.
+        prompt: PromptSession[str] | None = (
+            PromptSession(output=get_app_session().output) if interactive else None
+        )
+        if interactive and not read_toml(config_path()).get("model"):
+            assert prompt is not None
+            if not await setup(config_path(), prompt.prompt_async, console):
+                return 0
+        config = load_config()
+        if not interactive:
+            consumer = json_consumer if args.json else Transcript(console)
+            profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
+            conversation = Conversation(workspace, config, profile or consumer)
+            try:
+                if getattr(args, "skill", None):
+                    await conversation.select_skill(args.skill)
+                result = await drive(conversation, args.task)
+                if profile:
+                    profile.render(
+                        console,
+                        conversation.config.limits,
+                        conversation.writer.path if conversation.writer else None,
+                    )
+                return {"completed": 0, "failed": 1, "limited": 3, "aborted": 130}[result.outcome]
+            finally:
+                try:
+                    await conversation.close()
+                finally:
+                    if isinstance(consumer, Transcript):
+                        consumer.stop_activity()
+        assert prompt is not None
+        transcript = Transcript(console)
+        profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
+        summary = InteractionSummary(profile or transcript)
+        editor = TaskInput(prompt)
+        conversation = Conversation(workspace, config, summary)
+        select = args.command == "resume"
+        exit_reason: str | None = None
+>       console.print(f"Nexus �� execution mode: {config.security.mode} �� /help for commands")
+                                                 ^^^^^^^^^^^^^^^
+E       AttributeError: 'object' object has no attribute 'security'
+
+src\nexus\app\cli.py:240: AttributeError
+________________ test_late_sigint_does_not_cancel_next_prompt _________________
+
+    async def test_late_sigint_does_not_cancel_next_prompt() -> None:
+        class QuickConversation:
+            async def turn(self, text: str) -> RunResult:
+                handler = signal.getsignal(signal.SIGINT)
+                assert callable(handler)
+                handler(signal.SIGINT, None)
+                return RunResult("completed")
+
+        conversation: Any = QuickConversation()
+>       assert (await cli.drive(conversation, "finish")).outcome == "completed"
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_conversation.py:388:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+conversation = <tests.test_conversation.test_late_sigint_does_not_cancel_next_prompt.<locals>.QuickConversation object at 0x000001A2442FBE00>
+text = 'finish', compact = False, editor = None
+
+    async def drive(
+        conversation: Conversation, text: str, *, compact: bool = False,
+        editor: TaskInput | None = None,
+    ) -> RunResult:
+        loop = asyncio.get_running_loop()
+        # MCP async contexts must be opened and closed in the same owning task.
+        # Keep turns in the CLI task across prompts; SIGINT still cancels the active turn.
+        task = asyncio.current_task()
+        assert task is not None
+        cancelled = False
+        active = True
+        cancel_delivered = False
+
+        def cancel_turn() -> None:
+            nonlocal cancel_delivered
+            if active:
+                task.cancel()
+                cancel_delivered = True
+
+        def interrupt(signum: int, frame: object) -> None:
+            nonlocal cancelled
+            if not cancelled:
+                cancelled = True
+                # Wake the selector/proactor even when the signal interrupts an idle wait.
+                loop.call_soon_threadsafe(cancel_turn)
+
+        previous = signal.signal(signal.SIGINT, interrupt)
+>       old_approver = conversation.gateway.approver
+                       ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'QuickConversation' object has no attribute 'gateway'
+
+src\nexus\app\cli.py:142: AttributeError
+________________ test_cancel_resume_keeps_current_conversation ________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4-full-a3f1b99248374f4eb2a5106d5f7bbf01/pytest-of-Archer/pytest-0/test_cancel_resume_keeps_curre0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A244A7B110>
+
+    async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypatch: Any) -> None:
+        instances: list[Any] = []
+        answers = iter(["/resume", "/exit"])
+
+        class FakeConversation:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.closed = False
+                instances.append(self)
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+
+            async def close(self) -> None:
+                self.closed = True
+
+        class FakePrompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+
+                from prompt_toolkit.input import DummyInput
+
+                self.app = SimpleNamespace(input=DummyInput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                assert len(instances) == 1 and not instances[0].closed
+                return next(answers)
+
+        async def cancel(items: Any) -> None:
+            assert not instances[0].closed
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: object())
+        monkeypatch.setattr(cli, "PromptSession", FakePrompt)
+        monkeypatch.setattr(cli, "Conversation", FakeConversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", cancel)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_mcp_tui.py:529:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = Namespace(command=None)
+
+    async def application(args: argparse.Namespace) -> int:
+        if args.command == "memory":
+            return await memory_command(getattr(args, "action", "status"))
+        if args.command == "skills":
+            listing = SkillCatalog(Path.home() / ".nexus" / "skills")
+            show_skills(
+                Session(Path.cwd(), skill_catalog=listing.items),
+                listing.root,
+                listing.warnings,
+                Console(highlight=False),
+            )
+            return 0
+        if args.command == "eval":
+            from nexus.evaluation.cases import CASE_IDS, load_case
+            from nexus.evaluation.runner import evaluate
+
+            selected = list(CASE_IDS) if args.all else [args.case]
+            for case_id in selected:
+                load_case(case_id)
+            return await evaluate(selected, load_config())
+        workspace = Path.cwd().resolve()
+        interactive = args.command != "exec"
+        if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
+            raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
+        console = Console(highlight=False)
+        # Explicit output keeps our bindings active even under TERM=dumb; otherwise
+        # PromptSession silently substitutes its separate single-line dumb prompt.
+        prompt: PromptSession[str] | None = (
+            PromptSession(output=get_app_session().output) if interactive else None
+        )
+        if interactive and not read_toml(config_path()).get("model"):
+            assert prompt is not None
+            if not await setup(config_path(), prompt.prompt_async, console):
+                return 0
+        config = load_config()
+        if not interactive:
+            consumer = json_consumer if args.json else Transcript(console)
+            profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
+            conversation = Conversation(workspace, config, profile or consumer)
+            try:
+                if getattr(args, "skill", None):
+                    await conversation.select_skill(args.skill)
+                result = await drive(conversation, args.task)
+                if profile:
+                    profile.render(
+                        console,
+                        conversation.config.limits,
+                        conversation.writer.path if conversation.writer else None,
+                    )
+                return {"completed": 0, "failed": 1, "limited": 3, "aborted": 130}[result.outcome]
+            finally:
+                try:
+                    await conversation.close()
+                finally:
+                    if isinstance(consumer, Transcript):
+                        consumer.stop_activity()
+        assert prompt is not None
+        transcript = Transcript(console)
+        profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
+        summary = InteractionSummary(profile or transcript)
+        editor = TaskInput(prompt)
+        conversation = Conversation(workspace, config, summary)
+        select = args.command == "resume"
+        exit_reason: str | None = None
+>       console.print(f"Nexus �� execution mode: {config.security.mode} �� /help for commands")
+                                                 ^^^^^^^^^^^^^^^
+E       AttributeError: 'object' object has no attribute 'security'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:240: AttributeError
+______________________ test_signal_wakes_idle_event_loop ______________________
+
+    def test_signal_wakes_idle_event_loop() -> None:
+        # A separate interpreter owns SIGINT; never interrupt pytest itself.
+        code = """
+    import asyncio, os, signal, threading, time
+    from nexus.app.cli import drive
+    from nexus.core.types import RunResult
+    class Conversation:
+        async def turn(self, text):
+            # Windows os.kill(SIGINT) terminates rather than delivering a console event.
+            def interrupt():
+                if os.name == 'nt':
+                    signal.getsignal(signal.SIGINT)(signal.SIGINT, None)
+                else:
+                    os.kill(os.getpid(), signal.SIGINT)
+            threading.Timer(.2, interrupt).start()
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                return RunResult('aborted')
+            raise AssertionError('signal failed to wake event loop')
+    started = time.monotonic()
+    result = asyncio.run(drive(Conversation(), 'test'))
+    assert result.outcome == 'aborted'
+    assert time.monotonic() - started < 5
+    """
+        result = subprocess.run([sys.executable, "-c", code], capture_output=True, timeout=10)
+>       assert result.returncode == 0, result.stderr.decode(errors="replace")
+E       AssertionError: Traceback (most recent call last):
+
+E           File "<string>", line 20, in <module>
+
+E           File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 195, in run
+
+E             return runner.run(main)
+
+E                    ^^^^^^^^^^^^^^^^
+
+E           File "D:\Tools\python\py312\Lib\asyncio\runners.py", line 118, in run
+
+E             return self._loop.run_until_complete(task)
+
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+E           File "D:\Tools\python\py312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+
+E             return future.result()
+
+E                    ^^^^^^^^^^^^^^^
+
+E           File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py", line 142, in drive
+
+E             old_approver = conversation.gateway.approver
+
+E                            ^^^^^^^^^^^^^^^^^^^^
+
+E         AttributeError: 'Conversation' object has no attribute 'gateway'
+
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['D:\\WorkSpace\\releasePro\\github\\Nexus\\Nexus-next\\.venv\\Scripts\\python.exe', '-c', "\nim...\n                   ^^^^^^^^^^^^^^^^^^^^\r\nAttributeError: \'Conversation\' object has no attribute \'gateway\'\r\n').returncode
+
+tests\test_mcp_tui.py:559: AssertionError
+_________ test_dispatch_order_budget_final_and_next_request[pending] __________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4-full-a3f1b99248374f4eb2a5106d5f7bbf01/pytest-of-Archer/pytest-0/test_dispatch_order_budget_fin0')
+status = 'pending'
+
+    @pytest.mark.parametrize("status", ["pending", "completed"])
+    async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, status: str) -> None:
+        session = Session(tmp_path)
+        events = Recorder()
+        await append_message(session, Message("system", "root instructions"), events)
+        seen = []
+
+        async def inspect(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            seen.append(session.plan)
+            return ToolResult(context.call_id, True, {})
+
+        registry = {
+            "update_plan": create_update_plan_tool(session),
+            "inspect": Tool(ToolSpec("inspect", "", {}), inspect),
+        }
+        first = reply(
+            call("update_plan", {"plan": [item(status=status)]}, "p1"),
+            call("inspect", {}, "i"),
+            call("update_plan", {"plan": [item("Latest", status)], "explanation": "audit only"}, "p2"),
+        )
+        first.message.protocol_data = {"reasoning_content": "private continuation"}
+        model = ScriptedModel([first, reply(text="Legal final with any plan status")])
+        result = await run_turn(session, "task", model, registry, events, Limits())
+        assert result.outcome == "completed" and result.steps == 2 and result.tool_calls == 3
+        assert result.model_calls == 2 and len(model.requests) == 2
+        assert seen[0] and seen[0].items[0].step == "Inspect"
+        assert snapshot(model.requests[0]) == {"plan": []}
+        assert snapshot(model.requests[1]) == {"plan": [item("Latest", status)]}
+        assert "audit only" not in model.requests[1][0].content
+        assert model.requests[1][2].protocol_data == first.message.protocol_data
+        groups(model.requests[1])
+        assert all(SNAPSHOT_HEADER not in m.content for m in session.messages)
+        updates = [data for kind, data in events.events if kind == "plan_updated"]
+        assert [data["call_id"] for data in updates] == ["p1", "p2"]
+        assert all(data["step"] == 1 for data in updates)
+        kinds = [kind for kind, _ in events.events]
+        for index, kind in enumerate(kinds):
+            if kind == "plan_updated":
+>               assert kinds[index - 1] == "tool_started"
+E               AssertionError: assert 'tool_execution' == 'tool_started'
+E
+E                 - tool_started
+E                 + tool_execution
+
+tests\test_plan.py:180: AssertionError
+________ test_dispatch_order_budget_final_and_next_request[completed] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4-full-a3f1b99248374f4eb2a5106d5f7bbf01/pytest-of-Archer/pytest-0/test_dispatch_order_budget_fin1')
+status = 'completed'
+
+    @pytest.mark.parametrize("status", ["pending", "completed"])
+    async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, status: str) -> None:
+        session = Session(tmp_path)
+        events = Recorder()
+        await append_message(session, Message("system", "root instructions"), events)
+        seen = []
+
+        async def inspect(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            seen.append(session.plan)
+            return ToolResult(context.call_id, True, {})
+
+        registry = {
+            "update_plan": create_update_plan_tool(session),
+            "inspect": Tool(ToolSpec("inspect", "", {}), inspect),
+        }
+        first = reply(
+            call("update_plan", {"plan": [item(status=status)]}, "p1"),
+            call("inspect", {}, "i"),
+            call("update_plan", {"plan": [item("Latest", status)], "explanation": "audit only"}, "p2"),
+        )
+        first.message.protocol_data = {"reasoning_content": "private continuation"}
+        model = ScriptedModel([first, reply(text="Legal final with any plan status")])
+        result = await run_turn(session, "task", model, registry, events, Limits())
+        assert result.outcome == "completed" and result.steps == 2 and result.tool_calls == 3
+        assert result.model_calls == 2 and len(model.requests) == 2
+        assert seen[0] and seen[0].items[0].step == "Inspect"
+        assert snapshot(model.requests[0]) == {"plan": []}
+        assert snapshot(model.requests[1]) == {"plan": [item("Latest", status)]}
+        assert "audit only" not in model.requests[1][0].content
+        assert model.requests[1][2].protocol_data == first.message.protocol_data
+        groups(model.requests[1])
+        assert all(SNAPSHOT_HEADER not in m.content for m in session.messages)
+        updates = [data for kind, data in events.events if kind == "plan_updated"]
+        assert [data["call_id"] for data in updates] == ["p1", "p2"]
+        assert all(data["step"] == 1 for data in updates)
+        kinds = [kind for kind, _ in events.events]
+        for index, kind in enumerate(kinds):
+            if kind == "plan_updated":
+>               assert kinds[index - 1] == "tool_started"
+E               AssertionError: assert 'tool_execution' == 'tool_started'
+E
+E                 - tool_started
+E                 + tool_execution
+
+tests\test_plan.py:180: AssertionError
+___________ test_dispatch_dedup_invalid_order_no_workspace_changes ____________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4-full-a3f1b99248374f4eb2a5106d5f7bbf01/pytest-of-Archer/pytest-0/test_dispatch_dedup_invalid_or0')
+
+    async def test_dispatch_dedup_invalid_order_no_workspace_changes(tmp_path: Path) -> None:
+        path = install(tmp_path / "skills")
+        original = path.read_bytes()
+        catalog = SkillCatalog(tmp_path / "skills")
+        session = Session(tmp_path, skill_catalog=catalog.items)
+        events = Recorder()
+        model = ScriptedModel(
+            [
+                reply(
+                    call("load_skill", {"name": "unknown"}, "bad"),
+                    call("load_skill", {"name": "regression"}, "first"),
+                    call("load_skill", {"name": "regression"}, "again"),
+                ),
+                reply(text="done"),
+            ]
+        )
+        result = await run_turn(
+            session, "task", model, default_tools(session, skill_loader=catalog.load), events, Limits()
+        )
+        assert result.outcome == "completed" and result.tool_calls == 3 and result.steps == 2
+        updates = [data for kind, data in events.events if kind == "skill_loaded"]
+        assert len(updates) == 1 and updates[0]["step"] == 1 and updates[0]["call_id"] == "first"
+        assert [data["call_id"] for kind, data in events.events if kind == "tool_finished"] == [
+            "bad",
+            "first",
+            "again",
+        ]
+        assert "Unique regression guidance." not in body(model.requests[0])
+        assert body(model.requests[1]).count("Unique regression guidance.") == 1
+        assert all("Unique regression guidance." not in m.content for m in session.messages)
+        assert path.read_bytes() == original
+        kinds = [kind for kind, _ in events.events]
+        i = kinds.index("skill_loaded")
+>       assert kinds[i - 1 : i + 3] == ["tool_started", "skill_loaded", "message", "tool_finished"]
+E       AssertionError: assert ['tool_execut...n', 'message'] == ['tool_starte...ool_finished']
+E
+E         At index 0 diff: 'tool_execution' != 'tool_started'
+E         Use -v to get more diff
+
+tests\test_skills.py:154: AssertionError
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_conversation.py::test_cli_new_and_resume_close_old_lifetimes
+FAILED tests/test_conversation.py::test_late_sigint_does_not_cancel_next_prompt
+FAILED tests/test_mcp_tui.py::test_cancel_resume_keeps_current_conversation
+FAILED tests/test_mcp_tui.py::test_signal_wakes_idle_event_loop - AssertionError: Traceback (most recent call last):
+
+FAILED tests/test_plan.py::test_dispatch_order_budget_final_and_next_request[pending]
+FAILED tests/test_plan.py::test_dispatch_order_budget_final_and_next_request[completed]
+FAILED tests/test_skills.py::test_dispatch_dedup_invalid_order_no_workspace_changes
+7 failed, 865 passed, 10 skipped in 71.27s (0:01:11)

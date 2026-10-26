@@ -153,6 +153,8 @@ class TaskInput:
         self.blocks: dict[str, Paste] = {}
         self.capture: str | None = None
         self.number = 0
+        self.approval: asyncio.Future[str] | None = None
+        self.approval_text = ""
         self.history = ExpandedHistory(self.expand)
         self.clipboard = ExpandedClipboard(self.expand)
 
@@ -369,6 +371,21 @@ class TaskInput:
             keys = source.read_keys()
             if any(key.key == Keys.ControlC for key in keys):
                 interrupt()
+                return
+            for key in keys:
+                if self.approval is None or self.approval.done():
+                    continue
+                # Pasted text is never an approval. Require a fresh typed word + Enter.
+                if key.key == Keys.BracketedPaste:
+                    self.approval_text = ""
+                elif key.key == Keys.ControlM:
+                    if self.approval_text in {"allow", "deny", "cancel"}:
+                        self.approval.set_result(self.approval_text)
+                    self.approval_text = ""
+                elif key.key == Keys.ControlH:
+                    self.approval_text = self.approval_text[:-1]
+                elif len(key.data) == 1 and key.data.isascii() and key.data.isalpha():
+                    self.approval_text = (self.approval_text + key.data.lower())[-12:]
 
         with source.raw_mode():
             # Preserve a Ctrl+C pressed just after submit, while discarding text.
@@ -378,3 +395,17 @@ class TaskInput:
                     yield
                 finally:
                     self.discard()
+
+    async def approve(self) -> str:
+        """Read an explicit decision through the already-owned busy input callback."""
+        if self.prompt.app.input.closed:
+            return "deny"
+        self.discard()
+        self.approval_text = ""
+        self.approval = asyncio.get_running_loop().create_future()
+        try:
+            return await self.approval
+        finally:
+            self.approval = None
+            self.approval_text = ""
+            self.discard()

@@ -1,0 +1,21 @@
+ISOLATED_WHEEL_AND_REAL_PATCH_WORKER_PASS
+C:\Users\Archer\AppData\Local\Temp\nexus-stage4-wheel-311d40a8f5ef49f6b0eaf3f0d381540a\Lib\site-packages\nexus\tools
+0.2.0
+usage: nexus [-h] [--version] [--profile] [--skill SKILL]
+             {memory,skills,eval,exec,resume} ...
+
+Nexus Next local coding agent
+
+positional arguments:
+  {memory,skills,eval,exec,resume}
+    memory              Inspect memory/index state without a model call
+    skills              List local Skills without a model connection
+    eval                Run fixed Next Dev Set V0 cases
+    exec                Run one coding task
+    resume              Select a local conversation in this workspace
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --profile             Show a developer report after each run
+  --skill SKILL         Select a local Skill for this session
