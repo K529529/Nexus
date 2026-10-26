@@ -1,0 +1,75 @@
+{
+  "code_commit": "33e456a26daeae0b91c6f7153fe43852c4b569a2",
+  "python": "/home/archer/nexus-stage4c-20261027/venv/bin/python",
+  "installed": "/home/archer/nexus-stage4c-20261027/venv/lib/python3.12/site-packages/nexus",
+  "files": [
+    {
+      "file": "app/bootstrap.py",
+      "sha256": "36e686f1ac838cdb578419dd705449ff68573e354567008cb90fc0bfdf2ba8cc",
+      "matches_source": true
+    },
+    {
+      "file": "app/cli.py",
+      "sha256": "e30b9129df895458bf0be6c8f68e258d173d86d635b015e85fefaaf502c16749",
+      "matches_source": true
+    },
+    {
+      "file": "app/config.py",
+      "sha256": "ff94d5b5fda7586331c78d49cdfc4fce6ea8ea56d651f163b69675af10d4927e",
+      "matches_source": true
+    },
+    {
+      "file": "app/tui.py",
+      "sha256": "bfccd69629c9f4c354dd55d53ab5b279455f4a6b29bb8aaf06fb36e1f86c4982",
+      "matches_source": true
+    },
+    {
+      "file": "app/sandbox_setup.py",
+      "sha256": "9f38613bf35f445e0543b39a56ea9c2dbe89bf0c607be061eb06761607a508a9",
+      "matches_source": true
+    },
+    {
+      "file": "core/security.py",
+      "sha256": "b218b5f00efce47bea5c588590a272574f36432f60701a97fc45b271b1ccb338",
+      "matches_source": true
+    },
+    {
+      "file": "tools/patch.py",
+      "sha256": "4666642e41106f551921163c2b56638ae994a7b0221f04930c50a1156b759fa8",
+      "matches_source": true
+    },
+    {
+      "file": "tools/patch_worker.py",
+      "sha256": "8d82a7e9ce4ded2c95454b4cd21d5cb0ebd2c4cc0d0b87db00a248c20d011155",
+      "matches_source": true
+    },
+    {
+      "file": "tools/windows_native.py",
+      "sha256": "d8d6f576b71b7b0d41bdcad9fb192cddaefee52809b76b95ea10bfcbc3d497f5",
+      "matches_source": true
+    },
+    {
+      "file": "tools/platform_backend.py",
+      "sha256": "6ca537510801dce9dcb848ac1494aadeba79d2bc6668af4c887da683b198d709",
+      "matches_source": true
+    },
+    {
+      "file": "tools/linux_docker.py",
+      "sha256": "6aeff2c54d80f828d83f919af700d5754f552ef0e7f48fd476d9a8ba335a0628",
+      "matches_source": true
+    },
+    {
+      "file": "tools/docker_image.py",
+      "sha256": "3e63210615cfbebce667999e2aba3d5cf53d53488423275d302bb305ac64ee6c",
+      "matches_source": true
+    },
+    {
+      "file": "tools/docker_shell.py",
+      "sha256": "cc3d715bbff06d180cb4e5eedfe24143f1fd18d324ce4fab93d1f92df8d32e57",
+      "matches_source": true
+    }
+  ],
+  "image_tag": "nexus-sandbox:2927d7ed4632f291e3b2",
+  "worker_fingerprint": "2927d7ed4632f291e3b265405f497de1537d3904dda2927d00296521e9298f04",
+  "wheel_sha256": "8368871b244915baeabfbdf226e677902f27ab88106928f7530df9b15388ed7e"
+}

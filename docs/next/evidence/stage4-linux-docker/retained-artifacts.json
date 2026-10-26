@@ -1,0 +1,46 @@
+[
+  {
+    "path": "/home/archer/nexus-stage4c-20261027/acceptance-469fc6c3d7664491b334b8abb3a5d24d",
+    "evidence": "real-01.json",
+    "reason": "Preserved real acceptance fixtures and failure/iteration history; audit copied into repository"
+  },
+  {
+    "path": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab",
+    "evidence": "real-02.json",
+    "reason": "Preserved real acceptance fixtures and failure/iteration history; audit copied into repository"
+  },
+  {
+    "path": "/home/archer/nexus-stage4c-20261027/acceptance-ea6ac9f44d5d4cb78515a732f65fe0ee",
+    "evidence": "real-03.json",
+    "reason": "Preserved real acceptance fixtures and failure/iteration history; audit copied into repository"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-native-acceptance-b55d404a1ea94c78afea518c939f7514",
+    "evidence": "windows-native-01.json",
+    "reason": "Preserved real acceptance fixtures and failure/iteration history; audit copied into repository"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-TT8UV1",
+    "reason": "NOT CONFIRMED after forced process kill; no automatic reuse or ACL repair"
+  },
+  {
+    "path": "/home/archer/nexus-stage4c-20261027/venv",
+    "reason": "Final installed Linux candidate for user manual acceptance"
+  },
+  {
+    "path": "/home/archer/nexus-stage4c-20261027/work",
+    "reason": "Dedicated manual acceptance workspace with test_temp.py"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-stage4c-windows-20261027",
+    "reason": "Final installed Windows candidate for manual acceptance"
+  },
+  {
+    "image": "nexus-sandbox:2927d7ed4632f291e3b2",
+    "reason": "Final trusted image for manual acceptance"
+  },
+  {
+    "image": "nexus-sandbox:4b99b4ac64f995722e83",
+    "reason": "Earlier iteration retained; not reused by final source fingerprint"
+  }
+]

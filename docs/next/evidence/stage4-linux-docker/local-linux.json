@@ -1,0 +1,125 @@
+{
+  "python": "/home/archer/nexus-stage4c-20261027/venv/bin/python",
+  "rows": [
+    {
+      "tool": "exec_command",
+      "ms": 1.3703499571420252,
+      "result": {
+        "call_id": "0",
+        "ok": true,
+        "data": {
+          "command": "printf local-ok",
+          "cwd": "/tmp/nexus-local-4c-ybr2pj3i",
+          "shell": "/bin/sh",
+          "exit_code": 0,
+          "stdout": "local-ok",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 1
+        },
+        "error_code": null,
+        "duration_ms": 1,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "exec_command",
+      "ms": 0.9931219974532723,
+      "result": {
+        "call_id": "1",
+        "ok": true,
+        "data": {
+          "command": "printf local-ok",
+          "cwd": "/tmp/nexus-local-4c-ybr2pj3i",
+          "shell": "/bin/sh",
+          "exit_code": 0,
+          "stdout": "local-ok",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 0
+        },
+        "error_code": null,
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "exec_command",
+      "ms": 0.9804699802771211,
+      "result": {
+        "call_id": "2",
+        "ok": true,
+        "data": {
+          "command": "printf local-ok",
+          "cwd": "/tmp/nexus-local-4c-ybr2pj3i",
+          "shell": "/bin/sh",
+          "exit_code": 0,
+          "stdout": "local-ok",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 0
+        },
+        "error_code": null,
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "tool": "apply_patch",
+      "ms": 0.5202449974603951,
+      "result": {
+        "call_id": "3",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "local.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 0,
+        "truncated": false
+      }
+    }
+  ],
+  "docker_module_loaded": false
+}

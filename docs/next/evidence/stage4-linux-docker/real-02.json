@@ -1,0 +1,1912 @@
+{
+  "root": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab",
+  "python": "/home/archer/nexus-stage4c-20261027/venv/bin/python",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "uid_gid": [
+    1000,
+    1000
+  ],
+  "rows": [
+    {
+      "test": "workspace-write-lazy",
+      "pass": true
+    },
+    {
+      "test": "workspace-write-cold-shell",
+      "pass": true,
+      "result": {
+        "call_id": "1c4673f1cc0f40289ef89ba2803d10e1",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "shell-ok\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 877,
+        "truncated": false
+      },
+      "elapsed_ms": 877.75
+    },
+    {
+      "test": "workspace-write-inspect",
+      "pass": true,
+      "inspection": {
+        "Id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+        "Created": "2026-10-26T17:05:16.584933933Z",
+        "Path": "/bin/sleep",
+        "Args": [
+          "infinity"
+        ],
+        "State": {
+          "Status": "running",
+          "Running": true,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 82409,
+          "ExitCode": 0,
+          "Error": "",
+          "StartedAt": "2026-10-26T17:05:16.648110552Z",
+          "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:dbf0ad1129be38105adf20c10b84e462d8f29f3be531bd8a30053197c6f7f74f",
+        "ResolvConfPath": "/var/lib/docker/containers/4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7/hostname",
+        "HostsPath": "/var/lib/docker/containers/4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7/hosts",
+        "LogPath": "/var/lib/docker/containers/4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7/4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7-json.log",
+        "Name": "/nexus-sbx-a8bd788ac3f14dcfb7a0362c2d8b61ad",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+          "Binds": null,
+          "ContainerIDFile": "",
+          "LogConfig": {
+            "Type": "json-file",
+            "Config": {}
+          },
+          "NetworkMode": "bridge",
+          "PortBindings": {},
+          "RestartPolicy": {
+            "Name": "no",
+            "MaximumRetryCount": 0
+          },
+          "AutoRemove": false,
+          "VolumeDriver": "",
+          "VolumesFrom": null,
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "CgroupnsMode": "private",
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IpcMode": "private",
+          "Cgroup": "",
+          "Links": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyRootfs": true,
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "Tmpfs": {
+            "/tmp": "rw,nosuid,nodev,size=268435456,mode=1777"
+          },
+          "UTSMode": "",
+          "UsernsMode": "",
+          "ShmSize": 67108864,
+          "Runtime": "runc",
+          "Isolation": "",
+          "CpuShares": 0,
+          "Memory": 1073741824,
+          "NanoCpus": 2000000000,
+          "CgroupParent": "",
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteIOps": [],
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "Devices": [],
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "MemoryReservation": 0,
+          "MemorySwap": 1073741824,
+          "MemorySwappiness": null,
+          "OomKillDisable": null,
+          "PidsLimit": 128,
+          "Ulimits": [],
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "IOMaximumIOps": 0,
+          "IOMaximumBandwidth": 0,
+          "Mounts": [
+            {
+              "Type": "bind",
+              "Source": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work",
+              "Target": "/workspace",
+              "BindOptions": {
+                "NonRecursive": true
+              }
+            }
+          ],
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "Init": true
+        },
+        "Storage": {
+          "RootFS": {
+            "Snapshot": {
+              "Name": "overlayfs"
+            }
+          }
+        },
+        "Mounts": [
+          {
+            "Type": "bind",
+            "Source": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work",
+            "Destination": "/workspace",
+            "Mode": "",
+            "RW": true,
+            "Propagation": "rprivate"
+          }
+        ],
+        "Config": {
+          "Hostname": "4b57ace1f970",
+          "Domainname": "",
+          "User": "1000:1000",
+          "AttachStdin": false,
+          "AttachStdout": true,
+          "AttachStderr": true,
+          "Tty": false,
+          "OpenStdin": false,
+          "StdinOnce": false,
+          "Env": [
+            "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "LANG=C.UTF-8",
+            "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+            "PYTHON_VERSION=3.12.14",
+            "PYTHON_SHA256=5c8462af5790baf43a321a1559dbe0db06d1be4300fb85fb53c40060668e548a",
+            "HOME=/tmp",
+            "TMPDIR=/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "PYTHONUNBUFFERED=1"
+          ],
+          "Cmd": [
+            "infinity"
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Image": "sha256:dbf0ad1129be38105adf20c10b84e462d8f29f3be531bd8a30053197c6f7f74f",
+          "Volumes": null,
+          "WorkingDir": "/workspace",
+          "Entrypoint": [
+            "/bin/sleep"
+          ],
+          "Labels": {
+            "desktop.docker.io/wsl-distro": "Ubuntu",
+            "io.nexus.sandbox": "v1",
+            "io.nexus.sandbox.boot": "020fa816-fffc-4c4a-b981-c39be8151b06",
+            "io.nexus.sandbox.code": "4b99b4ac64f995722e835511bcd2b20b59ec6af165d71e6326cef8fee25818ce",
+            "io.nexus.sandbox.host": "6f6c88ddf55a4a209e464b407d276c48",
+            "io.nexus.sandbox.pid": "13219",
+            "io.nexus.sandbox.protocol": "nexus-patch-ack-v2",
+            "io.nexus.sandbox.session": "nexus-sbx-a8bd788ac3f14dcfb7a0362c2d8b61ad",
+            "io.nexus.sandbox.start": "36270986",
+            "io.nexus.sandbox.uid": "1000",
+            "io.nexus.sandbox.workspace": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work"
+          },
+          "StopTimeout": 1
+        },
+        "NetworkSettings": {
+          "SandboxID": "82eb9b27ded3c6d9ac936fa861444835d7362710da33dbcc1f0622ea82a21aa1",
+          "SandboxKey": "/var/run/docker/netns/82eb9b27ded3",
+          "Ports": {},
+          "Networks": {
+            "bridge": {
+              "IPAMConfig": null,
+              "Links": null,
+              "Aliases": null,
+              "DriverOpts": null,
+              "GwPriority": 0,
+              "NetworkID": "6c3555e6e6a1a717b2a43062776c5ece4b63cd3295b105d59c2586a9b23bb3e4",
+              "EndpointID": "057e67b89bfc4231c34887af00623700dba32dba5116ea6c42e7096fed5d6acb",
+              "Gateway": "172.17.0.1",
+              "IPAddress": "172.17.0.2",
+              "MacAddress": "a6:f7:70:31:64:52",
+              "IPPrefixLen": 16,
+              "IPv6Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "DNSNames": null
+            }
+          }
+        },
+        "ImageManifestDescriptor": {
+          "mediaType": "application/vnd.oci.image.manifest.v1+json",
+          "digest": "sha256:edde61e8f19eb71a4cd7b4a0a0088e90b4a9775b9fc3d01d47a85b9dc6e0827a",
+          "size": 2004,
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        }
+      },
+      "timings": {
+        "engine_check_ms": 499.946637020912,
+        "image_check_ms": 41.70199000509456,
+        "container_start_ms": 254.57162800012156,
+        "cleanup_ms": 291.3947160122916
+      }
+    },
+    {
+      "test": "workspace-write-warm-0",
+      "pass": true,
+      "result": {
+        "call_id": "3b593e8ce9e0459db29fe9e61090c74d",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 124,
+        "truncated": false
+      },
+      "elapsed_ms": 124.86
+    },
+    {
+      "test": "workspace-write-warm-1",
+      "pass": true,
+      "result": {
+        "call_id": "448f207c94d542259bb725ccbeb2b29a",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 118,
+        "truncated": false
+      },
+      "elapsed_ms": 118.56
+    },
+    {
+      "test": "workspace-write-warm-2",
+      "pass": true,
+      "result": {
+        "call_id": "d296bf268d2e4cc7b134d08a435b1f93",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 124,
+        "truncated": false
+      },
+      "elapsed_ms": 124.58
+    },
+    {
+      "test": "workspace-write-workdir",
+      "pass": true,
+      "result": {
+        "call_id": "24a3cde714b34e25874aaa0e5e194850",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "/workspace/sub\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 128,
+        "truncated": false
+      },
+      "elapsed_ms": 129.02
+    },
+    {
+      "test": "workspace-write-identity-capabilities-env",
+      "pass": true,
+      "result": {
+        "call_id": "59f71739db124d6b97e8a6e6d18520dd",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "1000 1000\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 148,
+        "truncated": false
+      },
+      "elapsed_ms": 149.09
+    },
+    {
+      "test": "workspace-write-python0700-tempfile-pytest",
+      "pass": true,
+      "result": {
+        "call_id": "1253b68f950e4ee48d7e21320bffd074",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 318,
+        "truncated": false
+      },
+      "elapsed_ms": 319.04
+    },
+    {
+      "test": "workspace-write-workspace-create",
+      "pass": true,
+      "result": {
+        "call_id": "e44725c157c74fcaaab90dd271779093",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 124,
+        "truncated": false
+      },
+      "elapsed_ms": 124.31
+    },
+    {
+      "test": "workspace-write-workspace-update",
+      "pass": true,
+      "result": {
+        "call_id": "c10259b100e04d2ba6f25491fff88f4c",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 125,
+        "truncated": false
+      },
+      "elapsed_ms": 125.53
+    },
+    {
+      "test": "workspace-write-workspace-delete",
+      "pass": true,
+      "result": {
+        "call_id": "ff48e4e25afb47579cd24aefa675bccf",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 133,
+        "truncated": false
+      },
+      "elapsed_ms": 133.56
+    },
+    {
+      "test": "workspace-write-outside-host-not-mounted-temp-writable",
+      "pass": true,
+      "result": {
+        "call_id": "a0ee4574d1f946139234ecc60a439262",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 131,
+        "truncated": false
+      },
+      "elapsed_ms": 131.71
+    },
+    {
+      "test": "workspace-write-bounded-output",
+      "pass": true,
+      "result": {
+        "call_id": "54f50e4140264a12be93ce24b1b43646",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n[... output truncated ...]\n",
+          "stderr": "\n[... output truncated ...]\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n",
+          "discarded_bytes": {
+            "stdout": 38977,
+            "stderr": 38977
+          },
+          "truncated": true,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 144,
+        "truncated": true
+      },
+      "elapsed_ms": 144.52
+    },
+    {
+      "test": "patch-create-audit-before-write",
+      "pass": true,
+      "result": {
+        "call_id": "c53fd55d46f645be9eea1b1a203cd14f",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "edit.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": "",
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 232,
+        "truncated": false
+      },
+      "elapsed_ms": 232.88
+    },
+    {
+      "test": "patch-update-host-ownership",
+      "pass": true,
+      "result": {
+        "call_id": "fff07484a36d4a4fb9619259723d7a20",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "edit.txt",
+              "status": "modified",
+              "added_lines": 1,
+              "deleted_lines": 1,
+              "before_hash": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+              "after_hash": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": "",
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 237,
+        "truncated": false
+      },
+      "elapsed_ms": 237.97
+    },
+    {
+      "test": "git-init-add-commit",
+      "pass": true,
+      "result": {
+        "call_id": "c0e173f7f3ef4a6493c41b856f501069",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4b57ace1f970eb25d89d87cd3c9616d3de837bb3953cefdc519fe6aebee1ebf7",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 163,
+        "truncated": false
+      },
+      "elapsed_ms": 163.59
+    },
+    {
+      "test": "workspace-write-normal-cleanup",
+      "pass": true,
+      "timings": {
+        "engine_check_ms": 499.946637020912,
+        "image_check_ms": 41.70199000509456,
+        "container_start_ms": 254.57162800012156,
+        "cleanup_ms": 291.3947160122916
+      }
+    },
+    {
+      "test": "read-only-lazy",
+      "pass": true
+    },
+    {
+      "test": "read-only-cold-shell",
+      "pass": true,
+      "result": {
+        "call_id": "ec51b22564524552bd51523a246a5014",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "shell-ok\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 718,
+        "truncated": false
+      },
+      "elapsed_ms": 718.43
+    },
+    {
+      "test": "read-only-inspect",
+      "pass": true,
+      "inspection": {
+        "Id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+        "Created": "2026-10-26T17:05:20.005996188Z",
+        "Path": "/bin/sleep",
+        "Args": [
+          "infinity"
+        ],
+        "State": {
+          "Status": "running",
+          "Running": true,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 82772,
+          "ExitCode": 0,
+          "Error": "",
+          "StartedAt": "2026-10-26T17:05:20.071665157Z",
+          "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:dbf0ad1129be38105adf20c10b84e462d8f29f3be531bd8a30053197c6f7f74f",
+        "ResolvConfPath": "/var/lib/docker/containers/f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b/hostname",
+        "HostsPath": "/var/lib/docker/containers/f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b/hosts",
+        "LogPath": "/var/lib/docker/containers/f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b/f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b-json.log",
+        "Name": "/nexus-sbx-a3bd3b24b8ed422e91c7dd828a790bc3",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+          "Binds": null,
+          "ContainerIDFile": "",
+          "LogConfig": {
+            "Type": "json-file",
+            "Config": {}
+          },
+          "NetworkMode": "bridge",
+          "PortBindings": {},
+          "RestartPolicy": {
+            "Name": "no",
+            "MaximumRetryCount": 0
+          },
+          "AutoRemove": false,
+          "VolumeDriver": "",
+          "VolumesFrom": null,
+          "ConsoleSize": [
+            0,
+            0
+          ],
+          "CapAdd": null,
+          "CapDrop": [
+            "ALL"
+          ],
+          "CgroupnsMode": "private",
+          "Dns": null,
+          "DnsOptions": [],
+          "DnsSearch": [],
+          "ExtraHosts": null,
+          "GroupAdd": null,
+          "IpcMode": "private",
+          "Cgroup": "",
+          "Links": null,
+          "OomScoreAdj": 0,
+          "PidMode": "",
+          "Privileged": false,
+          "PublishAllPorts": false,
+          "ReadonlyRootfs": true,
+          "SecurityOpt": [
+            "no-new-privileges"
+          ],
+          "Tmpfs": {
+            "/tmp": "rw,nosuid,nodev,size=268435456,mode=1777"
+          },
+          "UTSMode": "",
+          "UsernsMode": "",
+          "ShmSize": 67108864,
+          "Runtime": "runc",
+          "Isolation": "",
+          "CpuShares": 0,
+          "Memory": 1073741824,
+          "NanoCpus": 2000000000,
+          "CgroupParent": "",
+          "BlkioWeight": 0,
+          "BlkioWeightDevice": [],
+          "BlkioDeviceReadBps": [],
+          "BlkioDeviceWriteBps": [],
+          "BlkioDeviceReadIOps": [],
+          "BlkioDeviceWriteIOps": [],
+          "CpuPeriod": 0,
+          "CpuQuota": 0,
+          "CpuRealtimePeriod": 0,
+          "CpuRealtimeRuntime": 0,
+          "CpusetCpus": "",
+          "CpusetMems": "",
+          "Devices": [],
+          "DeviceCgroupRules": null,
+          "DeviceRequests": null,
+          "MemoryReservation": 0,
+          "MemorySwap": 1073741824,
+          "MemorySwappiness": null,
+          "OomKillDisable": null,
+          "PidsLimit": 128,
+          "Ulimits": [],
+          "CpuCount": 0,
+          "CpuPercent": 0,
+          "IOMaximumIOps": 0,
+          "IOMaximumBandwidth": 0,
+          "Mounts": [
+            {
+              "Type": "bind",
+              "Source": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work",
+              "Target": "/workspace",
+              "ReadOnly": true,
+              "BindOptions": {
+                "NonRecursive": true
+              }
+            }
+          ],
+          "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware"
+          ],
+          "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger"
+          ],
+          "Init": true
+        },
+        "Storage": {
+          "RootFS": {
+            "Snapshot": {
+              "Name": "overlayfs"
+            }
+          }
+        },
+        "Mounts": [
+          {
+            "Type": "bind",
+            "Source": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work",
+            "Destination": "/workspace",
+            "Mode": "",
+            "RW": false,
+            "Propagation": "rprivate"
+          }
+        ],
+        "Config": {
+          "Hostname": "f141065bc72f",
+          "Domainname": "",
+          "User": "1000:1000",
+          "AttachStdin": false,
+          "AttachStdout": true,
+          "AttachStderr": true,
+          "Tty": false,
+          "OpenStdin": false,
+          "StdinOnce": false,
+          "Env": [
+            "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "LANG=C.UTF-8",
+            "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+            "PYTHON_VERSION=3.12.14",
+            "PYTHON_SHA256=5c8462af5790baf43a321a1559dbe0db06d1be4300fb85fb53c40060668e548a",
+            "HOME=/tmp",
+            "TMPDIR=/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "PYTHONUNBUFFERED=1"
+          ],
+          "Cmd": [
+            "infinity"
+          ],
+          "Healthcheck": {
+            "Test": [
+              "NONE"
+            ]
+          },
+          "Image": "sha256:dbf0ad1129be38105adf20c10b84e462d8f29f3be531bd8a30053197c6f7f74f",
+          "Volumes": null,
+          "WorkingDir": "/workspace",
+          "Entrypoint": [
+            "/bin/sleep"
+          ],
+          "Labels": {
+            "desktop.docker.io/wsl-distro": "Ubuntu",
+            "io.nexus.sandbox": "v1",
+            "io.nexus.sandbox.boot": "020fa816-fffc-4c4a-b981-c39be8151b06",
+            "io.nexus.sandbox.code": "4b99b4ac64f995722e835511bcd2b20b59ec6af165d71e6326cef8fee25818ce",
+            "io.nexus.sandbox.host": "6f6c88ddf55a4a209e464b407d276c48",
+            "io.nexus.sandbox.pid": "13219",
+            "io.nexus.sandbox.protocol": "nexus-patch-ack-v2",
+            "io.nexus.sandbox.session": "nexus-sbx-a3bd3b24b8ed422e91c7dd828a790bc3",
+            "io.nexus.sandbox.start": "36270986",
+            "io.nexus.sandbox.uid": "1000",
+            "io.nexus.sandbox.workspace": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work"
+          },
+          "StopTimeout": 1
+        },
+        "NetworkSettings": {
+          "SandboxID": "7dca806df215a2a0275f7f6250ab1e128c376fe8caa937078b474d628dea82e7",
+          "SandboxKey": "/var/run/docker/netns/7dca806df215",
+          "Ports": {},
+          "Networks": {
+            "bridge": {
+              "IPAMConfig": null,
+              "Links": null,
+              "Aliases": null,
+              "DriverOpts": null,
+              "GwPriority": 0,
+              "NetworkID": "6c3555e6e6a1a717b2a43062776c5ece4b63cd3295b105d59c2586a9b23bb3e4",
+              "EndpointID": "cf3d0d3272786b9a65487a2d85fa8af8df61d7a0f26b11a2f2f1fd7ac0e06eb2",
+              "Gateway": "172.17.0.1",
+              "IPAddress": "172.17.0.2",
+              "MacAddress": "ee:08:d2:df:e3:37",
+              "IPPrefixLen": 16,
+              "IPv6Gateway": "",
+              "GlobalIPv6Address": "",
+              "GlobalIPv6PrefixLen": 0,
+              "DNSNames": null
+            }
+          }
+        },
+        "ImageManifestDescriptor": {
+          "mediaType": "application/vnd.oci.image.manifest.v1+json",
+          "digest": "sha256:edde61e8f19eb71a4cd7b4a0a0088e90b4a9775b9fc3d01d47a85b9dc6e0827a",
+          "size": 2004,
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        }
+      },
+      "timings": {
+        "engine_check_ms": 370.94474100740626,
+        "image_check_ms": 39.55407202010974,
+        "container_start_ms": 236.46101204212755,
+        "cleanup_ms": 280.4132530000061
+      }
+    },
+    {
+      "test": "read-only-warm-0",
+      "pass": true,
+      "result": {
+        "call_id": "3a5033a2f0db4c96a7ede2e869c91d00",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 130,
+        "truncated": false
+      },
+      "elapsed_ms": 131.07
+    },
+    {
+      "test": "read-only-warm-1",
+      "pass": true,
+      "result": {
+        "call_id": "742010d849724c19a6277a2828ed01b6",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 145,
+        "truncated": false
+      },
+      "elapsed_ms": 145.87
+    },
+    {
+      "test": "read-only-warm-2",
+      "pass": true,
+      "result": {
+        "call_id": "1a3a116e98504ced9864676e0e9e6d7c",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "warm",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 122,
+        "truncated": false
+      },
+      "elapsed_ms": 122.94
+    },
+    {
+      "test": "read-only-workdir",
+      "pass": true,
+      "result": {
+        "call_id": "631b8afcb96e4857be308fccb9b1d63f",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "/workspace/sub\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 129,
+        "truncated": false
+      },
+      "elapsed_ms": 129.3
+    },
+    {
+      "test": "read-only-identity-capabilities-env",
+      "pass": true,
+      "result": {
+        "call_id": "c087df3fd37f484eb7e1967bbece8755",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "1000 1000\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 146,
+        "truncated": false
+      },
+      "elapsed_ms": 146.84
+    },
+    {
+      "test": "read-only-python0700-tempfile-pytest",
+      "pass": true,
+      "result": {
+        "call_id": "817ae6e7392b46fa935e23176510fd73",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 295,
+        "truncated": false
+      },
+      "elapsed_ms": 295.24
+    },
+    {
+      "test": "read-only-workspace-create",
+      "pass": true,
+      "result": {
+        "call_id": "2371cd31e06d40399813ee4d240df287",
+        "ok": false,
+        "data": {
+          "exit_code": 2,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "/bin/sh: 1: cannot create created.txt: Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 120,
+        "truncated": false
+      },
+      "elapsed_ms": 121.0
+    },
+    {
+      "test": "read-only-workspace-update",
+      "pass": true,
+      "result": {
+        "call_id": "b2b194959e16435685f00e73bf1bead9",
+        "ok": false,
+        "data": {
+          "exit_code": 2,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "/bin/sh: 1: cannot create seed.txt: Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 112,
+        "truncated": false
+      },
+      "elapsed_ms": 112.69
+    },
+    {
+      "test": "read-only-workspace-delete",
+      "pass": true,
+      "result": {
+        "call_id": "a88bba8612bf4182a5611f71a6362119",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "rm: cannot remove 'seed.txt': Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 139,
+        "truncated": false
+      },
+      "elapsed_ms": 139.92
+    },
+    {
+      "test": "read-only-outside-host-not-mounted-temp-writable",
+      "pass": true,
+      "result": {
+        "call_id": "a9c2fa5e1ca24b61aa2be5f58248d268",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 158,
+        "truncated": false
+      },
+      "elapsed_ms": 158.98
+    },
+    {
+      "test": "read-only-bounded-output",
+      "pass": true,
+      "result": {
+        "call_id": "fcbbe876ac464805b87438bf934c0aa9",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n[... output truncated ...]\n",
+          "stderr": "\n[... output truncated ...]\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n",
+          "discarded_bytes": {
+            "stdout": 38977,
+            "stderr": 38977
+          },
+          "truncated": true,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 142,
+        "truncated": true
+      },
+      "elapsed_ms": 142.96
+    },
+    {
+      "test": "hitl-ro-default-deny",
+      "pass": true
+    },
+    {
+      "test": "hitl-once",
+      "pass": true,
+      "result": {
+        "call_id": "approve",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "once.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "ad06e72726f6d8ff00228160453949c1ceb89571c99332e4815f9edce2acad07"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": "",
+          "execution_backend": "linux-docker",
+          "container_id": "b436d1a5b7176c2cf1395f200022063c5226640fa98ca2e9c99407402ac80eff",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 828,
+        "truncated": false
+      }
+    },
+    {
+      "test": "hitl-no-reuse",
+      "pass": true
+    },
+    {
+      "test": "hitl-original-container-stays-ro",
+      "pass": true,
+      "result": {
+        "call_id": "d6c1f8d403bd4ddc8dc348281daf282e",
+        "ok": false,
+        "data": {
+          "exit_code": 2,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "/bin/sh: 1: cannot create after-once: Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "f141065bc72fe5e79491c2e13079f35aa602f5c700a7bb731f0b0e5b662df03b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 117,
+        "truncated": false
+      },
+      "elapsed_ms": 117.86
+    },
+    {
+      "test": "read-only-normal-cleanup",
+      "pass": true,
+      "timings": {
+        "engine_check_ms": 370.94474100740626,
+        "image_check_ms": 39.55407202010974,
+        "container_start_ms": 236.46101204212755,
+        "cleanup_ms": 280.4132530000061
+      }
+    },
+    {
+      "test": "network-bridge",
+      "pass": true,
+      "result": {
+        "call_id": "36b70f2f230b44dbaa7d9b37409d7291",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "200\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "4bfcefdf022e76973d7aa0bd8e17befd9bc6a5affe03f1b3341a0646ad1369e1",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 1777,
+        "truncated": false
+      },
+      "elapsed_ms": 1777.52
+    },
+    {
+      "test": "network-none",
+      "pass": true,
+      "result": {
+        "call_id": "424474d2c28443a0ba0d545168027e42",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 1344, in do_open\n    h.request(req.get_method(), req.selector, req.data, headers,\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1386, in request\n    self._send_request(method, url, body, headers, encode_chunked)\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1432, in _send_request\n    self.endheaders(body, encode_chunked=encode_chunked)\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1085, in send\n    self.connect()\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1520, in connect\n    super().connect()\n  File \"/usr/local/lib/python3.12/http/client.py\", line 1051, in connect\n    self.sock = self._create_connection(\n                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/socket.py\", line 841, in create_connection\n    for res in getaddrinfo(host, port, 0, SOCK_STREAM):\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/socket.py\", line 978, in getaddrinfo\n    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsocket.gaierror: [Errno -3] Temporary failure in name resolution\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 215, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 515, in open\n    response = self._open(req, data)\n               ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 532, in _open\n    result = self._call_chain(self.handle_open, protocol, protocol +\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 1392, in https_open\n    return self.do_open(http.client.HTTPSConnection, req,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/urllib/request.py\", line 1347, in do_open\n    raise URLError(err)\nurllib.error.URLError: <urlopen error [Errno -3] Temporary failure in name resolution>\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "742d20e3820811d721b4d95a7c5b57a64e358dfdb0d30b265cf6f84349b549b4",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 761,
+        "truncated": false
+      },
+      "elapsed_ms": 761.47
+    },
+    {
+      "test": "timeout-grandchildren-stopped",
+      "pass": true,
+      "result": {
+        "call_id": "516e00b975be460a834528095fa86d1e",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": true,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after TimeoutError; open a new conversation. ",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "child-ready\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "timeout",
+        "duration_ms": 2697,
+        "truncated": false
+      },
+      "elapsed_ms": 2698.01
+    },
+    {
+      "test": "timeout-no-container-reuse",
+      "pass": true,
+      "result": {
+        "call_id": "f531cb34bc5643dca02e68bfbba8780d",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "detail": "Linux Docker stopped after TimeoutError; open a new conversation. "
+        },
+        "error_code": "backend_unavailable",
+        "duration_ms": 0,
+        "truncated": false
+      },
+      "elapsed_ms": 0.02
+    },
+    {
+      "test": "cancel-grandchildren-stopped",
+      "pass": true,
+      "result": {
+        "call_id": "1667441805c04b1a94a159183c6b7d86",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": true,
+          "detail": "Linux Docker stopped after CancelledError; open a new conversation. ",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "child-ready\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "cancelled",
+        "duration_ms": 966,
+        "truncated": false
+      },
+      "elapsed_ms": 966.42
+    },
+    {
+      "test": "cancel-no-container-reuse",
+      "pass": true,
+      "result": {
+        "call_id": "ede9b1b7dfe846a7971864ede6db71a0",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "detail": "Linux Docker stopped after CancelledError; open a new conversation. "
+        },
+        "error_code": "backend_unavailable",
+        "duration_ms": 0,
+        "truncated": false
+      },
+      "elapsed_ms": 0.03
+    },
+    {
+      "test": "patch-no-ack-no-write",
+      "pass": true,
+      "result": {
+        "call_id": "501d105382bd42e6993037f9f51d9042",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after OSError; open a new conversation. fixture audit write failure",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "backend_unavailable",
+        "duration_ms": 1107,
+        "truncated": false
+      },
+      "elapsed_ms": 1107.65
+    },
+    {
+      "test": "patch-cancel-completed-versus-unwritten",
+      "pass": true,
+      "result": {
+        "call_id": "5908c0df16a746e8bf3b63ac902a545b",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": true,
+          "detail": "Linux Docker stopped after CancelledError; open a new conversation. ",
+          "files": [
+            {
+              "call_id": "5908c0df16a746e8bf3b63ac902a545b",
+              "file_index": 1,
+              "path": "first",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee"
+            }
+          ],
+          "changed_files": 1,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "cancelled",
+        "duration_ms": 1094,
+        "truncated": false
+      },
+      "elapsed_ms": 1094.61
+    },
+    {
+      "test": "sessions-independent",
+      "pass": true
+    },
+    {
+      "test": "closing-other-session-safe",
+      "pass": true,
+      "result": {
+        "call_id": "5f7c47f5fbd0494ab2b90339ce7a75de",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "still-running\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "a09bdd331731b4325cfaf4e6d60a420ecc3f9a526bb39d73efbf732b85cc535b",
+          "container_workspace": "/workspace"
+        },
+        "error_code": null,
+        "duration_ms": 135,
+        "truncated": false
+      },
+      "elapsed_ms": 135.93
+    },
+    {
+      "test": "patch-timeout-no-write-cleanup",
+      "pass": true,
+      "result": {
+        "call_id": "d4a1d362c671424dbba228ecd9a77902",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": true,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after TimeoutError; open a new conversation. ",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "timeout",
+        "duration_ms": 998,
+        "truncated": false
+      }
+    },
+    {
+      "test": "once-timeout-no-write-cleanup",
+      "pass": true,
+      "result": {
+        "call_id": "5bfa40efbdab4a27b4296bcf4a1dfed7",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": true,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after TimeoutError; open a new conversation. ",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "timeout",
+        "duration_ms": 1595,
+        "truncated": false
+      }
+    },
+    {
+      "test": "once-timeout-ro-container-preserved",
+      "pass": true,
+      "result": {
+        "call_id": "5c121e6f97d24716904c59ccc563c399",
+        "ok": false,
+        "data": {
+          "exit_code": 2,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "/bin/sh: 1: cannot create once-after-cancel: Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "bdf3040a60df7c19d7afad1142dfb3068c9282789e3de60b7bf518572fdde4ac",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 128,
+        "truncated": false
+      },
+      "elapsed_ms": 128.49
+    },
+    {
+      "test": "once-cancel-no-write-cleanup",
+      "pass": true,
+      "result": {
+        "call_id": "a4a65db067204084b4799877e755fc4a",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "interrupted_unknown",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": true,
+          "detail": "Linux Docker stopped after CancelledError; open a new conversation. ",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "cancelled",
+        "duration_ms": 1141,
+        "truncated": false
+      }
+    },
+    {
+      "test": "once-cancel-ro-container-preserved",
+      "pass": true,
+      "result": {
+        "call_id": "443df49edaa74b10b361ad659e28618e",
+        "ok": false,
+        "data": {
+          "exit_code": 2,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "stdout": "",
+          "stderr": "/bin/sh: 1: cannot create once-after-cancel: Read-only file system\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false,
+          "execution_backend": "linux-docker",
+          "container_id": "ff13aa27668ac3c12ef4217119f465391ce28de340250d35070c911cd3585d20",
+          "container_workspace": "/workspace"
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 132,
+        "truncated": false
+      },
+      "elapsed_ms": 132.63
+    },
+    {
+      "test": "container-tampering-fail-closed",
+      "pass": true,
+      "result": {
+        "call_id": "1133ed8c20f14221b7c5594d7ff488b1",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "not_executed",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after DockerError; open a new conversation. Container ownership/state/image/isolation verification failed",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "backend_unavailable",
+        "duration_ms": 263,
+        "truncated": false
+      },
+      "elapsed_ms": 264.03
+    },
+    {
+      "test": "docker-unavailable-fail-closed",
+      "pass": true,
+      "result": {
+        "call_id": "a0f255330054422ab6a8bc0e313a2ff2",
+        "ok": false,
+        "data": {
+          "execution_backend": "linux-docker",
+          "execution_state": "not_executed",
+          "cleanup_incomplete": false,
+          "timed_out": false,
+          "cancelled": false,
+          "detail": "Linux Docker stopped after DockerError; open a new conversation. docker info failed: failed to connect to the docker API at unix:///tmp/nexus-does-not-exist-d923828a30f2441ead546266029543b1; check if the path is correct and if the daemon is running: dial unix /tmp/nexus-does-not-exist-d923828a30f2441ead546266029543b1: connect: no such file or directory\n",
+          "files": [],
+          "changed_files": 0,
+          "unknown_files": [],
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "backend_unavailable",
+        "duration_ms": 303,
+        "truncated": false
+      },
+      "elapsed_ms": 304.04
+    },
+    {
+      "test": "crashed-owner-orphan-diagnosed",
+      "pass": true,
+      "diagnostics": [
+        {
+          "container_id": "bae19d049b25db8ac5d7c63405aee97213af80566ca944b65caa87d15da30a8c",
+          "name": "/nexus-sbx-5f0b7deb3e9c4b4eb8494f1eead894b5",
+          "state": "orphan",
+          "running": true,
+          "workspace": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/work",
+          "action": "diagnostic only; never auto-reuse/delete"
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "test": "test-owned-orphan-cleaned",
+      "pass": true
+    },
+    {
+      "test": "durable-audit",
+      "pass": true,
+      "path": "/home/archer/nexus-stage4c-20261027/acceptance-5a8bd6d3d9454750a940b5c46488faab/audit/sessions/e87104167787f20fb546b6b1/fceb294852334ac6831b74bb5ec50138.jsonl"
+    }
+  ],
+  "remaining_containers": []
+}

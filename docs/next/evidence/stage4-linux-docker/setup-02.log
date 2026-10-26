@@ -1,0 +1,64 @@
+Explicit setup: building trusted Python/Git/pytest image; may download dependencies.
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 656B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/6] FROM docker.io/library/python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9
+#4 resolve docker.io/library/python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 41.10kB done
+#5 DONE 0.0s
+
+#6 [2/6] RUN apt-get update && apt-get install -y --no-install-recommends git bash ca-certificates     && rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [3/6] RUN pip install --no-cache-dir pytest==8.3.5
+#7 CACHED
+
+#8 [4/6] COPY nexus /opt/nexus
+#8 DONE 0.0s
+
+#9 [5/6] RUN chmod -R a+rX,go-w /opt/nexus && mkdir /workspace
+#9 DONE 0.2s
+
+#10 [6/6] WORKDIR /workspace
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers 0.1s done
+#11 exporting manifest sha256:6377f3797c38e93510377abeaceff15c7a9cdfaaa7353c68334561cc9030cb9f done
+#11 exporting config sha256:1a2b9d8bb62f31841bd76ab134eddd9ff47ff57c18e2502c51f918745a9e355a
+#11 exporting config sha256:1a2b9d8bb62f31841bd76ab134eddd9ff47ff57c18e2502c51f918745a9e355a done
+#11 exporting attestation manifest sha256:d2fab03e236cd74b18e10a28a686d394023a19845471d7f17bbd0264272bed16 0.0s done
+#11 exporting manifest list sha256:3de2340e62c73194134e4951f2a628b6f75e604e355c3ac79abc976697f2b2cf done
+#11 naming to docker.io/library/nexus-sandbox:2927d7ed4632f291e3b2 done
+#11 unpacking to docker.io/library/nexus-sandbox:2927d7ed4632f291e3b2 0.0s done
+#11 DONE 0.2s
+{
+  "engine": {
+    "endpoint": "unix:///var/run/docker.sock",
+    "version": "29.1.3",
+    "os": "Docker Desktop"
+  },
+  "uid_gid": [
+    1000,
+    1000
+  ],
+  "network": "bridge",
+  "image_id": "sha256:3de2340e62c73194134e4951f2a628b6f75e604e355c3ac79abc976697f2b2cf",
+  "workspace": "/home/archer/nexus-stage4c-20261027/work",
+  "mount_probe": "NOT RUN (doctor is read-only; real mount checked on lazy container start)",
+  "containers": [],
+  "checked_at": 1793035016.4725578
+}

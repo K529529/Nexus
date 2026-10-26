@@ -1,0 +1,30 @@
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.1 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+{
+  "engine": {
+    "endpoint": "unix:///var/run/docker.sock",
+    "version": "29.1.3",
+    "os": "Docker Desktop"
+  },
+  "uid_gid": [
+    1000,
+    1000
+  ],
+  "network": "bridge",
+  "image_id": "sha256:3de2340e62c73194134e4951f2a628b6f75e604e355c3ac79abc976697f2b2cf",
+  "workspace": "/home/archer/nexus-stage4c-20261027/work",
+  "mount_probe": "NOT RUN (doctor is read-only; real mount checked on lazy container start)",
+  "containers": [],
+  "checked_at": 1793035283.6888232
+}

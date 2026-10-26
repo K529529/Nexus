@@ -1,0 +1,7 @@
+Processing ./dist/nexus_coding_agent-0.2.0-py3-none-any.whl
+Installing collected packages: nexus-coding-agent
+  Attempting uninstall: nexus-coding-agent
+    Found existing installation: nexus-coding-agent 0.2.0
+    Uninstalling nexus-coding-agent-0.2.0:
+      Successfully uninstalled nexus-coding-agent-0.2.0
+Successfully installed nexus-coding-agent-0.2.0
