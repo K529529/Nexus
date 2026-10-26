@@ -138,8 +138,12 @@ class Transcript:
         if self.preview is None:
             self.working = Spinner("dots", text=Text("Working...", style="dim"), style=PURPLE)
             self.preview = Live(
-                Group(self.working, text), console=self.console, transient=True,
-                auto_refresh=True, refresh_per_second=8, vertical_overflow="ellipsis",
+                Group(self.working, text),
+                console=self.console,
+                transient=True,
+                auto_refresh=True,
+                refresh_per_second=8,
+                vertical_overflow="ellipsis",
             )
             self.preview.start(refresh=True)
         else:
@@ -160,11 +164,18 @@ class Transcript:
             )
         self.console.print()
         if self.live_output and width >= 20:
-            self.console.print(Panel(
-                preview, title=Text("你", style="bold " + PURPLE), title_align="left",
-                border_style=PURPLE, style="on #211b2e", box=box.ROUNDED,
-                width=width, padding=(0, 1),
-            ))
+            self.console.print(
+                Panel(
+                    preview,
+                    title=Text("你", style="bold " + PURPLE),
+                    title_align="left",
+                    border_style=PURPLE,
+                    style="on #211b2e",
+                    box=box.ROUNDED,
+                    width=width,
+                    padding=(0, 1),
+                )
+            )
         else:
             self.console.print(Text("你 ›", style="bold " + PURPLE))
             self.console.print(preview)
@@ -190,12 +201,16 @@ class Transcript:
                 self.console.print(block)
                 self.console.print()
             elif content:
-                with self.console.use_theme(Theme({
-                    "markdown.h1": "bold " + PURPLE,
-                    "markdown.h2": "bold " + PURPLE,
-                    "markdown.h3": "bold " + PURPLE,
-                    "markdown.link": "underline " + PURPLE,
-                })):
+                with self.console.use_theme(
+                    Theme(
+                        {
+                            "markdown.h1": "bold " + PURPLE,
+                            "markdown.h2": "bold " + PURPLE,
+                            "markdown.h3": "bold " + PURPLE,
+                            "markdown.link": "underline " + PURPLE,
+                        }
+                    )
+                ):
                     self.console.print(Markdown(content, code_theme="monokai", style="#e5e7eb"))
         elif not self.assistant_streamed and content:
             self.console.print(Text(content))
@@ -240,7 +255,8 @@ class Transcript:
             status = data["status"]
             detail = (
                 f"Preparing daily summary (up to {data['timeout_seconds']:g}s)…"
-                if status == "summarizing" else f"Daily summary {status}."
+                if status == "summarizing"
+                else f"Daily summary {status}."
             )
             self.console.print(Text(detail, style="dim"))
         elif kind == "model_started":
@@ -376,10 +392,12 @@ class Transcript:
             if self.live_output and self.assistant_streamed:
                 partial = (self.preview_tail + self.buffer)[-4000:]
                 if partial:
-                    self.console.print(Text(
-                        "Interrupted preview (not a final answer):\n" + partial,
-                        style="#b8b3c4 italic",
-                    ))
+                    self.console.print(
+                        Text(
+                            "Interrupted preview (not a final answer):\n" + partial,
+                            style="#b8b3c4 italic",
+                        )
+                    )
             elif self.assistant_streamed:
                 self.console.print()
             self.buffer = ""
@@ -455,6 +473,65 @@ def show_skills(session: Session, root: Path | None, warnings: list[str], consol
         console.print(Text(terminal_text(warning), style="yellow"))
     console.print("/skill <name> select or replace; /skill off cancel selection; /skills refresh.")
     console.print("Off restores automatic selection; model-loaded skills apply only to their run.")
+
+
+async def select_permissions(current: str, status: str, detail: str) -> str | None:
+    modes = ["local", "read-only", "workspace-write"]
+    descriptions = [
+        "Current user permissions; no sandbox; no default approval.",
+        "SRT: explore/read project; project writes and patch denied; private temp permitted.",
+        "SRT: edit workspace and configured writable roots; network deny by default.",
+    ]
+    selected = modes.index(current)
+    bindings = KeyBindings()
+
+    def text() -> str:
+        return "\n".join(
+            [
+                f"Permissions · current: {current} · backend: {terminal_text(status)}",
+                terminal_text(detail),
+                "1-3 / arrows · Enter select · Esc cancel. "
+                "Changing mode starts a new conversation.",
+                *[
+                    ("› " if i == selected else "  ") + f"{i + 1}. {mode}: {descriptions[i]}"
+                    for i, mode in enumerate(modes)
+                ],
+                "Windows SRT is experimental; "
+                "initialization does not certify hostile-code isolation.",
+            ]
+        )
+
+    @bindings.add("up")
+    def up(event: KeyPressEvent) -> None:
+        nonlocal selected
+        selected = max(0, selected - 1)
+
+    @bindings.add("down")
+    def down(event: KeyPressEvent) -> None:
+        nonlocal selected
+        selected = min(2, selected + 1)
+
+    @bindings.add("1")
+    @bindings.add("2")
+    @bindings.add("3")
+    def numbered(event: KeyPressEvent) -> None:
+        event.app.exit(result=modes[int(event.data) - 1])
+
+    @bindings.add("enter")
+    def enter(event: KeyPressEvent) -> None:
+        event.app.exit(result=modes[selected])
+
+    @bindings.add("escape")
+    @bindings.add("c-c")
+    def cancel(event: KeyPressEvent) -> None:
+        event.app.exit(result=None)
+
+    app: Application[str | None] = Application(
+        layout=Layout(Window(FormattedTextControl(text), wrap_lines=True)),
+        key_bindings=bindings,
+        full_screen=False,
+    )
+    return await app.run_async()
 
 
 async def select_session(items: list[Json]) -> Path | None:

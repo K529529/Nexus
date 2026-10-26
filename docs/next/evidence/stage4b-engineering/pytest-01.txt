@@ -1,0 +1,207 @@
+........................................................................ [  7%]
+......................ssssssssss........................................ [ 15%]
+........................................................................ [ 23%]
+........................................................................ [ 31%]
+........................................................................ [ 39%]
+........................................................................ [ 47%]
+........................................................................ [ 55%]
+........................................................................ [ 63%]
+..................................................FFFF.................. [ 71%]
+........................................................................ [ 79%]
+........................................................................ [ 87%]
+........................................................................ [ 95%]
+..........................................                               [100%]
+================================== FAILURES ===================================
+____________ test_bridge_failure_is_unknown_and_never_retried[eof] ____________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4b-full-db9999ff68a24144b34427569a91ca66/pytest-of-Archer/pytest-0/test_bridge_failure_is_unknown0')
+response = 'eof'
+
+    @pytest.mark.parametrize("response", ["eof", "wrong-id", "bad-json", "incomplete-result"])
+    async def test_bridge_failure_is_unknown_and_never_retried(tmp_path: Path, response: str) -> None:
+        code = (
+            "import sys,json\n"
+            "r=json.loads(sys.stdin.readline())\n"
+            "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+            "r=json.loads(sys.stdin.readline())\n"
+        )
+        if response == "wrong-id":
+            code += "print(json.dumps({'id':'wrong','type':'result'}),flush=True)\n"
+        elif response == "bad-json":
+            code += "print('not json',flush=True)\n"
+        elif response == "incomplete-result":
+            code += "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+        client = BridgeClient((sys.executable, "-u", "-c", code), cwd=tmp_path)
+>       await client.initialize({})
+
+tests\test_sandbox_stage4.py:216:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.tools.sandbox.BridgeClient object at 0x00000278AE218200>
+params = {}
+
+    async def initialize(self, params: Json) -> None:
+        async with self.lock:
+            try:
+                async with asyncio.timeout(120):
+                    await self.start()
+                    ident = uuid4().hex
+                    await self.send({"id": ident, "method": "initialize", "params": params})
+                    value = await self.receive(ident)
+                    if (
+                        value.get("type") != "result"
+                        or value.get("result", {}).get("initialized") is not True
+                    ):
+>                       raise BridgeError(
+                            f"backend_unavailable: {value.get('code')}: {value.get('detail', '')}"
+                        )
+E                       nexus.tools.sandbox.BridgeError: backend_unavailable: None:
+
+src\nexus\tools\sandbox.py:280: BridgeError
+_________ test_bridge_failure_is_unknown_and_never_retried[wrong-id] __________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4b-full-db9999ff68a24144b34427569a91ca66/pytest-of-Archer/pytest-0/test_bridge_failure_is_unknown1')
+response = 'wrong-id'
+
+    @pytest.mark.parametrize("response", ["eof", "wrong-id", "bad-json", "incomplete-result"])
+    async def test_bridge_failure_is_unknown_and_never_retried(tmp_path: Path, response: str) -> None:
+        code = (
+            "import sys,json\n"
+            "r=json.loads(sys.stdin.readline())\n"
+            "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+            "r=json.loads(sys.stdin.readline())\n"
+        )
+        if response == "wrong-id":
+            code += "print(json.dumps({'id':'wrong','type':'result'}),flush=True)\n"
+        elif response == "bad-json":
+            code += "print('not json',flush=True)\n"
+        elif response == "incomplete-result":
+            code += "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+        client = BridgeClient((sys.executable, "-u", "-c", code), cwd=tmp_path)
+>       await client.initialize({})
+
+tests\test_sandbox_stage4.py:216:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.tools.sandbox.BridgeClient object at 0x00000278AE219F40>
+params = {}
+
+    async def initialize(self, params: Json) -> None:
+        async with self.lock:
+            try:
+                async with asyncio.timeout(120):
+                    await self.start()
+                    ident = uuid4().hex
+                    await self.send({"id": ident, "method": "initialize", "params": params})
+                    value = await self.receive(ident)
+                    if (
+                        value.get("type") != "result"
+                        or value.get("result", {}).get("initialized") is not True
+                    ):
+>                       raise BridgeError(
+                            f"backend_unavailable: {value.get('code')}: {value.get('detail', '')}"
+                        )
+E                       nexus.tools.sandbox.BridgeError: backend_unavailable: None:
+
+src\nexus\tools\sandbox.py:280: BridgeError
+_________ test_bridge_failure_is_unknown_and_never_retried[bad-json] __________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4b-full-db9999ff68a24144b34427569a91ca66/pytest-of-Archer/pytest-0/test_bridge_failure_is_unknown2')
+response = 'bad-json'
+
+    @pytest.mark.parametrize("response", ["eof", "wrong-id", "bad-json", "incomplete-result"])
+    async def test_bridge_failure_is_unknown_and_never_retried(tmp_path: Path, response: str) -> None:
+        code = (
+            "import sys,json\n"
+            "r=json.loads(sys.stdin.readline())\n"
+            "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+            "r=json.loads(sys.stdin.readline())\n"
+        )
+        if response == "wrong-id":
+            code += "print(json.dumps({'id':'wrong','type':'result'}),flush=True)\n"
+        elif response == "bad-json":
+            code += "print('not json',flush=True)\n"
+        elif response == "incomplete-result":
+            code += "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+        client = BridgeClient((sys.executable, "-u", "-c", code), cwd=tmp_path)
+>       await client.initialize({})
+
+tests\test_sandbox_stage4.py:216:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.tools.sandbox.BridgeClient object at 0x00000278AD6A01D0>
+params = {}
+
+    async def initialize(self, params: Json) -> None:
+        async with self.lock:
+            try:
+                async with asyncio.timeout(120):
+                    await self.start()
+                    ident = uuid4().hex
+                    await self.send({"id": ident, "method": "initialize", "params": params})
+                    value = await self.receive(ident)
+                    if (
+                        value.get("type") != "result"
+                        or value.get("result", {}).get("initialized") is not True
+                    ):
+>                       raise BridgeError(
+                            f"backend_unavailable: {value.get('code')}: {value.get('detail', '')}"
+                        )
+E                       nexus.tools.sandbox.BridgeError: backend_unavailable: None:
+
+src\nexus\tools\sandbox.py:280: BridgeError
+_____ test_bridge_failure_is_unknown_and_never_retried[incomplete-result] _____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nexus-stage4b-full-db9999ff68a24144b34427569a91ca66/pytest-of-Archer/pytest-0/test_bridge_failure_is_unknown3')
+response = 'incomplete-result'
+
+    @pytest.mark.parametrize("response", ["eof", "wrong-id", "bad-json", "incomplete-result"])
+    async def test_bridge_failure_is_unknown_and_never_retried(tmp_path: Path, response: str) -> None:
+        code = (
+            "import sys,json\n"
+            "r=json.loads(sys.stdin.readline())\n"
+            "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+            "r=json.loads(sys.stdin.readline())\n"
+        )
+        if response == "wrong-id":
+            code += "print(json.dumps({'id':'wrong','type':'result'}),flush=True)\n"
+        elif response == "bad-json":
+            code += "print('not json',flush=True)\n"
+        elif response == "incomplete-result":
+            code += "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+        client = BridgeClient((sys.executable, "-u", "-c", code), cwd=tmp_path)
+>       await client.initialize({})
+
+tests\test_sandbox_stage4.py:216:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.tools.sandbox.BridgeClient object at 0x00000278AE1D0F20>
+params = {}
+
+    async def initialize(self, params: Json) -> None:
+        async with self.lock:
+            try:
+                async with asyncio.timeout(120):
+                    await self.start()
+                    ident = uuid4().hex
+                    await self.send({"id": ident, "method": "initialize", "params": params})
+                    value = await self.receive(ident)
+                    if (
+                        value.get("type") != "result"
+                        or value.get("result", {}).get("initialized") is not True
+                    ):
+>                       raise BridgeError(
+                            f"backend_unavailable: {value.get('code')}: {value.get('detail', '')}"
+                        )
+E                       nexus.tools.sandbox.BridgeError: backend_unavailable: None:
+
+src\nexus\tools\sandbox.py:280: BridgeError
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_sandbox_stage4.py::test_bridge_failure_is_unknown_and_never_retried[eof]
+FAILED tests/test_sandbox_stage4.py::test_bridge_failure_is_unknown_and_never_retried[wrong-id]
+FAILED tests/test_sandbox_stage4.py::test_bridge_failure_is_unknown_and_never_retried[bad-json]
+FAILED tests/test_sandbox_stage4.py::test_bridge_failure_is_unknown_and_never_retried[incomplete-result]
+4 failed, 892 passed, 10 skipped in 73.50s (0:01:13)

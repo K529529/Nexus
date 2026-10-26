@@ -1,0 +1,251 @@
+{
+  "root": "D:\\WorkSpace\\nexus-stage4b-functional-lgsj1c5o",
+  "rows": [
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "hello sandbox\r\n"
+      }
+    },
+    {
+      "test": "read-only-identity",
+      "elapsed_ms": 114434.73280000035,
+      "result": {
+        "call_id": "read-only-identity",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\nhello sandbox\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 592,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-lgsj1c5o\\work\\forbidden.txt' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "read-only-deny-write",
+      "elapsed_ms": 649.9654999934137,
+      "result": {
+        "call_id": "read-only-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-lgsj1c5o\\work\\forbidden.txt' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 641,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-deny-patch",
+      "elapsed_ms": 1.1106999590992928,
+      "result": {
+        "call_id": "read-only-deny-patch",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed"
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "yes\r\n"
+      }
+    },
+    {
+      "test": "workspace-write-identity",
+      "elapsed_ms": 57397.63230003882,
+      "result": {
+        "call_id": "workspace-write-identity",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\nyes\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 609,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-lgsj1c5o\\outside\\forbidden.txt' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "outside-deny-write",
+      "elapsed_ms": 704.1021999903023,
+      "result": {
+        "call_id": "outside-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-lgsj1c5o\\outside\\forbidden.txt' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 702,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "."
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "                                                                        [100%]"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "\r\n1 passed in 0.01s\r\n"
+      }
+    },
+    {
+      "test": "python-pytest",
+      "elapsed_ms": 1327.293699956499,
+      "result": {
+        "call_id": "python-pytest",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "stdout": ".                                                                        [100%]\r\n1 passed in 0.01s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1328,
+        "truncated": false
+      }
+    },
+    {
+      "test": "patch",
+      "elapsed_ms": 120364.04680006672,
+      "result": {
+        "call_id": "patch",
+        "ok": false,
+        "data": {
+          "execution_state": "interrupted_unknown"
+        },
+        "error_code": "cleanup_incomplete",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,287 @@
+{
+  "root": "D:\\WorkSpace\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce",
+  "rows": [
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "decision": "allow"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "initial-read-only",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "initial-read-only",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "state": "finished",
+        "ok": true,
+        "error_code": null
+      }
+    },
+    {
+      "test": "initial-read-only",
+      "elapsed_ms": 57568.22760007344,
+      "result": {
+        "call_id": "initial-read-only",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 594,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "denied-first",
+        "tool_name": "apply_patch",
+        "mode": "read-only",
+        "backend": "none",
+        "capability_scope": "{\"capability\":\"patch\",\"backend\":\"none\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f",
+        "decision": "deny"
+      }
+    },
+    {
+      "test": "denied-first",
+      "elapsed_ms": 1.0012999409809709,
+      "result": {
+        "call_id": "denied-first",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "denial_source": "gateway_read_only_policy",
+          "denied_call_id": "denied-first",
+          "detail": "Read-only forbids patch. request_permissions may request one approved patch in this workspace; shell elevation is unsupported."
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "decision": "ask"
+      }
+    },
+    {
+      "event": "approval_requested",
+      "data": {
+        "request_id": "55bfcfbb1cee457a97e5bdd06aa6f00d",
+        "session_id": "ea90480938eb4fcc9aa997cc9ad71e62",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 603519.625
+      }
+    },
+    {
+      "event": "approval_resolved",
+      "data": {
+        "request_id": "55bfcfbb1cee457a97e5bdd06aa6f00d",
+        "session_id": "ea90480938eb4fcc9aa997cc9ad71e62",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 603519.625,
+        "choice": "deny"
+      }
+    },
+    {
+      "test": "user-deny",
+      "elapsed_ms": 53.89959993772209,
+      "result": {
+        "call_id": "user-deny",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed"
+        },
+        "error_code": "approval_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "test": "deny-no-file",
+      "passed": true
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "denied-again",
+        "tool_name": "apply_patch",
+        "mode": "read-only",
+        "backend": "none",
+        "capability_scope": "{\"capability\":\"patch\",\"backend\":\"none\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f",
+        "decision": "deny"
+      }
+    },
+    {
+      "test": "denied-again",
+      "elapsed_ms": 0.7518000202253461,
+      "result": {
+        "call_id": "denied-again",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "denial_source": "gateway_read_only_policy",
+          "denied_call_id": "denied-again",
+          "detail": "Read-only forbids patch. request_permissions may request one approved patch in this workspace; shell elevation is unsupported."
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "decision": "ask"
+      }
+    },
+    {
+      "event": "approval_requested",
+      "data": {
+        "request_id": "238099f9a2694f95b7cd1ce7d9e98a79",
+        "session_id": "ea90480938eb4fcc9aa997cc9ad71e62",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 603519.687
+      }
+    },
+    {
+      "event": "approval_resolved",
+      "data": {
+        "request_id": "238099f9a2694f95b7cd1ce7d9e98a79",
+        "session_id": "ea90480938eb4fcc9aa997cc9ad71e62",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 603519.687,
+        "choice": "allow_once"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "patch_diff",
+      "data": {
+        "call_id": "user-allow-once",
+        "file_index": 1,
+        "path": "one.txt",
+        "status": "added",
+        "added_lines": 1,
+        "deleted_lines": 0,
+        "before_hash": null,
+        "after_hash": "4ee420b8d8317cbf5b531c00d1454efa0bea98c8f94d28457032f9bc2cd73892",
+        "diff": "--- /dev/null\n+++ b/one.txt\n@@ -0,0 +1 @@\n+approved once\n",
+        "diff_bytes": 57,
+        "diff_limit_bytes": 65536,
+        "truncated": false,
+        "omitted": false,
+        "omission_reason": null
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-b8a9e4ea48b34e2bb78323e53a5fa0ce\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "state": "interrupted_unknown"
+      }
+    },
+    {
+      "test": "close",
+      "confirmed": true
+    }
+  ]
+}

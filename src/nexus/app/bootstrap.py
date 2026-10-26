@@ -40,7 +40,7 @@ from nexus.core.types import (
 )
 from nexus.tools.mcp import connect_servers
 from nexus.tools.memory import create_memory_tools
-from nexus.tools.registry import default_tools
+from nexus.tools.registry import default_tools, permission_tool
 from nexus.tools.skills import create_load_skill_tool
 
 
@@ -61,10 +61,10 @@ class Conversation:
         self.config, self.consumer, self.home = config, consumer, home
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
-            # No Node import/process in Local. The unaccepted production backend is fail-closed.
+            # No Node import/process in Local; restricted startup stays lazy.
             from nexus.tools.sandbox import SRTBackend
 
-            self.gateway.backend = SRTBackend()
+            self.gateway.backend = SRTBackend(config.security)
         self.session = Session(self.workspace)
         self.writer: SessionLog | None = None
         self.events: Events | None = None
@@ -133,6 +133,8 @@ class Conversation:
             self.session.loaded_skills = ()
         resolved = registry(self.session) if callable(registry) else registry
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
+        if config.security.mode != "local" and resolved is None:
+            self.base_registry["request_permissions"] = permission_tool()
         self.registry = dict(self.base_registry)
         # Custom/evaluation registries never inherit the operator's global memory.
         self.memory = (
@@ -348,7 +350,7 @@ class Conversation:
             if self.config.security.mode != "local":
                 environment += (
                     f"\n[Execution mode] {self.config.security.mode}. "
-                    "Restricted shell/patch backend is blocked pending isolation acceptance. "
+                    "Shell/patch run through SRT; initialization errors never fall back to Local. "
                     "No fallback to local execution. "
                     "MCP and background memory indexing are disabled."
                 )
@@ -480,8 +482,7 @@ class Conversation:
         self.context.reset_calibration()
 
     async def before_compact(self) -> None:
-        if (self.memory is None or self.events is None
-                or self.config.security.mode != "local"):
+        if self.memory is None or self.events is None or self.config.security.mode != "local":
             return
         try:
             now = datetime.now().astimezone()
@@ -602,9 +603,17 @@ class Conversation:
             return
         self.closed = True
         try:
-            if self.memory_index is not None:
-                await self.memory_index.close()
-            await self.resources.aclose()
+            try:
+                if self.gateway.backend is not None:
+                    close_backend = getattr(self.gateway.backend, "close", None)
+                    if close_backend is not None:
+                        await close_backend()
+            finally:
+                try:
+                    if self.memory_index is not None:
+                        await self.memory_index.close()
+                finally:
+                    await self.resources.aclose()
         finally:
             if self.writer:
                 self.writer.close()

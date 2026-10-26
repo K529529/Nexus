@@ -1,0 +1,11 @@
+{
+  "installed": "D:\\WorkSpace\\nexus-stage4b-install-929ee5906c6e42f3a3084173fca0dd03\\Lib\\site-packages\\nexus\\__init__.py",
+  "wheel_sha256": "5e5162f841b0513a90cd0e4b09817bd73c451016ca93d331cd30b9cf916afed1",
+  "resources": [
+    "nexus/tools/srt_bridge.mjs",
+    "nexus/tools/srt_adapter.mjs",
+    "nexus/tools/patch_worker.py"
+  ],
+  "source_files_matched": 56,
+  "source_matches_wheel": true
+}

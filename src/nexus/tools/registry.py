@@ -2,7 +2,16 @@
 
 from collections.abc import Callable
 
-from nexus.core.types import Session, SkillSnapshot, Tool, ToolSpec
+from nexus.core.types import (
+    Emit,
+    ExecutionContext,
+    Json,
+    Session,
+    SkillSnapshot,
+    Tool,
+    ToolResult,
+    ToolSpec,
+)
 from nexus.tools.execution import execute
 from nexus.tools.patch import apply_patch
 from nexus.tools.plan import create_update_plan_tool
@@ -10,7 +19,8 @@ from nexus.tools.skills import create_load_skill_tool
 
 EXEC_SPEC = ToolSpec(
     "exec_command",
-    "Execute a command in the actual local shell. Use for reading/searching files, git, "
+    "Execute in the configured shell under the current Local or SRT policy. "
+    "Use for reading/searching files, git, "
     'tests and builds. Use the required key command, not cmd: {"command":"pytest -q"}. '
     "Default cwd is workspace; stdin is closed. Inspect exit_code and "
     "truncation. command is executed directly in the shell named in Environment; "
@@ -66,8 +76,33 @@ PATCH_SPEC = ToolSpec(
 
 
 def native_tools() -> dict[str, Tool]:
-    return {"exec_command": Tool(EXEC_SPEC, execute, "shell"),
-            "apply_patch": Tool(PATCH_SPEC, apply_patch, "patch")}
+    return {
+        "exec_command": Tool(EXEC_SPEC, execute, "shell"),
+        "apply_patch": Tool(PATCH_SPEC, apply_patch, "patch"),
+    }
+
+
+def permission_tool() -> Tool:
+    async def unavailable(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+        return ToolResult(context.call_id, False, {}, "policy_denied")
+
+    return Tool(
+        ToolSpec(
+            "request_permissions",
+            "After a trusted read-only apply_patch policy denial, request user approval to execute "
+            "that exact patch once in this workspace. Provide denied_call_id and a reason. "
+            "Does not grant shell, external-directory or persistent access. "
+            "Nonzero shell exits are not evidence and cannot be escalated by this tool.",
+            {
+                "type": "object",
+                "properties": {"denied_call_id": {"type": "string"}, "reason": {"type": "string"}},
+                "required": ["denied_call_id", "reason"],
+                "additionalProperties": False,
+            },
+        ),
+        unavailable,
+        "permission-request",
+    )
 
 
 def default_tools(

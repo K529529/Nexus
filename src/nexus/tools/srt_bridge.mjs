@@ -3,8 +3,10 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { resolve, relative, isAbsolute, join } from 'node:path';
-import { realpath } from 'node:fs/promises';
+import { realpath, mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { loadSRT } from './srt_adapter.mjs';
 
 const MAX_FRAME = 5 * 1024 * 1024;
 const inside = (path, root) => {
@@ -12,7 +14,8 @@ const inside = (path, root) => {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 };
 
-export async function serve(manager) {
+export async function serve(manager, packageRoot) {
+  const nativeSRT = Boolean(packageRoot);
   const send = value => new Promise((ok, fail) => {
     process.stdout.write(JSON.stringify(value) + '\n', error => error ? fail(error) : ok());
   });
@@ -20,21 +23,39 @@ export async function serve(manager) {
   let active;
   let initializing = false;
   let executing = false;
+  let pendingExecution;
   let closing = false;
+  let ipcDirectory;
   const seen = new Set();
-  const error = (id, code, state = 'not_executed') => send({id, type: 'error', code, state});
+  const error = (id, code, state = 'not_executed', detail = '') =>
+    send({id, type: 'error', code, state, detail: String(detail).slice(0, 4000)});
+
+  async function acknowledge(job, value) {
+    job.ackWrite = (job.ackWrite ?? Promise.resolve()).then(() =>
+      writeFile(job.ackPath, JSON.stringify(value)));
+    await job.ackWrite;
+  }
 
   async function stop(job) {
+    // A result may already have reached Python while execute() removes IPC files.
+    // Do not recreate the completed worker's ACK mailbox during shutdown.
+    if (job.finished) return;
     job.cancelled = true;
     job.controller.abort();
     if (!job.child) return;
-    if (job.patch && !job.child.stdin.destroyed) {
-      job.child.stdin.write(JSON.stringify({id: job.id, method: 'cancel'}) + '\n');
+    if (job.patch && job.ackPath) {
+      await acknowledge(job, {id: job.id, method: 'cancel'});
       // Worker cancellation at its per-file persistence barrier preserves partial facts.
       await Promise.race([job.closed, new Promise(r => setTimeout(r, 200))]);
     }
-    if (job.child.exitCode !== null) return;
-    if (process.platform === 'win32') {
+    if (job.finished) return;
+    if (nativeSRT) {
+      // srt-win watches --held-by (this bridge PID) and closes its native job
+      // when the holder exits. The host cannot taskkill the other account's tree.
+      // Python must close this bridge before returning cancellation to the caller.
+      job.requiresReset = true;
+      if (job.child.exitCode === null) job.child.kill('SIGKILL');
+    } else if (process.platform === 'win32') {
       await new Promise(resolveStop => {
         const killer = spawn(join(process.env.SystemRoot, 'System32', 'taskkill.exe'),
           ['/PID', String(job.child.pid), '/T', '/F'], {shell: false, windowsHide: true,
@@ -52,9 +73,12 @@ export async function serve(manager) {
       catch (e) { if (e.code !== 'ESRCH') job.cleanupIncomplete = true; }
     }
     await Promise.race([job.closed, new Promise(r => setTimeout(() => {
-      if (job.child.exitCode === null && job.child.signalCode === null) {
+      if (!job.finished) {
         job.cleanupIncomplete = true;
-        job.child.kill('SIGKILL');
+        if (job.child.exitCode === null) job.child.kill('SIGKILL');
+        job.child.stdin.destroy();
+        job.child.stdout.destroy();
+        job.child.stderr.destroy();
       }
       r();
     }, 2000))]);
@@ -83,14 +107,29 @@ export async function serve(manager) {
     let workerResult;
     let timer;
     try {
-      const shell = patch ? {exe: config.python, args: ['-I', config.worker]} :
+      if (patch) {
+        job.ackPath = join(ipcDirectory, row.id + '.ack.json');
+        job.requestPath = join(ipcDirectory, row.id + '.request.json');
+        job.ackIndex = 0;
+        await writeFile(job.requestPath,
+          JSON.stringify({id: row.id, ...p, ack_path: job.ackPath}) + '\n', {flag: 'wx'});
+      }
+      const shell = patch ? {exe: config.python,
+        args: ['-I', config.worker, '--request-file', job.requestPath]} :
         {exe: p.shell, args: ['-NoProfile', '-NonInteractive', '-Command']};
       const text = patch ? '' :
+        "try { Set-Location -LiteralPath '" + cwd.replaceAll("'", "''") +
+        "' -ErrorAction Stop } catch { Write-Error $_; exit 1 }; " +
         '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); ' +
         '$OutputEncoding = [Console]::OutputEncoding; ' + command;
       timer = setTimeout(() => { job.timedOut = true; void stop(job); }, timeout);
+      // A session-level root deny can be kept by SRT after a WW→RO switch.
+      // Apply the same RO protection to each exec instead, under its own holder;
+      // SRT releases it with that command. No write grants are added in RO.
+      const perCommand = config.mode === 'read-only' ?
+        {filesystem: {denyWrite: [config.workspace]}} : undefined;
       const wrapped = await manager.wrapWithSandboxArgv(
-        text, shell, undefined, job.controller.signal, cwd, {commandId: row.id});
+        text, shell, perCommand, job.controller.signal, cwd, {commandId: row.id});
       if (job.cancelled) return error(row.id, 'cancelled');
       const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
         shell: false, cwd, env: wrapped.env, windowsHide: true,
@@ -99,7 +138,7 @@ export async function serve(manager) {
       job.child = child;
       job.closed = new Promise((ok, fail) => {
         child.once('error', fail);
-        child.once('close', (code, signal) => ok({code, signal}));
+        child.once('close', (code, signal) => { job.finished = true; ok({code, signal}); });
       });
       // A rejected pipe must not become an uncaught event or a retry.
       child.stdin.on('error', () => { job.cleanupIncomplete = true; });
@@ -120,8 +159,9 @@ export async function serve(manager) {
           else throw new Error('invalid_worker_frame');
         }
       };
-      if (patch) child.stdin.write(JSON.stringify({id: row.id, ...p}) + '\n');
-      else child.stdin.end();
+      // Windows SRT does not deliver our pipe to Python stdin. Requests and
+      // ACKs are structured host-owned files, read-only to the sandbox token.
+      child.stdin.end();
       const [exit] = await Promise.all([job.closed, patch ? readWorker() :
         drain(child.stdout, 'stdout'), drain(child.stderr, 'stderr')]);
       if (patch) {
@@ -133,7 +173,8 @@ export async function serve(manager) {
           exit.code !== 0 ? 'command_exit_nonzero' : null;
         await send({id: row.id, type: 'result', result: {exit_code: exit.code,
           timed_out: job.timedOut, cancelled: job.cancelled,
-          cleanup_incomplete: job.cleanupIncomplete, error_code: code}});
+          cleanup_incomplete: job.cleanupIncomplete, error_code: code,
+          requires_reset: job.requiresReset === true}});
       }
     } catch {
       await stop(job);
@@ -141,6 +182,9 @@ export async function serve(manager) {
         job.child ? 'interrupted_unknown' : 'not_executed');
     } finally {
       clearTimeout(timer);
+      if (job.ackWrite) await job.ackWrite.catch(() => {});
+      if (job.ackPath) await unlink(job.ackPath).catch(() => {});
+      if (job.requestPath) await unlink(job.requestPath).catch(() => {});
       active = undefined;
     }
   }
@@ -148,10 +192,21 @@ export async function serve(manager) {
   async function shutdown() {
     if (closing) return;
     closing = true;
+    // Initialization owns session ACL/proxy state until its finally block.
+    // Reset must not race an in-flight initialize, including Ctrl+C at startup.
+    while (initializing) await new Promise(r => setTimeout(r, 10));
     if (active) await stop(active);
-    if (manager && config) await manager.reset();
-    process.exitCode = 0;
-    process.stdin.destroy();
+    try {
+      if (pendingExecution) await pendingExecution;
+      if (manager && config) await manager.reset();
+      if (ipcDirectory) await rmdir(ipcDirectory);
+      process.exitCode = active?.cleanupIncomplete ? 1 : 0;
+    } catch (e) {
+      process.stderr.write('SRT shutdown failed: ' + String(e.message).slice(0, 4000) + '\n');
+      process.exitCode = 1;
+    } finally {
+      process.stdin.destroy();
+    }
   }
   const input = createInterface({input: process.stdin, crlfDelay: Infinity});
   // Bound the incoming byte stream before readline allocates an unlimited line.
@@ -170,7 +225,7 @@ export async function serve(manager) {
       if (row.method === 'shutdown') { await shutdown(); return; }
       if (row.method === 'cancel' && active?.id === row.id) { await stop(active); return; }
       if (row.method === 'ack' && active?.id === row.id && active.patch) {
-        if (!active.child.stdin.destroyed) active.child.stdin.write(line + '\n');
+        await acknowledge(active, {id: row.id, method: 'ack', index: ++active.ackIndex});
         return;
       }
       if (seen.has(row.id) || executing || initializing) {
@@ -178,7 +233,6 @@ export async function serve(manager) {
       }
       seen.add(row.id);
       if (row.method === 'initialize') {
-        if (!manager) { await error(row.id, 'backend_blocked'); return; }
         if (config) { await error(row.id, 'already_initialized'); return; }
         initializing = true;
         try {
@@ -189,34 +243,57 @@ export async function serve(manager) {
             [workspace, ...await Promise.all((p.writable_roots ?? []).map(r => realpath(r)))] : [];
           const worker = await realpath(fileURLToPath(new URL('./patch_worker.py', import.meta.url)));
           const python = await realpath(p.python);
+          ipcDirectory = await mkdtemp(join(tmpdir(), 'nexus-srt-ipc-'));
+          const readRoots = await Promise.all((p.read_roots ?? []).map(r => realpath(r)));
           // Source checkout inside a writable root is not a trusted Worker installation.
-          if (roots.some(root => inside(worker, root) || inside(python, root))) {
+          if (roots.some(root => inside(worker, root) || inside(python, root)
+              || readRoots.some(r => inside(r, root)))) {
             throw new Error('untrusted_worker_installation');
           }
+          for (const list of [p.allowed_domains ?? [], p.denied_domains ?? []]) {
+            if (!Array.isArray(list) || list.some(d => typeof d !== 'string'
+                || !/^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/.test(d)
+                || d.includes('..'))) throw new Error('invalid_network_domains');
+          }
+          let windows;
+          if (!manager) {
+            const installation = await realpath(packageRoot);
+            if ([workspace, ...roots].some(r => inside(installation, r))) {
+              throw new Error('untrusted_srt_installation');
+            }
+            manager = await loadSRT(installation);
+            windows = {srtWin: {path: await realpath(join(installation,
+              'vendor', 'srt-win', process.arch, 'srt-win.exe'))}};
+          }
           await manager.initialize({
-            network: {allowedDomains: [], deniedDomains: [], allowLocalBinding: false},
-            filesystem: {denyRead: [], allowWrite: roots, denyWrite: [
-              resolve(worker, '../../..'), python,
-              ...roots.flatMap(root => ['.git', '.nexus'].map(name => join(root, name))),
+            network: {allowedDomains: p.allowed_domains ?? [],
+              deniedDomains: p.denied_domains ?? [], allowLocalBinding: false},
+            filesystem: {denyRead: [], allowRead: [workspace, ...readRoots, ipcDirectory],
+              allowWrite: roots, denyWrite: [
+              resolve(worker, '../../..'), python, ...readRoots, ipcDirectory,
+              ...roots.flatMap(root => ['.git/config', '.git/hooks', '.git/config.worktree',
+                '.gitmodules', '.nexus'].map(name => join(root, name))),
             ]},
+            ...(windows ? {windows} : {}),
           });
           config = {mode: p.mode, workspace, worker, python};
           await send({id: row.id, type: 'result', result: {initialized: true}});
-        } catch {
-          await manager.reset();
-          await error(row.id, 'initialization_failed');
+        } catch (e) {
+          try { if (manager) await manager.reset(); }
+          catch (cleanup) { await error(row.id, 'cleanup_incomplete', 'not_executed', cleanup.message); return; }
+          await error(row.id, 'initialization_failed', 'not_executed', e.message);
         } finally { initializing = false; }
       } else if (row.method === 'execute' && config) {
         executing = true;
-        try { await execute(row); }
-        finally { executing = false; }
+        pendingExecution = execute(row);
+        try { await pendingExecution; }
+        finally { executing = false; pendingExecution = undefined; }
       } else await error(row.id, 'backend_unavailable');
     })().catch(async () => { await shutdown(); });
   });
   input.on('close', () => { void shutdown(); });
 }
 
-// Acceptance gate is compiled into the production entry, not a model/env/config flag.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await serve(null);
+  await serve(null, process.argv[2]);
 }

@@ -90,8 +90,13 @@ async def test_loop_routes_and_denies_unknown(tmp_path: Path, mode: Mode) -> Non
 
 
 @pytest.mark.parametrize("mode", ["read-only", "workspace-write"])
-async def test_production_backend_never_executes(tmp_path: Path, mode: Mode) -> None:
-    gateway = SecurityGateway(SecurityPolicy(mode), backend=SRTBackend())
+async def test_production_backend_missing_installation_fails_closed(
+    tmp_path: Path, mode: Mode
+) -> None:
+    gateway = SecurityGateway(
+        SecurityPolicy(mode),
+        backend=SRTBackend(SecurityPolicy(mode, node_path=str(tmp_path / "missing-node.exe"))),
+    )
     value = await gateway.execute(
         call("exec_command", {"command": "must not run"}),
         native_tools(),
@@ -99,7 +104,7 @@ async def test_production_backend_never_executes(tmp_path: Path, mode: Mode) -> 
         ExecutionContext(tmp_path, "c1", "missing-shell"),
         Recorder(),
     )
-    assert value.error_code == "backend_blocked"
+    assert value.error_code == "backend_unavailable"
     assert value.data["execution_state"] == "not_executed"
     denied = await SRTBackend().request_write_access(
         (str(tmp_path),), ExecutionContext(tmp_path, "c1", "")

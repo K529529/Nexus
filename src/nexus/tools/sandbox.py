@@ -1,4 +1,4 @@
-"""Restricted backend acceptance gate and bounded, sequential Bridge IPC client."""
+"""Lazy Windows SRT execution and bounded, sequential Bridge IPC."""
 
 from __future__ import annotations
 
@@ -6,21 +6,88 @@ import asyncio
 import base64
 import codecs
 import json
+import os
+import shutil
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
+from nexus.core.security import SecurityPolicy
 from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult, json_text
 from nexus.tools.execution import OutputBuffer, _cleanup
 
-BLOCKED_REASON = "Windows SRT isolation acceptance is unresolved; no local fallback is permitted."
 MAX_FRAME = 5 * 1024 * 1024
 
 
 class SRTBackend:
-    """Production entry: no configurable escape hatch until OS acceptance is complete."""
+    """Lazy, conversation-owned SRT session. Never falls back to host execution."""
+
+    def __init__(self, policy: SecurityPolicy | None = None) -> None:
+        self.policy = policy or SecurityPolicy(mode="read-only")
+        self.client: BridgeClient | None = None
+        self.status = "not_initialized"
+        self.detail = "SRT starts on the first restricted tool call."
+        self.lock = asyncio.Lock()
+        self.shell: str | None = None
+
+    def installation(self, workspace: Path, shell: str) -> tuple[tuple[str, ...], Json]:
+        if sys.platform != "win32":
+            raise BridgeError("This SRT adapter currently supports Windows only.")
+        roots = [workspace.resolve(), *(Path(p).resolve() for p in self.policy.writable_roots)]
+
+        def trusted(value: str | Path) -> Path:
+            path = Path(value).resolve(strict=True)
+            if any(path.is_relative_to(root) for root in roots):
+                raise BridgeError(
+                    f"Untrusted installation inside a workspace/write root: {path}. "
+                    "Install the Nexus wheel and Node/SRT outside authorized workspaces."
+                )
+            return path
+
+        node_name = self.policy.node_path or shutil.which("node")
+        if not node_name:
+            raise BridgeError("Node.js >=22.12 is required; install it outside the workspace.")
+        node = trusted(node_name)
+        package = self.policy.srt_package
+        if package is None:
+            # Inspect global launchers, never execute npm or search workspace node_modules.
+            candidates = [node.parent / "node_modules/@anthropic-ai/sandbox-runtime"]
+            for folder in os.get_exec_path():
+                base = Path(folder)
+                if base.is_absolute() and any(
+                    (base / n).is_file() for n in ("srt", "srt.cmd", "srt.ps1")
+                ):
+                    candidates.append(base / "node_modules/@anthropic-ai/sandbox-runtime")
+            package = next((str(p) for p in candidates if p.is_dir()), None)
+        if not package:
+            raise BridgeError(
+                "SRT missing. Install npm install -g @anthropic-ai/sandbox-runtime@0.0.81; "
+                "or set security.srt_package to its absolute global installation. "
+                "Windows provisioning must be performed explicitly by the user."
+            )
+        package_path = trusted(package)
+        bridge = trusted(Path(__file__).with_name("srt_bridge.mjs"))
+        python = trusted(sys.executable)
+        shell_path = trusted(shutil.which(shell) or shell)
+        self.shell = str(shell_path)
+        read_roots = [
+            trusted(sys.prefix),
+            trusted(sys.base_prefix),
+            trusted(Path(__file__).parents[1]),
+            trusted(shell_path.parent),
+        ]
+        return (str(node), str(bridge), str(package_path)), {
+            "mode": self.policy.mode,
+            "workspace": str(workspace.resolve()),
+            "python": str(python),
+            "writable_roots": list(self.policy.writable_roots),
+            "read_roots": list(dict.fromkeys(str(p) for p in read_roots)),
+            "allowed_domains": list(self.policy.allowed_domains),
+            "denied_domains": list(self.policy.denied_domains),
+        }
 
     async def execute(
         self,
@@ -29,24 +96,148 @@ class SRTBackend:
         context: ExecutionContext,
         emit: Emit,
     ) -> ToolResult:
-        return ToolResult(
-            context.call_id,
-            False,
-            {
-                "detail": BLOCKED_REASON,
-                "execution_state": "not_executed",
-                "backend": "srt",
-                "isolation_verified": False,
-            },
-            "backend_blocked",
-        )
+        async with self.lock:
+            if self.status in {"failed", "closed"}:
+                return ToolResult(
+                    context.call_id,
+                    False,
+                    {
+                        "detail": self.detail,
+                        "execution_state": "not_executed",
+                    },
+                    "backend_unavailable",
+                )
+            try:
+                if self.client is None:
+                    argv, params = self.installation(context.workspace, context.shell)
+                    self.client = BridgeClient(argv, cwd=Path(argv[1]).parent)
+                    await self.client.initialize(params)
+                    self.status, self.detail = (
+                        "ready",
+                        "SRT initialized; Windows guarantees are experimental.",
+                    )
+                result = await self.client.execute(
+                    name, arguments, replace(context, shell=self.shell or context.shell), emit
+                )
+                result = await self.finish_stop(result)
+                if result.error_code == "cleanup_incomplete" or (
+                    self.client and self.client.broken
+                ):
+                    self.status, self.detail = (
+                        "failed",
+                        "Previous execution cleanup is unconfirmed.",
+                    )
+                return result
+            except ToolCancelled as exc:
+                result = await self.finish_stop(exc.result)
+                if exc.result.data.get("cleanup_incomplete") or (
+                    self.client and self.client.broken
+                ):
+                    self.status, self.detail = (
+                        "failed",
+                        "Cancelled execution cleanup is unconfirmed.",
+                    )
+                raise ToolCancelled(result) from None
+            except (OSError, ValueError, BridgeError, TimeoutError) as exc:
+                self.status, self.detail = "failed", str(exc) or type(exc).__name__
+                if self.client:
+                    await self.client.close()
+                return ToolResult(
+                    context.call_id,
+                    False,
+                    {
+                        "detail": self.detail,
+                        "execution_state": "not_executed",
+                    },
+                    "backend_unavailable",
+                )
+
+    async def finish_stop(self, result: ToolResult) -> ToolResult:
+        if result.error_code == "cleanup_incomplete" and self.client is not None:
+            # An interrupted patch may lack a worker result. End the SRT holder
+            # now even when no requires_reset frame arrived; preserve unknown facts.
+            await self.client.close()
+            self.status, self.detail = "failed", "Interrupted execution result is unconfirmed."
+            return result
+        if result.data.get("requires_reset") and self.client is not None:
+            await self.client.close()
+            if not self.client.cleanup_confirmed:
+                self.status, self.detail = "failed", "SRT cancellation holder exit unconfirmed."
+                return replace(
+                    result,
+                    ok=False,
+                    error_code="cleanup_incomplete",
+                    data={**result.data, "cleanup_incomplete": True},
+                )
+            self.client = None
+            self.status, self.detail = (
+                "not_initialized",
+                "Cancelled SRT session closed; next call initializes a new session.",
+            )
+        return result
+
+    async def close(self) -> None:
+        if self.client:
+            await self.client.close()
+            if not self.client.cleanup_confirmed:
+                self.status, self.detail = (
+                    "failed",
+                    "SRT reset/exit could not be confirmed. " + self.client.stderr,
+                )
+                raise OSError(self.detail)
+        self.status = "closed"
+
+    async def execute_patch_once(
+        self,
+        arguments: Json,
+        context: ExecutionContext,
+        emit: Emit,
+    ) -> ToolResult:
+        """A user-approved structured patch, never shell or persistent access."""
+        async with self.lock:
+            if self.policy.mode != "read-only" or self.status in {"failed", "closed"}:
+                return ToolResult(context.call_id, False, {}, "dynamic_scope_unsupported")
+            if self.client:
+                await self.client.close()
+                if not self.client.cleanup_confirmed:
+                    self.status = "failed"
+                    return ToolResult(
+                        context.call_id, False, {"cleanup_incomplete": True}, "cleanup_incomplete"
+                    )
+                self.client = None
+            one_shot = SRTBackend(replace(self.policy, mode="workspace-write", writable_roots=()))
+            result: ToolResult | None = None
+            try:
+                result = await one_shot.execute("apply_patch", arguments, context, emit)
+            finally:
+                try:
+                    await one_shot.close()
+                except OSError:
+                    self.status, self.detail = "failed", "One-shot reset is unconfirmed."
+                    raise
+                if one_shot.client and not one_shot.client.cleanup_confirmed:
+                    self.status, self.detail = "failed", "One-shot reset is unconfirmed."
+                else:
+                    self.status, self.detail = (
+                        "not_initialized",
+                        "One-shot closed; read-only restored.",
+                    )
+            assert result is not None
+            if self.status == "failed":
+                return replace(
+                    result,
+                    ok=False,
+                    error_code="cleanup_incomplete",
+                    data={**result.data, "cleanup_incomplete": True},
+                )
+            return result
 
     async def request_write_access(
         self,
         paths: tuple[str, ...],
         context: ExecutionContext,
     ) -> ToolResult:
-        """Reserved for future per-call scope expansion; never elevate to Local."""
+        """Arbitrary directory grants are unsupported; never elevate to Local."""
         return ToolResult(
             context.call_id,
             False,
@@ -63,7 +254,7 @@ class BridgeError(RuntimeError):
 
 
 class BridgeClient:
-    """Engineering transport, injected by tests; production SRTBackend stays closed.
+    """Production transport, also used with explicitly injected test adapters.
 
     The owner must close this object. There is no automatic retry after dispatch.
     Frame IDs are independent of model call IDs and never reused across runs.
@@ -74,6 +265,15 @@ class BridgeClient:
         self.process: asyncio.subprocess.Process | None = None
         self.lock = asyncio.Lock()
         self.broken = False
+        self.cleanup_confirmed = True
+        self.stderr = ""
+        self.stderr_task: asyncio.Task[None] | None = None
+
+    async def drain_stderr(self) -> None:
+        assert self.process is not None and self.process.stderr is not None
+        stream = self.process.stderr
+        while chunk := await stream.read(4096):
+            self.stderr = (self.stderr + chunk.decode("utf-8", errors="replace"))[-4000:]
 
     async def start(self) -> None:
         if self.broken:
@@ -91,15 +291,17 @@ class BridgeClient:
                 cwd=self.cwd,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
                 limit=MAX_FRAME,
                 **options,
             )
         )
         try:
             self.process = await asyncio.shield(spawn)
+            self.stderr_task = asyncio.create_task(self.drain_stderr())
         except asyncio.CancelledError:
             self.process = await asyncio.shield(spawn)
+            self.stderr_task = asyncio.create_task(self.drain_stderr())
             await self.close()
             raise
 
@@ -124,13 +326,26 @@ class BridgeClient:
     async def initialize(self, params: Json) -> None:
         async with self.lock:
             try:
-                async with asyncio.timeout(10):
+                # SRT's first Windows persistent grant may walk installation trees;
+                # its official grant API allows ten minutes. This is initialization,
+                # not the model command's execution budget, and is never retried.
+                async with asyncio.timeout(600):
                     await self.start()
                     ident = uuid4().hex
                     await self.send({"id": ident, "method": "initialize", "params": params})
                     value = await self.receive(ident)
-                    if value.get("type") != "result":
-                        raise BridgeError("backend_unavailable")
+                    if (
+                        value.get("type") != "result"
+                        or value.get("result", {}).get("initialized") is not True
+                    ):
+                        raise BridgeError(
+                            f"backend_unavailable: {value.get('code')}: {value.get('detail', '')}"
+                        )
+            except TimeoutError:
+                await self.close()
+                raise BridgeError(
+                    "SRT initialization exceeded 600 seconds; no tool dispatched."
+                ) from None
             except BaseException:
                 await self.close()
                 raise
@@ -246,7 +461,11 @@ class BridgeClient:
                         return ToolResult(
                             context.call_id,
                             False,
-                            {"execution_state": row.get("state", "unknown")},
+                            {
+                                "execution_state": row.get("state", "unknown"),
+                                "detail": row.get("detail", ""),
+                                **output.output(),
+                            },
                             row.get("code", "bridge_error"),
                         )
                     else:
@@ -316,11 +535,19 @@ class BridgeClient:
         if self.process is None:
             return
         process = self.process
+        self.cleanup_confirmed = False
         if process.returncode is None:
             try:
-                async with asyncio.timeout(3):
+                async with asyncio.timeout(120):
                     await self.send({"id": uuid4().hex, "method": "shutdown"})
                     await process.wait()
             except (OSError, TimeoutError):
                 await _cleanup(process)
+        self.cleanup_confirmed = process.returncode == 0
+        if self.stderr_task is not None:
+            try:
+                async with asyncio.timeout(2):
+                    await self.stderr_task
+            except (OSError, TimeoutError):
+                self.cleanup_confirmed = False
         self.process = None

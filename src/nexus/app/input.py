@@ -43,6 +43,7 @@ INPUT_STYLE = Style.from_dict({
 })
 COMMANDS = {
     "/help": "Commands and shortcuts",
+    "/permissions": "View or change execution permissions (starts a new conversation)",
     "/new": "New conversation",
     "/resume": "Choose a saved session",
     "/compact": "Compact current history",

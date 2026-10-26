@@ -144,6 +144,59 @@ async def test_bridge_worker_reuses_patch_core_and_audit(tmp_path: Path) -> None
         await client.close()
 
 
+async def test_completed_patch_can_close_immediately_without_recreating_ack(tmp_path: Path) -> None:
+    client = await connected(tmp_path)
+    try:
+        result = await client.execute(
+            "apply_patch",
+            {"patch": "*** Begin Patch\n*** Add File: once.txt\n+done\n*** End Patch"},
+            ExecutionContext(tmp_path / "work", "once", ""),
+            Recorder(),
+        )
+        assert result.ok
+    finally:
+        await client.close()
+    assert client.cleanup_confirmed, client.stderr
+
+
+@pytest.mark.skipif(sys.platform != "win32" or not NODE, reason="Windows Node Bridge target")
+async def test_read_only_deny_is_owned_by_each_command_not_kept_session(tmp_path: Path) -> None:
+    path = tmp_path / "deny-contract.mjs"
+    path.write_text(
+        f"import {{serve}} from {json.dumps((TOOLS / 'srt_bridge.mjs').as_uri())};\n"
+        "let root; await serve({initialize: async config => {\n"
+        "root=config.filesystem.allowRead[0];\n"
+        "if(config.filesystem.allowWrite.length || config.filesystem.denyWrite.includes(root))\n"
+        "throw Error('RO root deny must not be persisted');}, reset: async()=>{},\n"
+        "wrapWithSandboxArgv: async(text,shell,perCommand)=>{\n"
+        "if(perCommand?.filesystem?.denyWrite?.[0] !== root) throw Error('RO deny missing');\n"
+        "return {argv:[shell.exe,...shell.args,text],env:process.env};}});\n",
+        encoding="utf-8",
+    )
+    workspace = tmp_path / "work"
+    workspace.mkdir()
+    client = BridgeClient((str(NODE), str(path)), cwd=tmp_path)
+    try:
+        await client.initialize(
+            {
+                "mode": "read-only",
+                "workspace": str(workspace),
+                "python": sys.executable,
+                "writable_roots": [],
+            }
+        )
+        result = await client.execute(
+            "exec_command",
+            {"command": "Write-Output protected"},
+            ExecutionContext(workspace, "ro", default_shell()),
+            Recorder(),
+        )
+        assert result.ok and "protected" in result.data["stdout"]
+    finally:
+        await client.close()
+    assert client.cleanup_confirmed
+
+
 async def test_worker_read_only_rejected(tmp_path: Path) -> None:
     client = await connected(tmp_path, "read-only")
     try:
@@ -175,8 +228,9 @@ async def test_worker_cancel_at_audit_barrier_preserves_partial(tmp_path: Path) 
         "workspace": str(tmp_path),
         "output_limit_bytes": 4096,
         "arguments": {
-            "patch": ("*** Begin Patch\n*** Add File: a\n+first\n"
-                      "*** Add File: b\n+second\n*** End Patch")
+            "patch": (
+                "*** Begin Patch\n*** Add File: a\n+first\n*** Add File: b\n+second\n*** End Patch"
+            )
         },
     }
     try:
@@ -203,7 +257,7 @@ async def test_bridge_failure_is_unknown_and_never_retried(tmp_path: Path, respo
     code = (
         "import sys,json\n"
         "r=json.loads(sys.stdin.readline())\n"
-        "print(json.dumps({'id':r['id'],'type':'result','result':{}}),flush=True)\n"
+        "print(json.dumps({'id':r['id'],'type':'result','result':{'initialized':True}}),flush=True)\n"
         "r=json.loads(sys.stdin.readline())\n"
     )
     if response == "wrong-id":

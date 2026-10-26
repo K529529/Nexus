@@ -1,0 +1,47 @@
+{
+  "root": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage4b-functional-67xbrj1c",
+  "rows": [
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "identity",
+        "stream": "stderr",
+        "text": "srt-win: error: CreateProcessAsUserW(C:\\Users\\Archer\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE): 拒绝访问。 (0x80070005)"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "identity",
+        "stream": "stderr",
+        "text": "\n"
+      }
+    },
+    {
+      "test": "read-only-identity",
+      "elapsed_ms": 6462.584599968977,
+      "result": {
+        "call_id": "identity",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "stdout": "",
+          "stderr": "srt-win: error: CreateProcessAsUserW(C:\\Users\\Archer\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE): 拒绝访问。 (0x80070005)\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 140,
+        "truncated": false
+      }
+    }
+  ]
+}

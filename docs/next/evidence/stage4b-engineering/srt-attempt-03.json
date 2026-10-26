@@ -1,0 +1,55 @@
+{
+  "root": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage4b-functional-cwxj4azs",
+  "rows": [
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "identity",
+        "stream": "stderr",
+        "text": "\u001b[31;1mGet-Content: \u001b[31;1mCannot find path 'C:\\hello.txt' because it does not exist.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "read-only-identity",
+      "elapsed_ms": 5515.521600027569,
+      "result": {
+        "call_id": "identity",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\n",
+          "stderr": "\u001b[31;1mGet-Content: \u001b[31;1mCannot find path 'C:\\hello.txt' because it does not exist.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 906,
+        "truncated": false
+      }
+    }
+  ]
+}

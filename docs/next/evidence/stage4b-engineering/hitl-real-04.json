@@ -1,0 +1,779 @@
+{
+  "root": "D:\\WorkSpace\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941",
+  "rows": [
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "decision": "allow"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "initial-read-only",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "initial-read-only",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "initial-read-only",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "7e7160d92d27569f5f5a703f6e075d5ef22e32b2dc55f8deb52c9405f7c0fd7f",
+        "state": "finished",
+        "ok": true,
+        "error_code": null
+      }
+    },
+    {
+      "test": "initial-read-only",
+      "elapsed_ms": 124552.20310005825,
+      "result": {
+        "call_id": "initial-read-only",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 594,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "denied-first",
+        "tool_name": "apply_patch",
+        "mode": "read-only",
+        "backend": "none",
+        "capability_scope": "{\"capability\":\"patch\",\"backend\":\"none\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f",
+        "decision": "deny"
+      }
+    },
+    {
+      "test": "denied-first",
+      "elapsed_ms": 0.9923999896273017,
+      "result": {
+        "call_id": "denied-first",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "denial_source": "gateway_read_only_policy",
+          "denied_call_id": "denied-first",
+          "detail": "Read-only forbids patch. request_permissions may request one approved patch in this workspace; shell elevation is unsupported."
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "decision": "ask"
+      }
+    },
+    {
+      "event": "approval_requested",
+      "data": {
+        "request_id": "dbb7da6d6468482ab0109893e09b26b1",
+        "session_id": "732f551ccb67487594e42c3abb05e7e2",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 604920.687
+      }
+    },
+    {
+      "event": "approval_resolved",
+      "data": {
+        "request_id": "dbb7da6d6468482ab0109893e09b26b1",
+        "session_id": "732f551ccb67487594e42c3abb05e7e2",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-deny",
+        "tool_name": "request_permissions",
+        "arguments_digest": "e67196573f3b21d7e1a2ddd019558652ceae04ed4e7e72b3c0f00ff81f1d0649",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-first\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 604920.687,
+        "choice": "deny"
+      }
+    },
+    {
+      "test": "user-deny",
+      "elapsed_ms": 53.992200060747564,
+      "result": {
+        "call_id": "user-deny",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed"
+        },
+        "error_code": "approval_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "test": "deny-no-file",
+      "passed": true
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "denied-again",
+        "tool_name": "apply_patch",
+        "mode": "read-only",
+        "backend": "none",
+        "capability_scope": "{\"capability\":\"patch\",\"backend\":\"none\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f",
+        "decision": "deny"
+      }
+    },
+    {
+      "test": "denied-again",
+      "elapsed_ms": 0.7454000879079103,
+      "result": {
+        "call_id": "denied-again",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "denial_source": "gateway_read_only_policy",
+          "denied_call_id": "denied-again",
+          "detail": "Read-only forbids patch. request_permissions may request one approved patch in this workspace; shell elevation is unsupported."
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "decision": "ask"
+      }
+    },
+    {
+      "event": "approval_requested",
+      "data": {
+        "request_id": "59ac96af1305463d8842ec07505e7084",
+        "session_id": "732f551ccb67487594e42c3abb05e7e2",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 604920.75
+      }
+    },
+    {
+      "event": "approval_resolved",
+      "data": {
+        "request_id": "59ac96af1305463d8842ec07505e7084",
+        "session_id": "732f551ccb67487594e42c3abb05e7e2",
+        "run_id": "hitl-real-srt",
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "expires_at": 604920.75,
+        "choice": "allow_once"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "patch_diff",
+      "data": {
+        "call_id": "user-allow-once",
+        "file_index": 1,
+        "path": "one.txt",
+        "status": "added",
+        "added_lines": 1,
+        "deleted_lines": 0,
+        "before_hash": null,
+        "after_hash": "4ee420b8d8317cbf5b531c00d1454efa0bea98c8f94d28457032f9bc2cd73892",
+        "diff": "--- /dev/null\n+++ b/one.txt\n@@ -0,0 +1 @@\n+approved once\n",
+        "diff_bytes": 57,
+        "diff_limit_bytes": 65536,
+        "truncated": false,
+        "omitted": false,
+        "omission_reason": null
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "user-allow-once",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "restricted-once",
+        "capability_scope": "{\"capability\":\"workspace-patch-once\",\"backend\":\"restricted-once\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[],\"grant\":\"one apply_patch only; no shell; baseline restored afterwards\",\"target\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"denied_call_id\":\"denied-again\",\"denial_source\":\"gateway_read_only_policy\",\"original_arguments_digest\":\"0c48316f8c9d1af965a5080b678d3f015d14212702b0a2a6c8081caf88e6fe8f\",\"operation\":{\"patch\":\"*** Begin Patch\\n*** Add File: one.txt\\n+approved once\\n*** End Patch\"}}",
+        "arguments_digest": "9e1d40ac8f39b86169f9581a2e652a66a6978b88e1f9d3aca786911ab19b2cf6",
+        "state": "finished",
+        "ok": true,
+        "error_code": null
+      }
+    },
+    {
+      "test": "user-allow-once",
+      "elapsed_ms": 244752.27439997252,
+      "result": {
+        "call_id": "user-allow-once",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "one.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "4ee420b8d8317cbf5b531c00d1454efa0bea98c8f94d28457032f9bc2cd73892"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 15,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "cannot-reuse",
+        "tool_name": "request_permissions",
+        "mode": "read-only",
+        "backend": "none",
+        "capability_scope": "{\"capability\":\"permission-request\",\"backend\":\"none\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "a8e959c82c05942db83f6697d2fdbfb17bb9fc24122d45a0681c877de599ccfa",
+        "decision": "deny"
+      }
+    },
+    {
+      "test": "cannot-reuse",
+      "elapsed_ms": 0.8623000467196107,
+      "result": {
+        "call_id": "cannot-reuse",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed"
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "baseline-read",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "e8519b44d15e647baa3036343d93e1f1765d8ce3f372b145d09de5aea27a3e2e",
+        "decision": "allow"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "baseline-read",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "e8519b44d15e647baa3036343d93e1f1765d8ce3f372b145d09de5aea27a3e2e",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "baseline-read",
+        "stream": "stdout",
+        "text": "approved once\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "baseline-read",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "baseline-read",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "baseline-read",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "e8519b44d15e647baa3036343d93e1f1765d8ce3f372b145d09de5aea27a3e2e",
+        "state": "finished",
+        "ok": true,
+        "error_code": null
+      }
+    },
+    {
+      "test": "baseline-read",
+      "elapsed_ms": 123623.27710003592,
+      "result": {
+        "call_id": "baseline-read",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "approved once\r\ndesktop-4ujl9t1\\srt-sandbox\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 609,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "baseline-deny-write",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "adc3b3bb8ce25f922f8db233624b9d206975404a5e1efa40bf2caa97229b6ead",
+        "decision": "allow"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "baseline-deny-write",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "adc3b3bb8ce25f922f8db233624b9d206975404a5e1efa40bf2caa97229b6ead",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "baseline-deny-write",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\work\\forbidden.txt' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "baseline-deny-write",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "adc3b3bb8ce25f922f8db233624b9d206975404a5e1efa40bf2caa97229b6ead",
+        "state": "finished",
+        "ok": false,
+        "error_code": "command_exit_nonzero"
+      }
+    },
+    {
+      "test": "baseline-deny-write",
+      "elapsed_ms": 694.5356000214815,
+      "result": {
+        "call_id": "baseline-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\work\\forbidden.txt' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 687,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_policy",
+      "data": {
+        "call_id": "default-network-denied",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "25477bebaeb5c79f14eccf64d059a59f0ffcc579af0ef01b8efea3d1d3a86209",
+        "decision": "allow"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "default-network-denied",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "25477bebaeb5c79f14eccf64d059a59f0ffcc579af0ef01b8efea3d1d3a86209",
+        "state": "dispatching"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "Traceback (most recent call last):\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1344, in do_open\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    h.request(req.get_method(), req.selector, req.data, headers,\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1338, in request\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self._send_request(method, url, body, headers, encode_chunked)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1384, in _send_request\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self.endheaders(body, encode_chunked=encode_chunked)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1333, in endheaders\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self._send_output(message_body, encode_chunked=encode_chunked)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1093, in _send_output\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self.send(msg)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1037, in send\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self.connect()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1472, in connect\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    super().connect()\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1013, in connect\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    self._tunnel()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 981, in _tunnel\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    raise OSError(f\"Tunnel connection failed: {code} {message.strip()}\")\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "OSError: Tunnel connection failed: 403 host is not on the allow list\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"<string>\", line 1, in <module>\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 215, in urlopen\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    return opener.open(url, data, timeout)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 515, in open\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    response = self._open(req, data)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "               ^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 532, in _open\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    result = self._call_chain(self.handle_open, protocol, protocol +\r\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 492, in _call_chain\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    result = func(*args)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "             ^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1392, in https_open\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    return self.do_open(http.client.HTTPSConnection, req,\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1347, in do_open\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "    raise URLError(err)\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "default-network-denied",
+        "stream": "stderr",
+        "text": "urllib.error.URLError: <urlopen error Tunnel connection failed: 403 host is not on the allow list>\r\n"
+      }
+    },
+    {
+      "event": "tool_execution",
+      "data": {
+        "call_id": "default-network-denied",
+        "tool_name": "exec_command",
+        "mode": "read-only",
+        "backend": "restricted",
+        "capability_scope": "{\"capability\":\"shell\",\"backend\":\"restricted\",\"mode\":\"read-only\",\"workspace\":\"D:\\\\WorkSpace\\\\nexus-stage4b-hitl-0ddb518d4bea480c9865c2698650e941\\\\work\",\"writable_roots\":[]}",
+        "arguments_digest": "25477bebaeb5c79f14eccf64d059a59f0ffcc579af0ef01b8efea3d1d3a86209",
+        "state": "finished",
+        "ok": false,
+        "error_code": "command_exit_nonzero"
+      }
+    },
+    {
+      "test": "default-network-denied",
+      "elapsed_ms": 2796.1965000722557,
+      "result": {
+        "call_id": "default-network-denied",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1344, in do_open\r\n    h.request(req.get_method(), req.selector, req.data, headers,\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1338, in request\r\n    self._send_request(method, url, body, headers, encode_chunked)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1384, in _send_request\r\n    self.endheaders(body, encode_chunked=encode_chunked)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1333, in endheaders\r\n    self._send_output(message_body, encode_chunked=encode_chunked)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1093, in _send_output\r\n    self.send(msg)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1037, in send\r\n    self.connect()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1472, in connect\r\n    super().connect()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 1013, in connect\r\n    self._tunnel()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\http\\client.py\", line 981, in _tunnel\r\n    raise OSError(f\"Tunnel connection failed: {code} {message.strip()}\")\r\nOSError: Tunnel connection failed: 403 host is not on the allow list\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"<string>\", line 1, in <module>\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 215, in urlopen\r\n    return opener.open(url, data, timeout)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 515, in open\r\n    response = self._open(req, data)\r\n               ^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 532, in _open\r\n    result = self._call_chain(self.handle_open, protocol, protocol +\r\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 492, in _call_chain\r\n    result = func(*args)\r\n             ^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1392, in https_open\r\n    return self.do_open(http.client.HTTPSConnection, req,\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\urllib\\request.py\", line 1347, in do_open\r\n    raise URLError(err)\r\nurllib.error.URLError: <urlopen error Tunnel connection failed: 403 host is not on the allow list>\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 2797,
+        "truncated": false
+      }
+    },
+    {
+      "test": "host-files",
+      "approved_file": "approved once\n",
+      "baseline_write_denied": true
+    },
+    {
+      "test": "close",
+      "confirmed": true
+    }
+  ]
+}

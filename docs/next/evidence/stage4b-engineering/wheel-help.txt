@@ -1,0 +1,35 @@
+usage: nexus [-h] [--version] [--profile] [--skill SKILL]
+             [--permission-mode {local,read-only,workspace-write}]
+             {memory,skills,eval,exec,resume} ...
+
+Nexus Next local coding agent
+
+positional arguments:
+  {memory,skills,eval,exec,resume}
+    memory              Inspect memory/index state without a model call
+    skills              List local Skills without a model connection
+    eval                Run fixed Next Dev Set V0 cases
+    exec                Run one coding task
+    resume              Select a local conversation in this workspace
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --profile             Show a developer report after each run
+  --skill SKILL         Select a local Skill for this session
+  --permission-mode {local,read-only,workspace-write}
+                        Temporary execution mode; overrides user security.mode
+usage: nexus exec [-h] [--skill SKILL] [--json | --profile]
+                  [--permission-mode {local,read-only,workspace-write}]
+                  task
+
+positional arguments:
+  task
+
+options:
+  -h, --help            show this help message and exit
+  --skill SKILL         Select a Skill for this task
+  --json                Public JSONL runtime events
+  --profile             Show a developer run report
+  --permission-mode {local,read-only,workspace-write}
+                        Temporary execution mode; overrides user security.mode

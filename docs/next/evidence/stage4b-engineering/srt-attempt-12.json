@@ -1,0 +1,456 @@
+{
+  "root": "D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719",
+  "rows": [
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "yes\r\n"
+      }
+    },
+    {
+      "test": "workspace-write-identity",
+      "elapsed_ms": 57986.157599953,
+      "result": {
+        "call_id": "workspace-write-identity",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\nyes\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 657,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\outside\\forbidden.txt' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "outside-deny-write",
+      "elapsed_ms": 703.5421999171376,
+      "result": {
+        "call_id": "outside-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\outside\\forbidden.txt' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 702,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "."
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "                                                                        [100%]"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "\r\n1 passed in 0.01s\r\n"
+      }
+    },
+    {
+      "test": "python-pytest",
+      "elapsed_ms": 1362.813699990511,
+      "result": {
+        "call_id": "python-pytest",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": ".                                                                        [100%]\r\n1 passed in 0.01s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1359,
+        "truncated": false
+      }
+    },
+    {
+      "event": "patch_diff",
+      "data": {
+        "call_id": "patch",
+        "file_index": 1,
+        "path": "patched.txt",
+        "status": "added",
+        "added_lines": 1,
+        "deleted_lines": 0,
+        "before_hash": null,
+        "after_hash": "804ad9d06cedf6ef67e211480080c0f6a731431f100e2081f28970a713813bd1",
+        "diff": "--- /dev/null\n+++ b/patched.txt\n@@ -0,0 +1 @@\n+patched by SRT\n",
+        "diff_bytes": 62,
+        "diff_limit_bytes": 65536,
+        "truncated": false,
+        "omitted": false,
+        "omission_reason": null
+      }
+    },
+    {
+      "test": "patch",
+      "elapsed_ms": 380.5148000828922,
+      "result": {
+        "call_id": "patch",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "patched.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "804ad9d06cedf6ef67e211480080c0f6a731431f100e2081f28970a713813bd1"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 16,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git",
+        "stream": "stdout",
+        "text": "[master (root-commit) 76e71e3] acceptance\n 1 file changed, 1 insertion(+)\n create mode 100644 hello.txt\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git",
+        "stream": "stdout",
+        "text": "?? .gitmodules\n?? .nexus\n?? __pycache__/\n?? new.txt\n?? patched.txt\n?? test_example.py\n"
+      }
+    },
+    {
+      "test": "git",
+      "elapsed_ms": 787.5105000566691,
+      "result": {
+        "call_id": "git",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "[master (root-commit) 76e71e3] acceptance\n 1 file changed, 1 insertion(+)\n create mode 100644 hello.txt\n?? .gitmodules\n?? .nexus\n?? __pycache__/\n?? new.txt\n?? patched.txt\n?? test_example.py\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 781,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\.git\\config' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "git-config-denied",
+      "elapsed_ms": 729.1025000158697,
+      "result": {
+        "call_id": "git-config-denied",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\.git\\config' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 733,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\.git\\hooks\\pre-commit' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "git-hook-denied",
+      "elapsed_ms": 675.3554999595508,
+      "result": {
+        "call_id": "git-hook-denied",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\.git\\hooks\\pre-commit' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 672,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "allowlisted-network",
+        "stream": "stdout",
+        "text": "200\r\n"
+      }
+    },
+    {
+      "test": "allowlisted-network",
+      "elapsed_ms": 3658.91370002646,
+      "result": {
+        "call_id": "allowlisted-network",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "200\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 3655,
+        "truncated": false
+      }
+    },
+    {
+      "test": "timeout-cancel",
+      "status": "NOT RUN in this attempt"
+    },
+    {
+      "test": "host-files",
+      "read_only_write_denied": true,
+      "outside_write_denied": true,
+      "patch_contents": "patched by SRT\n"
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stdout",
+        "text": "patched by SRT\r\n"
+      }
+    },
+    {
+      "test": "roundtrip-read-only",
+      "elapsed_ms": 59070.268200011924,
+      "result": {
+        "call_id": "roundtrip-read-only",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "patched by SRT\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 719,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\ro-denied.txt' is denied.\u001b[0m\r\n"
+      }
+    },
+    {
+      "test": "roundtrip-deny-write",
+      "elapsed_ms": 757.2703999467194,
+      "result": {
+        "call_id": "roundtrip-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "\u001b[31;1mSet-Content: \u001b[31;1mAccess to the path 'D:\\WorkSpace\\nexus-stage4b-functional-7fcfb19cdd1749eeaf169a30851be719\\work\\ro-denied.txt' is denied.\u001b[0m\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 750,
+        "truncated": false
+      }
+    },
+    {
+      "test": "roundtrip-workspace-write",
+      "elapsed_ms": 60187.564299907535,
+      "result": {
+        "call_id": "roundtrip-workspace-write",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 905,
+        "truncated": false
+      }
+    },
+    {
+      "test": "roundtrip-host-read",
+      "contents": "yes\n"
+    },
+    {
+      "test": "close",
+      "confirmed": true
+    }
+  ]
+}

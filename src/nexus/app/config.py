@@ -213,7 +213,13 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     path = path or config_path()
     data = read_toml(path)
     unknown = data.keys() - {
-        "model", "compaction_model", "runtime", "execution", "mcp", "memory", "security",
+        "model",
+        "compaction_model",
+        "runtime",
+        "execution",
+        "mcp",
+        "memory",
+        "security",
     }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
@@ -254,12 +260,25 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         settings.key()
         if compaction is not None:
             compaction.key()
-    security = _table(data, "security", {"mode", "writable_roots", "ask_tools",
-                                         "allow_host_memory", "allow_trusted_skills"})
+    security = _table(
+        data,
+        "security",
+        {
+            "mode",
+            "writable_roots",
+            "ask_tools",
+            "allow_host_memory",
+            "allow_trusted_skills",
+            "allowed_domains",
+            "denied_domains",
+            "node_path",
+            "srt_package",
+        },
+    )
     mode = security.get("mode", "local")
     if not isinstance(mode, str) or mode not in {"local", "read-only", "workspace-write"}:
         raise ConfigError("security.mode: expected local, read-only or workspace-write")
-    for name in ("writable_roots", "ask_tools"):
+    for name in ("writable_roots", "ask_tools", "allowed_domains", "denied_domains"):
         value = security.get(name, [])
         if not isinstance(value, list) or any(not isinstance(v, str) or not v for v in value):
             raise ConfigError(f"security.{name}: expected string array")
@@ -269,8 +288,22 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
     for name in ("allow_host_memory", "allow_trusted_skills"):
         if name in security and type(security[name]) is not bool:
             raise ConfigError(f"security.{name}: expected boolean")
-    policy = SecurityPolicy(cast(Mode, mode), roots, tuple(security.get("ask_tools", [])),
-                            security.get("allow_host_memory", False),
-                            security.get("allow_trusted_skills", True))
-    return Config(settings, limits, servers, language, compaction, memory_enabled,
-                  tuple(qmd_command), policy)
+    for name in ("node_path", "srt_package"):
+        if name in security and (
+            not isinstance(security[name], str) or not Path(security[name]).is_absolute()
+        ):
+            raise ConfigError(f"security.{name}: absolute installation path required")
+    policy = SecurityPolicy(
+        cast(Mode, mode),
+        roots,
+        tuple(security.get("ask_tools", [])),
+        security.get("allow_host_memory", False),
+        security.get("allow_trusted_skills", True),
+        tuple(security.get("allowed_domains", [])),
+        tuple(security.get("denied_domains", [])),
+        security.get("node_path"),
+        security.get("srt_package"),
+    )
+    return Config(
+        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy
+    )

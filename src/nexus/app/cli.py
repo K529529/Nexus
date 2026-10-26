@@ -19,6 +19,7 @@ from rich.text import Text
 from nexus import __version__
 from nexus.app.bootstrap import Conversation
 from nexus.app.config import (
+    Config,
     ConfigError,
     config_path,
     load_config,
@@ -36,6 +37,7 @@ from nexus.app.skills import SkillCatalog
 from nexus.app.tui import (
     Transcript,
     json_consumer,
+    select_permissions,
     select_session,
     setup,
     show_skills,
@@ -113,7 +115,10 @@ async def memory_command(action: str) -> int:
 
 
 async def drive(
-    conversation: Conversation, text: str, *, compact: bool = False,
+    conversation: Conversation,
+    text: str,
+    *,
+    compact: bool = False,
     editor: TaskInput | None = None,
 ) -> RunResult:
     loop = asyncio.get_running_loop()
@@ -149,16 +154,25 @@ async def drive(
             preview = str(redact(request.arguments_preview, conversation.secret_values()))
             if len(preview) > 2000:
                 preview = preview[:2000] + "\n[Preview truncated; review the full tool call.]"
-            Console(highlight=False).print(Text(terminal_text(str(redact(
-                f"Approval: {request.tool_name}\n{preview}\n"
-                f"Scope: {request.capability_scope}\n"
-                "Type allow, deny or cancel, then Enter (Ctrl+C cancels).",
-                conversation.secret_values(),
-            )))))
+            Console(highlight=False).print(
+                Text(
+                    terminal_text(
+                        str(
+                            redact(
+                                f"Approval: {request.tool_name}\n{preview}\n"
+                                f"Scope: {request.capability_scope}\n"
+                                "Type allow, deny or cancel, then Enter (Ctrl+C cancels).",
+                                conversation.secret_values(),
+                            )
+                        )
+                    )
+                )
+            )
             choice = await editor.approve()
-            return ApprovalDecision(request.request_id,
-                                    "allow_once" if choice == "allow" else
-                                    "cancel" if choice == "cancel" else "deny")
+            return ApprovalDecision(
+                request.request_id,
+                "allow_once" if choice == "allow" else "cancel" if choice == "cancel" else "deny",
+            )
 
         conversation.gateway.approver = approve
     try:
@@ -196,7 +210,12 @@ async def application(args: argparse.Namespace) -> int:
         selected = list(CASE_IDS) if args.all else [args.case]
         for case_id in selected:
             load_case(case_id)
-        return await evaluate(selected, load_config())
+        eval_config = load_config()
+        if getattr(args, "permission_mode", None) is not None:
+            eval_config = replace(
+                eval_config, security=replace(eval_config.security, mode=args.permission_mode)
+            )
+        return await evaluate(selected, eval_config)
     workspace = Path.cwd().resolve()
     interactive = args.command != "exec"
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
@@ -211,7 +230,15 @@ async def application(args: argparse.Namespace) -> int:
         assert prompt is not None
         if not await setup(config_path(), prompt.prompt_async, console):
             return 0
-    config = load_config()
+    permission_mode = getattr(args, "permission_mode", None)
+
+    def current_config(*, require_key: bool = True) -> Config:
+        loaded = load_config() if require_key else load_config(require_key=False)
+        if permission_mode is not None:
+            loaded = replace(loaded, security=replace(loaded.security, mode=permission_mode))
+        return loaded
+
+    config = current_config()
     if not interactive:
         consumer = json_consumer if args.json else Transcript(console)
         profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
@@ -242,13 +269,18 @@ async def application(args: argparse.Namespace) -> int:
     select = args.command == "resume"
     exit_reason: str | None = None
     console.print(f"Nexus · execution mode: {config.security.mode} · /help for commands")
-    console.print(Text(
-        INPUT_HELP, style="dim",
-    ))
-    console.print(Text(
-        "No bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.",
-        style="dim",
-    ))
+    console.print(
+        Text(
+            INPUT_HELP,
+            style="dim",
+        )
+    )
+    console.print(
+        Text(
+            "No bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.",
+            style="dim",
+        )
+    )
     try:
         await conversation.start_memory()
         if getattr(args, "skill", None):
@@ -265,15 +297,11 @@ async def application(args: argparse.Namespace) -> int:
                     if same:
                         await conversation.close()
                     try:
-                        candidate = Conversation(
-                            workspace, load_config(), summary, resume=path
-                        )
+                        candidate = Conversation(workspace, current_config(), summary, resume=path)
                     except (SessionError, OSError, ValueError) as exc:
                         console.print(Text(terminal_text(str(exc)), style="yellow"))
                         if same:
-                            conversation = Conversation(
-                                workspace, load_config(), summary
-                            )
+                            conversation = Conversation(workspace, current_config(), summary)
                         continue
                     await conversation.close()
                     conversation = candidate
@@ -306,7 +334,7 @@ async def application(args: argparse.Namespace) -> int:
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
                     "/resume recent sessions · /compact summarize history · "
-                    "/memory [on|off|status] · "
+                    "/memory [on|off|status] · /permissions view or change execution mode · "
                     "/new new conversation · /exit quit. "
                     "Each input starts a new run with continuous session history; "
                     "/resume continues the "
@@ -316,9 +344,30 @@ async def application(args: argparse.Namespace) -> int:
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
                     "Input typed during execution/cleanup is discarded."
                 )
+            elif text == "/permissions":
+                backend = conversation.gateway.backend
+                selected_mode = await select_permissions(
+                    conversation.config.security.mode,
+                    getattr(backend, "status", "local"),
+                    getattr(backend, "detail", "Commands run as your current user."),
+                )
+                if selected_mode is not None and selected_mode != conversation.config.security.mode:
+                    # The command runs only while the editor is idle. Closing first releases
+                    # the old sandbox; no pending approvals or historical grants are copied.
+                    await conversation.close()
+                    permission_mode = selected_mode
+                    config = current_config()
+                    conversation = Conversation(workspace, config, summary)
+                    await conversation.start_memory()
+                    console.print(
+                        Text(
+                            f"Mode: {selected_mode}. New conversation; previous history saved. "
+                            "User config unchanged. SRT initializes on first tool call."
+                        )
+                    )
             elif text == "/new":
                 await conversation.close()
-                conversation = Conversation(workspace, load_config(), summary)
+                conversation = Conversation(workspace, current_config(), summary)
                 await conversation.start_memory()
             elif text == "/resume":
                 select = True
@@ -337,7 +386,9 @@ async def application(args: argparse.Namespace) -> int:
                     continue
                 enabled = action == "on"
                 try:
-                    updated_config = replace(load_config(require_key=False), memory_enabled=enabled)
+                    updated_config = replace(
+                        current_config(require_key=False), memory_enabled=enabled
+                    )
                     set_memory_enabled(enabled)
                 except (OSError, ConfigError) as exc:
                     console.print(Text(terminal_text(str(exc)), style="yellow"))
@@ -453,6 +504,13 @@ def main() -> None:
         help="Show a developer run report",
     )
     resume = subparsers.add_parser("resume", help="Select a local conversation in this workspace")
+    for target in (parser, execute, resume, evaluation):
+        target.add_argument(
+            "--permission-mode",
+            choices=["local", "read-only", "workspace-write"],
+            default=argparse.SUPPRESS,
+            help="Temporary execution mode; overrides user security.mode",
+        )
     resume.add_argument(
         "--profile",
         action="store_true",

@@ -1,10 +1,11 @@
-"""Deterministic tool dispatch. Approval never changes the execution environment."""
+"""Deterministic tool dispatch with narrowly bound one-call SRT approvals."""
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import json
+import re
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
@@ -33,10 +34,21 @@ class SecurityPolicy:
     ask_tools: tuple[str, ...] = ()
     allow_host_memory: bool = False
     allow_trusted_skills: bool = True
+    allowed_domains: tuple[str, ...] = ()
+    denied_domains: tuple[str, ...] = ()
+    node_path: str | None = None
+    srt_package: str | None = None
 
     def __post_init__(self) -> None:
         if self.mode not in {"local", "read-only", "workspace-write"}:
             raise ValueError("Unknown execution mode")
+        for domain in (*self.allowed_domains, *self.denied_domains):
+            if (
+                not isinstance(domain, str)
+                or not re.fullmatch(r"(?:\*\.)?[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?", domain)
+                or ".." in domain
+            ):
+                raise ValueError("security domains must be host names or *.host names")
 
 
 @dataclass(frozen=True)
@@ -88,6 +100,8 @@ class SecurityGateway:
     ) -> None:
         self.policy, self.backend, self.approver = policy or SecurityPolicy(), backend, approver
         self.approval_timeout = approval_timeout
+        # Transient trusted denial, never restored from conversation history.
+        self.patch_denial: tuple[str, str, str, str, str, float] | None = None
 
     def route(self, tool: Tool, args: Json) -> tuple[str, str, str]:
         """Return decision, backend, capability. Names cannot confer trust."""
@@ -145,6 +159,24 @@ class SecurityGateway:
             return failed("invalid_arguments")
         tool = registry.get(call.name)
         decision, backend, cap = self.route(tool, args) if tool else ("deny", "none", "unknown")
+        retry_patch: Json | None = None
+        denial = self.patch_denial
+        if tool is not None and tool.capability == "permission-request":
+            self.patch_denial = None
+            decision, backend, cap = "deny", "none", "permission-request"
+            if (
+                self.policy.mode == "read-only"
+                and denial is not None
+                and args.keys() == {"denied_call_id", "reason"}
+                and isinstance(args.get("reason"), str)
+                and 0 < len(args["reason"]) <= 1000
+                and args.get("denied_call_id") == denial[2]
+                and (session.session_id, session.run_id or "", str(context.workspace))
+                == (denial[0], denial[1], denial[4])
+                and time.monotonic() < denial[5]
+            ):
+                retry_patch = json.loads(denial[3])
+                decision, backend, cap = "ask", "restricted-once", "workspace-patch-once"
         scope = json_text(
             {
                 "capability": cap,
@@ -152,6 +184,18 @@ class SecurityGateway:
                 "mode": self.policy.mode,
                 "workspace": str(context.workspace),
                 "writable_roots": self.policy.writable_roots,
+                **(
+                    {
+                        "grant": "one apply_patch only; no shell; baseline restored afterwards",
+                        "target": str(context.workspace),
+                        "denied_call_id": denial[2],
+                        "denial_source": "gateway_read_only_policy",
+                        "original_arguments_digest": digest(retry_patch),
+                        "tool": "apply_patch",
+                    }
+                    if retry_patch is not None and denial
+                    else {}
+                ),
             }
         )
         facts = {
@@ -166,6 +210,27 @@ class SecurityGateway:
         if tool is None:
             return failed("unknown_tool")
         if decision == "deny":
+            if cap == "patch" and self.policy.mode == "read-only":
+                self.patch_denial = (
+                    session.session_id,
+                    session.run_id or "",
+                    call.id,
+                    json_text(args),
+                    str(context.workspace),
+                    time.monotonic() + 300,
+                )
+                return ToolResult(
+                    context.call_id,
+                    False,
+                    {
+                        "execution_state": "not_executed",
+                        "denial_source": "gateway_read_only_policy",
+                        "denied_call_id": call.id,
+                        "detail": "Read-only forbids patch. request_permissions may request one "
+                        "approved patch in this workspace; shell elevation is unsupported.",
+                    },
+                    "policy_denied",
+                )
             return failed("policy_denied")
         if decision == "ask":
             request = ApprovalRequest(
@@ -177,7 +242,9 @@ class SecurityGateway:
                 argument_digest,
                 scope,
                 time.monotonic() + self.approval_timeout,
-                json_text(args),
+                json_text({"request": args, "operation": retry_patch})
+                if retry_patch
+                else json_text(args),
             )
             # Arguments already exist in the tool-call record. Do not duplicate (or
             # truncate a credential across) an additional audit field.
@@ -217,7 +284,14 @@ class SecurityGateway:
                 return failed("approval_" + ("denied" if choice == "deny" else choice))
         await emit("tool_execution", {**facts, "state": "dispatching"})
         try:
-            if backend == "restricted":
+            if backend == "restricted-once":
+                execute_once = getattr(self.backend, "execute_patch_once", None)
+                value = (
+                    await execute_once(retry_patch, context, emit)
+                    if execute_once is not None
+                    else failed("dynamic_scope_unsupported")
+                )
+            elif backend == "restricted":
                 value = (
                     await self.backend.execute(call.name, args, context, emit)
                     if self.backend is not None

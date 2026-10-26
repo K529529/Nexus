@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "evidence": [
+    "hitl-real-04.json",
+    "srt-attempt-12.json",
+    "srt-attempt-10.json"
+  ],
+  "scope": "Recorded functional facts; not an OS security certification"
+}
