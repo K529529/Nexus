@@ -108,7 +108,10 @@ One cost-first round of the fixed eight-case development set achieved **6/8 PASS
 This is local acceptance evidence, not stable 8/8 or an official SWE-bench score.
 See [results and limitations](docs/next/suite-hardening-evidence.md).
 
-Commands run with your local user permissions, not in an OS sandbox. Review code changes and test results.
+Local is the default and runs with your user permissions. The Stage 4 candidate adds
+Windows Native and Linux/WSL2 Docker execution through `/permissions`; see
+[platform behavior and limitations](docs/next/stage4-platform-backends.md).
+Review code changes and test results; dual-platform manual acceptance is still pending.
 Upgrading from legacy `0.1.0`? Read the [migration notes](docs/next/release-0.2.0.md#install-and-migrate) first.
 
 <a id="learn-more"></a>

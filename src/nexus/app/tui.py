@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import re
+import sys
 import tempfile
 import time
 from collections.abc import Awaitable, Callable
@@ -220,8 +221,9 @@ class Transcript:
         self.preview_tail = ""
 
     def patch_preview(self, file: Json) -> None:
+        state = "Planned " if file.get("phase") == "planned" else ""
         label = (
-            f"› {file['status'].capitalize()} {file['path']} "
+            f"› {state}{file['status'].capitalize()} {file['path']} "
             f"(+{file['added_lines']} -{file['deleted_lines']})"
         )
         self.console.print(Text(short_line(label)))
@@ -510,6 +512,13 @@ async def confirm_workspace_acl(workspace: Path) -> bool:
 
 
 async def select_permissions(current: str, status: str, detail: str) -> str | None:
+    platform_note = (
+        "Windows partial enforcement · Network: unrestricted · sensitive env filtered."
+        if sys.platform == "win32"
+        else "Linux Docker · Network: configured bridge/none · sensitive env filtered."
+        if sys.platform == "linux"
+        else "Restricted execution unsupported on this platform."
+    )
     modes = ["local", "read-only", "workspace-write"]
     descriptions = [
         "Current user permissions; no sandbox; no default approval.",
@@ -530,8 +539,7 @@ async def select_permissions(current: str, status: str, detail: str) -> str | No
                     ("› " if i == selected else "  ") + f"{i + 1}. {mode}: {descriptions[i]}"
                     for i, mode in enumerate(modes)
                 ],
-                "Windows partial enforcement · Network: unrestricted · sensitive env filtered. "
-                "Linux Docker pending manual acceptance; macOS unsupported.",
+                platform_note,
             ]
         )
 

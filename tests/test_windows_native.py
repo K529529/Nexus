@@ -118,7 +118,7 @@ def test_system_powershell_never_a_read_or_acl_grant(
 async def test_unavailable_platform_and_dependency_fail_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(sys, "platform", "darwin")
     backend = platform_backend(SecurityPolicy("workspace-write"))
     assert isinstance(backend, UnavailableBackend)
     r = await backend.execute(
@@ -130,6 +130,7 @@ async def test_unavailable_platform_and_dependency_fail_closed(
     assert r.error_code == "backend_unavailable"
     monkeypatch.setattr(sys, "platform", "win32")
     backend = platform_backend(SecurityPolicy("read-only", node_path=str(tmp_path / "absent.exe")))
+    assert isinstance(backend, WindowsNativeBackend)
     r = await backend.execute(
         "exec_command",
         {"command": "must not execute"},

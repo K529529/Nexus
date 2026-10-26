@@ -40,10 +40,34 @@ class SecurityPolicy:
     srt_package: str | None = None
     windows_koffi: str | None = None
     windows_acl_roots: tuple[str, ...] = ()
+    docker_image: str | None = None
+    docker_network: str = "bridge"
+    docker_cpus: float = 2.0
+    docker_memory_mb: int = 1024
+    docker_pids: int = 128
+    domain_policy_configured: bool = False
 
     def __post_init__(self) -> None:
         if self.mode not in {"local", "read-only", "workspace-write"}:
             raise ValueError("Unknown execution mode")
+        if not isinstance(self.docker_network, str) or self.docker_network not in {
+            "bridge",
+            "none",
+        }:
+            raise ValueError("security.docker_network: expected bridge or none")
+        if type(self.docker_cpus) not in {float, int} or not 0.1 <= self.docker_cpus <= 64:
+            raise ValueError("security.docker_cpus: expected number in 0.1..64")
+        for name, value, low, high in (
+            ("docker_memory_mb", self.docker_memory_mb, 128, 65536),
+            ("docker_pids", self.docker_pids, 16, 4096),
+        ):
+            if type(value) is not int or not low <= value <= high:
+                raise ValueError(f"security.{name}: expected integer in {low}..{high}")
+        if self.docker_image is not None and (
+            not isinstance(self.docker_image, str)
+            or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]{0,255}", self.docker_image)
+        ):
+            raise ValueError("security.docker_image: invalid image reference")
         for domain in (*self.allowed_domains, *self.denied_domains):
             if (
                 not isinstance(domain, str)

@@ -212,6 +212,10 @@ async def drive(
 
 
 async def application(args: argparse.Namespace) -> int:
+    if args.command == "sandbox":
+        from nexus.app.sandbox_setup import sandbox_command
+
+        return await sandbox_command(args.action)
     if args.command == "memory":
         return await memory_command(getattr(args, "action", "status"))
     if args.command == "skills":
@@ -532,6 +536,8 @@ def main() -> None:
     )
     parser.add_argument("--skill", help="Select a local Skill for this session")
     subparsers = parser.add_subparsers(dest="command")
+    sandbox = subparsers.add_parser("sandbox", help="Linux Docker diagnostics and explicit setup")
+    sandbox.add_argument("action", choices=["doctor", "setup"])
     memory = subparsers.add_parser("memory", help="Inspect memory/index state without a model call")
     memory.add_argument("action", choices=["on", "off", "status"], default="status", nargs="?")
     skills = subparsers.add_parser("skills", help="List local Skills without a model connection")

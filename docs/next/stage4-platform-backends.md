@@ -4,13 +4,12 @@
 不扩大 SRT 专项。Single Agent Loop、Tool Registry、Security Gateway、HITL、JSONL Audit、
 Resume 不变；Local 调用原执行器，不依赖任何 Sandbox Runtime。
 
-当前状态：**Windows 开发候选，尚未通过全部真实验收**。Python 3.12.10 的 `0700` /
-`tempfile.mkdtemp()` / pytest `tmp_path` 存在阻塞；不得标注 Production Ready 或进入 Linux 阶段。
-完整结果及历史失败见 [Native 验收报告](../reports/stage4-windows-native-acceptance.md)。
-
-实施顺序：Windows Native 实现与真实 Shell/Patch/RO/WW/Git/Timeout/Cancel/性能验收 →
-用户亲自验收 → Linux/WSL2 Ubuntu 长驻 Docker Backend。当前 Linux 受限执行 Fail-closed，
-尚未实现/验收；macOS 不支持。不自动合并 V0.3，不运行旧 SRT PoC。
+2026-10-27 Stage 4C 用户指令更新：Windows Native V1 暂时冻结，Python 3.12 的 `0700` /
+`tempfile.mkdtemp()` / pytest `tmp_path` 保留为已知限制，本轮获准实现 Linux Docker。
+此前“Windows 验收后才进入 Linux”的实施顺序由该指令替代，不能据此声称 Windows 已通过验收。
+完整结果见 [Native Hardening 报告](../reports/stage4-windows-native-hardening.md) 与
+[Linux Docker 报告](../reports/stage4-linux-docker-acceptance.md)。双平台最终人工验收仍由用户完成。
+macOS 受限模式 Fail-closed；Local 保持可用。不自动合并 V0.3，不运行旧 SRT PoC。
 
 ## Windows Native
 
@@ -62,9 +61,34 @@ windows_acl_roots = ['D:\WorkSpace\your-dedicated-test-workspace']
 `/permissions` 显示 **Windows partial enforcement / Network: unrestricted**，过滤敏感环境；
 Local 保持原行为。过滤环境变量不阻止读取现有凭据文件，不承诺网络保密性。
 
-## Linux 后续边界
+## Linux Docker V1
 
-参考 pi-container-sandbox：长驻 Docker 容器、workspace bind mount（RO/WW）、Shell/Patch
-均进入容器，非 root、drop all capabilities、no-new-privileges、CPU/Memory/PID 限制，
-默认无 Docker Socket，显式容器网络策略。缺 Docker Fail-closed。必须在真实 Linux/WSL2
-环境验证；Windows 未经用户亲验之前不进入该实现阶段。
+Nexus 在 Linux / WSL2 Ubuntu 内运行时自动选用 Docker；Windows PowerShell 启动仍走 Native。
+参考 pi-container-sandbox 的长驻容器和 `/workspace` bind 模式，每个受限 Conversation 惰性
+创建唯一容器并复用。RO bind 为只读，WW bind 为可写；内部 `/tmp` 独占可写，镜像根文件系统只读。
+以宿主非 root UID/GID 执行，cap-drop ALL、no-new-privileges，默认 2 CPU / 1024 MiB / 128 PID。
+不挂载 Home、凭据、Nexus 会话数据、Docker Socket，不共享宿主 PID/network namespace。
+宿主配置、安装及 Docker CLI 必须位于 workspace 外；bind 关闭递归子挂载。
+
+```toml
+[security]
+mode = "read-only"
+docker_network = "bridge" # 默认可联网；none 禁止常规外部网络
+docker_cpus = 2.0
+docker_memory_mb = 1024
+docker_pids = 128
+# docker_image 可指定兼容镜像；必须匹配当前安装的 Patch 源码/协议标识。
+```
+
+只读诊断：`nexus sandbox doctor`。显式构建：`nexus sandbox setup`（可能下载构建依赖）。
+普通工具调用不拉取镜像；Docker/镜像缺失、状态不符、旧域名策略、extra writable roots、
+Windows/SRT 专属配置均明确失败，不回退宿主。不支持自定义任意 Docker 运行参数。
+
+Linux Patch Worker 来自匹配内容哈希的可信镜像，通过 stdin/stdout 与宿主通信。
+按用户确认，仅 Linux 使用 planned Diff → 持久化 ACK → 写入 → committed fact/ACK 的屏障；
+Windows/Local 保留原默认顺序。ACK 绑定独立请求 ID、Tool Call、文件序号和事件种类。
+RO Allow once 使用独立短命 RW Patch 容器，原 RO 容器不改挂载。
+
+Timeout/Cancel 销毁所属容器并确认消失，防止只终止 docker exec CLI 却留下子孙进程。
+中断会话不再复用，需新建 Conversation；清理不确定时显式 cleanup_incomplete。
+异常宿主退出的孤儿由 doctor 根据 labels、机器/启动标识、PID starttime 诊断，不自动重用或删除。

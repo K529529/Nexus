@@ -58,7 +58,8 @@ async def main() -> None:
     )
 
     async def emit(kind: str, data: Json, **_: object) -> int:
-        if kind != "patch_diff":
+        prewrite = request.get("audit_before_write") is True
+        if kind != "patch_diff" and not (prewrite and kind == "patch_committed"):
             raise ValueError("Unexpected worker event")
         send({"id": ident, "type": "event", "kind": kind, "data": data})
         if request.get("ack_path"):
@@ -70,10 +71,17 @@ async def main() -> None:
         ack = json.loads(line) if line else {}
         if ack.get("id") != ident or ack.get("method") != "ack":
             raise asyncio.CancelledError
+        if prewrite and (ack.get("index") != data["file_index"] or ack.get("event_kind") != kind):
+            raise asyncio.CancelledError
         return 0
 
     try:
-        result = await apply_patch(request["arguments"], context, emit)
+        result = await apply_patch(
+            request["arguments"],
+            context,
+            emit,
+            audit_before_write=request.get("audit_before_write") is True,
+        )
         cancelled = False
     except ToolCancelled as exc:
         result, cancelled = exc.result, True

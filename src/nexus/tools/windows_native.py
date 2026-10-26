@@ -15,7 +15,7 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-from nexus.core.security import SecurityPolicy
+from nexus.core.security import RestrictedBackend, SecurityPolicy
 from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult
 from nexus.tools.sandbox import BridgeClient, BridgeError
 
@@ -224,7 +224,7 @@ class WindowsNativeBackend:
 
 class UnavailableBackend:
     status = "unavailable"
-    detail = "Linux Docker awaits Windows manual acceptance; macOS unsupported. No Local fallback."
+    detail = "Restricted backend unsupported on this platform. No Local fallback."
 
     async def execute(
         self, name: str, arguments: Json, context: ExecutionContext, emit: Emit
@@ -239,9 +239,8 @@ class UnavailableBackend:
 
 def platform_backend(
     policy: SecurityPolicy, *, secret_env: tuple[str, ...] = ()
-) -> WindowsNativeBackend | UnavailableBackend:
-    return (
-        WindowsNativeBackend(policy, secret_env=secret_env)
-        if sys.platform == "win32"
-        else UnavailableBackend()
-    )
+) -> RestrictedBackend:
+    # Compatibility import; selection has one authority shared by all callers.
+    from nexus.tools.platform_backend import platform_backend as select
+
+    return select(policy, secret_env=secret_env)

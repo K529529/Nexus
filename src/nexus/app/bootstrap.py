@@ -62,7 +62,7 @@ class Conversation:
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
             # No Node import/process in Local; restricted startup stays lazy.
-            from nexus.tools.windows_native import platform_backend
+            from nexus.tools.platform_backend import platform_backend
 
             key_names = [config.model.api_key_env]
             if config.compaction_model:
@@ -102,7 +102,9 @@ class Conversation:
                 "an independent model and API-key environment variable. Legacy configuration "
                 "can run while context fits; no main-model fallback is used."
             )
-        self.environment_display = environment_display
+        self.environment_display = environment_display or getattr(
+            self.gateway.backend, "environment_display", None
+        )
         self.resources = AsyncExitStack()
         self.unavailable: list[str] = []
         self.closed = False

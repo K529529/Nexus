@@ -272,7 +272,9 @@ def _fact(change: Change) -> Json:
     }
 
 
-async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+async def apply_patch(
+    arguments: Json, context: ExecutionContext, emit: Emit, *, audit_before_write: bool = False
+) -> ToolResult:
     started = time.monotonic()
     facts: list[Json] = []
     created: list[str] = []
@@ -334,6 +336,33 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
                 raise PatchError("concurrent_change", "File changed after preflight")
             if change.before == change.after:
                 continue
+            fact = _fact(change)
+            diff = fact.pop("diff")
+            diff_bytes = len(diff.encode("utf-8"))
+            limit = min(MAX_DIFF_BYTES, audit_remaining)
+            omitted = diff_bytes > limit
+            if not omitted:
+                audit_remaining -= diff_bytes
+            event = {
+                "call_id": context.call_id,
+                "file_index": len(facts) + 1,
+                **fact,
+                "diff": "" if omitted else diff,
+                "diff_bytes": diff_bytes,
+                "diff_limit_bytes": limit,
+                "truncated": omitted,
+                "omitted": omitted,
+                "omission_reason": "diff_capacity" if omitted else None,
+            }
+            if audit_before_write:
+                emitting = True
+                await emit("patch_diff", {**event, "phase": "planned"})
+                emitting = False
+                # User/host edits while the worker waits for the durable ACK must conflict.
+                path = checked_path(context.workspace, change.path)
+                current = path.read_bytes() if path.exists() else None
+                if _hash(current) != _hash(change.before):
+                    raise PatchError("concurrent_change", "File changed while awaiting audit ACK")
             parents: list[Path] = []
             parent = path.parent
             while not parent.exists():
@@ -344,29 +373,19 @@ async def apply_patch(arguments: Json, context: ExecutionContext, emit: Emit) ->
                 created.append(parent.relative_to(context.workspace).as_posix())
             checked_path(context.workspace, change.path)
             cleanup_error = _commit(path, change)
-            fact = _fact(change)
-            diff = fact.pop("diff")
             facts.append(fact)
-            diff_bytes = len(diff.encode("utf-8"))
-            limit = min(MAX_DIFF_BYTES, audit_remaining)
-            omitted = diff_bytes > limit
-            if not omitted:
-                audit_remaining -= diff_bytes
             emitting = True
-            await emit(
-                "patch_diff",
-                {
-                    "call_id": context.call_id,
-                    "file_index": len(facts),
-                    **fact,
-                    "diff": "" if omitted else diff,
-                    "diff_bytes": diff_bytes,
-                    "diff_limit_bytes": limit,
-                    "truncated": omitted,
-                    "omitted": omitted,
-                    "omission_reason": "diff_capacity" if omitted else None,
-                },
-            )
+            if audit_before_write:
+                await emit(
+                    "patch_committed",
+                    {
+                        "call_id": context.call_id,
+                        "file_index": len(facts),
+                        **fact,
+                    },
+                )
+            else:
+                await emit("patch_diff", event)
             emitting = False
             if cleanup_error is not None:
                 raise cleanup_error

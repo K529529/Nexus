@@ -276,6 +276,13 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         settings.key()
         if compaction is not None:
             compaction.key()
+    policy = security_policy(data, path)
+    return Config(
+        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy
+    )
+
+
+def security_policy(data: Json, path: Path | None = None) -> SecurityPolicy:
     security = _table(
         data,
         "security",
@@ -291,6 +298,11 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
             "srt_package",
             "windows_koffi",
             "windows_acl_roots",
+            "docker_image",
+            "docker_network",
+            "docker_cpus",
+            "docker_memory_mb",
+            "docker_pids",
         },
     )
     mode = security.get("mode", "local")
@@ -313,12 +325,13 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         if name in security and type(security[name]) is not bool:
             raise ConfigError(f"security.{name}: expected boolean")
     if (
-        sys.platform == "win32"
+        sys.platform in {"win32", "linux"}
         and mode != "local"
         and ("allowed_domains" in security or "denied_domains" in security)
     ):
         raise ConfigError(
-            "Windows Native: Network: unrestricted; remove legacy allowed_domains/denied_domains"
+            "Network: unrestricted on Windows; bridge/none on Linux. "
+            "Remove unsupported allowed_domains/denied_domains"
         )
     acl_roots = tuple(security.get("windows_acl_roots", []))
     if any(not Path(root).is_absolute() for root in acl_roots):
@@ -340,8 +353,12 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         security.get("srt_package"),
         security.get("windows_koffi"),
         acl_roots,
+        docker_image=security.get("docker_image"),
+        docker_network=security.get("docker_network", "bridge"),
+        docker_cpus=security.get("docker_cpus", 2.0),
+        docker_memory_mb=security.get("docker_memory_mb", 1024),
+        docker_pids=security.get("docker_pids", 128),
+        domain_policy_configured="allowed_domains" in security or "denied_domains" in security,
     )
     validate_acl_authority(policy, path)
-    return Config(
-        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy
-    )
+    return policy
