@@ -1,0 +1,32 @@
+{
+  "workspace": "D:\\WorkSpace\\nexus-stage4-manual",
+  "python": "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+  "shell": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+  "command": "whoami; Get-Location",
+  "result": {
+    "call_id": "manual-p0",
+    "ok": true,
+    "data": {
+      "exit_code": 0,
+      "timed_out": false,
+      "cancelled": false,
+      "cleanup_incomplete": false,
+      "error_code": null,
+      "requires_reset": false,
+      "stdout": "desktop-4ujl9t1\\srt-sandbox\r\n\r\nPath                            \r\n----                            \r\nD:\\WorkSpace\\nexus-stage4-manual\r\n\r\n\r\n",
+      "stderr": "",
+      "discarded_bytes": {
+        "stdout": 0,
+        "stderr": 0
+      },
+      "truncated": false,
+      "decode_replaced": false
+    },
+    "error_code": null,
+    "duration_ms": 1125,
+    "truncated": false
+  },
+  "first_call_ms": 74532.51889999956,
+  "close_ms": 60803.75130008906,
+  "bridge_exit_confirmed": true
+}

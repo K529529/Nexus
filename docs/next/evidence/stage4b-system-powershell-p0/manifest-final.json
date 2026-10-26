@@ -1,0 +1,16 @@
+{
+  "runner": "scripts/stage4b_srt_acceptance.py --temp-root D:/WorkSpace --shell C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe --workspace-only --skip-stop-tests",
+  "baseline": "76c36d16337857aa0fff4345b670e53b82655990",
+  "installed_bridge_sha256": "b603888621f23253e631df23a7ea10ba0225bcdf8e057f6024e994c77387db71",
+  "network": "example.com only in functional WW phase",
+  "wheel_sha256": "22973d2b85c8f8fde43a8ba278d3b11273aecf551e7f3d282d5b3a15702633a3",
+  "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "old_poc": "NOT RUN",
+  "python": "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+  "timeout_cancel": "NOT RUN in P0 real matrix; existing automated tests retained",
+  "branch": "codex/nexus-v0.3-stage4-sandbox",
+  "bridges_match": true,
+  "srt_version": "0.0.81",
+  "source_bridge_sha256": "b603888621f23253e631df23a7ea10ba0225bcdf8e057f6024e994c77387db71",
+  "revision": "Final ACL policy plus terminal-after-cleanup fix"
+}

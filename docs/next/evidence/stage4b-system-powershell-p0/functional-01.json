@@ -1,0 +1,793 @@
+{
+  "root": "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28",
+  "rows": [
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): "
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stderr",
+        "text": "recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stdout",
+        "text": "hello sandbox\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-identity",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "test": "read-only-identity",
+      "elapsed_ms": 89051.22759996448,
+      "result": {
+        "call_id": "read-only-identity",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\nhello sandbox\r\n",
+          "stderr": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\nsrt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1312,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\forbidden.txt”的访问被拒绝。\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": "所在位置 行:1 字符: 273\r\n+ ... sole]::OutputEncoding; Set-Content forbidden.txt no -ErrorAction Stop\r\n+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...k\\forbidden.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "read-only-deny-write",
+        "stream": "stderr",
+        "text": ": SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "test": "read-only-deny-write",
+      "elapsed_ms": 1462.3926000203937,
+      "result": {
+        "call_id": "read-only-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\nSet-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\forbidden.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... sole]::OutputEncoding; Set-Content forbidden.txt no -ErrorAction Stop\r\n+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...k\\forbidden.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\nsrt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1452,
+        "truncated": false
+      }
+    },
+    {
+      "test": "read-only-deny-patch",
+      "elapsed_ms": 0.35939994268119335,
+      "result": {
+        "call_id": "read-only-deny-patch",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "detail": "",
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "policy_denied",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "desktop-4ujl9t1\\srt-sandbox"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "workspace-write-identity",
+        "stream": "stdout",
+        "text": "yes\r\n"
+      }
+    },
+    {
+      "test": "workspace-write-identity",
+      "elapsed_ms": 128900.9012999013,
+      "result": {
+        "call_id": "workspace-write-identity",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "desktop-4ujl9t1\\srt-sandbox\r\nyes\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1157,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\outside\\forbidden.txt”的访问被拒绝。\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "所在位置 行:1 字符: 273\r\n+ ... utEncoding; Set-Content 'D:\\WorkSpace\\nexus-stage4b-functional-bbb77f ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...e\\forbidden.txt:String) [Set-Content], Unauthorized \r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "outside-deny-write",
+        "stream": "stderr",
+        "text": "   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n"
+      }
+    },
+    {
+      "test": "outside-deny-write",
+      "elapsed_ms": 1268.0309999268502,
+      "result": {
+        "call_id": "outside-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\outside\\forbidden.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... utEncoding; Set-Content 'D:\\WorkSpace\\nexus-stage4b-functional-bbb77f ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...e\\forbidden.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1265,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "."
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "                                                                        [100%]"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "python-pytest",
+        "stream": "stdout",
+        "text": "\r\n1 passed in 0.01s\r\n"
+      }
+    },
+    {
+      "test": "python-pytest",
+      "elapsed_ms": 2865.293600014411,
+      "result": {
+        "call_id": "python-pytest",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": ".                                                                        [100%]\r\n1 passed in 0.01s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 2875,
+        "truncated": false
+      }
+    },
+    {
+      "event": "patch_diff",
+      "data": {
+        "call_id": "patch",
+        "file_index": 1,
+        "path": "patched.txt",
+        "status": "added",
+        "added_lines": 1,
+        "deleted_lines": 0,
+        "before_hash": null,
+        "after_hash": "804ad9d06cedf6ef67e211480080c0f6a731431f100e2081f28970a713813bd1",
+        "diff": "--- /dev/null\n+++ b/patched.txt\n@@ -0,0 +1 @@\n+patched by SRT\n",
+        "diff_bytes": 62,
+        "diff_limit_bytes": 65536,
+        "truncated": false,
+        "omitted": false,
+        "omission_reason": null
+      }
+    },
+    {
+      "test": "patch",
+      "elapsed_ms": 407.87100000306964,
+      "result": {
+        "call_id": "patch",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "patched.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "804ad9d06cedf6ef67e211480080c0f6a731431f100e2081f28970a713813bd1"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 16,
+        "truncated": false
+      }
+    },
+    {
+      "test": "git",
+      "elapsed_ms": 0.318799982778728,
+      "result": {
+        "call_id": "git",
+        "ok": false,
+        "data": {
+          "execution_state": "not_executed",
+          "detail": "",
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "bridge_busy",
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config”的访问被拒绝。\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "所在位置 行:1 字符: 273\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "+ ... ::OutputEncoding; Set-Content .git/config forbidden -ErrorAction Stop\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "    + CategoryInfo          : NotSpecified: (:) [Set-Content], UnauthorizedAccessException\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": "    + FullyQualifiedErrorId : System.UnauthorizedAccessException,Microsoft.PowerShell.Commands.SetContentCommand\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-config-denied",
+        "stream": "stderr",
+        "text": " \r\n"
+      }
+    },
+    {
+      "test": "git-config-denied",
+      "elapsed_ms": 1238.1650999886915,
+      "result": {
+        "call_id": "git-config-denied",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config”的访问被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... ::OutputEncoding; Set-Content .git/config forbidden -ErrorAction Stop\r\n+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (:) [Set-Content], UnauthorizedAccessException\r\n    + FullyQualifiedErrorId : System.UnauthorizedAccessException,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1234,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks\\pre-commit”的访问\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": "被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... utEncoding; Set-Content .git/hooks/pre-commit forbidden -ErrorAction  ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...ooks\\pre-commit:String) [Set-Content], Unauthorized \r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": "   AccessException\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": "    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "git-hook-denied",
+        "stream": "stderr",
+        "text": " \r\n"
+      }
+    },
+    {
+      "test": "git-hook-denied",
+      "elapsed_ms": 1178.9194999728352,
+      "result": {
+        "call_id": "git-hook-denied",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks\\pre-commit”的访问\r\n被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... utEncoding; Set-Content .git/hooks/pre-commit forbidden -ErrorAction  ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...ooks\\pre-commit:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1171,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "allowlisted-network",
+        "stream": "stdout",
+        "text": "200\r\n"
+      }
+    },
+    {
+      "test": "allowlisted-network",
+      "elapsed_ms": 5231.288000009954,
+      "result": {
+        "call_id": "allowlisted-network",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "200\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 5234,
+        "truncated": false
+      }
+    },
+    {
+      "test": "timeout-cancel",
+      "status": "NOT RUN in this attempt"
+    },
+    {
+      "test": "host-files",
+      "read_only_write_denied": true,
+      "outside_write_denied": true,
+      "patch_contents": "patched by SRT\n"
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stderr",
+        "text": ": SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stdout",
+        "text": "patched by SRT\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': "
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-read-only",
+        "stream": "stderr",
+        "text": "SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "test": "roundtrip-read-only",
+      "elapsed_ms": 116170.37069995422,
+      "result": {
+        "call_id": "roundtrip-read-only",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "patched by SRT\r\n",
+          "stderr": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\nsrt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1172,
+        "truncated": false
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "Set-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\ro-denied.txt”的访问被拒绝。\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "所在位置 行:1 字符: 273\r\n+ ... sole]::OutputEncoding; Set-Content ro-denied.txt no -ErrorAction Stop\r\n+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...k\\ro-denied.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": " \r\n"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'"
+      }
+    },
+    {
+      "event": "tool_output_delta",
+      "data": {
+        "call_id": "roundtrip-deny-write",
+        "stream": "stderr",
+        "text": ": SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n"
+      }
+    },
+    {
+      "test": "roundtrip-deny-write",
+      "elapsed_ms": 1491.5960000362247,
+      "result": {
+        "call_id": "roundtrip-deny-write",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "srt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\nSet-Content : 对路径“D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\ro-denied.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 273\r\n+ ... sole]::OutputEncoding; Set-Content ro-denied.txt no -ErrorAction Stop\r\n+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...k\\ro-denied.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\nsrt-win: WARNING: recover grant '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0' (SbAceSet { grant: None, deny: Some(WriteDeny), deny_fdc: false, deny_delete: false }): recompose '\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0': SetNamedSecurityInfoW('\\\\?\\C:\\Windows\\System32\\WindowsPowerShell\\v1.0'): WIN32_ERROR=0x00000005; ACE left in place, rows kept for retry\nsrt-win: WARNING: a grant of dead holder 46652 could not be released; keeping 1 deny row(s) until it can\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1484,
+        "truncated": false
+      }
+    },
+    {
+      "test": "roundtrip-workspace-write",
+      "elapsed_ms": 141420.25029996876,
+      "result": {
+        "call_id": "roundtrip-workspace-write",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1109,
+        "truncated": false
+      }
+    },
+    {
+      "test": "roundtrip-host-read",
+      "contents": "yes\n"
+    },
+    {
+      "test": "close",
+      "confirmed": true
+    }
+  ]
+}

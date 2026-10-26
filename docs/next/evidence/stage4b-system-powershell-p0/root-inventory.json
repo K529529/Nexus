@@ -1,0 +1,26 @@
+[
+  {
+    "root": "D:\\Tools\\python\\py312",
+    "files": 33437,
+    "dirs": 3131,
+    "links_skipped": 0,
+    "errors": [],
+    "enumeration_ms": 4516.620200010948
+  },
+  {
+    "root": "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+    "files": 4780,
+    "dirs": 536,
+    "links_skipped": 0,
+    "errors": [],
+    "enumeration_ms": 483.25769999064505
+  },
+  {
+    "root": "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+    "files": 73,
+    "dirs": 10,
+    "links_skipped": 0,
+    "errors": [],
+    "enumeration_ms": 7.825900102034211
+  }
+]

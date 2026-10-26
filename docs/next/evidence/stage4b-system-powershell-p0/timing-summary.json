@@ -1,0 +1,1578 @@
+[
+  {
+    "trace": "functional-trace.jsonl",
+    "pid": 71208,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q068EB"
+      ],
+      "allowWrite": [],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q068EB"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 71208,
+        "at_ms": 179.6489,
+        "phase": "import",
+        "elapsed_ms": 151.18540000000002
+      },
+      {
+        "pid": 71208,
+        "at_ms": 234.0875,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 37.37529999999998,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 240.8036,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 51.417100000000005,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 276.5632,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 34.98150000000001,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 87383.6621,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 87101.0144,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 87698.2424,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 310.25139999999374,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 87704.7554,
+        "phase": "initialize",
+        "elapsed_ms": 87517.14809999999
+      },
+      {
+        "pid": 71208,
+        "at_ms": 87709.673,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 3.541399999987334
+      },
+      {
+        "pid": 71208,
+        "at_ms": 89010.7704,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1300.849199999997,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 89013.3324,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.4632999999885214
+      },
+      {
+        "pid": 71208,
+        "at_ms": 90473.4224,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1459.9175999999861,
+        "status": 1
+      },
+      {
+        "pid": 71208,
+        "at_ms": 91296.9871,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 822.0641000000032,
+        "status": 0
+      },
+      {
+        "pid": 71208,
+        "at_ms": 151304.7202,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.20959999999,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 71208,
+        "at_ms": 151306.8722,
+        "phase": "reset",
+        "elapsed_ms": 60832.3619
+      }
+    ]
+  },
+  {
+    "trace": "functional-trace.jsonl",
+    "pid": 40040,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q6AzYz"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q6AzYz",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.gitmodules",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 40040,
+        "at_ms": 181.3424,
+        "phase": "import",
+        "elapsed_ms": 151.23860000000002
+      },
+      {
+        "pid": 40040,
+        "at_ms": 231.9869,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 33.343999999999994,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 236.5161,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 45.21439999999998,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 272.4621,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 35.04039999999998,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 127367.988,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 127086.2053,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 127683.2077,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 312.10289999999804,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 127689.1226,
+        "phase": "initialize",
+        "elapsed_ms": 127499.5836
+      },
+      {
+        "pid": 40040,
+        "at_ms": 127693.7591,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 2.943200000008801
+      },
+      {
+        "pid": 40040,
+        "at_ms": 128853.7527,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1159.762699999992,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 128855.6467,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.8950000000040745
+      },
+      {
+        "pid": 40040,
+        "at_ms": 130121.9947,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1266.1946999999927,
+        "status": 1
+      },
+      {
+        "pid": 40040,
+        "at_ms": 130123.6236,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.7403999999951338
+      },
+      {
+        "pid": 40040,
+        "at_ms": 132987.2613,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 2863.4568000000145,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 132989.8717,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.7652999999991152
+      },
+      {
+        "pid": 40040,
+        "at_ms": 133395.2215,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 405.1909999999916,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 133397.2658,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.7353000000002794
+      },
+      {
+        "pid": 40040,
+        "at_ms": 134633.8431,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1236.363000000012,
+        "status": 1
+      },
+      {
+        "pid": 40040,
+        "at_ms": 134635.6298,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.92349999997532
+      },
+      {
+        "pid": 40040,
+        "at_ms": 135812.7763,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1176.9496999999974,
+        "status": 1
+      },
+      {
+        "pid": 40040,
+        "at_ms": 135814.3813,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.6941999999980908
+      },
+      {
+        "pid": 40040,
+        "at_ms": 141044.1809,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 5229.648099999991,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 141788.2447,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 738.1367999999784,
+        "status": 0
+      },
+      {
+        "pid": 40040,
+        "at_ms": 201796.0268,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.15759999998,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 40040,
+        "at_ms": 201798.2252,
+        "phase": "reset",
+        "elapsed_ms": 60748.467000000004
+      }
+    ]
+  },
+  {
+    "trace": "functional-trace.jsonl",
+    "pid": 70688,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1zE0iE"
+      ],
+      "allowWrite": [],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1zE0iE"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 70688,
+        "at_ms": 177.4163,
+        "phase": "import",
+        "elapsed_ms": 148.9673
+      },
+      {
+        "pid": 70688,
+        "at_ms": 226.1789,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 32.131,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 230.6491,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 43.6738,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 266.1406,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 34.373500000000035,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 114671.1965,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 114398.8789,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 114959.0434,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 285.0402999999933,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 114965.3179,
+        "phase": "initialize",
+        "elapsed_ms": 114780.0341
+      },
+      {
+        "pid": 70688,
+        "at_ms": 114969.82,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 2.8778999999922235
+      },
+      {
+        "pid": 70688,
+        "at_ms": 116131.0739,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1161.0295000000042,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 116133.6558,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.6521999999968102
+      },
+      {
+        "pid": 70688,
+        "at_ms": 117622.7275,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1488.889599999995,
+        "status": 1
+      },
+      {
+        "pid": 70688,
+        "at_ms": 118350.3378,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 726.2986999999994,
+        "status": 0
+      },
+      {
+        "pid": 70688,
+        "at_ms": 178359.6976,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60008.725499999986,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 70688,
+        "at_ms": 178361.5124,
+        "phase": "reset",
+        "elapsed_ms": 60737.947700000004
+      }
+    ]
+  },
+  {
+    "trace": "functional-trace.jsonl",
+    "pid": 2160,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nXM57x"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nXM57x",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.gitmodules",
+        "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 2160,
+        "at_ms": 197.1727,
+        "phase": "import",
+        "elapsed_ms": 165.7267
+      },
+      {
+        "pid": 2160,
+        "at_ms": 251.3682,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 35.706999999999994,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 254.4878,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 46.6841,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 293.8461,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 38.369800000000026,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 139973.8303,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 139670.69499999998,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 140267.1674,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 290.05340000000433,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 140271.9311,
+        "phase": "initialize",
+        "elapsed_ms": 140066.09
+      },
+      {
+        "pid": 2160,
+        "at_ms": 140275.9021,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 2.247000000003027
+      },
+      {
+        "pid": 2160,
+        "at_ms": 141375.8287,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1099.7270000000135,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 142126.8689,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 749.4899999999907,
+        "status": 0
+      },
+      {
+        "pid": 2160,
+        "at_ms": 202134.5329,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.0411,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 2160,
+        "at_ms": 202136.5571,
+        "phase": "reset",
+        "elapsed_ms": 60759.56090000001
+      }
+    ]
+  },
+  {
+    "trace": "profile-trace.jsonl",
+    "pid": 45416,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-qJoP3y"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-qJoP3y",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only\\.git\\config",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only\\.gitmodules",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-only\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 45416,
+        "at_ms": 227.802,
+        "phase": "import",
+        "elapsed_ms": 198.3051
+      },
+      {
+        "pid": 45416,
+        "at_ms": 305.2027,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 53.10140000000004,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 311.4081,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 69.64579999999998,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 363.6601,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 51.053499999999985,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 72518.8177,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 72145.01640000001,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 72820.7933,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 298.765699999989,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 72825.9191,
+        "phase": "initialize",
+        "elapsed_ms": 72586.6102
+      },
+      {
+        "pid": 45416,
+        "at_ms": 72878.8498,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 51.746200000008685,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 75211.7293,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 2332.154500000004,
+        "status": 0
+      },
+      {
+        "pid": 45416,
+        "at_ms": 75213.4544,
+        "phase": "reset",
+        "elapsed_ms": 2386.623000000007
+      }
+    ]
+  },
+  {
+    "trace": "profile-trace.jsonl",
+    "pid": 50912,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-or0RgC"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-or0RgC",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv\\.git\\config",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv\\.gitmodules",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-venv\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 50912,
+        "at_ms": 181.2984,
+        "phase": "import",
+        "elapsed_ms": 152.048
+      },
+      {
+        "pid": 50912,
+        "at_ms": 232.6284,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 34.25880000000001,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 236.6738,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 45.7166,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 274.3811,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 36.73459999999997,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 73661.1465,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 73379.2931,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 73956.7874,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 292.74099999999453,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 73962.2629,
+        "phase": "initialize",
+        "elapsed_ms": 73772.9828
+      },
+      {
+        "pid": 50912,
+        "at_ms": 74639.2817,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 675.7648000000045,
+        "status": 0
+      },
+      {
+        "pid": 50912,
+        "at_ms": 134647.39,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.54500000001,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 50912,
+        "at_ms": 134649.3087,
+        "phase": "reset",
+        "elapsed_ms": 60686.10190000001
+      }
+    ]
+  },
+  {
+    "trace": "profile-trace.jsonl",
+    "pid": 78256,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python",
+        "D:\\Tools\\python\\py312",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-gzij5y"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\Tools\\python\\py312",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-gzij5y",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python\\.git\\config",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python\\.gitmodules",
+        "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d\\shell-and-base-python\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 78256,
+        "at_ms": 178.7968,
+        "phase": "import",
+        "elapsed_ms": 150.58579999999998
+      },
+      {
+        "pid": 78256,
+        "at_ms": 226.9605,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 31.8818,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 230.3246,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 42.34809999999999,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 264.8441,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 33.75119999999998,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 70742.3454,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 70470.5905,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 71020.0849,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 274.9861000000092,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 71024.6563,
+        "phase": "initialize",
+        "elapsed_ms": 70838.2861
+      },
+      {
+        "pid": 78256,
+        "at_ms": 71083.407,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 57.501600000003236,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 73420.1669,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 2336.2197999999917,
+        "status": 0
+      },
+      {
+        "pid": 78256,
+        "at_ms": 73421.9144,
+        "phase": "reset",
+        "elapsed_ms": 2396.4008999999933
+      }
+    ]
+  },
+  {
+    "trace": "functional-final-trace.jsonl",
+    "pid": 75400,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nS3Vc9"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nS3Vc9",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\config",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.gitmodules",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 75400,
+        "at_ms": 186.5308,
+        "phase": "import",
+        "elapsed_ms": 156.1472
+      },
+      {
+        "pid": 75400,
+        "at_ms": 236.7104,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 32.44669999999999,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 240.8872,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 43.9949,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 275.9987,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 34.3939,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 72201.9225,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 71917.22989999999,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 72478.6048,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 274.0587000000087,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 72483.3572,
+        "phase": "initialize",
+        "elapsed_ms": 72288.3857
+      },
+      {
+        "pid": 75400,
+        "at_ms": 72487.0763,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.9956999999994878
+      },
+      {
+        "pid": 75400,
+        "at_ms": 73615.9701,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1128.699999999997,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 73618.436,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.2054999999963911
+      },
+      {
+        "pid": 75400,
+        "at_ms": 74903.1913,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1284.5513999999966,
+        "status": 1
+      },
+      {
+        "pid": 75400,
+        "at_ms": 74905.0059,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.8450000000011642
+      },
+      {
+        "pid": 75400,
+        "at_ms": 76857.0748,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1951.900999999998,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 76860.4848,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.1585000000050059
+      },
+      {
+        "pid": 75400,
+        "at_ms": 77413.9889,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 553.3021000000008,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 77416.5459,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.9650000000110595
+      },
+      {
+        "pid": 75400,
+        "at_ms": 78680.6646,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1263.9201999999932,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 78682.6863,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.9796000000060303
+      },
+      {
+        "pid": 75400,
+        "at_ms": 79891.9081,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1209.0573000000004,
+        "status": 1
+      },
+      {
+        "pid": 75400,
+        "at_ms": 79893.8183,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.9709999999904539
+      },
+      {
+        "pid": 75400,
+        "at_ms": 81022.7594,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1128.7770000000019,
+        "status": 1
+      },
+      {
+        "pid": 75400,
+        "at_ms": 81024.6983,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 0.918100000009872
+      },
+      {
+        "pid": 75400,
+        "at_ms": 85107.6076,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 4082.7353000000003,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 85810.2245,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 700.3604999999952,
+        "status": 0
+      },
+      {
+        "pid": 75400,
+        "at_ms": 145818.5823,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.68459999999,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 75400,
+        "at_ms": 145820.9061,
+        "phase": "reset",
+        "elapsed_ms": 60711.3239
+      }
+    ]
+  },
+  {
+    "trace": "functional-final-trace.jsonl",
+    "pid": 10640,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1khK44"
+      ],
+      "allowWrite": [],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1khK44"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 10640,
+        "at_ms": 184.4811,
+        "phase": "import",
+        "elapsed_ms": 153.8929
+      },
+      {
+        "pid": 10640,
+        "at_ms": 234.9515,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 32.81890000000001,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 239.4636,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 44.485600000000005,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 274.6991,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 34.512100000000004,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 123742.2076,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 123460.924,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 124045.0565,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 300.1284999999916,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 124050.0344,
+        "phase": "initialize",
+        "elapsed_ms": 123857.1884
+      },
+      {
+        "pid": 10640,
+        "at_ms": 124054.1073,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 2.5904000000009546
+      },
+      {
+        "pid": 10640,
+        "at_ms": 125204.1914,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1149.9043999999994,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 125206.7051,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.6080000000074506
+      },
+      {
+        "pid": 10640,
+        "at_ms": 126535.5256,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1328.6539000000048,
+        "status": 1
+      },
+      {
+        "pid": 10640,
+        "at_ms": 127244.7844,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 708.1071999999986,
+        "status": 0
+      },
+      {
+        "pid": 10640,
+        "at_ms": 187253.9098,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60008.527799999996,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 10640,
+        "at_ms": 187255.6035,
+        "phase": "reset",
+        "elapsed_ms": 60719.33140000001
+      }
+    ]
+  },
+  {
+    "trace": "functional-final-trace.jsonl",
+    "pid": 41100,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-joEhYq"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-joEhYq",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\config",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.gitmodules",
+        "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d\\work\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 41100,
+        "at_ms": 244.4785,
+        "phase": "import",
+        "elapsed_ms": 213.21460000000002
+      },
+      {
+        "pid": 41100,
+        "at_ms": 312.0021,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 42.54430000000002,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 317.8371,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 57.63779999999997,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 360.4618,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 41.50240000000002,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 120109.3269,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 119736.7245,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 120410.9338,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 298.97690000000875,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 120415.2453,
+        "phase": "initialize",
+        "elapsed_ms": 120157.7105
+      },
+      {
+        "pid": 41100,
+        "at_ms": 120418.701,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.892200000002049
+      },
+      {
+        "pid": 41100,
+        "at_ms": 121534.18,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1115.2710999999981,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 122351.2157,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 815.4609999999957,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 181057.535,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 58705.77700000002,
+        "status": 0
+      },
+      {
+        "pid": 41100,
+        "at_ms": 181059.3684,
+        "phase": "reset",
+        "elapsed_ms": 59524.077699999994
+      }
+    ]
+  },
+  {
+    "trace": "manual-trace.jsonl",
+    "pid": 21844,
+    "filesystem": {
+      "denyRead": [],
+      "allowRead": [
+        "D:\\WorkSpace\\nexus-stage4-manual",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-tzxBo0"
+      ],
+      "allowWrite": [
+        "D:\\WorkSpace\\nexus-stage4-manual"
+      ],
+      "denyWrite": [
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026",
+        "D:\\Tools\\python\\py312",
+        "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus",
+        "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-tzxBo0",
+        "D:\\WorkSpace\\nexus-stage4-manual\\.git\\config",
+        "D:\\WorkSpace\\nexus-stage4-manual\\.git\\hooks",
+        "D:\\WorkSpace\\nexus-stage4-manual\\.git\\config.worktree",
+        "D:\\WorkSpace\\nexus-stage4-manual\\.gitmodules",
+        "D:\\WorkSpace\\nexus-stage4-manual\\.nexus"
+      ]
+    },
+    "steps": [
+      {
+        "pid": 21844,
+        "at_ms": 183.0758,
+        "phase": "import",
+        "elapsed_ms": 154.46609999999998
+      },
+      {
+        "pid": 21844,
+        "at_ms": 234.2416,
+        "tool": "srt-win.exe",
+        "operation": "wfp status",
+        "kind": "spawn",
+        "elapsed_ms": 34.07249999999999,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 240.3937,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 46.9931,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 281.5539,
+        "tool": "srt-win.exe",
+        "operation": "user status",
+        "kind": "spawn",
+        "elapsed_ms": 39.9932,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 73063.4833,
+        "tool": "srt-win.exe",
+        "operation": "acl grant",
+        "kind": "spawn",
+        "elapsed_ms": 72771.0017,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 73355.0117,
+        "tool": "srt-win.exe",
+        "operation": "wfp verify",
+        "kind": "spawn",
+        "elapsed_ms": 288.25329999999667,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 73359.7884,
+        "phase": "initialize",
+        "elapsed_ms": 73168.0969
+      },
+      {
+        "pid": 21844,
+        "at_ms": 73363.3015,
+        "phase": "wrapWithSandboxArgv",
+        "elapsed_ms": 1.9289999999891734
+      },
+      {
+        "pid": 21844,
+        "at_ms": 74489.6856,
+        "tool": "srt-win.exe",
+        "operation": "exec --quiet",
+        "kind": "spawn",
+        "elapsed_ms": 1126.1863000000012,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 75275.2011,
+        "tool": "srt-win.exe",
+        "operation": "acl revoke",
+        "kind": "spawnSync",
+        "elapsed_ms": 784.2543000000005,
+        "status": 0
+      },
+      {
+        "pid": 21844,
+        "at_ms": 135283.6826,
+        "tool": "srt-win.exe",
+        "operation": "acl restore",
+        "kind": "spawnSync",
+        "elapsed_ms": 60007.812999999995,
+        "status": null,
+        "error": "ETIMEDOUT"
+      },
+      {
+        "pid": 21844,
+        "at_ms": 135285.6466,
+        "phase": "reset",
+        "elapsed_ms": 60795.1673
+      }
+    ]
+  }
+]

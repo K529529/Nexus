@@ -1,0 +1,15 @@
+{
+  "runner": "scripts/stage4b_srt_acceptance.py --temp-root D:/WorkSpace --shell C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe --skip-stop-tests",
+  "baseline": "76c36d16337857aa0fff4345b670e53b82655990",
+  "installed_bridge_sha256": "BF7290D1E3C444D4D58D31B5AB8AF6843AADB98B0AD15FB4CFC08D1DBFDE1FBA",
+  "network": "example.com only in functional WW phase",
+  "wheel_sha256": "4FFDF455AECA58FB3F0764CFA76D7BCD9713FAD153BCD97B469CC41304B5DB4C",
+  "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "old_poc": "NOT RUN",
+  "python": "D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe",
+  "timeout_cancel": "NOT RUN in P0 real matrix; existing automated tests retained",
+  "branch": "codex/nexus-v0.3-stage4-sandbox",
+  "bridges_match": true,
+  "srt_version": "0.0.81",
+  "source_bridge_sha256": "BF7290D1E3C444D4D58D31B5AB8AF6843AADB98B0AD15FB4CFC08D1DBFDE1FBA"
+}

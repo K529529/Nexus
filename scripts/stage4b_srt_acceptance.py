@@ -27,6 +27,7 @@ async def run(
     temp_root: Path | None = None,
     workspace_only: bool = False,
     skip_stop_tests: bool = False,
+    shell: str | None = None,
 ) -> None:
     # Inherit ordinary directory permissions: mkdtemp uses an owner-only Windows
     # ACL, and SRT-created files have a different OS owner from this test runner.
@@ -58,7 +59,7 @@ async def run(
         value = await backend.execute(
             "exec_command" if command is not None else "apply_patch",
             {"command": command, **args} if command is not None else dict(args),
-            ExecutionContext(workspace, label, default_shell()),
+            ExecutionContext(workspace, label, shell or default_shell()),
             emit,
         )
         row = {
@@ -164,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--temp-root", type=Path)
     parser.add_argument("--workspace-only", action="store_true")
     parser.add_argument("--skip-stop-tests", action="store_true")
+    parser.add_argument("--shell", help="Explicit shell installation for compatibility acceptance")
     arguments = parser.parse_args()
     asyncio.run(
         run(
@@ -171,5 +173,6 @@ if __name__ == "__main__":
             arguments.temp_root,
             arguments.workspace_only,
             arguments.skip_stop_tests,
+            arguments.shell,
         )
     )

@@ -14,6 +14,45 @@ const inside = (path, root) => {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 };
 
+// These paths already expose OS-managed executables through Windows read/execute
+// ACLs. SRT allowRead/denyWrite both MUTATE ACLs; neither belongs on these trees.
+async function systemDirectories() {
+  if (process.platform !== 'win32') return [];
+  const paths = ['SystemRoot', 'windir', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432']
+    .map(key => process.env[key]).filter(Boolean);
+  const roots = await Promise.all(paths.map(p => realpath(p)));
+  if (!roots.length) throw new Error('Windows system directories unavailable');
+  return [...new Set(roots)];
+}
+
+export function filesystemPolicy({workspace, roots, readRoots, worker, python, ipcDirectory},
+  systemRoots) {
+  // A workspace/grant containing a system tree is equally unsafe: ACL inheritance
+  // would reach the protected directory even if its literal path was filtered out.
+  for (const path of [workspace, ...roots, ipcDirectory]) {
+    if (systemRoots.some(root => inside(path, root) || inside(root, path))) {
+      throw new Error('System directory cannot be an SRT workspace/write/IPC root: ' + path);
+    }
+  }
+  const mutableAclTargets = paths => [...new Set(paths.filter(path => {
+    if (systemRoots.some(root => inside(path, root))) return false;
+    if (systemRoots.some(root => inside(root, path))) {
+      throw new Error('Runtime ACL root contains a Windows system directory: ' + path);
+    }
+    return true;
+  }))];
+  return {
+    denyRead: [],
+    allowRead: [workspace, ...mutableAclTargets(readRoots), ipcDirectory],
+    allowWrite: roots,
+    denyWrite: mutableAclTargets([
+      resolve(worker, '../../..'), python, ...readRoots, ipcDirectory,
+      ...roots.flatMap(root => ['.git/config', '.git/hooks', '.git/config.worktree',
+        '.gitmodules', '.nexus'].map(name => join(root, name))),
+    ]),
+  };
+}
+
 export async function serve(manager, packageRoot) {
   const nativeSRT = Boolean(packageRoot);
   const send = value => new Promise((ok, fail) => {
@@ -27,8 +66,9 @@ export async function serve(manager, packageRoot) {
   let closing = false;
   let ipcDirectory;
   const seen = new Set();
-  const error = (id, code, state = 'not_executed', detail = '') =>
-    send({id, type: 'error', code, state, detail: String(detail).slice(0, 4000)});
+  const failure = (id, code, state = 'not_executed', detail = '') =>
+    ({id, type: 'error', code, state, detail: String(detail).slice(0, 4000)});
+  const error = (...args) => send(failure(...args));
 
   async function acknowledge(job, value) {
     job.ackWrite = (job.ackWrite ?? Promise.resolve()).then(() =>
@@ -87,9 +127,9 @@ export async function serve(manager, packageRoot) {
   async function execute(row) {
     const p = row.params;
     const patch = p.name === 'apply_patch';
-    if (!patch && p.name !== 'exec_command') return error(row.id, 'unsupported_tool');
-    if (patch && config.mode === 'read-only') return error(row.id, 'policy_denied');
-    if (resolve(p.workspace) !== config.workspace) return error(row.id, 'workspace_mismatch');
+    if (!patch && p.name !== 'exec_command') return failure(row.id, 'unsupported_tool');
+    if (patch && config.mode === 'read-only') return failure(row.id, 'policy_denied');
+    if (resolve(p.workspace) !== config.workspace) return failure(row.id, 'workspace_mismatch');
     const args = p.arguments;
     const command = args.command ?? args.cmd;
     const timeout = args.timeout_ms ?? 120000;
@@ -98,7 +138,7 @@ export async function serve(manager, packageRoot) {
         || Object.keys(args).some(k => !['command', 'cmd', 'workdir', 'timeout_ms'].includes(k))
         || (args.workdir !== undefined && (typeof args.workdir !== 'string' || !args.workdir))
         || !Number.isInteger(timeout) || timeout < 1 || timeout > 600000)) {
-      return error(row.id, 'invalid_arguments');
+      return failure(row.id, 'invalid_arguments');
     }
     const cwd = await realpath(resolve(config.workspace, patch ? '.' : (args.workdir ?? '.')));
     const job = {id: row.id, patch, controller: new AbortController(), child: null,
@@ -130,7 +170,7 @@ export async function serve(manager, packageRoot) {
         {filesystem: {denyWrite: [config.workspace]}} : undefined;
       const wrapped = await manager.wrapWithSandboxArgv(
         text, shell, perCommand, job.controller.signal, cwd, {commandId: row.id});
-      if (job.cancelled) return error(row.id, 'cancelled');
+      if (job.cancelled) return failure(row.id, 'cancelled');
       const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
         shell: false, cwd, env: wrapped.env, windowsHide: true,
         detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'],
@@ -165,20 +205,20 @@ export async function serve(manager, packageRoot) {
       const [exit] = await Promise.all([job.closed, patch ? readWorker() :
         drain(child.stdout, 'stdout'), drain(child.stderr, 'stderr')]);
       if (patch) {
-        if (workerResult && !job.cleanupIncomplete) await send(workerResult);
-        else await error(row.id, 'cleanup_incomplete', 'interrupted_unknown');
+        if (workerResult && !job.cleanupIncomplete) return workerResult;
+        return failure(row.id, 'cleanup_incomplete', 'interrupted_unknown');
       } else {
         const code = job.cleanupIncomplete ? 'cleanup_incomplete' : job.timedOut ?
           'command_timeout' : job.cancelled ? 'cancelled' :
           exit.code !== 0 ? 'command_exit_nonzero' : null;
-        await send({id: row.id, type: 'result', result: {exit_code: exit.code,
+        return {id: row.id, type: 'result', result: {exit_code: exit.code,
           timed_out: job.timedOut, cancelled: job.cancelled,
           cleanup_incomplete: job.cleanupIncomplete, error_code: code,
-          requires_reset: job.requiresReset === true}});
+          requires_reset: job.requiresReset === true}};
       }
     } catch {
       await stop(job);
-      await error(row.id, job.child ? 'cleanup_incomplete' : 'backend_unavailable',
+      return failure(row.id, job.child ? 'cleanup_incomplete' : 'backend_unavailable',
         job.child ? 'interrupted_unknown' : 'not_executed');
     } finally {
       clearTimeout(timer);
@@ -255,6 +295,8 @@ export async function serve(manager, packageRoot) {
                 || !/^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/.test(d)
                 || d.includes('..'))) throw new Error('invalid_network_domains');
           }
+          const filesystem = filesystemPolicy({workspace, roots, readRoots, worker, python,
+            ipcDirectory}, await systemDirectories());
           let windows;
           if (!manager) {
             const installation = await realpath(packageRoot);
@@ -268,12 +310,7 @@ export async function serve(manager, packageRoot) {
           await manager.initialize({
             network: {allowedDomains: p.allowed_domains ?? [],
               deniedDomains: p.denied_domains ?? [], allowLocalBinding: false},
-            filesystem: {denyRead: [], allowRead: [workspace, ...readRoots, ipcDirectory],
-              allowWrite: roots, denyWrite: [
-              resolve(worker, '../../..'), python, ...readRoots, ipcDirectory,
-              ...roots.flatMap(root => ['.git/config', '.git/hooks', '.git/config.worktree',
-                '.gitmodules', '.nexus'].map(name => join(root, name))),
-            ]},
+            filesystem,
             ...(windows ? {windows} : {}),
           });
           config = {mode: p.mode, workspace, worker, python};
@@ -286,8 +323,12 @@ export async function serve(manager, packageRoot) {
       } else if (row.method === 'execute' && config) {
         executing = true;
         pendingExecution = execute(row);
-        try { await pendingExecution; }
+        let response;
+        try { response = await pendingExecution; }
         finally { executing = false; pendingExecution = undefined; }
+        // Terminal result means ready for the next sequential call: finish IPC
+        // cleanup and release the busy gate before Python can observe it.
+        await send(response);
       } else await error(row.id, 'backend_unavailable');
     })().catch(async () => { await shutdown(); });
   });

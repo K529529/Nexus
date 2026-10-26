@@ -1,0 +1,68 @@
+{"pid":71208,"at_ms":179.6489,"phase":"import","elapsed_ms":151.18540000000002}
+{"pid":71208,"at_ms":187.6073,"phase":"policy","filesystem":{"denyRead":[],"allowRead":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q068EB"],"allowWrite":[],"denyWrite":["D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q068EB"]}}
+{"pid":71208,"at_ms":234.0875,"tool":"srt-win.exe","operation":"wfp status","kind":"spawn","elapsed_ms":37.37529999999998,"status":0}
+{"pid":71208,"at_ms":240.8036,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":51.417100000000005,"status":0}
+{"pid":71208,"at_ms":276.5632,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":34.98150000000001,"status":0}
+{"pid":71208,"at_ms":87383.6621,"tool":"srt-win.exe","operation":"acl grant","kind":"spawn","elapsed_ms":87101.0144,"status":0}
+{"pid":71208,"at_ms":87698.2424,"tool":"srt-win.exe","operation":"wfp verify","kind":"spawn","elapsed_ms":310.25139999999374,"status":0}
+{"pid":71208,"at_ms":87704.7554,"phase":"initialize","elapsed_ms":87517.14809999999}
+{"pid":71208,"at_ms":87709.673,"phase":"wrapWithSandboxArgv","elapsed_ms":3.541399999987334}
+{"pid":71208,"at_ms":89010.7704,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1300.849199999997,"status":0}
+{"pid":71208,"at_ms":89013.3324,"phase":"wrapWithSandboxArgv","elapsed_ms":1.4632999999885214}
+{"pid":71208,"at_ms":90473.4224,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1459.9175999999861,"status":1}
+{"pid":71208,"at_ms":91296.9871,"tool":"srt-win.exe","operation":"acl revoke","kind":"spawnSync","elapsed_ms":822.0641000000032,"status":0}
+{"pid":71208,"at_ms":151304.7202,"tool":"srt-win.exe","operation":"acl restore","kind":"spawnSync","elapsed_ms":60007.20959999999,"status":null,"error":"ETIMEDOUT"}
+{"pid":71208,"at_ms":151306.8722,"phase":"reset","elapsed_ms":60832.3619}
+{"pid":40040,"at_ms":181.3424,"phase":"import","elapsed_ms":151.23860000000002}
+{"pid":40040,"at_ms":189.5383,"phase":"policy","filesystem":{"denyRead":[],"allowRead":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q6AzYz"],"allowWrite":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work"],"denyWrite":["D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-q6AzYz","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config.worktree","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.gitmodules","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.nexus"]}}
+{"pid":40040,"at_ms":231.9869,"tool":"srt-win.exe","operation":"wfp status","kind":"spawn","elapsed_ms":33.343999999999994,"status":0}
+{"pid":40040,"at_ms":236.5161,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":45.21439999999998,"status":0}
+{"pid":40040,"at_ms":272.4621,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":35.04039999999998,"status":0}
+{"pid":40040,"at_ms":127367.988,"tool":"srt-win.exe","operation":"acl grant","kind":"spawn","elapsed_ms":127086.2053,"status":0}
+{"pid":40040,"at_ms":127683.2077,"tool":"srt-win.exe","operation":"wfp verify","kind":"spawn","elapsed_ms":312.10289999999804,"status":0}
+{"pid":40040,"at_ms":127689.1226,"phase":"initialize","elapsed_ms":127499.5836}
+{"pid":40040,"at_ms":127693.7591,"phase":"wrapWithSandboxArgv","elapsed_ms":2.943200000008801}
+{"pid":40040,"at_ms":128853.7527,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1159.762699999992,"status":0}
+{"pid":40040,"at_ms":128855.6467,"phase":"wrapWithSandboxArgv","elapsed_ms":0.8950000000040745}
+{"pid":40040,"at_ms":130121.9947,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1266.1946999999927,"status":1}
+{"pid":40040,"at_ms":130123.6236,"phase":"wrapWithSandboxArgv","elapsed_ms":0.7403999999951338}
+{"pid":40040,"at_ms":132987.2613,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":2863.4568000000145,"status":0}
+{"pid":40040,"at_ms":132989.8717,"phase":"wrapWithSandboxArgv","elapsed_ms":0.7652999999991152}
+{"pid":40040,"at_ms":133395.2215,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":405.1909999999916,"status":0}
+{"pid":40040,"at_ms":133397.2658,"phase":"wrapWithSandboxArgv","elapsed_ms":0.7353000000002794}
+{"pid":40040,"at_ms":134633.8431,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1236.363000000012,"status":1}
+{"pid":40040,"at_ms":134635.6298,"phase":"wrapWithSandboxArgv","elapsed_ms":0.92349999997532}
+{"pid":40040,"at_ms":135812.7763,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1176.9496999999974,"status":1}
+{"pid":40040,"at_ms":135814.3813,"phase":"wrapWithSandboxArgv","elapsed_ms":0.6941999999980908}
+{"pid":40040,"at_ms":141044.1809,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":5229.648099999991,"status":0}
+{"pid":40040,"at_ms":141788.2447,"tool":"srt-win.exe","operation":"acl revoke","kind":"spawnSync","elapsed_ms":738.1367999999784,"status":0}
+{"pid":40040,"at_ms":201796.0268,"tool":"srt-win.exe","operation":"acl restore","kind":"spawnSync","elapsed_ms":60007.15759999998,"status":null,"error":"ETIMEDOUT"}
+{"pid":40040,"at_ms":201798.2252,"phase":"reset","elapsed_ms":60748.467000000004}
+{"pid":70688,"at_ms":177.4163,"phase":"import","elapsed_ms":148.9673}
+{"pid":70688,"at_ms":185.2817,"phase":"policy","filesystem":{"denyRead":[],"allowRead":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1zE0iE"],"allowWrite":[],"denyWrite":["D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-1zE0iE"]}}
+{"pid":70688,"at_ms":226.1789,"tool":"srt-win.exe","operation":"wfp status","kind":"spawn","elapsed_ms":32.131,"status":0}
+{"pid":70688,"at_ms":230.6491,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":43.6738,"status":0}
+{"pid":70688,"at_ms":266.1406,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":34.373500000000035,"status":0}
+{"pid":70688,"at_ms":114671.1965,"tool":"srt-win.exe","operation":"acl grant","kind":"spawn","elapsed_ms":114398.8789,"status":0}
+{"pid":70688,"at_ms":114959.0434,"tool":"srt-win.exe","operation":"wfp verify","kind":"spawn","elapsed_ms":285.0402999999933,"status":0}
+{"pid":70688,"at_ms":114965.3179,"phase":"initialize","elapsed_ms":114780.0341}
+{"pid":70688,"at_ms":114969.82,"phase":"wrapWithSandboxArgv","elapsed_ms":2.8778999999922235}
+{"pid":70688,"at_ms":116131.0739,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1161.0295000000042,"status":0}
+{"pid":70688,"at_ms":116133.6558,"phase":"wrapWithSandboxArgv","elapsed_ms":1.6521999999968102}
+{"pid":70688,"at_ms":117622.7275,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1488.889599999995,"status":1}
+{"pid":70688,"at_ms":118350.3378,"tool":"srt-win.exe","operation":"acl revoke","kind":"spawnSync","elapsed_ms":726.2986999999994,"status":0}
+{"pid":70688,"at_ms":178359.6976,"tool":"srt-win.exe","operation":"acl restore","kind":"spawnSync","elapsed_ms":60008.725499999986,"status":null,"error":"ETIMEDOUT"}
+{"pid":70688,"at_ms":178361.5124,"phase":"reset","elapsed_ms":60737.947700000004}
+{"pid":2160,"at_ms":197.1727,"phase":"import","elapsed_ms":165.7267}
+{"pid":2160,"at_ms":205.8434,"phase":"policy","filesystem":{"denyRead":[],"allowRead":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nXM57x"],"allowWrite":["D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work"],"denyWrite":["D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-nXM57x","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\hooks","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.git\\config.worktree","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.gitmodules","D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28\\work\\.nexus"]}}
+{"pid":2160,"at_ms":251.3682,"tool":"srt-win.exe","operation":"wfp status","kind":"spawn","elapsed_ms":35.706999999999994,"status":0}
+{"pid":2160,"at_ms":254.4878,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":46.6841,"status":0}
+{"pid":2160,"at_ms":293.8461,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":38.369800000000026,"status":0}
+{"pid":2160,"at_ms":139973.8303,"tool":"srt-win.exe","operation":"acl grant","kind":"spawn","elapsed_ms":139670.69499999998,"status":0}
+{"pid":2160,"at_ms":140267.1674,"tool":"srt-win.exe","operation":"wfp verify","kind":"spawn","elapsed_ms":290.05340000000433,"status":0}
+{"pid":2160,"at_ms":140271.9311,"phase":"initialize","elapsed_ms":140066.09}
+{"pid":2160,"at_ms":140275.9021,"phase":"wrapWithSandboxArgv","elapsed_ms":2.247000000003027}
+{"pid":2160,"at_ms":141375.8287,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1099.7270000000135,"status":0}
+{"pid":2160,"at_ms":142126.8689,"tool":"srt-win.exe","operation":"acl revoke","kind":"spawnSync","elapsed_ms":749.4899999999907,"status":0}
+{"pid":2160,"at_ms":202134.5329,"tool":"srt-win.exe","operation":"acl restore","kind":"spawnSync","elapsed_ms":60007.0411,"status":null,"error":"ETIMEDOUT"}
+{"pid":2160,"at_ms":202136.5571,"phase":"reset","elapsed_ms":60759.56090000001}

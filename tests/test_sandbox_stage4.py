@@ -160,6 +160,42 @@ async def test_completed_patch_can_close_immediately_without_recreating_ack(tmp_
 
 
 @pytest.mark.skipif(sys.platform != "win32" or not NODE, reason="Windows Node Bridge target")
+async def test_patch_terminal_result_waits_for_ipc_cleanup(tmp_path: Path) -> None:
+    entry = fake_entry(tmp_path)
+    original = entry.read_text(encoding="utf-8")
+    marker = tmp_path / "cleaned.txt"
+    entry.write_text(
+        "import fs from 'node:fs'; import {syncBuiltinESMExports} from 'node:module';\n"
+        "const unlink=fs.promises.unlink; fs.promises.unlink=async path=>{\n"
+        "await new Promise(r=>setTimeout(r,150)); await unlink(path);\n"
+        f"fs.writeFileSync({json.dumps(str(marker))},'cleaned');}};\n"
+        "syncBuiltinESMExports();\n" + original,
+        encoding="utf-8",
+    )
+    workspace = tmp_path / "work"
+    workspace.mkdir()
+    client = BridgeClient((str(NODE), str(entry)), cwd=tmp_path)
+    await client.initialize(
+        {"mode": "workspace-write", "workspace": str(workspace), "python": sys.executable}
+    )
+    try:
+        context = ExecutionContext(workspace, "sequential", default_shell())
+        patched = await client.execute(
+            "apply_patch",
+            {"patch": "*** Begin Patch\n*** Add File: ready.txt\n+ready\n*** End Patch"},
+            context,
+            Recorder(),
+        )
+        assert patched.ok and marker.exists()
+        following = await client.execute(
+            "exec_command", {"command": "Get-Content ready.txt"}, context, Recorder()
+        )
+        assert following.ok and "ready" in following.data["stdout"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32" or not NODE, reason="Windows Node Bridge target")
 async def test_read_only_deny_is_owned_by_each_command_not_kept_session(tmp_path: Path) -> None:
     path = tmp_path / "deny-contract.mjs"
     path.write_text(

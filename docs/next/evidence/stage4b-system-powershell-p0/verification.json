@@ -1,0 +1,89 @@
+{
+  "P0_and_functional": "PASS",
+  "system_acl_unchanged": true,
+  "policies_checked": 11,
+  "native_timeouts": [
+    {
+      "pid": 71208,
+      "at_ms": 151304.7202,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.20959999999,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 40040,
+      "at_ms": 201796.0268,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.15759999998,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 70688,
+      "at_ms": 178359.6976,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60008.725499999986,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 2160,
+      "at_ms": 202134.5329,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.0411,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 75400,
+      "at_ms": 145818.5823,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.68459999999,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 10640,
+      "at_ms": 187253.9098,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60008.527799999996,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 50912,
+      "at_ms": 134647.39,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.54500000001,
+      "status": null,
+      "error": "ETIMEDOUT"
+    },
+    {
+      "pid": 21844,
+      "at_ms": 135283.6826,
+      "tool": "srt-win.exe",
+      "operation": "acl restore",
+      "kind": "spawnSync",
+      "elapsed_ms": 60007.812999999995,
+      "status": null,
+      "error": "ETIMEDOUT"
+    }
+  ],
+  "cleanup_scope": "Bridge exit confirmed; upstream reset is best effort, not full ACL rollback",
+  "scope": "Normal SRT regression, not an OS security certification"
+}

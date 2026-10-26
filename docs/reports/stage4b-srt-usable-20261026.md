@@ -176,6 +176,10 @@ Git **787.5 ms**、白名单 HTTPS **3.659 s**，切回 RO 首次 **59.07 s**、
 
 ## 8. 用户手动验收
 
+2026-10-26 后续人工验收发现系统 Windows PowerShell 初始化 P0；本报告的历史成功结果
+不覆盖该安装路径。修复、复验、初始化分阶段计时和新候选入口见
+[人工验收问题记录](stage4b-manual-acceptance-issues.md)。以下旧候选路径仅保留为历史记录。
+
 先在工作区之外安装本轮 wheel；保留既有全局 SRT 0.0.81 初始化，不需要在 Nexus 仓库 npm install。
 本轮独立候选安装位于：
 `D:\WorkSpace\nexus-stage4b-install-929ee5906c6e42f3a3084173fca0dd03`。

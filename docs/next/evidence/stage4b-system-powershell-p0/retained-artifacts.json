@@ -1,0 +1,18 @@
+[
+  {
+    "path": "D:\\WorkSpace\\nexus-stage4b-functional-bbb77f700d284537bdc7c4d719270f28",
+    "reason": "SRT acceptance fixture; raw evidence preserved; kept-grant state not forcibly altered"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-stage4b-functional-8811146540e349eb876a1b2d31feb52d",
+    "reason": "SRT acceptance fixture; raw evidence preserved; kept-grant state not forcibly altered"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-p0-init-profile-fc4fde0fc9f449b995811ac0f4ba286d",
+    "reason": "Init-only profiling fixtures and existing SRT kept grant state"
+  },
+  {
+    "path": "D:/WorkSpace/nexus-stage4b-p0-install-20261026",
+    "reason": "Final candidate retained for user manual acceptance"
+  }
+]

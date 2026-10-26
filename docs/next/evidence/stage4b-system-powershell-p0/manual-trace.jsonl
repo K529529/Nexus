@@ -1,0 +1,13 @@
+{"pid":21844,"at_ms":183.0758,"phase":"import","elapsed_ms":154.46609999999998}
+{"pid":21844,"at_ms":191.6938,"phase":"policy","filesystem":{"denyRead":[],"allowRead":["D:\\WorkSpace\\nexus-stage4-manual","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-tzxBo0"],"allowWrite":["D:\\WorkSpace\\nexus-stage4-manual"],"denyWrite":["D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Scripts\\python.exe","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026","D:\\Tools\\python\\py312","D:\\WorkSpace\\nexus-stage4b-p0-install-20261026\\Lib\\site-packages\\nexus","C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-srt-ipc-tzxBo0","D:\\WorkSpace\\nexus-stage4-manual\\.git\\config","D:\\WorkSpace\\nexus-stage4-manual\\.git\\hooks","D:\\WorkSpace\\nexus-stage4-manual\\.git\\config.worktree","D:\\WorkSpace\\nexus-stage4-manual\\.gitmodules","D:\\WorkSpace\\nexus-stage4-manual\\.nexus"]}}
+{"pid":21844,"at_ms":234.2416,"tool":"srt-win.exe","operation":"wfp status","kind":"spawn","elapsed_ms":34.07249999999999,"status":0}
+{"pid":21844,"at_ms":240.3937,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":46.9931,"status":0}
+{"pid":21844,"at_ms":281.5539,"tool":"srt-win.exe","operation":"user status","kind":"spawn","elapsed_ms":39.9932,"status":0}
+{"pid":21844,"at_ms":73063.4833,"tool":"srt-win.exe","operation":"acl grant","kind":"spawn","elapsed_ms":72771.0017,"status":0}
+{"pid":21844,"at_ms":73355.0117,"tool":"srt-win.exe","operation":"wfp verify","kind":"spawn","elapsed_ms":288.25329999999667,"status":0}
+{"pid":21844,"at_ms":73359.7884,"phase":"initialize","elapsed_ms":73168.0969}
+{"pid":21844,"at_ms":73363.3015,"phase":"wrapWithSandboxArgv","elapsed_ms":1.9289999999891734}
+{"pid":21844,"at_ms":74489.6856,"tool":"srt-win.exe","operation":"exec --quiet","kind":"spawn","elapsed_ms":1126.1863000000012,"status":0}
+{"pid":21844,"at_ms":75275.2011,"tool":"srt-win.exe","operation":"acl revoke","kind":"spawnSync","elapsed_ms":784.2543000000005,"status":0}
+{"pid":21844,"at_ms":135283.6826,"tool":"srt-win.exe","operation":"acl restore","kind":"spawnSync","elapsed_ms":60007.812999999995,"status":null,"error":"ETIMEDOUT"}
+{"pid":21844,"at_ms":135285.6466,"phase":"reset","elapsed_ms":60795.1673}

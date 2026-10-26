@@ -73,6 +73,8 @@ class SRTBackend:
         python = trusted(sys.executable)
         shell_path = trusted(shutil.which(shell) or shell)
         self.shell = str(shell_path)
+        # Installation candidates, not unconditional ACL grants: the bridge's
+        # filesystem policy excludes Windows-managed paths from BOTH ACL lists.
         read_roots = [
             trusted(sys.prefix),
             trusted(sys.base_prefix),

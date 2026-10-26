@@ -1,0 +1,1 @@
+19 setup errors: PermissionError WinError 5 accessing pre-existing C:\Users\Archer\AppData\Local\Temp\pytest-of-Archer. No test body executed; no ACL altered. Retry uses a fresh process-specific PYTEST_DEBUG_TEMPROOT.
