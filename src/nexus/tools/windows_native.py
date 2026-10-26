@@ -22,7 +22,31 @@ from nexus.tools.sandbox import BridgeClient, BridgeError
 DETAIL = "Windows partial enforcement; Network: unrestricted; child environment filtered."
 
 
-def validate_roots(workspace: Path, policy: SecurityPolicy) -> tuple[Path, ...]:
+def reject_linked_path(path: Path) -> None:
+    """Do not authorize a root/config through a symlink or junction ancestor."""
+    for part in (path.absolute(), *path.absolute().parents):
+        if part.is_symlink() or part.is_junction():
+            raise BridgeError(f"Linked path/ancestor cannot hold persistent ACL consent: {part}")
+
+
+def validate_config_authority(path: Path, roots: tuple[Path, ...]) -> None:
+    reject_linked_path(path)
+    resolved = path.resolve()
+    if any(resolved.is_relative_to(root.resolve()) for root in roots):
+        raise BridgeError("ACL consent must be in user configuration outside workspace/write roots")
+
+
+def approved_acl_roots(policy: SecurityPolicy) -> set[Path]:
+    # Approval names the saved path, not whatever a future junction redirects to.
+    # Unrelated removed workspaces must not invalidate active workspace consent.
+    return {Path(os.path.abspath(p)) for p in policy.windows_acl_roots}
+
+
+def validate_roots(
+    workspace: Path, policy: SecurityPolicy, *, require_consent: bool = True
+) -> tuple[Path, ...]:
+    for candidate in (workspace, *(Path(p) for p in policy.writable_roots)):
+        reject_linked_path(candidate)
     roots = tuple(
         dict.fromkeys(
             [
@@ -50,12 +74,12 @@ def validate_roots(workspace: Path, policy: SecurityPolicy) -> tuple[Path, ...]:
             or any(root.is_relative_to(p) or p.is_relative_to(root) for p in protected)
         ):
             raise BridgeError(f"Protected system/user directory cannot be an ACL root: {root}")
-    if policy.mode == "workspace-write":
-        consent = {Path(p).resolve(strict=True) for p in policy.windows_acl_roots}
+    if require_consent and policy.mode == "workspace-write":
+        consent = approved_acl_roots(policy)
         if missing := [str(root) for root in roots if root not in consent]:
             raise BridgeError(
                 "Standing ACL consent required: list these exact roots in "
-                f"security.windows_acl_roots after reviewing the Low-label/ACL effects: {missing}"
+                f"security.windows_acl_roots or use interactive /permissions: {missing}"
             )
     return roots
 
@@ -138,6 +162,15 @@ class WindowsNativeBackend:
                 result = await self.client.execute(
                     name, arguments, replace(context, shell=self.shell or context.shell), emit
                 )
+                if result.data.get("exit_code") == 127 and (
+                    "windows-acl-run: Win32 SetNamedSecurityInfoW failed"
+                    in result.data.get("stderr", "")
+                ):
+                    result.data["detail"] = (
+                        "Native ACL authorization failed. The directory must be owned by the "
+                        "current user and permit WRITE_DAC / WRITE_OWNER. Consent does not "
+                        "supply missing OS rights. No elevation, owner change, or Local fallback."
+                    )
                 if result.error_code == "cleanup_incomplete" or self.client.broken:
                     await self.close()
                     self.status, self.detail = "failed", "Native process cleanup is unconfirmed"

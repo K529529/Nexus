@@ -475,6 +475,40 @@ def show_skills(session: Session, root: Path | None, warnings: list[str], consol
     console.print("Off restores automatic selection; model-loaded skills apply only to their run.")
 
 
+async def confirm_workspace_acl(workspace: Path) -> bool:
+    """User-only standing ACL consent, deliberately distinct from Allow once."""
+    bindings = KeyBindings()
+    text = (
+        "Workspace-write · Persistent Windows ACL consent\n"
+        + terminal_text(str(workspace))
+        + "\nNexus will add a capability ACE, a directory delete-child deny, and a Low "
+        "Integrity label to this directory and inheriting contents.\n"
+        "These changes remain after exit and can affect other Low-integrity processes.\n"
+        "This approves persistent ACL changes, NOT one tool call. No administrator "
+        "elevation or owner change. Network: unrestricted · Windows partial enforcement.\n"
+        "A: Allow and remember this exact workspace · D/Enter/Esc: Deny"
+    )
+
+    @bindings.add("a")
+    def allow(event: KeyPressEvent) -> None:
+        event.app.exit(result=True)
+
+    @bindings.add("d")
+    @bindings.add("enter")
+    @bindings.add("escape")
+    @bindings.add("c-c")
+    @bindings.add("c-d")
+    def deny(event: KeyPressEvent) -> None:
+        event.app.exit(result=False)
+
+    app: Application[bool] = Application(
+        layout=Layout(Window(FormattedTextControl(text), wrap_lines=True)),
+        key_bindings=bindings,
+        full_screen=False,
+    )
+    return await app.run_async()
+
+
 async def select_permissions(current: str, status: str, detail: str) -> str | None:
     modes = ["local", "read-only", "workspace-write"]
     descriptions = [

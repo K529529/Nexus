@@ -10,6 +10,7 @@ import sys
 from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app_session
@@ -26,6 +27,7 @@ from nexus.app.config import (
     memory_settings,
     read_toml,
     set_memory_enabled,
+    validate_acl_authority,
 )
 from nexus.app.input import INPUT_HELP, TaskInput
 from nexus.app.memory import MemoryStore
@@ -36,6 +38,7 @@ from nexus.app.session import SessionError, list_sessions
 from nexus.app.skills import SkillCatalog
 from nexus.app.tui import (
     Transcript,
+    confirm_workspace_acl,
     json_consumer,
     select_permissions,
     select_session,
@@ -43,7 +46,24 @@ from nexus.app.tui import (
     show_skills,
     terminal_text,
 )
+from nexus.core.security import Mode
 from nexus.core.types import Json, ModelError, RunResult, Session, json_text
+
+
+async def authorize_workspace(
+    workspace: Path, config: Config, *, interactive: bool
+) -> Config | None:
+    # Local/RO retain lazy execution and do not depend on Native consent/runtime.
+    if sys.platform != "win32" or config.security.mode != "workspace-write":
+        return config
+    from nexus.app.acl_consent import ensure_workspace_consent
+
+    policy = await ensure_workspace_consent(
+        workspace,
+        config.security,
+        confirm=confirm_workspace_acl if interactive else None,
+    )
+    return replace(config, security=policy) if policy is not None else None
 
 
 def memory_status(conversation: Conversation | None = None) -> Json:
@@ -216,7 +236,8 @@ async def application(args: argparse.Namespace) -> int:
                 eval_config, security=replace(eval_config.security, mode=args.permission_mode)
             )
         return await evaluate(selected, eval_config)
-    workspace = Path.cwd().resolve()
+    workspace_input = Path.cwd()
+    workspace = workspace_input.resolve()
     interactive = args.command != "exec"
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
@@ -236,9 +257,16 @@ async def application(args: argparse.Namespace) -> int:
         loaded = load_config() if require_key else load_config(require_key=False)
         if permission_mode is not None:
             loaded = replace(loaded, security=replace(loaded.security, mode=permission_mode))
+        validate_acl_authority(loaded.security)
         return loaded
 
-    config = current_config()
+    authorized = await authorize_workspace(
+        workspace_input, current_config(), interactive=interactive
+    )
+    if authorized is None:
+        console.print("Workspace ACL consent denied/cancelled. No command executed.")
+        return 0
+    config = authorized
     if not interactive:
         consumer = json_consumer if args.json else Transcript(console)
         profile = ProfileConsumer(consumer) if getattr(args, "profile", False) else None
@@ -352,17 +380,36 @@ async def application(args: argparse.Namespace) -> int:
                     getattr(backend, "detail", "Commands run as your current user."),
                 )
                 if selected_mode is not None and selected_mode != conversation.config.security.mode:
+                    try:
+                        proposed = current_config()
+                        proposed = replace(
+                            proposed,
+                            security=replace(proposed.security, mode=cast(Mode, selected_mode)),
+                        )
+                        validate_acl_authority(proposed.security)
+                        authorized = await authorize_workspace(
+                            workspace_input,
+                            proposed,
+                            interactive=True,
+                        )
+                    except (ConfigError, OSError) as exc:
+                        console.print(Text(terminal_text(str(exc)), style="yellow"))
+                        continue
+                    if authorized is None:
+                        console.print("Workspace ACL consent denied/cancelled. Mode unchanged.")
+                        continue
                     # The command runs only while the editor is idle. Closing first releases
                     # the old sandbox; no pending approvals or historical grants are copied.
                     await conversation.close()
                     permission_mode = selected_mode
-                    config = current_config()
+                    config = authorized
                     conversation = Conversation(workspace, config, summary)
                     await conversation.start_memory()
                     console.print(
                         Text(
                             f"Mode: {selected_mode}. New conversation; previous history saved. "
-                            "User config unchanged. Backend initializes on first tool call."
+                            "Mode is session-only; approved ACL roots are remembered. "
+                            "Backend initializes on first tool call."
                         )
                     )
             elif text == "/new":

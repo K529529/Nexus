@@ -60,6 +60,21 @@ def config_path() -> Path:
     return Path.home() / ".nexus" / "config.toml"
 
 
+def validate_acl_authority(policy: SecurityPolicy, path: Path | None = None) -> None:
+    if sys.platform != "win32" or policy.mode == "local" or not policy.windows_acl_roots:
+        return
+    from nexus.tools.sandbox import BridgeError
+    from nexus.tools.windows_native import validate_config_authority
+
+    try:
+        validate_config_authority(
+            path or config_path(),
+            (Path.cwd(), *(Path(p) for p in (*policy.writable_roots, *policy.windows_acl_roots))),
+        )
+    except BridgeError as exc:
+        raise ConfigError(str(exc)) from None
+
+
 def read_toml(path: Path) -> Json:
     if not path.exists():
         return {}
@@ -326,6 +341,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         security.get("windows_koffi"),
         acl_roots,
     )
+    validate_acl_authority(policy, path)
     return Config(
         settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy
     )

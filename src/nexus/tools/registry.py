@@ -19,7 +19,7 @@ from nexus.tools.skills import create_load_skill_tool
 
 EXEC_SPEC = ToolSpec(
     "exec_command",
-    "Execute in the configured shell under the current Local or SRT policy. "
+    "Execute in the configured shell under the current Local or platform sandbox policy. "
     "Use for reading/searching files, git, "
     'tests and builds. Use the required key command, not cmd: {"command":"pytest -q"}. '
     "Default cwd is workspace; stdin is closed. Inspect exit_code and "
