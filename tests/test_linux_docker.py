@@ -216,3 +216,22 @@ async def test_conversation_displays_container_path_without_starting_docker(
     assert isinstance(conversation.gateway.backend, docker.LinuxDockerBackend)
     assert conversation.gateway.backend.container_id is None
     await conversation.close()
+
+
+@pytest.mark.parametrize("startup_mode", ["local", "read-only"])
+def test_windows_never_silently_ignores_docker_network(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, startup_mode: str
+) -> None:
+    from nexus.tools.sandbox import BridgeError
+    from nexus.tools.windows_native import WindowsNativeBackend
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    data = {"security": {"mode": startup_mode, "docker_network": "none"}}
+    if startup_mode == "read-only":
+        with pytest.raises(ConfigError, match="Docker settings apply only"):
+            security_policy(data)
+    else:
+        policy = security_policy(data)
+        backend = WindowsNativeBackend(replace(policy, mode="read-only"))
+        with pytest.raises(BridgeError, match="Docker settings apply only"):
+            backend.installation(tmp_path, "powershell.exe")

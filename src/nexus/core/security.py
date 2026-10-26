@@ -46,6 +46,7 @@ class SecurityPolicy:
     docker_memory_mb: int = 1024
     docker_pids: int = 128
     domain_policy_configured: bool = False
+    docker_configured: bool = False
 
     def __post_init__(self) -> None:
         if self.mode not in {"local", "read-only", "workspace-write"}:

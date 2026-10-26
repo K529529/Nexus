@@ -334,6 +334,11 @@ def security_policy(data: Json, path: Path | None = None) -> SecurityPolicy:
             "Remove unsupported allowed_domains/denied_domains"
         )
     acl_roots = tuple(security.get("windows_acl_roots", []))
+    docker_configured = any(name.startswith("docker_") for name in security)
+    if sys.platform == "win32" and mode != "local" and docker_configured:
+        raise ConfigError(
+            "Docker settings apply only to Linux; Windows Native network is unrestricted"
+        )
     if any(not Path(root).is_absolute() for root in acl_roots):
         raise ConfigError("security.windows_acl_roots: absolute paths required")
     for name in ("node_path", "srt_package", "windows_koffi"):
@@ -359,6 +364,7 @@ def security_policy(data: Json, path: Path | None = None) -> SecurityPolicy:
         docker_memory_mb=security.get("docker_memory_mb", 1024),
         docker_pids=security.get("docker_pids", 128),
         domain_policy_configured="allowed_domains" in security or "denied_domains" in security,
+        docker_configured=docker_configured,
     )
     validate_acl_authority(policy, path)
     return policy

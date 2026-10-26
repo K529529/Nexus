@@ -95,6 +95,10 @@ class WindowsNativeBackend:
     def installation(self, workspace: Path, shell: str) -> tuple[tuple[str, ...], Json]:
         if sys.platform != "win32":
             raise BridgeError("Windows Native requires Windows; no fallback")
+        if self.policy.docker_configured:
+            raise BridgeError(
+                "Docker settings apply only to Linux; Windows Native network is unrestricted"
+            )
         if self.policy.allowed_domains or self.policy.denied_domains:
             raise BridgeError("Network: unrestricted; legacy domain policies are unsupported")
         if self.policy.srt_package is not None:
