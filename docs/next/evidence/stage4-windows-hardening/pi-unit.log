@@ -1,0 +1,9 @@
+
+ RUN  v5.0.5 D:/WorkSpace/nexus-native-runtime-20261026
+
+
+ Test Files  8 passed (8)
+      Tests  68 passed | 1 skipped (69)
+   Start at  21:32:47
+   Duration  415ms (import 42%, tests 34%, transform 15%, worker 8%)
+

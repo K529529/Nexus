@@ -1,0 +1,440 @@
+{
+  "root": "D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc",
+  "python": "D:\\WorkSpace\\nexus-native-hardening-install-20261026\\Scripts\\python.exe",
+  "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "rows": [
+    {
+      "test": "deny-or-cancel-'d'",
+      "passed": true
+    },
+    {
+      "test": "deny-or-cancel-'\\x1b'",
+      "passed": true
+    },
+    {
+      "test": "noninteractive-denied",
+      "passed": true,
+      "detail": "Workspace ACL consent missing. Open interactive Nexus and choose /permissions → Workspace-write, or approve the exact path in user security.windows_acl_roots: D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work. No command executed."
+    },
+    {
+      "test": "allow-persists-no-acl-yet",
+      "passed": true
+    },
+    {
+      "test": "restart-reuses-exact-consent",
+      "passed": true
+    },
+    {
+      "test": "read-only-session-a-start",
+      "passed": true,
+      "result": {
+        "call_id": "ffbe29a94b944970a833e7b2505c3b46",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-wEY9Wo\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 983,
+        "truncated": false
+      },
+      "elapsed_ms": 1046.9
+    },
+    {
+      "test": "read-only-session-b-start",
+      "passed": true,
+      "result": {
+        "call_id": "dffc5f797ac8455a96355872750aa19c",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-LXp1Ge\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1077,
+        "truncated": false
+      },
+      "elapsed_ms": 1146.91
+    },
+    {
+      "test": "read-only-unique-temp",
+      "passed": true
+    },
+    {
+      "test": "read-only-cross-session-write-denied",
+      "passed": true,
+      "result": {
+        "call_id": "4a271aa657014b51b23b68d539e232f8",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-wEY9Wo\\foreign.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 264\r\n+ ... utEncoding; Set-Content 'C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-nat ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (C:\\Users\\Archer...9Wo\\foreign.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1202,
+        "truncated": false
+      },
+      "elapsed_ms": 1196.56
+    },
+    {
+      "test": "read-only-exact-requested-python",
+      "passed": false,
+      "result": {
+        "call_id": "b7222a9797fe4e46af734b4972663c95",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work\\requested.py\", line 6, in <module>\r\n    target.mkdir(mode=0o700)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\pathlib.py\", line 1311, in mkdir\r\n    os.mkdir(self, mode)\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-wEY9Wo\\\\tmptab2st0n\\\\private'\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"<frozen os>\", line 366, in walk\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-wEY9Wo\\\\tmptab2st0n'\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work\\requested.py\", line 4, in <module>\r\n    with TemporaryDirectory() as root:\r\n         ^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 950, in __exit__\r\n    self.cleanup()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 954, in cleanup\r\n    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 934, in _rmtree\r\n    _shutil.rmtree(name, onexc=onexc)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 781, in rmtree\r\n    return _rmtree_unsafe(path, onexc)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 623, in _rmtree_unsafe\r\n    for dirpath, dirnames, filenames in results:\r\n                                        ^^^^^^^\r\n  File \"<frozen os>\", line 369, in walk\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 621, in onerror\r\n    onexc(os.scandir, err.filename, err)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 906, in onexc\r\n    _resetperms(path)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 286, in _resetperms\r\n    _dont_follow_symlinks(_os.chmod, path, 0o700)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 277, in _dont_follow_symlinks\r\n    func(path, *args)\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-wEY9Wo\\\\tmptab2st0n'\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1077,
+        "truncated": false
+      },
+      "elapsed_ms": 1085.6
+    },
+    {
+      "test": "read-only-pytest-tmp-path-and-factory",
+      "passed": false,
+      "result": {
+        "call_id": "8ca2e7f2df814c908dbc41c6aa4ebfd2",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "E                                                                        [100%]\r\n=================================== ERRORS ====================================\r\n_________________________ ERROR at setup of test_temp _________________________\r\n\r\nfixturedef = <FixtureDef argname='tmp_path' scope='function' baseid=''>\r\nrequest = <SubRequest 'tmp_path' for <Function test_temp>>\r\n\r\n    @pytest.hookimpl(wrapper=True)\r\n    def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:\r\n        if (\r\n            fixturedef.argname == \"event_loop_policy\"\r\n            and fixturedef.func.__module__ != __name__\r\n        ):\r\n            warnings.warn(\r\n                PytestDeprecationWarning(_EVENT_LOOP_POLICY_FIXTURE_DEPRECATION_WARNING),\r\n            )\r\n        asyncio_mode = _get_asyncio_mode(request.config)\r\n        if not _is_asyncio_fixture_function(fixturedef.func):\r\n            if asyncio_mode == Mode.STRICT:\r\n                # Ignore async fixtures without explicit asyncio mark in strict mode\r\n                # This applies to pytest_trio fixtures, for example\r\n>               return (yield)\r\n                        ^^^^^\r\nE               PermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-wEY9Wo\\\\pytest-of-Archer'\r\n\r\n..\\..\\nexus-native-hardening-install-20261026\\Lib\\site-packages\\pytest_asyncio\\plugin.py:924: PermissionError\r\n=========================== short test summary info ===========================\r\nERROR test_private.py::test_temp - PermissionError: [WinError 5] 拒绝访问。: ...\r\n1 error in 0.11s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1907,
+        "truncated": false
+      },
+      "elapsed_ms": 1907.14
+    },
+    {
+      "test": "read-only-boundary-after-python-error",
+      "passed": true,
+      "result": {
+        "call_id": "bf1295f3e477451896492e31f5337472",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work\\persistent.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 264\r\n+ ... ole]::OutputEncoding; Set-Content persistent.txt ok -ErrorAction Stop\r\n+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (D:\\WorkSpace\\ne...\\persistent.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1140,
+        "truncated": false
+      },
+      "elapsed_ms": 1147.54
+    },
+    {
+      "test": "read-only-second-survives-first-close",
+      "passed": true,
+      "result": {
+        "call_id": "5dd5dc93d314467aa0e18643df7e6937",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 984,
+        "truncated": false
+      },
+      "elapsed_ms": 972.61
+    },
+    {
+      "test": "read-only-temps-removed",
+      "passed": true
+    },
+    {
+      "test": "workspace-write-session-a-start",
+      "passed": true,
+      "result": {
+        "call_id": "f505ab9f5e2c41bab88a7cca371f80ce",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-fXFbfu\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1016,
+        "truncated": false
+      },
+      "elapsed_ms": 1087.4
+    },
+    {
+      "test": "workspace-write-session-b-start",
+      "passed": true,
+      "result": {
+        "call_id": "8197edd3f7824b23a4dac4ce543b5f4a",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-PVH7yz\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 984,
+        "truncated": false
+      },
+      "elapsed_ms": 1054.35
+    },
+    {
+      "test": "workspace-write-unique-temp",
+      "passed": true
+    },
+    {
+      "test": "workspace-write-cross-session-write-denied",
+      "passed": true,
+      "result": {
+        "call_id": "c573d21267cb4393ad3af4b938ea92e9",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Set-Content : 对路径“C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-fXFbfu\\foreign.txt”的访问被拒绝。\r\n所在位置 行:1 字符: 264\r\n+ ... utEncoding; Set-Content 'C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-nat ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : PermissionDenied: (C:\\Users\\Archer...bfu\\foreign.txt:String) [Set-Content], Unauthorized \r\n   AccessException\r\n    + FullyQualifiedErrorId : GetContentWriterUnauthorizedAccessError,Microsoft.PowerShell.Commands.SetContentCommand\r\n \r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1203,
+        "truncated": false
+      },
+      "elapsed_ms": 1203.58
+    },
+    {
+      "test": "workspace-write-exact-requested-python",
+      "passed": false,
+      "result": {
+        "call_id": "7e90192bdd3d4977a9be8f155bdb34a8",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\r\n  File \"D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work\\requested.py\", line 6, in <module>\r\n    target.mkdir(mode=0o700)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\pathlib.py\", line 1311, in mkdir\r\n    os.mkdir(self, mode)\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-fXFbfu\\\\tmpm7e0c22w\\\\private'\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"<frozen os>\", line 366, in walk\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-fXFbfu\\\\tmpm7e0c22w'\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc\\work\\requested.py\", line 4, in <module>\r\n    with TemporaryDirectory() as root:\r\n         ^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 950, in __exit__\r\n    self.cleanup()\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 954, in cleanup\r\n    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 934, in _rmtree\r\n    _shutil.rmtree(name, onexc=onexc)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 781, in rmtree\r\n    return _rmtree_unsafe(path, onexc)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 623, in _rmtree_unsafe\r\n    for dirpath, dirnames, filenames in results:\r\n                                        ^^^^^^^\r\n  File \"<frozen os>\", line 369, in walk\r\n  File \"D:\\Tools\\python\\py312\\Lib\\shutil.py\", line 621, in onerror\r\n    onexc(os.scandir, err.filename, err)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 906, in onexc\r\n    _resetperms(path)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 286, in _resetperms\r\n    _dont_follow_symlinks(_os.chmod, path, 0o700)\r\n  File \"D:\\Tools\\python\\py312\\Lib\\tempfile.py\", line 277, in _dont_follow_symlinks\r\n    func(path, *args)\r\nPermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-fXFbfu\\\\tmpm7e0c22w'\r\n",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1062,
+        "truncated": false
+      },
+      "elapsed_ms": 1075.45
+    },
+    {
+      "test": "workspace-write-pytest-tmp-path-and-factory",
+      "passed": false,
+      "result": {
+        "call_id": "6826534e0bce495cacc8698e49cbc93e",
+        "ok": false,
+        "data": {
+          "exit_code": 1,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": "command_exit_nonzero",
+          "requires_reset": false,
+          "stdout": "E                                                                        [100%]\r\n=================================== ERRORS ====================================\r\n_________________________ ERROR at setup of test_temp _________________________\r\n\r\nfixturedef = <FixtureDef argname='tmp_path' scope='function' baseid=''>\r\nrequest = <SubRequest 'tmp_path' for <Function test_temp>>\r\n\r\n    @pytest.hookimpl(wrapper=True)\r\n    def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:\r\n        if (\r\n            fixturedef.argname == \"event_loop_policy\"\r\n            and fixturedef.func.__module__ != __name__\r\n        ):\r\n            warnings.warn(\r\n                PytestDeprecationWarning(_EVENT_LOOP_POLICY_FIXTURE_DEPRECATION_WARNING),\r\n            )\r\n        asyncio_mode = _get_asyncio_mode(request.config)\r\n        if not _is_asyncio_fixture_function(fixturedef.func):\r\n            if asyncio_mode == Mode.STRICT:\r\n                # Ignore async fixtures without explicit asyncio mark in strict mode\r\n                # This applies to pytest_trio fixtures, for example\r\n>               return (yield)\r\n                        ^^^^^\r\nE               PermissionError: [WinError 5] 拒绝访问。: 'C:\\\\Users\\\\Archer\\\\AppData\\\\Local\\\\Temp\\\\nexus-native-temp-fXFbfu\\\\pytest-of-Archer'\r\n\r\n..\\..\\nexus-native-hardening-install-20261026\\Lib\\site-packages\\pytest_asyncio\\plugin.py:924: PermissionError\r\n=========================== short test summary info ===========================\r\nERROR test_private.py::test_temp - PermissionError: [WinError 5] 拒绝访问。: ...\r\n1 error in 0.12s\r\n",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": "command_exit_nonzero",
+        "duration_ms": 1937,
+        "truncated": false
+      },
+      "elapsed_ms": 1934.74
+    },
+    {
+      "test": "workspace-write-boundary-after-python-error",
+      "passed": true,
+      "result": {
+        "call_id": "eee6cbdce8b747759fe3161a0c1eb5cc",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1327,
+        "truncated": false
+      },
+      "elapsed_ms": 1328.35
+    },
+    {
+      "test": "workspace-write-second-survives-first-close",
+      "passed": true,
+      "result": {
+        "call_id": "6b5779c6ad26456f944a50e4eea9a33b",
+        "ok": true,
+        "data": {
+          "exit_code": 0,
+          "timed_out": false,
+          "cancelled": false,
+          "cleanup_incomplete": false,
+          "error_code": null,
+          "requires_reset": false,
+          "stdout": "",
+          "stderr": "",
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "truncated": false,
+          "decode_replaced": false
+        },
+        "error_code": null,
+        "duration_ms": 1375,
+        "truncated": false
+      },
+      "elapsed_ms": 1382.2
+    },
+    {
+      "test": "workspace-write-temps-removed",
+      "passed": true
+    },
+    {
+      "test": "persistent-consent-still-exact",
+      "passed": true
+    }
+  ]
+}

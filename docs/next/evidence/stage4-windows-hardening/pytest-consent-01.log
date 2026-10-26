@@ -1,0 +1,78 @@
+....................F
+================================== FAILURES ===================================
+______ test_permissions_transition_preserves_session_until_consent[True] ______
+
+consent_fixture = (WindowsPath('C:/Users/Archer/AppData/Local/Temp/nxct-93e16c23/pytest-of-Archer/pytest-0/test_permissions_transition_p...ue, allowed_domains=(), denied_domains=(), node_path=None, srt_package=None, windows_koffi=None, windows_acl_roots=()))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EF2DCB45C0>
+answer = True
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows consent")
+    @pytest.mark.parametrize("answer", [False, True])
+    async def test_permissions_transition_preserves_session_until_consent(
+        consent_fixture: tuple[Path, Path, SecurityPolicy],
+        monkeypatch: pytest.MonkeyPatch,
+        answer: bool,
+    ) -> None:
+        from types import SimpleNamespace
+    
+        from prompt_toolkit.input import DummyInput
+    
+        work, path, _ = consent_fixture
+        monkeypatch.chdir(work)
+        monkeypatch.setattr(Path, "home", lambda: path.parent)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        cfg = Config(ModelConfig("fake", 32768), Limits(), memory_enabled=False)
+        monkeypatch.setattr(cli, "load_config", lambda **kw: cfg)
+        monkeypatch.setattr(cli, "config_path", lambda: path)
+        monkeypatch.setattr(acl_consent, "config_path", lambda: path)
+        conversations = []
+        original = Conversation
+    
+        def conversation(*args: Any, **kwargs: Any) -> Any:
+            value = original(*args, **kwargs)
+            conversations.append(value)
+            return value
+    
+        async def select(*args: Any) -> str:
+            return "workspace-write"
+    
+        async def confirm(root: Path) -> bool:
+            assert root == work and not conversations[0].closed
+            assert conversations[0].config.security.mode == "local"
+            return answer
+    
+        inputs = iter(["/permissions", "/exit"])
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, *args: Any, **kwargs: Any) -> str:
+                return next(inputs)
+    
+        output = io.StringIO()
+        monkeypatch.setattr(cli, "Conversation", conversation)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Console", lambda **kw: Console(file=output, width=180))
+        monkeypatch.setattr(cli, "select_permissions", select)
+        monkeypatch.setattr(cli, "confirm_workspace_acl", confirm)
+        with create_app_session(output=DummyOutput()):
+            assert await cli.application(argparse.Namespace(command=None)) == 0
+        assert len(conversations) == (2 if answer else 1)
+        assert all(c.closed and c.model is None for c in conversations)
+        if answer:
+            assert conversations[1].config.security.windows_acl_roots == (str(work),)
+            backend = conversations[1].gateway.backend
+>           assert isinstance(backend, WindowsNativeBackend) and backend.status == "not_initialized"
+E           AssertionError: assert (True and 'closed' == 'not_initialized'
+E            +  where True = isinstance(<nexus.tools.windows_native.WindowsNativeBackend object at 0x000001EF2DE1B590>, WindowsNativeBackend)
+E             
+E             - not_initialized
+E             + closed)
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_acl_consent.py:299: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_acl_consent.py::test_permissions_transition_preserves_session_until_consent[True]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 20 passed in 3.70s

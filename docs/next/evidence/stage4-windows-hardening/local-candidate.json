@@ -1,0 +1,159 @@
+{
+  "python": "D:\\WorkSpace\\nexus-native-hardening-install-20261026\\Scripts\\python.exe",
+  "package": [
+    "D:\\WorkSpace\\nexus-native-hardening-install-20261026\\Lib\\site-packages\\nexus"
+  ],
+  "root": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+  "rows": [
+    {
+      "name": "exec_command",
+      "ms": 898.3806999167427,
+      "result": {
+        "call_id": "4e9ba70f177d4e57bd297703724747d0",
+        "ok": true,
+        "data": {
+          "command": "Write-Output local-ok",
+          "cwd": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+          "shell": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "exit_code": 0,
+          "stdout": "local-ok\r\n",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 890
+        },
+        "error_code": null,
+        "duration_ms": 890,
+        "truncated": false
+      }
+    },
+    {
+      "name": "exec_command",
+      "ms": 808.813700103201,
+      "result": {
+        "call_id": "c703b0f6a70b41d5b0d1611f87eb0650",
+        "ok": true,
+        "data": {
+          "command": "Write-Output local-ok",
+          "cwd": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+          "shell": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "exit_code": 0,
+          "stdout": "local-ok\r\n",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 812
+        },
+        "error_code": null,
+        "duration_ms": 812,
+        "truncated": false
+      }
+    },
+    {
+      "name": "exec_command",
+      "ms": 786.6709000663832,
+      "result": {
+        "call_id": "b49367b3c90c41648978b5501df9c2b6",
+        "ok": true,
+        "data": {
+          "command": "Write-Output local-ok",
+          "cwd": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+          "shell": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "exit_code": 0,
+          "stdout": "local-ok\r\n",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 781
+        },
+        "error_code": null,
+        "duration_ms": 781,
+        "truncated": false
+      }
+    },
+    {
+      "name": "apply_patch",
+      "ms": 2.9160999692976475,
+      "result": {
+        "call_id": "4b87eca34c6744b29915943065fdaedd",
+        "ok": true,
+        "data": {
+          "files": [
+            {
+              "path": "local.txt",
+              "status": "added",
+              "added_lines": 1,
+              "deleted_lines": 0,
+              "before_hash": null,
+              "after_hash": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+            }
+          ],
+          "changed_files": 1,
+          "omitted_files": 0,
+          "created_directories": [],
+          "partial": false,
+          "no_changes": false,
+          "framing_normalized": false,
+          "failed_file": null,
+          "failed_hunk": null,
+          "detail": ""
+        },
+        "error_code": null,
+        "duration_ms": 0,
+        "truncated": false
+      }
+    },
+    {
+      "name": "exec_command",
+      "ms": 737.7698000054806,
+      "result": {
+        "call_id": "3b8aa218080e4477a7e692a9e2dccdbd",
+        "ok": true,
+        "data": {
+          "command": "Set-Content shell.txt ok",
+          "cwd": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+          "shell": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "timed_out": false,
+          "cancelled": false,
+          "truncated": false,
+          "cleanup_incomplete": false,
+          "discarded_bytes": {
+            "stdout": 0,
+            "stderr": 0
+          },
+          "decode_replaced": false,
+          "duration_ms": 750
+        },
+        "error_code": null,
+        "duration_ms": 750,
+        "truncated": false
+      }
+    }
+  ],
+  "native_module_loaded": false,
+  "backend": null
+}

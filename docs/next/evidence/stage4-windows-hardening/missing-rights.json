@@ -1,0 +1,30 @@
+{
+  "root": "D:\\WorkSpace\\nexus-hardening-missing-rights-7a674909756a4238bf6b6e625a22652a",
+  "before": "D:\\WorkSpace\\nexus-hardening-missing-rights-7a674909756a4238bf6b6e625a22652a DESKTOP-4UJL9T1\\srt-sandbox:(I)(OI)(CI)(DENY)(S,DC)\n                                                                             BUILTIN\\Administrators:(I)(F)\n                                                                             BUILTIN\\Administrators:(I)(OI)(CI)(IO)(F)\n                                                                             NT AUTHORITY\\SYSTEM:(I)(F)\n                                                                             NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(IO)(F)\n                                                                             NT AUTHORITY\\Authenticated Users:(I)(M)\n                                                                             NT AUTHORITY\\Authenticated Users:(I)(OI)(CI)(IO)(M)\n                                                                             BUILTIN\\Users:(I)(RX)\n                                                                             BUILTIN\\Users:(I)(OI)(CI)(IO)(GR,GE)\n\nSuccessfully processed 1 files; Failed processing 0 files\r\n",
+  "result": {
+    "call_id": "missing-rights",
+    "ok": false,
+    "data": {
+      "exit_code": 127,
+      "timed_out": false,
+      "cancelled": false,
+      "cleanup_incomplete": false,
+      "error_code": "command_exit_nonzero",
+      "requires_reset": false,
+      "stdout": "",
+      "stderr": "windows-acl-run: Win32 SetNamedSecurityInfoW failed (5): \u62d2\u7edd\u8bbf\u95ee\u3002 [grantWrite(D:\\WorkSpace\\nexus-hardening-missing-rights-7a674909756a4238bf6b6e625a22652a)]\n",
+      "discarded_bytes": {
+        "stdout": 0,
+        "stderr": 0
+      },
+      "truncated": false,
+      "decode_replaced": false,
+      "detail": "Native ACL authorization failed. The directory must be owned by the current user and permit WRITE_DAC / WRITE_OWNER. Consent does not supply missing OS rights. No elevation, owner change, or Local fallback."
+    },
+    "error_code": "command_exit_nonzero",
+    "duration_ms": 125,
+    "truncated": false
+  },
+  "command_ran": false,
+  "after": "D:\\WorkSpace\\nexus-hardening-missing-rights-7a674909756a4238bf6b6e625a22652a DESKTOP-4UJL9T1\\srt-sandbox:(I)(OI)(CI)(DENY)(S,DC)\n                                                                             BUILTIN\\Administrators:(I)(F)\n                                                                             BUILTIN\\Administrators:(I)(OI)(CI)(IO)(F)\n                                                                             NT AUTHORITY\\SYSTEM:(I)(F)\n                                                                             NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(IO)(F)\n                                                                             NT AUTHORITY\\Authenticated Users:(I)(M)\n                                                                             NT AUTHORITY\\Authenticated Users:(I)(OI)(CI)(IO)(M)\n                                                                             BUILTIN\\Users:(I)(RX)\n                                                                             BUILTIN\\Users:(I)(OI)(CI)(IO)(GR,GE)\n\nSuccessfully processed 1 files; Failed processing 0 files\r\n"
+}

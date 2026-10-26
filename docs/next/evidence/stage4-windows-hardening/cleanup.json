@@ -1,0 +1,17 @@
+[
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nxhf-350306d9",
+    "removed": true,
+    "verified": "new owned successful-test fixture; no reparse entries; result saved"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-local-hardening-7ef9f87345824e7e8ef775ccd41bfdd2",
+    "removed": true,
+    "verified": "new owned successful-test fixture; no reparse entries; result saved"
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-local-hardening-f0b324c55ac144f6b80aa4ffa52e56c6",
+    "removed": true,
+    "verified": "new owned successful-test fixture; no reparse entries; result saved"
+  }
+]

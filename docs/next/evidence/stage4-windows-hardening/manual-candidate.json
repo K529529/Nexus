@@ -1,0 +1,7 @@
+{
+  "root": "D:\\WorkSpace\\nexus-native-hardening-manual-20261026",
+  "workspace": "D:\\WorkSpace\\nexus-native-hardening-manual-20261026\\workspace",
+  "owner_sid": "S-1-5-21-2685058880-2366848957-2839040369-1001",
+  "provision": "Only newly created root granted current user FullControl; no Native capability or Low label yet",
+  "config_modified": false
+}

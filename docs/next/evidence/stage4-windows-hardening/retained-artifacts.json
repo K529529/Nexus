@@ -1,0 +1,37 @@
+[
+  {
+    "path": "D:\\WorkSpace\\nexus-hardening-1af65f46c8804176b6f64f27a581a2c9",
+    "reason": "failed compatibility or missing-rights evidence",
+    "exists": true
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-hardening-80894479e6e7400f97a79d0af7a159bc",
+    "reason": "failed compatibility or missing-rights evidence",
+    "exists": true
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-native-acceptance-1ff3a866cd854f6c9576434a8360638e",
+    "reason": "failed compatibility or missing-rights evidence",
+    "exists": true
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-native-temp-ofgxJn",
+    "reason": "forced bridge crash; not reused, not ACL-repaired",
+    "exists": true
+  },
+  {
+    "path": "D:\\WorkSpace\\nexus-hardening-missing-rights-7a674909756a4238bf6b6e625a22652a",
+    "reason": "failed compatibility or missing-rights evidence",
+    "exists": true
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nxhc-eb555b02",
+    "reason": "failed test harness lifecycle assertion evidence",
+    "exists": true
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nxct-93e16c23",
+    "reason": "failed test harness lifecycle assertion evidence",
+    "exists": true
+  }
+]
