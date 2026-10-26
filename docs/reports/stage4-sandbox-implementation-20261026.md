@@ -6,13 +6,14 @@
 ## 1. 分支、基线与交付状态
 
 - 工作分支：`codex/nexus-v0.3-stage4-sandbox`。
-- 基线/当前 HEAD：`b13ee4e13b32bc60bf56cdad9eaf5461934c437e`。
+- 基线：`b13ee4e13b32bc60bf56cdad9eaf5461934c437e`。
 - 该基线为 V0.3 的合并提交；父提交分别为 `602c60ba712708badf6938556c9d04f7d0084690`
   和 Stage 3 的 `603502a8e222a921830609e1cfffb04828f9f87e`。
-- 最终实现 Commit SHA：**NOT CREATED**。提交前已完成明确文件清单暂存与检查；
-  自动审批拒绝 `git commit`，理由为 AGENTS.md 禁止自行提交、当前用户消息未明确授权 commit。
-  因此本报告对应工作区/暂存区实现，不能将基线 SHA 误认为包含 Stage 4 的提交。
-- 未 push、merge、publish。Stage 3 和 V0.3 分支没有被本轮移动。
+- 最终实现 Commit SHA：`de51fbcb2d00295cafb88df6c9e25f2b0fb0e8e5`。
+  后续交付提交只更新本报告中的交付状态，不修改已验证源码或测试。
+- 首次提交曾被自动审批阻止；用户随后明确要求“推送到stage4”，现已授权提交与推送。
+  推送目标仅为 `origin/codex/nexus-v0.3-stage4-sandbox`，远端结果以实际推送后的 SHA 核对为准。
+  未合并至其他分支、未发布；Stage 3 和 V0.3 分支没有被本轮移动。
 - 原有 `scripts/stage4_srt_probe.mjs`、`scripts/stage4_srt_filesystem_poc.mjs`、
   `docs/next/evidence/stage4-srt-poc/` 均保留、未运行、未暂存。
   `.idea/` 为其他未跟踪内容，保留且排除在交付范围外。
