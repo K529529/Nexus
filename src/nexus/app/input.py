@@ -9,7 +9,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from prompt_toolkit import PromptSession
+from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
@@ -20,12 +20,15 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.input.typeahead import clear_typeahead, get_typeahead
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout.containers import HSplit, VSplit, Window
-from prompt_toolkit.layout.controls import BufferControl
+from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout.containers import ConditionalContainer, HSplit, VSplit, Window
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
+from prompt_toolkit.output.vt100 import Vt100_Output
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import TextArea
 
 PURPLE = "#a78bfa"
 INPUT_HELP = (
@@ -81,6 +84,14 @@ class Paste:
             return self.text
         lines = self.text.count("\n") + 1 if self.text else 0
         return f"[paste #{self.number} +{lines} lines]"
+
+
+def unicode_text(text: str) -> str:
+    # Win32 VT input can expose UTF-16 surrogate pairs as separate key events.
+    # Merge valid pairs before rendering/persisting; ordinary CJK text is unchanged.
+    if any("\ud800" <= char <= "\udfff" for char in text):
+        return text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "surrogatepass")
+    return text
 
 
 class PasteDisplay(Processor):
@@ -150,12 +161,28 @@ class TaskInput:
                         right.char = " "
                         right.style = ""
             layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        self.inline_toolbar = isinstance(getattr(self.prompt.app, "output", None), Vt100_Output)
+        if self.inline_toolbar:
+            # A bottom-of-screen toolbar depends on CPR/viewport accounting. The
+            # classic Console -> WSL bridge can misplace that redraw by a row,
+            # leaving frames behind. Keep VT help in the same flow as the editor;
+            # retain native Windows console layout, CPR, paste and all bindings.
+            layout = self.prompt.app.layout
+            root = layout.container
+            layout.container = HSplit([
+                HSplit([root], height=lambda: Dimension.exact(root.preferred_height(
+                    self.prompt.app.output.get_size().columns,
+                    self.prompt.app.output.get_size().rows,
+                ).preferred)),
+                Window(FormattedTextControl(self.toolbar), height=1),
+            ])
         self.bindings = KeyBindings()
         self.blocks: dict[str, Paste] = {}
         self.capture: str | None = None
         self.number = 0
-        self.approval: asyncio.Future[str] | None = None
-        self.approval_text = ""
+        self.approval: Application[str] | None = None
+        self.pending_enter: asyncio.TimerHandle | None = None
+        self.burst_until = 0.0
         self.history = ExpandedHistory(self.expand)
         self.clipboard = ExpandedClipboard(self.expand)
 
@@ -165,21 +192,44 @@ class TaskInput:
             if self.capture is not None:
                 self.blocks[self.capture].text += "\n"
                 return
+            if self.pending_enter is not None:
+                self.insert("\n")
+                return
             if buffer.complete_state is not None:
                 state = buffer.complete_state
                 completion = state.current_completion or state.completions[0]
                 buffer.apply_completion(completion)
             elif self.expand(buffer.text).strip():
-                buffer.validate_and_handle()
+                # A byte-stream terminal can paste CRs without bracketed-paste
+                # markers. Never submit the first line while more input is queued.
+                queued = any(k.key != Keys.CPRResponse
+                             for k in event.app.key_processor.input_queue)
+                loop = asyncio.get_running_loop()
+                if queued or loop.time() < self.burst_until:
+                    self.continue_burst()
+                    self.insert("\n")
+                elif hasattr(event.app.input, "vt100_parser"):
+                    # Allow the next OS read to reveal a split paste burst. Native
+                    # Win32 key-event input keeps its immediate Enter behavior.
+                    self.pending_enter = loop.call_later(0.12, self.send_pending)
+                else:
+                    buffer.validate_and_handle()
 
         @self.bindings.add("c-j")
         @self.bindings.add("f4")
         @self.bindings.add("escape", "enter")
         def newline(event: KeyPressEvent) -> None:
-            if (self.capture is not None and event.key_sequence[0].key == Keys.ControlJ
+            if (event.key_sequence[0].key == Keys.ControlJ
                     and event.previous_key_sequence
                     and event.previous_key_sequence[-1].key == Keys.ControlM):
-                return  # raw CRLF in F2 capture is a single logical newline
+                if self.pending_enter is not None:
+                    self.pending_enter.cancel()
+                    self.pending_enter = None
+                    self.continue_burst()
+                    self.insert("\n")
+                    return
+                if self.capture is not None or self.burst_until > 0:
+                    return  # raw CRLF in capture/burst is one logical newline
             self.insert("\n")
 
         @self.bindings.add("f2")
@@ -252,6 +302,10 @@ class TaskInput:
         return Dimension.exact(min(columns, 100, max(40, columns - 32)))
 
     def clear(self) -> None:
+        if self.pending_enter is not None:
+            self.pending_enter.cancel()
+            self.pending_enter = None
+        self.burst_until = 0.0
         self.blocks.clear()
         self.capture = None
         self.number = 0
@@ -269,19 +323,43 @@ class TaskInput:
         return char
 
     def expand(self, text: str) -> str:
-        return "".join(self.blocks[c].text if c in self.blocks else c for c in text)
+        return unicode_text("".join(self.blocks[c].text if c in self.blocks else c for c in text))
 
     def literal(self, text: str) -> str:
         return "".join(self.atom(c, folded=False) if c in self.blocks else c for c in text)
 
     def insert(self, text: str) -> None:
+        if self.pending_enter is not None:
+            self.pending_enter.cancel()
+            self.pending_enter = None
+            self.prompt.default_buffer.insert_text("\n")
+            self.continue_burst()
+        elif self.burst_until:
+            if asyncio.get_running_loop().time() < self.burst_until:
+                self.continue_burst()
+            else:
+                self.burst_until = 0.0
         if self.capture is not None:
-            self.blocks[self.capture].text += text
+            self.blocks[self.capture].text = unicode_text(self.blocks[self.capture].text + text)
         else:
-            self.prompt.default_buffer.insert_text(self.literal(text))
+            buffer = self.prompt.default_buffer
+            before = buffer.document.char_before_cursor
+            if (text and before and "\ud800" <= before <= "\udbff"
+                    and "\udc00" <= text[0] <= "\udfff"):
+                buffer.delete_before_cursor()
+                text = before + text
+            buffer.insert_text(self.literal(unicode_text(text)))
+
+    def continue_burst(self) -> None:
+        self.burst_until = asyncio.get_running_loop().time() + 0.12
+
+    def send_pending(self) -> None:
+        self.pending_enter = None
+        if self.prompt.app.is_running and not self.prompt.app.is_done:
+            self.prompt.default_buffer.validate_and_handle()
 
     def paste(self, text: str) -> None:
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = unicode_text(text).replace("\r\n", "\n").replace("\r", "\n")
         if self.capture is not None:
             self.blocks[self.capture].text += text
         elif text.count("\n") >= 3 or len(text) >= 500:
@@ -291,6 +369,10 @@ class TaskInput:
 
     def prepare(self) -> None:
         self.prompt.default_buffer.history = self.history
+        if self.inline_toolbar:
+            # Empty text still activates prompt_toolkit's bottom toolbar after
+            # CPR. None actually removes that screen-anchored window.
+            self.prompt.bottom_toolbar = None
         # The renderer retains previously occupied rows. Keep the input at its
         # current content height instead of stretching the frame into that space.
         for window in self.prompt.app.layout.find_all_windows():
@@ -334,7 +416,7 @@ class TaskInput:
                     wrap_lines=True,
                     key_bindings=self.bindings,
                     prompt_continuation=[("class:prompt", "│   ")],
-                    bottom_toolbar=self.toolbar,
+                    bottom_toolbar=None if self.inline_toolbar else self.toolbar,
                     show_frame=True,
                     cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
                     refresh_interval=0,
@@ -373,20 +455,6 @@ class TaskInput:
             if any(key.key == Keys.ControlC for key in keys):
                 interrupt()
                 return
-            for key in keys:
-                if self.approval is None or self.approval.done():
-                    continue
-                # Pasted text is never an approval. Require a fresh typed word + Enter.
-                if key.key == Keys.BracketedPaste:
-                    self.approval_text = ""
-                elif key.key == Keys.ControlM:
-                    if self.approval_text in {"allow", "deny", "cancel"}:
-                        self.approval.set_result(self.approval_text)
-                    self.approval_text = ""
-                elif key.key == Keys.ControlH:
-                    self.approval_text = self.approval_text[:-1]
-                elif len(key.data) == 1 and key.data.isascii() and key.data.isalpha():
-                    self.approval_text = (self.approval_text + key.data.lower())[-12:]
 
         with source.raw_mode():
             # Preserve a Ctrl+C pressed just after submit, while discarding text.
@@ -397,16 +465,103 @@ class TaskInput:
                 finally:
                     self.discard()
 
-    async def approve(self) -> str:
-        """Read an explicit decision through the already-owned busy input callback."""
-        if self.prompt.app.input.closed:
+    async def approve(self, summary: str = "Permission Request", details: str = "") -> str:
+        """Temporarily hand stdin from Busy to one visible, default-deny application."""
+        source = self.prompt.app.input
+        if source.closed:
             return "deny"
-        self.discard()
-        self.approval_text = ""
-        self.approval = asyncio.get_running_loop().create_future()
+        selected = 0
+        shown = False
+        painted = False
+        choices = ("deny", "allow", "cancel")
+        labels = ("Deny", "Allow once", "Cancel")
+        bindings = KeyBindings()
+        detail = TextArea(text=details, read_only=True, scrollbar=True, wrap_lines=True,
+                          height=Dimension(min=3, preferred=10, max=12))
+
+        def options() -> StyleAndTextTuples:
+            return [("class:prompt" if i == selected else "",
+                     ("  ● " if i == selected else "    ") + label + "\n")
+                    for i, label in enumerate(labels)]
+
+        def painted_selection(app: Application[str]) -> None:
+            nonlocal painted
+            painted = True
+
+        @bindings.add("tab")
+        @bindings.add("down")
+        def next_choice(event: KeyPressEvent) -> None:
+            nonlocal selected, painted
+            selected = (selected + 1) % len(choices)
+            painted = False
+
+        @bindings.add("s-tab")
+        @bindings.add("up")
+        def previous_choice(event: KeyPressEvent) -> None:
+            nonlocal selected, painted
+            selected = (selected - 1) % len(choices)
+            painted = False
+
+        @bindings.add("enter")
+        def confirm(event: KeyPressEvent) -> None:
+            # A decision must have appeared on screen. A queued/pasted Tab+Enter
+            # cannot invisibly approve; the user must confirm the visible selection.
+            if painted:
+                event.app.exit(result=choices[selected])
+
+        @bindings.add("escape", eager=True)
+        @bindings.add("c-c")
+        @bindings.add("<sigint>")
+        @bindings.add("c-d")
+        def cancel(event: KeyPressEvent) -> None:
+            event.app.exit(result="cancel")
+
+        @bindings.add("d")
+        @bindings.add("f3")
+        def toggle_details(event: KeyPressEvent) -> None:
+            nonlocal shown
+            shown = not shown
+
+        @bindings.add("pagedown")
+        def page_down(event: KeyPressEvent) -> None:
+            detail.buffer.cursor_down(count=8)
+
+        @bindings.add("pageup")
+        def page_up(event: KeyPressEvent) -> None:
+            detail.buffer.cursor_up(count=8)
+
+        @bindings.add(Keys.BracketedPaste)
+        @bindings.add(Keys.Any)
+        def ignore_text(event: KeyPressEvent) -> None:
+            nonlocal selected, painted
+            selected, painted = 0, False
+            event.app.key_processor.empty_queue()
+
+        control = FormattedTextControl(options, focusable=True)
+        app: Application[str] = Application(
+            layout=Layout(HSplit([
+                Window(FormattedTextControl(summary), dont_extend_height=True),
+                Window(control, height=3),
+                ConditionalContainer(detail, Condition(lambda: shown)),
+                Window(FormattedTextControl(
+                    "Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel\n"
+                    "D/F3 details · PgUp/PgDn scroll details"
+                ), dont_extend_height=True, style="class:bottom-toolbar"),
+            ]), focused_element=control),
+            input=source, output=self.prompt.app.output, key_bindings=bindings,
+            style=INPUT_STYLE, erase_when_done=True, after_render=painted_selection,
+        )
+        self.approval = app
         try:
-            return await self.approval
+            # detach restores Busy's callback after the application releases stdin.
+            # Keep raw mode while draining both application typeahead and OS input.
+            with source.detach(), source.raw_mode(), patch_stdout(raw=True):
+                self.discard()
+                try:
+                    return await app.run_async(handle_sigint=False)
+                finally:
+                    self.discard()
+        except EOFError:
+            return "cancel"
         finally:
             self.approval = None
-            self.approval_text = ""
-            self.discard()

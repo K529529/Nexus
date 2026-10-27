@@ -30,6 +30,7 @@ from rich.theme import Theme
 
 from nexus.app.config import ConfigError, read_toml
 from nexus.app.input import PURPLE
+from nexus.core.security import ApprovalRequest
 from nexus.core.skills import active_skills
 from nexus.core.types import Json, RuntimeEvent, Session, SkillInfo, json_text
 
@@ -44,6 +45,63 @@ def terminal_text(text: str) -> str:
 def short_line(text: str, width: int = 100) -> str:
     text = " ".join(terminal_text(text).split())
     return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def approval_text(request: ApprovalRequest, secrets: tuple[str, ...]) -> tuple[str, str]:
+    """Display host-bound operation/scope separately from the agent's stated reason."""
+    from nexus.app.events import redact
+
+    def parsed(value: str) -> Json:
+        try:
+            result = json.loads(value)
+            return result if isinstance(result, dict) else {}
+        except ValueError:
+            return {}
+
+    def clean(value: str) -> str:
+        return terminal_text(str(redact(value, secrets)))
+
+    scope = parsed(request.capability_scope)
+    args = parsed(request.arguments_preview)
+    operation = args.get("operation", args)
+    operation = operation if isinstance(operation, dict) else {}
+    tool = str(scope.get("tool", request.tool_name))
+    patch = str(operation.get("patch", ""))
+    paths = re.findall(r"^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+)$",
+                       patch, re.MULTILINE)
+    target = ", ".join(paths[:4]) if paths else str(
+        operation.get("workdir") or scope.get("target") or scope.get("workspace") or "—"
+    )
+    if len(paths) > 4:
+        target += f" (+{len(paths) - 4} more; see details)"
+    permission = str(scope.get("grant") or (
+        f"This exact {tool} call only; capability: {scope.get('capability', 'unknown')}"
+    ))
+    reason_args = args.get("request", args)
+    reason = (reason_args.get("reason", "No agent reason provided.")
+              if isinstance(reason_args, dict) else "")
+    summary = "\n".join((
+        "Nexus · Permission Request", "",
+        "Operation: " + short_line(clean(tool), 100),
+        "Target:    " + short_line(clean(target), 180),
+        "Mode:      " + short_line(clean(str(scope.get("mode", "unknown"))), 60),
+        "Scope:     " + short_line(clean(permission), 180),
+        "Reason (agent): " + short_line(clean(str(reason)), 240), "",
+    ))
+    # Redact BEFORE applying limits so a truncated credential cannot leak a prefix.
+    # Decode string values rather than showing nested JSON escapes as the main UI.
+    detail_lines = ["Host request: " + request.request_id, "Tool call: " + request.call_id,
+                    "Arguments digest: " + request.arguments_digest, "", "Host scope:"]
+    for key, value in scope.items():
+        detail_lines.append(f"{key}: {value}")
+    detail_lines.append("\nTool arguments:")
+    for key, value in operation.items():
+        detail_lines.append(f"{key}:\n{value}" if isinstance(value, str) else
+                            f"{key}: {json.dumps(value, ensure_ascii=False, indent=2)}")
+    details = clean("\n".join(detail_lines))
+    if len(details) > 32000:
+        details = details[:32000] + "\n[Details truncated at 32,000 chars. Deny if insufficient.]"
+    return summary, details
 
 
 def output_preview(text: str, *, lines: int = 4, tail: bool = False) -> str:

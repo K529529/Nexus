@@ -33,7 +33,7 @@ async def test_cjk_cells_cursor_and_backspace_in_framed_editor(text: str) -> Non
                     and text in captured.getvalue())
         screen = prompt.app.renderer.last_rendered_screen
         assert screen is not None
-        assert screen.height == 3
+        assert screen.height == 4  # VT help is inline, below the three-row frame
         cursor = screen.get_cursor_position(prompt.app.layout.current_window)
         assert (cursor.x, cursor.y) == (10 + get_cwidth(text), 1)
         assert prompt.app.cursor.get_cursor_shape(prompt.app) == CursorShape.BLINKING_BEAM
@@ -66,7 +66,7 @@ async def test_idle_input_does_not_repaint_or_grow_with_terminal_rows() -> None:
         prompt.app.invalidate()
         await asyncio.sleep(0.2)
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 3
+        assert screen is not None and screen.height == 4
         pipe.send_text("\r")
         assert await pending == "中文"
 
@@ -168,7 +168,7 @@ async def test_complete_frame_returns_on_each_prompt() -> None:
             try:
                 await asyncio.sleep(0.2)
                 screen = prompt.app.renderer.last_rendered_screen
-                assert screen is not None and screen.height == 3
+                assert screen is not None and screen.height == 4
                 assert screen.data_buffer[0][0].char == "┌"
                 assert screen.data_buffer[0][59].char == "┐"
                 assert screen.data_buffer[2][0].char == "└"
@@ -214,7 +214,7 @@ async def test_reworked_frame_has_no_right_rail_for_host_ime_to_displace(
         pipe.send_text("中文")
         await until(lambda: "中文" in captured.getvalue())
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 3
+        assert screen is not None and screen.height == 4
         right = min(columns, 100, max(40, columns - 32)) - 1
         assert screen.data_buffer[0][right].char == "┐"
         assert screen.data_buffer[1][0].char == "│"
@@ -266,7 +266,7 @@ async def test_reworked_multiline_paste_cancel_and_completion(monkeypatch: Any) 
         pipe.send_text("你好\x0a第二行")
         await until(lambda: "第二行" in captured.getvalue())
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 4
+        assert screen is not None and screen.height == 5
         right = 47
         assert screen.data_buffer[0][right].char == "┐"
         assert screen.data_buffer[3][right].char == "┘"

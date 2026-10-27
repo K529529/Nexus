@@ -71,7 +71,7 @@ async def test_folded_display_frame_and_cursor_mapping(monkeypatch: Any) -> None
         await until(lambda: "[paste #1 +83 lines]" in capture.getvalue())
         assert "SECRET_BODY" not in capture.getvalue()
         screen = prompt.app.renderer.last_rendered_screen
-        assert screen is not None and screen.height == 3  # no empty menu reserve
+        assert screen is not None and screen.height == 4  # frame + inline VT help; no menu reserve
         assert "Nexus" in capture.getvalue() and "┌" in capture.getvalue()
         assert "38;2;167;139;250" in capture.getvalue()  # theme purple, not a mock layout
         source = "a" + prompt.default_buffer.text + "z"

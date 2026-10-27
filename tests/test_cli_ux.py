@@ -40,19 +40,19 @@ async def until(condition: Callable[[], bool]) -> None:
             await asyncio.sleep(0.01)
 
 
-@pytest.mark.parametrize("word", ["allow", "deny", "cancel"])
-async def test_approval_requires_fresh_typed_word_and_enter(word: str) -> None:
+@pytest.mark.parametrize("word,moves", [("deny", 0), ("allow", 1), ("cancel", 2)])
+async def test_approval_requires_visible_selection_and_enter(word: str, moves: int) -> None:
     with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
         editor = TaskInput(PromptSession(output=DummyOutput()))
         with editor.busy(lambda: None):
             decision = asyncio.create_task(editor.approve())
-            await until(lambda: editor.approval is not None)
+            await until(lambda: editor.approval is not None and editor.approval.is_running)
             pipe.send_text("\x1b[200~allow\r\x1b[201~\r")
             await asyncio.sleep(0.05)
             assert not decision.done()
-            pipe.send_text(word)
-            await asyncio.sleep(0.05)
-            assert not decision.done()
+            for _ in range(moves):
+                pipe.send_text("\t")
+                await asyncio.sleep(0.05)
             pipe.send_text("\r")
             assert await asyncio.wait_for(decision, 3) == word
         assert editor.approval is None
@@ -172,8 +172,9 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
     ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
     (None, "eof"),
 ])
+@pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
 async def test_real_cli_one_task_one_run_replay_and_exit(
-    tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str,
+    tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
 ) -> None:
     cfg = config(monkeypatch)
     cfg.memory_enabled = False
@@ -215,8 +216,13 @@ async def test_real_cli_one_task_one_run_replay_and_exit(
         monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
         app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
         await until(lambda: prompt.app.is_running)
-        pipe.send_text("\x1b[200~" + TASK + "\x1b[201~")
-        await until(lambda: len(prompt.default_buffer.text) == 1)
+        pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                       else TASK.replace("\n", "\r\n"))
+        # Wait for the entire OS input stream, not just the first read. Raw
+        # multibyte paste can take several reads on POSIX before its burst ends.
+        await until(lambda: prompt.default_buffer.text == TASK if input_mode == "raw"
+                    else bool(prompt.default_buffer.text))
+        await asyncio.sleep(0.2)
         assert not model.requests
         assert not any(e.kind in {"run_started", "model_started"} for e in events)
         pipe.send_text("\r")
@@ -228,6 +234,9 @@ async def test_real_cli_one_task_one_run_replay_and_exit(
             pipe.send_text(exit_keys)
         assert await asyncio.wait_for(app, 5) == 0
     assert len(model.requests) == 1
+    # Context appends a separate host-generated plan/budget message. The actual
+    # user's first message must reach the model verbatim, including outer whitespace.
+    assert next(m.content for m in model.requests[0] if m.role == "user") == TASK
     assert sum(e.kind == "run_started" for e in events) == 1
     user = [e.data for e in events if e.kind == "message" and e.data["role"] == "user"]
     assert len(user) == 1 and user[0]["content"] == TASK
