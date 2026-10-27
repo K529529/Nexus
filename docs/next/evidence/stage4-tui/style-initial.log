@@ -1,0 +1,375 @@
+E501 Line too long (120 > 100)
+  --> scripts\stage4_tui_terminal_probe.py:14:85
+   |
+12 | from pathlib import Path
+13 |
+14 | BODY = "# 修复任务 Unicode 🐍 café\n\n" + "- 中文和 English，保留完整内容。\n" * 100 + "```python\nprint('你好')\n```\n"
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^
+
+B023 Function definition does not bind loop variable `master`
+  --> scripts\stage4_tui_terminal_probe.py:79:34
+   |
+77 |                 def write_process_input(self, data):
+78 |                     if args.cpr:
+79 |                         os.write(master, data.encode())
+   |                                  ^^^^^^
+80 |
+81 |             screen = Screen(90, 30)
+   |
+
+B023 Function definition does not bind loop variable `master`
+  --> scripts\stage4_tui_terminal_probe.py:88:39
+   |
+86 |                 end = time.monotonic() + duration
+87 |                 while time.monotonic() < end:
+88 |                     if select.select([master], [], [], 0.01)[0]:
+   |                                       ^^^^^^
+89 |                         try:
+90 |                             data = os.read(master, 65536)
+   |
+
+B023 Function definition does not bind loop variable `master`
+  --> scripts\stage4_tui_terminal_probe.py:90:44
+   |
+88 |                     if select.select([master], [], [], 0.01)[0]:
+89 |                         try:
+90 |                             data = os.read(master, 65536)
+   |                                            ^^^^^^
+91 |                         except OSError:
+92 |                             return
+   |
+
+B023 Function definition does not bind loop variable `raw`
+  --> scripts\stage4_tui_terminal_probe.py:93:25
+   |
+91 |                         except OSError:
+92 |                             return
+93 |                         raw.extend(data)
+   |                         ^^^
+94 |                         stream.feed(decoder.decode(data))
+   |
+
+B023 Function definition does not bind loop variable `stream`
+  --> scripts\stage4_tui_terminal_probe.py:94:25
+   |
+92 |                             return
+93 |                         raw.extend(data)
+94 |                         stream.feed(decoder.decode(data))
+   |                         ^^^^^^
+95 |
+96 |             def status():
+   |
+
+B023 Function definition does not bind loop variable `decoder`
+  --> scripts\stage4_tui_terminal_probe.py:94:37
+   |
+92 |                             return
+93 |                         raw.extend(data)
+94 |                         stream.feed(decoder.decode(data))
+   |                                     ^^^^^^^
+95 |
+96 |             def status():
+   |
+
+B023 Function definition does not bind loop variable `state`
+  --> scripts\stage4_tui_terminal_probe.py:97:35
+   |
+96 |             def status():
+97 |                 return json.loads(state.read_text()) if state.exists() else {}
+   |                                   ^^^^^
+98 |
+99 |             def until(predicate, seconds=8):
+   |
+
+B023 Function definition does not bind loop variable `state`
+  --> scripts\stage4_tui_terminal_probe.py:97:57
+   |
+96 |             def status():
+97 |                 return json.loads(state.read_text()) if state.exists() else {}
+   |                                                         ^^^^^
+98 |
+99 |             def until(predicate, seconds=8):
+   |
+
+B023 Function definition does not bind loop variable `case`
+   --> scripts\stage4_tui_terminal_probe.py:105:36
+    |
+103 |                     if predicate(status()):
+104 |                         return
+105 |                 raise TimeoutError(case)
+    |                                    ^^^^
+106 |
+107 |             def send(text):
+    |
+
+B023 Function definition does not bind loop variable `master`
+   --> scripts\stage4_tui_terminal_probe.py:108:26
+    |
+107 |             def send(text):
+108 |                 os.write(master, text.encode())
+    |                          ^^^^^^
+109 |
+110 |             snapshots = []
+    |
+
+B023 Function definition does not bind loop variable `i`
+   --> scripts\stage4_tui_terminal_probe.py:116:85
+    |
+114 |                     expected = [f"第{i}轮 English，中文 🐍" for i in range(10)]
+115 |                     for i, body in enumerate(expected):
+116 |                         until(lambda s: s.get("running") and len(s["submitted"]) == i)
+    |                                                                                     ^
+117 |                         send(body)
+118 |                         until(lambda s: s.get("buffer") == body)
+    |
+
+B023 Function definition does not bind loop variable `body`
+   --> scripts\stage4_tui_terminal_probe.py:118:60
+    |
+116 |                         until(lambda s: s.get("running") and len(s["submitted"]) == i)
+117 |                         send(body)
+118 |                         until(lambda s: s.get("buffer") == body)
+    |                                                            ^^^^
+119 |                         pump(0.1)
+120 |                         snapshots.append(list(screen.display))
+    |
+
+B023 Function definition does not bind loop variable `i`
+   --> scripts\stage4_tui_terminal_probe.py:122:72
+    |
+120 |                         snapshots.append(list(screen.display))
+121 |                         send("\r")
+122 |                         until(lambda s: len(s.get("submitted", [])) == i + 1)
+    |                                                                        ^
+123 |                 else:
+124 |                     expected = [BODY]
+    |
+
+E501 Line too long (101 > 100)
+   --> scripts\stage4_tui_terminal_probe.py:144:101
+    |
+142 |                 actual = status()["submitted"]
+143 |                 row = {"case": case, "pass": actual == expected,
+144 |                        "expected_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in expected],
+    |                                                                                                     ^
+145 |                        "actual_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in actual],
+146 |                        "frame_counts": [sum("┌" in line for line in shot) for shot in snapshots]}
+    |
+
+E501 Line too long (110 > 100)
+   --> scripts\stage4_tui_terminal_probe.py:159:101
+    |
+157 |                 os.close(master)
+158 |                 (args.output / (case + ".ansi")).write_bytes(raw)
+159 |                 (args.output / (case + "-screens.json")).write_text(json.dumps(snapshots, ensure_ascii=False))
+    |                                                                                                     ^^^^^^^^^^
+160 |                 (args.output / "report.json").write_text(json.dumps(report, indent=2))
+161 |     print(json.dumps(report))
+    |
+
+B023 Function definition does not bind loop variable `proc`
+  --> scripts\stage4_tui_windows_probe.py:47:39
+   |
+45 |                 end = time.monotonic() + duration
+46 |                 while time.monotonic() < end:
+47 |                     if select.select([proc.fileobj], [], [], 0.01)[0]:
+   |                                       ^^^^
+48 |                         try:
+49 |                             data = proc.read(65536)
+   |
+
+B023 Function definition does not bind loop variable `proc`
+  --> scripts\stage4_tui_windows_probe.py:49:36
+   |
+47 |                     if select.select([proc.fileobj], [], [], 0.01)[0]:
+48 |                         try:
+49 |                             data = proc.read(65536)
+   |                                    ^^^^
+50 |                         except EOFError:
+51 |                             return
+   |
+
+B023 Function definition does not bind loop variable `raw`
+  --> scripts\stage4_tui_windows_probe.py:52:25
+   |
+50 |                         except EOFError:
+51 |                             return
+52 |                         raw.append(data)
+   |                         ^^^
+53 |                         stream.feed(data)
+   |
+
+B023 Function definition does not bind loop variable `stream`
+  --> scripts\stage4_tui_windows_probe.py:53:25
+   |
+51 |                             return
+52 |                         raw.append(data)
+53 |                         stream.feed(data)
+   |                         ^^^^^^
+54 |
+55 |             def status():
+   |
+
+B023 Function definition does not bind loop variable `state`
+  --> scripts\stage4_tui_windows_probe.py:56:35
+   |
+55 |             def status():
+56 |                 return json.loads(state.read_text(encoding="utf-8")) if state.exists() else {}
+   |                                   ^^^^^
+57 |
+58 |             def until(predicate):
+   |
+
+B023 Function definition does not bind loop variable `state`
+  --> scripts\stage4_tui_windows_probe.py:56:73
+   |
+55 |             def status():
+56 |                 return json.loads(state.read_text(encoding="utf-8")) if state.exists() else {}
+   |                                                                         ^^^^^
+57 |
+58 |             def until(predicate):
+   |
+
+B023 Function definition does not bind loop variable `case`
+  --> scripts\stage4_tui_windows_probe.py:64:36
+   |
+62 |                     if predicate(status()):
+63 |                         return
+64 |                 raise TimeoutError(case)
+   |                                    ^^^^
+65 |
+66 |             snapshots = []
+   |
+
+E501 Line too long (117 > 100)
+  --> scripts\stage4_tui_windows_probe.py:69:89
+   |
+67 |             try:
+68 |                 until(lambda s: s.get("running"))
+69 |                 body = "# 中文完整任务 🐍\n" + "- 保留代码与 Markdown café\n" * 100 + "```python\nprint('你好')\n```"
+   |                                                                                                     ^^^^^^^^^^^^^^^^^
+70 |                 expected = [f"第{i}轮 English，中文 🐍" for i in range(10)] if case == "rounds" else [body]
+71 |                 for i, text in enumerate(expected):
+   |
+
+E501 Line too long (107 > 100)
+  --> scripts\stage4_tui_windows_probe.py:70:95
+   |
+68 |                 until(lambda s: s.get("running"))
+69 |                 body = "# 中文完整任务 🐍\n" + "- 保留代码与 Markdown café\n" * 100 + "```python\nprint('你好')\n```"
+70 |                 expected = [f"第{i}轮 English，中文 🐍" for i in range(10)] if case == "rounds" else [body]
+   |                                                                                                     ^^^^^^^
+71 |                 for i, text in enumerate(expected):
+72 |                     if case == "rounds":
+   |
+
+B023 Function definition does not bind loop variable `i`
+  --> scripts\stage4_tui_windows_probe.py:73:85
+   |
+71 |                 for i, text in enumerate(expected):
+72 |                     if case == "rounds":
+73 |                         until(lambda s: s.get("running") and len(s["submitted"]) == i)
+   |                                                                                     ^
+74 |                         proc.write(text)
+75 |                         until(lambda s: s.get("buffer") == text)
+   |
+
+B023 Function definition does not bind loop variable `text`
+  --> scripts\stage4_tui_windows_probe.py:75:60
+   |
+73 |                         until(lambda s: s.get("running") and len(s["submitted"]) == i)
+74 |                         proc.write(text)
+75 |                         until(lambda s: s.get("buffer") == text)
+   |                                                            ^^^^
+76 |                     else:
+77 |                         proc.write("\x1b[200~" + text + "\x1b[201~" if case == "bracketed-paste"
+   |
+
+B023 Function definition does not bind loop variable `i`
+  --> scripts\stage4_tui_windows_probe.py:82:68
+   |
+80 |                     snapshots.append(list(screen.display))
+81 |                     proc.write("\r")
+82 |                     until(lambda s: len(s.get("submitted", [])) == i + 1)
+   |                                                                    ^
+83 |                 until(lambda s: s.get("done"))
+84 |                 actual = status()["submitted"]
+   |
+
+E501 Line too long (113 > 100)
+  --> scripts\stage4_tui_windows_probe.py:86:101
+   |
+84 |                 actual = status()["submitted"]
+85 |                 report["rows"].append({"case": case, "pass": actual == expected,
+86 |                                        "frame_counts": [sum("┌" in line for line in shot) for shot in snapshots],
+   |                                                                                                     ^^^^^^^^^^^^^
+87 |                                        "expected_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in expected],
+88 |                                        "actual_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in actual]})
+   |
+
+E501 Line too long (117 > 100)
+  --> scripts\stage4_tui_windows_probe.py:87:101
+   |
+85 |                 report["rows"].append({"case": case, "pass": actual == expected,
+86 |                                        "frame_counts": [sum("┌" in line for line in shot) for shot in snapshots],
+87 |                                        "expected_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in expected],
+   |                                                                                                     ^^^^^^^^^^^^^^^^^
+88 |                                        "actual_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in actual]})
+89 |             except Exception as exc:
+   |
+
+E501 Line too long (114 > 100)
+  --> scripts\stage4_tui_windows_probe.py:88:101
+   |
+86 |                                        "frame_counts": [sum("┌" in line for line in shot) for shot in snapshots],
+87 |                                        "expected_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in expected],
+88 |                                        "actual_sha256": [hashlib.sha256(t.encode()).hexdigest() for t in actual]})
+   |                                                                                                     ^^^^^^^^^^^^^^
+89 |             except Exception as exc:
+90 |                 report["rows"].append({"case": case, "pass": False, "error": str(exc)})
+   |
+
+E501 Line too long (128 > 100)
+  --> scripts\stage4_tui_windows_probe.py:93:101
+   |
+91 |             finally:
+92 |                 (args.output / (case + ".ansi")).write_text("".join(raw), encoding="utf-8")
+93 |                 (args.output / (case + "-screens.json")).write_text(json.dumps(snapshots, ensure_ascii=False), encoding="utf-8")
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+94 |                 if proc.isalive():
+95 |                     try:
+   |
+
+E501 Line too long (104 > 100)
+   --> scripts\stage4_tui_windows_probe.py:100:101
+    |
+ 98 |                         report["rows"][-1]["cleanup_error"] = type(exc).__name__
+ 99 |                         report["rows"][-1]["pid"] = proc.pid
+100 |                 (args.output / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    |                                                                                                     ^^^^
+101 |     print(json.dumps(report))
+    |
+
+E501 Line too long (104 > 100)
+  --> tests\test_tui_stage4d.py:65:99
+   |
+63 |         editor = TaskInput(PromptSession(output=output))
+64 |         with editor.busy(lambda: pytest.fail("Busy must not own approval stdin")):
+65 |             decision = asyncio.create_task(editor.approve("Operation: apply_patch", "完整 Patch\n+x\n"))
+   |                                                                                                     ^^^^
+66 |             await until(lambda: editor.approval is not None and editor.approval.is_running)
+67 |             assert "Deny" in captured.getvalue() and "Allow once" in captured.getvalue()
+   |
+
+E501 Line too long (111 > 100)
+   --> tests\test_tui_stage4d.py:130:99
+    |
+128 |         time.monotonic() + 120,
+129 |         json.dumps({"request": {"reason": "I can change the whole session SECRET"},
+130 |                     "operation": {"patch": "*** Begin Patch\n*** Add File: 中文.py\n+SECRET\n*** End Patch"}}),
+    |                                                                                                     ^^^^^^^^^^^
+131 |     )
+132 |     summary, detail = approval_text(request, ("SECRET",))
+    |
+
+Found 40 errors (5 fixed, 35 remaining).

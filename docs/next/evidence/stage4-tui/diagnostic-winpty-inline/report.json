@@ -1,0 +1,11 @@
+{
+  "backend": 1,
+  "wsl": true,
+  "rows": [
+    {
+      "case": "rounds-inline",
+      "pass": false,
+      "error": "rounds-inline"
+    }
+  ]
+}

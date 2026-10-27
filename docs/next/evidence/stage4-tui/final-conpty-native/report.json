@@ -1,0 +1,21 @@
+{
+  "backend": 0,
+  "wsl": false,
+  "rows": [
+    {
+      "case": "rounds",
+      "pass": false,
+      "error": "rounds"
+    },
+    {
+      "case": "raw-paste",
+      "pass": false,
+      "error": "raw-paste"
+    },
+    {
+      "case": "bracketed-paste",
+      "pass": false,
+      "error": "bracketed-paste"
+    }
+  ]
+}

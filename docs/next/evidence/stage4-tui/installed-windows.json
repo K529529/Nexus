@@ -1,0 +1,14 @@
+{
+  "python": "D:\\WorkSpace\\nexus-stage4d-windows-20261028\\Scripts\\python.exe",
+  "package": "D:\\WorkSpace\\nexus-stage4d-windows-20261028\\Lib\\site-packages\\nexus",
+  "config_parse": "PASS",
+  "mode": "local",
+  "prompt_toolkit": "3.0.53",
+  "rich": "14.3.4",
+  "docker_fingerprint": "2927d7ed4632f291e3b265405f497de1537d3904dda2927d00296521e9298f04",
+  "files": {
+    "app/input.py": "452862076e41cb639a60d51e91a1ae67aeb711548b8d16d8562ed9929ed8c953",
+    "app/tui.py": "dc552a1d52b8d52d99286fee24d6a0b215795f24e81d0b7142eed78eb485755a",
+    "app/cli.py": "9b4ec5f61c2078931e0189a1859ce4ff12d36bea0452e3131e681f42dafc101d"
+  }
+}

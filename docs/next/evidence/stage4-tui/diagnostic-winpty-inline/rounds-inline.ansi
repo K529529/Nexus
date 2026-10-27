@@ -1,0 +1,19 @@
+[0m[0KTraceback (most recent call last):[0K[?25l
+  File "/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/scripts/stage4_tui_terminal_p[0Kr
+obe.py", line 231, in <module>[0K
+    asyncio.run(child(options.child, options.case))[0K
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run[0K
+    return runner.run(main)[0K
+           ^^^^^^^^^^^^^^^^[0K
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run[0K
+    return self._loop.run_until_complete(task)[0K
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0K
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete[0K
+    return future.result()[0K
+           ^^^^^^^^^^^^^^^[0K
+  File "/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/scripts/stage4_tui_terminal_p[0Kr
+obe.py", line 39, in child[0K
+    HSplit([prompt.layout.container], dont_extend_height=True),[0K
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0K
+TypeError: HSplit.__init__() got an unexpected keyword argument 'dont_extend_height'[0K
+[0K[?25h

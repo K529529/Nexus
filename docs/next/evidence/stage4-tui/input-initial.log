@@ -1,0 +1,59 @@
+............................F.....F.......                               [100%]
+================================== FAILURES ===================================
+_________________ test_complete_frame_returns_on_each_prompt __________________
+
+    async def test_complete_frame_returns_on_each_prompt() -> None:
+        captured = io.StringIO()
+        output = Vt100_Output(captured, lambda: Size(rows=24, columns=60), term="xterm-256color")
+        async with editor_session(output) as (editor, prompt, pipe, pending):
+            for turn in range(2):
+                if turn:
+                    pending = asyncio.create_task(editor.read())
+                    await until(lambda: prompt.app.is_running)
+                try:
+                    await asyncio.sleep(0.2)
+                    screen = prompt.app.renderer.last_rendered_screen
+                    assert screen is not None and screen.height == 3
+                    assert screen.data_buffer[0][0].char == "��"
+>                   assert screen.data_buffer[0][59].char == "��"
+E                   AssertionError: assert ' ' == '��'
+E                     
+E                     Strings contain only whitespace, escaping them using repr()
+E                     - '��'
+E                     + ' '
+
+tests\test_tui_polish.py:173: AssertionError
+_________________ test_other_terminal_keeps_full_width_frame __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D5211AC560>
+
+    async def test_other_terminal_keeps_full_width_frame(monkeypatch: Any) -> None:
+        monkeypatch.delenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", raising=False)
+        captured = io.StringIO()
+        output = Vt100_Output(captured, lambda: Size(rows=24, columns=80), term="xterm-256color")
+        async with editor_session(output) as (_, prompt, pipe, pending):
+            pipe.send_text("hello")
+            await until(lambda: "hello" in captured.getvalue())
+            screen = prompt.app.renderer.last_rendered_screen
+>           assert screen is not None and screen.data_buffer[1][79].char == "��"
+E           AssertionError: assert (<prompt_toolkit.layout.screen.Screen object at 0x000001D521199580> is not None and ' ' == '��'
+E             
+E             Strings contain only whitespace, escaping them using repr()
+E             - '��'
+E             + ' ')
+
+tests\test_tui_polish.py:256: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\_pytest\cacheprovider.py:469
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\_pytest\cacheprovider.py:469: PytestCacheWarning: could not create cache path D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.pytest_cache\v\cache\nodeids: [WinError 5] �ܾ����ʡ�: 'D:\\WorkSpace\\releasePro\\github\\Nexus\\Nexus-next\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv\Lib\site-packages\_pytest\cacheprovider.py:423
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\_pytest\cacheprovider.py:423: PytestCacheWarning: could not create cache path D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.pytest_cache\v\cache\lastfailed: [WinError 5] �ܾ����ʡ�: 'D:\\WorkSpace\\releasePro\\github\\Nexus\\Nexus-next\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_tui_polish.py::test_complete_frame_returns_on_each_prompt
+FAILED tests/test_tui_polish.py::test_other_terminal_keeps_full_width_frame
+2 failed, 40 passed, 2 warnings in 10.88s

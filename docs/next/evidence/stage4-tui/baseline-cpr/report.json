@@ -1,0 +1,90 @@
+{
+  "python": "/home/archer/nexus-stage4d-20261028/venv/bin/python",
+  "TERM": "xterm-256color",
+  "prompt_toolkit": "3.0.53",
+  "rich": "14.3.4",
+  "rows": [
+    {
+      "case": "raw-paste",
+      "pass": false,
+      "expected_sha256": [
+        "c70525e82d5df8cf71ecb14234e87f1fa585dbc301a805b51ab2876400976c4a"
+      ],
+      "actual_sha256": [
+        "03649d51ed230df792c3f09df7a62d692b2f8c9f5b6fe5daf02930080285c0ce"
+      ],
+      "frame_counts": [
+        0
+      ],
+      "submitted_before_enter": 1
+    },
+    {
+      "case": "bracketed-paste",
+      "pass": true,
+      "expected_sha256": [
+        "c70525e82d5df8cf71ecb14234e87f1fa585dbc301a805b51ab2876400976c4a"
+      ],
+      "actual_sha256": [
+        "c70525e82d5df8cf71ecb14234e87f1fa585dbc301a805b51ab2876400976c4a"
+      ],
+      "frame_counts": [
+        1
+      ],
+      "submitted_before_enter": 0
+    },
+    {
+      "case": "rounds",
+      "pass": true,
+      "expected_sha256": [
+        "c8107cdcdf89c4c071da124c3701b6bb6399faa2a811dc1caa8bf167377333d7",
+        "f952d1dfea519746fe86d6036e1e052368a6e878b61420057dbb38cca1ee7e8e",
+        "1ffd0c06f0a1069d9d9b39537e8252df1c0c2009065384368e949e251e374fdb",
+        "86f44bfe1f67ca846944d6a8ad4ef34bf7e20111cb287e0fa78c5c0c7edf5ed1",
+        "4dfd8b6bf0cb6d57023ad53b3f7d1aa7b6f8e9b47f5e1b2d04421bd406d662df",
+        "3a661984bdeb3055b1b1cdbc9ffcf0190b338f7dae181dd7406e6c78366118ea",
+        "2941fe88a5f9d5dfe158cf1f74093cb8b19616772c0dfd41716558ffa4af5df2",
+        "e7ac1522061e773aeda8c4b86ce3215ea7c59ddca870df1a9d289f41caba3d90",
+        "bdc06958bd21fb8ea05238995862e8053d8ad9a9a9b4ca3c369f386116696791",
+        "d531d4f925ee4b0b46517097b4e50180a3f3c72af37c991f76cad7c378021c8f"
+      ],
+      "actual_sha256": [
+        "c8107cdcdf89c4c071da124c3701b6bb6399faa2a811dc1caa8bf167377333d7",
+        "f952d1dfea519746fe86d6036e1e052368a6e878b61420057dbb38cca1ee7e8e",
+        "1ffd0c06f0a1069d9d9b39537e8252df1c0c2009065384368e949e251e374fdb",
+        "86f44bfe1f67ca846944d6a8ad4ef34bf7e20111cb287e0fa78c5c0c7edf5ed1",
+        "4dfd8b6bf0cb6d57023ad53b3f7d1aa7b6f8e9b47f5e1b2d04421bd406d662df",
+        "3a661984bdeb3055b1b1cdbc9ffcf0190b338f7dae181dd7406e6c78366118ea",
+        "2941fe88a5f9d5dfe158cf1f74093cb8b19616772c0dfd41716558ffa4af5df2",
+        "e7ac1522061e773aeda8c4b86ce3215ea7c59ddca870df1a9d289f41caba3d90",
+        "bdc06958bd21fb8ea05238995862e8053d8ad9a9a9b4ca3c369f386116696791",
+        "d531d4f925ee4b0b46517097b4e50180a3f3c72af37c991f76cad7c378021c8f"
+      ],
+      "frame_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "case": "f2-expand-resize",
+      "pass": true,
+      "expected_sha256": [
+        "c70525e82d5df8cf71ecb14234e87f1fa585dbc301a805b51ab2876400976c4a"
+      ],
+      "actual_sha256": [
+        "c70525e82d5df8cf71ecb14234e87f1fa585dbc301a805b51ab2876400976c4a"
+      ],
+      "frame_counts": [
+        1
+      ],
+      "submitted_before_enter": 0
+    }
+  ]
+}

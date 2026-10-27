@@ -1,0 +1,193 @@
+[1t[c[?1004h[?9001h[?7l[?7h[?7l[?12l[?25h[?7h[?7l[?7h[?7l[?7h[?7l[?2004h[?1l[?25l[0m[?7l[0m[J[0m┌───────────────────────────────────────────────────────────────────────────────────────[88C┐[0m
+[0m│[0;1m Nexus › [0m                                                                              [88C[0m│[0m
+[0m└───────────────────────────────────────────────────────────────────────────────────────[88C┘[0m
+[0mEnter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit                      [88C [0m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[0m [28A[10C[?7h[0m[?12l[?25h[5 q[?7l[?25l[?7l[10D[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Mar                                                                   [88C[0m│[0m
+[0m└───────────────────────────────────────────────────────────────────────────────────────[88C┘[0m
+[0mEnter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit                      [88C [2A[21C[?7h[0m[?12l[?25h[?7l[21D[27A[J[0m[?7h[?7l[?2004l[0 q[?7h[?7l[?7h[?7l[?7h[?7l[?7h[?7l[?2004h[?1l[?25l[0m[?7l[0m[J[0mPress ENTER to continue...[0m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[0m [29A[26C[?7h[0m[?12l[?25h[?7l[26D[J[0m[?7h[?7l[?2004l[?7h[?7l[?7h
+Unhandled exception in event loop:
+  File "D:\Tools\python\py312\Lib\asyncio\events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\eventloop\utils.py", line 79, in schedule
+    func()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 467, in redraw
+    self._redraw()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 539, in _redraw
+    self.context.copy().run(run_in_context)
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 527, in run_in_context
+    self.after_render.fire()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\utils.py", line 79, in fire
+    self()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\utils.py", line 75, in __call__
+    handler(self.sender)
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_tui_terminal_probe.py", line 88, in <lambda>
+    prompt.app.after_render += lambda app: save()
+                                           ^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_tui_terminal_probe.py", line 86, in save
+    file.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+Exception 'utf-8' codec can't encode characters in position 55-56: surrogates not allowed
+[?7l[?7h[?7l[?2004h[?25l[0m[?7l[0m[J[0mPress ENTER to continue...[26D[26C[?7h[0m[?12l[?25h[?7l[?25l[?7l[?7h[0m[?12l[?25h[?7l[?25l[?7l[26D[0m[J[0mPress ENTER to continue...[26D[0m
+[J[?7h[0m[?12l[?25h[?7l[?2004l[?7h[?7l[?7h[?7l[?7h[?7l[?2004h[?25l[0m[?7l[0m[J[0m┌───────────────────────────────────────────────────────────────────────────────────────[88C┐[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m- 保留代码与 Markdown café                                                         [88C[0m│[0m
+[0m│[0;1m│   [0m```python                                                                          [88C[0m│[0m
+[0m│[0;1m│   [0mprint('你好')                                                                      [88C[0m│[0m
+[0m│[0;1m│   [0m```                                                                                [88C[0m│[0m
+[0m└───────────────────────────────────────────────────────────────────────────────────────[88C┘[0m
+[0mEnter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit                      [88C [2A[8C[?7h[0m[?12l[?25h[5 q[?7l[8D[27A[J[0m[?7h[?7l[?2004l[0 q[?7h[?7l[?7h[?7l[?7h[?7l[?7h[?7l[?2004h[?1l[?25l[0m[?7l[0m[J[0mPress ENTER to continue...[0m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[0m [29A[26C[?7h[0m[?12l[?25h[?7l[26D[J[0m[?7h[?7l[?2004l[?7h[?7l[?7h
+Unhandled exception in event loop:
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 1017, in in_term
+    async with in_terminal():
+               ^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\contextlib.py", line 217, in __aexit__
+    await anext(self.gen)
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\run_in_terminal.py", line 113, in in_terminal
+    app._redraw()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 539, in _redraw
+    self.context.copy().run(run_in_context)
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\application\application.py", line 527, in run_in_context
+    self.after_render.fire()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\utils.py", line 79, in fire
+    self()
+  File "D:\WorkSpace\nexus-stage4d-windows-20261028\Lib\site-packages\prompt_toolkit\utils.py", line 75, in __call__
+    handler(self.sender)
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_tui_terminal_probe.py", line 88, in <lambda>
+    prompt.app.after_render += lambda app: save()
+                                           ^^^^^^
+  File "D:\WorkSpace\releasePro\github\Nexus\Nexus-next\scripts\stage4_tui_terminal_probe.py", line 86, in save
+    file.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+Exception 'utf-8' codec can't encode characters in position 55-56: surrogates not allowed
+[?7l[?7h[?7l[?2004h[?25l[0m[?7l[0m[J[0mPress ENTER to continue...[26D[26C[?7h[0m[?12l[?25h

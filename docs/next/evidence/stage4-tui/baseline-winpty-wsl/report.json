@@ -1,0 +1,29 @@
+{
+  "backend": 1,
+  "wsl": true,
+  "rows": [
+    {
+      "case": "rounds",
+      "pass": false,
+      "error": "rounds"
+    },
+    {
+      "case": "raw-paste",
+      "pass": false,
+      "error": "Pty is closed"
+    },
+    {
+      "case": "bracketed-paste",
+      "pass": true,
+      "frame_counts": [
+        0
+      ],
+      "expected_sha256": [
+        "2200a63951bd649130a0be043444e8447601d4caddea111eb5c02c115b407472"
+      ],
+      "actual_sha256": [
+        "2200a63951bd649130a0be043444e8447601d4caddea111eb5c02c115b407472"
+      ]
+    }
+  ]
+}

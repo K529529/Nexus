@@ -1,0 +1,621 @@
+.................................FFFFFFFF............................... [ 62%]
+...........................................                              [100%]
+================================== FAILURES ===================================
+_ test_real_cli_one_task_one_run_replay_and_exit[bracketed-/exit\r-slash-exit] _
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC26B02F0>
+exit_keys = '/exit\r', reason = 'slash-exit', input_mode = 'bracketed'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+_____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x04-eof] ______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC3B94170>
+exit_keys = '\x04', reason = 'eof', input_mode = 'bracketed'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x03-ctrl-c] ____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC26B0650>
+exit_keys = '\x03', reason = 'ctrl-c', input_mode = 'bracketed'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+_____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-None-eof] ______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC2522E40>
+exit_keys = None, reason = 'eof', input_mode = 'bracketed'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+___ test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit] ____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC2B558E0>
+exit_keys = '/exit\r', reason = 'slash-exit', input_mode = 'raw'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+________ test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC24C11C0>
+exit_keys = '\x04', reason = 'eof', input_mode = 'raw'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+_______ test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c] _______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC2A72DE0>
+exit_keys = '\x03', reason = 'ctrl-c', input_mode = 'raw'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+________ test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-3/test_real_cli_one_task_one_run7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028CC2A72570>
+exit_keys = None, reason = 'eof', input_mode = 'raw'
+
+    @pytest.mark.parametrize("exit_keys,reason", [
+        ("/exit\r", "slash-exit"), ("\x04", "eof"), ("\x03", "ctrl-c"),
+        (None, "eof"),
+    ])
+    @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+    async def test_real_cli_one_task_one_run_replay_and_exit(
+        tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    ) -> None:
+        cfg = config(monkeypatch)
+        cfg.memory_enabled = False
+        output = io.StringIO()
+        events: list[RuntimeEvent] = []
+        exits: list[str] = []
+        instances: list[bootstrap.Conversation] = []
+    
+        class Model(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        model = Model([reply(text="Done")])
+    
+        class Conversation(bootstrap.Conversation):
+            def __init__(self, workspace: Path, config: Any, consumer: Any) -> None:
+                async def collect(event: RuntimeEvent) -> None:
+                    events.append(event)
+                    await consumer(event)
+    
+                super().__init__(workspace, config, collect, home=tmp_path)
+                instances.append(self)
+    
+            async def summarize_exit(self, value: str) -> None:
+                assert signal.getsignal(signal.SIGINT) == signal.SIG_IGN
+                exits.append(value)
+                await super().summarize_exit(value)
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):
+            prompt: PromptSession[str] = PromptSession(output=DummyOutput())
+            monkeypatch.setattr(cli, "PromptSession", lambda **_: prompt)
+            app = asyncio.create_task(cli.application(argparse.Namespace(command=None)))
+            await until(lambda: prompt.app.is_running)
+            pipe.send_text("\x1b[200~" + TASK + "\x1b[201~" if input_mode == "bracketed"
+                           else TASK.replace("\n", "\r\n"))
+            await until(lambda: bool(prompt.default_buffer.text))
+            await asyncio.sleep(0.2)
+            assert not model.requests
+            assert not any(e.kind in {"run_started", "model_started"} for e in events)
+            pipe.send_text("\r")
+            await until(lambda: any(e.kind == "run_finished" for e in events))
+            await until(lambda: prompt.app.is_running)
+            if exit_keys is None:
+                pipe.close()
+            else:
+                pipe.send_text(exit_keys)
+            assert await asyncio.wait_for(app, 5) == 0
+        assert len(model.requests) == 1
+>       assert [m.content for m in model.requests[0] if m.role == "user"] == [TASK]
+E       assert ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...ask is done.'] == ['  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\\...tab\\n```\\n  ']
+E         
+E         Left contains one more item: 'Current task plan (model-reported progress):\n{"plan":[]}\n\nThis is the latest plan snapshot; older plan entries in ...model turn to inspect their results and respond.\nThis is a limit, not a target; finish earlier when the task is done.'
+E         Use -v to get more diff
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:234: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-/exit\r-slash-exit]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x04-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x03-ctrl-c]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-None-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof]
+8 failed, 107 passed in 27.27s

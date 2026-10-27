@@ -1,0 +1,12 @@
+{
+  "implementation_commit": "cf50a4b14d8344e78072e24b3bc4cbc887ecaf02",
+  "human_acceptance": "pending",
+  "installed_source_match": true,
+  "wheel": "nexus_coding_agent-0.2.0-py3-none-any.whl",
+  "wheel_sha256": "dd242d70a702f04525fe330fc3fab669bf0009017b5124e93d4d8c3c4ffc2733",
+  "files": {
+    "app/input.py": "452862076e41cb639a60d51e91a1ae67aeb711548b8d16d8562ed9929ed8c953",
+    "app/tui.py": "dc552a1d52b8d52d99286fee24d6a0b215795f24e81d0b7142eed78eb485755a",
+    "app/cli.py": "9b4ec5f61c2078931e0189a1859ce4ff12d36bea0452e3131e681f42dafc101d"
+  }
+}

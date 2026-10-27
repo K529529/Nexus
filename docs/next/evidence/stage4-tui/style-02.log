@@ -1,0 +1,48 @@
+E501 Line too long (107 > 100)
+   --> scripts\stage4_tui_terminal_probe.py:110:99
+    |
+108 |                     "request": {"reason": "修改测试文件"},
+109 |                     "operation": {
+110 |                         "patch": "*** Begin Patch\n*** Add File: example.py\n+print('你好')\n*** End Patch"
+    |                                                                                                     ^^^^^^^
+111 |                     },
+112 |                 }
+    |
+
+ASYNC110 Use `asyncio.Event` instead of awaiting `asyncio.sleep` in a `while` loop
+   --> scripts\stage4_tui_terminal_probe.py:118:17
+    |
+116 |               for i in range(4):
+117 |                   decision = asyncio.create_task(editor.approve(*approval_text(request, ())))
+118 | /                 while editor.approval is None or not editor.approval.is_running:
+119 | |                     await asyncio.sleep(0.01)
+    | |_____________________________________________^
+120 |                   save(approval_index=i, approval_running=True)
+121 |                   submitted.append(await decision)
+    |
+
+E731 Do not assign a `lambda` expression, use a `def`
+   --> tests\test_tui_stage4d.py:99:13
+    |
+ 97 |             screen = prompt.app.renderer.last_rendered_screen
+ 98 |             assert screen is not None
+ 99 |             text = lambda y: "".join(c.char for _, c in sorted(screen.data_buffer[y].items()))
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+100 |             assert "Nexus" in text(1)
+101 |             assert "Enter send" in text(3)
+    |
+help: Rewrite `text` as a `def`
+
+B023 Function definition does not bind loop variable `screen`
+   --> tests\test_tui_stage4d.py:99:64
+    |
+ 97 |             screen = prompt.app.renderer.last_rendered_screen
+ 98 |             assert screen is not None
+ 99 |             text = lambda y: "".join(c.char for _, c in sorted(screen.data_buffer[y].items()))
+    |                                                                ^^^^^^
+100 |             assert "Nexus" in text(1)
+101 |             assert "Enter send" in text(3)
+    |
+
+Found 4 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).

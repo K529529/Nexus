@@ -1,0 +1,446 @@
+........................................FFFF............................ [ 44%]
+........................................................................ [ 88%]
+..................                                                       [100%]
+=================================== FAILURES ===================================
+____ test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit] ____
+
+condition = <function test_real_cli_one_task_one_run_replay_and_exit.<locals>.<lambda> at 0x72ffd14e8900>
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+delay = 0.01, result = None
+
+    async def sleep(delay, result=None):
+        """Coroutine that completes after a given time (in seconds)."""
+        if delay <= 0:
+            await __sleep0()
+            return result
+    
+        loop = events.get_running_loop()
+        future = loop.create_future()
+        h = loop.call_later(delay,
+                            futures._set_result_unless_cancelled,
+                            future, result)
+        try:
+>           return await future
+                   ^^^^^^^^^^^^
+E           asyncio.exceptions.CancelledError
+
+/usr/lib/python3.12/asyncio/tasks.py:665: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-archer/pytest-0/test_real_cli_one_task_one_run0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x72ffd1685040>
+exit_keys = '/exit\r', reason = 'slash-exit', input_mode = 'raw'
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:38: in until
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x72ffd1c6d680>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/usr/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1821 unhandled exception during asyncio.run() shutdown
+task: <Task finished name='Task-28691' coro=<application() done, defined at /home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py:198> exception=EOFError()>
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 282, in _add_reader
+    key = self._selector.get_key(fd)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/selectors.py", line 192, in get_key
+    raise KeyError("{!r} is not registered".format(fileobj)) from None
+KeyError: '16 is not registered'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 169, in _attached_input
+    loop.add_reader(fd, callback_wrapper)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 357, in add_reader
+    self._add_reader(fd, callback, *args)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 284, in _add_reader
+    self._selector.register(fd, selectors.EVENT_READ,
+  File "/usr/lib/python3.12/selectors.py", line 359, in register
+    self._selector.register(key.fd, poller_events)
+OSError: [Errno 9] Bad file descriptor
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py", line 502, in application
+    with editor.busy(lambda: None):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/input.py", line 462, in busy
+    with source.attach(ready):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 180, in _attached_input
+    raise EOFError
+EOFError
+_________ test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof] _________
+
+condition = <function test_real_cli_one_task_one_run_replay_and_exit.<locals>.<lambda> at 0x72ffd1df6f20>
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+delay = 0.01, result = None
+
+    async def sleep(delay, result=None):
+        """Coroutine that completes after a given time (in seconds)."""
+        if delay <= 0:
+            await __sleep0()
+            return result
+    
+        loop = events.get_running_loop()
+        future = loop.create_future()
+        h = loop.call_later(delay,
+                            futures._set_result_unless_cancelled,
+                            future, result)
+        try:
+>           return await future
+                   ^^^^^^^^^^^^
+E           asyncio.exceptions.CancelledError
+
+/usr/lib/python3.12/asyncio/tasks.py:665: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-archer/pytest-0/test_real_cli_one_task_one_run1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x72ffd1945b80>
+exit_keys = '\x04', reason = 'eof', input_mode = 'raw'
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:38: in until
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x72ffd2638cc0>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/usr/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1821 unhandled exception during asyncio.run() shutdown
+task: <Task finished name='Task-33343' coro=<application() done, defined at /home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py:198> exception=EOFError()>
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 282, in _add_reader
+    key = self._selector.get_key(fd)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/selectors.py", line 192, in get_key
+    raise KeyError("{!r} is not registered".format(fileobj)) from None
+KeyError: '16 is not registered'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 169, in _attached_input
+    loop.add_reader(fd, callback_wrapper)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 357, in add_reader
+    self._add_reader(fd, callback, *args)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 284, in _add_reader
+    self._selector.register(fd, selectors.EVENT_READ,
+  File "/usr/lib/python3.12/selectors.py", line 359, in register
+    self._selector.register(key.fd, poller_events)
+OSError: [Errno 9] Bad file descriptor
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py", line 502, in application
+    with editor.busy(lambda: None):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/input.py", line 462, in busy
+    with source.attach(ready):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 180, in _attached_input
+    raise EOFError
+EOFError
+_______ test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c] ________
+
+condition = <function test_real_cli_one_task_one_run_replay_and_exit.<locals>.<lambda> at 0x72ffd1baa0c0>
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+delay = 0.01, result = None
+
+    async def sleep(delay, result=None):
+        """Coroutine that completes after a given time (in seconds)."""
+        if delay <= 0:
+            await __sleep0()
+            return result
+    
+        loop = events.get_running_loop()
+        future = loop.create_future()
+        h = loop.call_later(delay,
+                            futures._set_result_unless_cancelled,
+                            future, result)
+        try:
+>           return await future
+                   ^^^^^^^^^^^^
+E           asyncio.exceptions.CancelledError
+
+/usr/lib/python3.12/asyncio/tasks.py:665: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-archer/pytest-0/test_real_cli_one_task_one_run2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x72ffd1ddf050>
+exit_keys = '\x03', reason = 'ctrl-c', input_mode = 'raw'
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:38: in until
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x72ffd1b8e0c0>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/usr/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1821 unhandled exception during asyncio.run() shutdown
+task: <Task finished name='Task-37995' coro=<application() done, defined at /home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py:198> exception=EOFError()>
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 282, in _add_reader
+    key = self._selector.get_key(fd)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/selectors.py", line 192, in get_key
+    raise KeyError("{!r} is not registered".format(fileobj)) from None
+KeyError: '16 is not registered'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 169, in _attached_input
+    loop.add_reader(fd, callback_wrapper)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 357, in add_reader
+    self._add_reader(fd, callback, *args)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 284, in _add_reader
+    self._selector.register(fd, selectors.EVENT_READ,
+  File "/usr/lib/python3.12/selectors.py", line 359, in register
+    self._selector.register(key.fd, poller_events)
+OSError: [Errno 9] Bad file descriptor
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py", line 502, in application
+    with editor.busy(lambda: None):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/input.py", line 462, in busy
+    with source.attach(ready):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 180, in _attached_input
+    raise EOFError
+EOFError
+_________ test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof] _________
+
+condition = <function test_real_cli_one_task_one_run_replay_and_exit.<locals>.<lambda> at 0x72ffd1a17b00>
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+delay = 0.01, result = None
+
+    async def sleep(delay, result=None):
+        """Coroutine that completes after a given time (in seconds)."""
+        if delay <= 0:
+            await __sleep0()
+            return result
+    
+        loop = events.get_running_loop()
+        future = loop.create_future()
+        h = loop.call_later(delay,
+                            futures._set_result_unless_cancelled,
+                            future, result)
+        try:
+>           return await future
+                   ^^^^^^^^^^^^
+E           asyncio.exceptions.CancelledError
+
+/usr/lib/python3.12/asyncio/tasks.py:665: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-archer/pytest-0/test_real_cli_one_task_one_run3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x72ffd1d2fc80>
+exit_keys = None, reason = 'eof', input_mode = 'raw'
+
+>   ???
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_cli_ux.py:38: in until
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x72ffd1c542c0>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/usr/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+---------------------------- Captured log teardown -----------------------------
+ERROR    asyncio:base_events.py:1821 unhandled exception during asyncio.run() shutdown
+task: <Task finished name='Task-42647' coro=<application() done, defined at /home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py:198> exception=EOFError()>
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 282, in _add_reader
+    key = self._selector.get_key(fd)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/selectors.py", line 192, in get_key
+    raise KeyError("{!r} is not registered".format(fileobj)) from None
+KeyError: '16 is not registered'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 169, in _attached_input
+    loop.add_reader(fd, callback_wrapper)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 357, in add_reader
+    self._add_reader(fd, callback, *args)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 284, in _add_reader
+    self._selector.register(fd, selectors.EVENT_READ,
+  File "/usr/lib/python3.12/selectors.py", line 359, in register
+    self._selector.register(key.fd, poller_events)
+OSError: [Errno 9] Bad file descriptor
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/cli.py", line 502, in application
+    with editor.busy(lambda: None):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/nexus/app/input.py", line 462, in busy
+    with source.attach(ready):
+  File "/usr/lib/python3.12/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/archer/nexus-stage4d-20261028/venv/lib/python3.12/site-packages/prompt_toolkit/input/vt100.py", line 180, in _attached_input
+    raise EOFError
+EOFError
+=========================== short test summary info ============================
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof]
+4 failed, 158 passed in 54.76s
