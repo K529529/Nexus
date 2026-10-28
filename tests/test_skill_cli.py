@@ -60,7 +60,7 @@ async def test_interactive_select_switch_off_new_no_model_calls(
             from prompt_toolkit.input import DummyInput
             from prompt_toolkit.output import DummyOutput
 
-            self.app = Application(input=DummyInput(), output=DummyOutput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)
@@ -187,7 +187,7 @@ async def test_resume_bad_selection_keeps_current(tmp_path: Path, monkeypatch: A
             from prompt_toolkit.input import DummyInput
             from prompt_toolkit.output import DummyOutput
 
-            self.app = Application(input=DummyInput(), output=DummyOutput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             assert len(instances) == 1 and not instances[0].closed

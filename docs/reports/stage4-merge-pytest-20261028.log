@@ -1,0 +1,29 @@
+........................................................................ [  6%]
+.......................................................ssssssssss....... [ 13%]
+........................................................................ [ 20%]
+........................................................................ [ 27%]
+........................................................................ [ 34%]
+........................................................................ [ 41%]
+........................................................................ [ 48%]
+........................................................................ [ 55%]
+........................................................................ [ 62%]
+........................................................................ [ 69%]
+........................................................................ [ 76%]
+........................................................................ [ 83%]
+........................................................................ [ 90%]
+......................................................................F. [ 97%]
+.....................                                                    [100%]
+================================== FAILURES ===================================
+_________ test_visible_approval_keeps_gateway_checks_and_jsonl[allow] _________
+tests\test_tui_stage4d.py:321: in test_visible_approval_keeps_gateway_checks_and_jsonl
+    assert result.ok == (choice == "allow")
+E   AssertionError: assert False == ('allow' == 'allow'
+E    +  where False = ToolResult(call_id='c1', ok=False, data={'execution_state': 'not_executed'}, error_code='approval_expired', duration_ms=0, truncated=False).ok
+E     
+E       allow)
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_tui_stage4d.py::test_visible_approval_keeps_gateway_checks_and_jsonl[allow]
+1 failed, 1018 passed, 10 skipped in 109.38s (0:01:49)

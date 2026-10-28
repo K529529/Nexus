@@ -21,7 +21,7 @@ from nexus.app.input import TaskInput
 from nexus.app.session import SessionLog
 from nexus.app.tui import approval_text
 from nexus.core.security import ApprovalDecision, ApprovalRequest, SecurityGateway, SecurityPolicy
-from nexus.core.types import ExecutionContext, Session, ToolCancelled
+from nexus.core.types import ExecutionContext, RuntimeEvent, Session, ToolCancelled
 from nexus.tools.registry import native_tools
 from tests.conftest import call
 from tests.test_cli_ux import TASK, until
@@ -268,7 +268,7 @@ async def test_visible_approval_keeps_gateway_checks_and_jsonl(tmp_path: Path, c
     session = Session(tmp_path, run_id="run")
     writer = SessionLog.create(session, "ui", {}, tmp_path / "audit")
 
-    async def consume(event):
+    async def consume(event: RuntimeEvent) -> None:
         pass
 
     events = Events(session, writer, consume)

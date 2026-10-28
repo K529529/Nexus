@@ -1,5 +1,12 @@
 # Stage 4 平台 Backend 路线（2026-10-26 用户冻结）
 
+2026-10-28 收官更新：用户已确认 Windows / WSL2 Sandbox 与 HITL 人工验收通过，
+接受剩余非阻塞 UI 细节在发版前完善；最新代码 Local 8-case 回归为 6/8，分析未发现明显
+运行链路退化。用户明确授权检查后将 Stage 4 合入 `codex/nexus-v0.3`。
+详见 [回归分析](../reports/stage4-local-8case-review-20261028.md) 与
+[合入检查](../reports/stage4-merge-check-20261028.md)。以下历史实施顺序和验收状态保留溯源；
+Windows partial enforcement、Python 0700 限制以及未实测平台边界仍然有效，阶段验收不表示这些限制已修复。
+
 本增量取代 SRT 作为长期 Windows 路线的选择；已有 SRT 分支提交、代码、测试和报告保留，
 不扩大 SRT 专项。Single Agent Loop、Tool Registry、Security Gateway、HITL、JSONL Audit、
 Resume 不变；Local 调用原执行器，不依赖任何 Sandbox Runtime。

@@ -508,7 +508,7 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
             from prompt_toolkit.input import DummyInput
             from prompt_toolkit.output import DummyOutput
 
-            self.app = Application(input=DummyInput(), output=DummyOutput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             assert len(instances) == 1 and not instances[0].closed
