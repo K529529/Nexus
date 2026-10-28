@@ -134,3 +134,19 @@ cd /home/archer/nexus-stage4c-20261027/work
 
 检查了实际安装的 prompt_toolkit 3.0.53 `PromptSession`、Application、Renderer、Win32Input 和 Windows10_Output 源码，尤其 bottom_toolbar 的 `is not None` 条件及 input attach/detach 生命周期。
 参考：[prompt_toolkit API](https://python-prompt-toolkit.readthedocs.io/en/3.0.52/pages/reference.html)、[Application 源码](https://github.com/prompt-toolkit/python-prompt-toolkit/blob/main/src/prompt_toolkit/application/application.py)。本轮结论以本地版本和保存的运行证据为准。
+
+## 2026-10-28 人工反馈复核：启动了旧安装
+
+用户确认 Windows 原生 PowerShell 和 HITL 正常；WSL 新截图仍错位、粘贴只见首行，向上拖大窗口时边框重复。
+截图中的执行路径是 `/home/archer/nexus-stage4c-20261027/venv/bin/nexus`。
+只读核查安装文件：旧 input.py SHA256 为 `7ab28b1ced32c5e77003a5f161d5892f62c5b89d26531cb522a50c3da3fdf9c6`，没有 inline_toolbar；Stage 4D 为 `452862076e41cb639a60d51e91a1ae67aeb711548b8d16d8562ed9929ed8c953`，与已提交修复一致。
+核查对应人工会话，仅提取用户提供的测试文本：持久化 user message 确实只有首行，SHA256 `bb0db15b6a0ad9286a9a9c988a6b07e6ad97c0640484bc71151f77dc3bee31e5`。模型声称内容完整不能作为输入完整性证据。没有复制其他真实会话内容到仓库。
+
+本轮补充真实 WinPTY→PowerShell→WSL 候选检查：
+
+- `followup-candidate-six-lines`：用户六行原文全部提交，UTF-8 SHA256 为 `574aecd1367b77be792e21ee63f5d8250756360d96b4f9cb3c43b1eb16eaaef6`，与输入完全一致。屏幕转录可见多行，emoji 在该桥接转录中仍为替代字符，局部重绘有残留；此项只标记输入完整性 PASS，不声称多行像素布局通过。
+- `followup-candidate-grow`：通过 PTY 尺寸接口从 30 行逐轮增高至 48 行，10 轮短输入原文一致、框数均为 1、文本在编辑行，layout_pass=true。
+- 本轮没有修改生产代码、重新安装候选、调用模型、执行 Sandbox 或改动配置。只补探针与记录。鼠标实际拖动和用户字体/输入法仍需用正确候选亲自复验，接口增高不能冒充鼠标验收。
+
+Git 分支、已安装程序、任务工作区互相独立。Push 不会升级虚拟环境中已安装的包。现有 `stage4c.../work` 可以继续使用，但执行程序必须为本文的 `stage4d.../venv/bin/nexus`。
+后续每次交付明确列出绝对启动命令、对应实现提交及是否已安装，避免仅以“Stage 4 已推送”指代可运行候选。

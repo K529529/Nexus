@@ -100,6 +100,15 @@ def main(args):
                     + "- 保留代码与 Markdown café\n" * 100
                     + "```python\nprint('你好')\n```"
                 )
+                if case == "manual-paste":
+                    body = (
+                        "这是 Nexus Stage 4D 多行输入完整性测试。\n"
+                        "第一项：Windows 和 Linux。\n"
+                        "第二项：中文、English、Python 🐱。\n"
+                        "第三项：Agent Runtime + Sandbox + HITL。\n"
+                        "请不要调用工具，也不要修改文件。\n"
+                        "请确认你收到了以上全部内容，并逐项复述。"
+                    )
                 expected = (
                     [f"第{i}轮 English，中文 🐍" for i in range(10)]
                     if case.startswith("rounds")
@@ -119,6 +128,13 @@ def main(args):
                             proc.write("d")
                     elif case.startswith("rounds"):
                         until(lambda s: s.get("running") and len(s["submitted"]) == i)
+                        if case == "rounds-resize":
+                            # Grow the viewport vertically while editing, as in
+                            # the user's top-edge window resize reproduction.
+                            height = 30 + i * 2
+                            proc.setwinsize(height, 90)
+                            screen.resize(lines=height, columns=90)
+                            pump(0.2)
                         proc.write(text)
                         until(lambda s: s.get("buffer") == text)
                     else:

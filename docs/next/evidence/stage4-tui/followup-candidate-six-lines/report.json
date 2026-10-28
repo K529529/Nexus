@@ -1,0 +1,39 @@
+{
+  "backend": 1,
+  "wsl": true,
+  "rows": [
+    {
+      "case": "manual-paste",
+      "pass": true,
+      "diagnostic": {
+        "input": "Vt100Input",
+        "output": "Vt100_Output",
+        "cpr_rows": [
+          1
+        ],
+        "size": [
+          30,
+          90
+        ],
+        "cursor": [
+          0,
+          0
+        ],
+        "term": "xterm-256color",
+        "inline_toolbar": true,
+        "toolbar_empty": false
+      },
+      "frame_counts": [
+        1
+      ],
+      "layout_pass": null,
+      "expected_sha256": [
+        "574aecd1367b77be792e21ee63f5d8250756360d96b4f9cb3c43b1eb16eaaef6"
+      ],
+      "actual_sha256": [
+        "574aecd1367b77be792e21ee63f5d8250756360d96b4f9cb3c43b1eb16eaaef6"
+      ],
+      "console_layout_pass": null
+    }
+  ]
+}
