@@ -1,0 +1,80 @@
+{
+  "implementation_commit": "d293d601b6a24e5f83638e913d1c5e76c6b9c8ab",
+  "installed_source_match": true,
+  "final_cases": [
+    {
+      "case": "approval",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-02-approval",
+      "backend": 1
+    },
+    {
+      "case": "rounds",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": null,
+      "capture_layout_pass": true,
+      "directory": "final-02-classic-input",
+      "backend": 1
+    },
+    {
+      "case": "raw-paste",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-02-classic-input",
+      "backend": 1
+    },
+    {
+      "case": "bracketed-paste",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-02-classic-input",
+      "backend": 1
+    },
+    {
+      "case": "rounds-drag-history-multiline",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": true,
+      "directory": "final-02-conpty",
+      "backend": 0
+    },
+    {
+      "case": "rounds-drag-history-multiline",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": false,
+      "directory": "final-02-multiline",
+      "backend": 1
+    },
+    {
+      "case": "rounds",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": null,
+      "capture_layout_pass": true,
+      "directory": "final-02-reworked-route",
+      "backend": 0
+    },
+    {
+      "case": "manual-paste",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-02-six-lines",
+      "backend": 1
+    }
+  ],
+  "mouse_drag_and_ime_gui": "pending user acceptance",
+  "models_called": false
+}

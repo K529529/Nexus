@@ -1,0 +1,6 @@
+Using Python 3.12.10 environment at: D:\WorkSpace\nexus-stage4d-console-windows-20261028
+Resolved 55 packages in 696ms
+Prepared 1 package in 63ms
+Uninstalled 1 package in 24ms
+Installed 1 package in 73ms
+ ~ nexus-coding-agent==0.2.0 (from file:///D:/WorkSpace/releasePro/github/Nexus/Nexus-next/dist/nexus_coding_agent-0.2.0-py3-none-any.whl)

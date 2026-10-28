@@ -1,0 +1,166 @@
+[
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-align.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-baseline-history.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-build-02.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-build.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-candidate-conpty-history.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-candidate-six-line.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-candidate-width-history.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-conpty.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-cursor.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-diagnostic-absolute-no-reserve.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-diagnostic-reflow-no-reserve.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-drag.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-approval.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-classic-input.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-conpty.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-multiline.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-reworked.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-02-six-lines.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-classic-history-resize.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-classic-multiline-resize.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-final-conpty-history-resize.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-growing.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-history.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-inline.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-input.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-install-02.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-install.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-mode.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-pre-reserve.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-prepare-reserve.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-reflow.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-reserve.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-reserved.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-reworked.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-trace.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-unit-02.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-unit-final.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-console-unit.log",
+    "status": "archived and removed"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nc-4799f1de",
+    "status": "removed verified owned TEMP tree"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nc-mypy-06ca81e3",
+    "status": "removed verified owned TEMP tree"
+  },
+  {
+    "path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nc-final-0d776530",
+    "status": "removed verified owned TEMP tree"
+  }
+]

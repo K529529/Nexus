@@ -1,0 +1,160 @@
+{
+  "backend": 1,
+  "wsl": false,
+  "rows": [
+    {
+      "case": "approval",
+      "pass": true,
+      "diagnostic": {
+        "input": "Win32Input",
+        "output": "Windows10_Output",
+        "cpr_rows": [],
+        "size": [
+          30,
+          89
+        ],
+        "cursor": [
+          0,
+          0
+        ],
+        "term": "dumb",
+        "inline_toolbar": true,
+        "toolbar_empty": false,
+        "reservations": [],
+        "console_cursor": [
+          0,
+          5
+        ],
+        "console_window": [
+          3,
+          32
+        ]
+      },
+      "rendered_states": [
+        {
+          "input": "Win32Input",
+          "output": "Windows10_Output",
+          "cpr_rows": [],
+          "size": [
+            30,
+            89
+          ],
+          "cursor": [
+            0,
+            0
+          ],
+          "term": "dumb",
+          "inline_toolbar": true,
+          "toolbar_empty": false,
+          "reservations": [],
+          "console_cursor": [
+            0,
+            9
+          ],
+          "console_window": [
+            1,
+            30
+          ]
+        },
+        {
+          "input": "Win32Input",
+          "output": "Windows10_Output",
+          "cpr_rows": [],
+          "size": [
+            30,
+            89
+          ],
+          "cursor": [
+            0,
+            0
+          ],
+          "term": "dumb",
+          "inline_toolbar": true,
+          "toolbar_empty": false,
+          "reservations": [],
+          "console_cursor": [
+            0,
+            10
+          ],
+          "console_window": [
+            1,
+            30
+          ]
+        },
+        {
+          "input": "Win32Input",
+          "output": "Windows10_Output",
+          "cpr_rows": [],
+          "size": [
+            30,
+            89
+          ],
+          "cursor": [
+            0,
+            0
+          ],
+          "term": "dumb",
+          "inline_toolbar": true,
+          "toolbar_empty": false,
+          "reservations": [],
+          "console_cursor": [
+            0,
+            12
+          ],
+          "console_window": [
+            2,
+            31
+          ]
+        },
+        {
+          "input": "Win32Input",
+          "output": "Windows10_Output",
+          "cpr_rows": [],
+          "size": [
+            30,
+            89
+          ],
+          "cursor": [
+            0,
+            0
+          ],
+          "term": "dumb",
+          "inline_toolbar": true,
+          "toolbar_empty": false,
+          "reservations": [],
+          "console_cursor": [
+            0,
+            13
+          ],
+          "console_window": [
+            3,
+            32
+          ]
+        }
+      ],
+      "frame_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "layout_pass": null,
+      "capture_layout_pass": null,
+      "expected_sha256": [
+        "3026a0ca485e5831657ba0120fa8dd66b3425427bfb0a2be0db743e2305cc7c5",
+        "410083735735a10e658a19edd1704e606c9dd112e225825b63fafeded766c8b9",
+        "2374d91794b79f4fb4ec9587d2cf00aecc4f9953fab3ed1dd12ab147a0b721f9",
+        "3026a0ca485e5831657ba0120fa8dd66b3425427bfb0a2be0db743e2305cc7c5"
+      ],
+      "actual_sha256": [
+        "3026a0ca485e5831657ba0120fa8dd66b3425427bfb0a2be0db743e2305cc7c5",
+        "410083735735a10e658a19edd1704e606c9dd112e225825b63fafeded766c8b9",
+        "2374d91794b79f4fb4ec9587d2cf00aecc4f9953fab3ed1dd12ab147a0b721f9",
+        "3026a0ca485e5831657ba0120fa8dd66b3425427bfb0a2be0db743e2305cc7c5"
+      ],
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "resize_checks": []
+    }
+  ]
+}

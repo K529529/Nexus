@@ -2,6 +2,8 @@
 
 日期：2026-10-28。分支：`codex/nexus-v0.3-stage4-sandbox`。
 
+**最新补充：原生 Windows Console 的针对性修复已安装，见文末“原生 Console 专项修复”。下面的初轮失败状态保留为历史记录。Sandbox 和 HITL 已由用户验收，本轮仅等待新版 Console 输入体验复验。**
+
 基线：`a9de1b78950d39cc25fb88f072c38f2fb864e750`。
 最终实现 Commit：`cf50a4b14d8344e78072e24b3bc4cbc887ecaf02`。
 本报告与原始证据由后续 documentation commit 记录；交付分支 tip 以 Git 历史为准。
@@ -150,3 +152,67 @@ cd /home/archer/nexus-stage4c-20261027/work
 
 Git 分支、已安装程序、任务工作区互相独立。Push 不会升级虚拟环境中已安装的包。现有 `stage4c.../work` 可以继续使用，但执行程序必须为本文的 `stage4d.../venv/bin/nexus`。
 后续每次交付明确列出绝对启动命令、对应实现提交及是否已安装，避免仅以“Stage 4 已推送”指代可运行候选。
+
+## 2026-10-28 原生 Console 专项修复
+
+实现提交：`d293d601b6a24e5f83638e913d1c5e76c6b9c8ab`。基线：`2ba0c5fb38d7a369e92b8d24f141d8103fc21777`。
+最终代码已安装到 `D:\WorkSpace\nexus-stage4d-console-windows-20261028`；安装文件与源码 SHA256 一致，见 [manifest](../next/evidence/stage4-console/manifest.json)。此路径与原来的 `stage4d-windows` 是不同环境，Push 本身不会更新旧安装。
+
+### 复现与根因
+
+用户确认 Sandbox、HITL 和 PyCharm 内 PowerShell 体验通过；原生窗口仍有中文输入错位，三轮消息后拖动窗口上边沿放大出现残框，普通滚轮不触发。Windows 原生 Nexus 同样复现，所以问题不能归因于 WSL 或 Docker。PowerShell 是 shell，负责窗口绘制、光标、回滚和尺寸通知的是终端宿主；PyCharm 的终端模拟器与原生 Console 的行为不同。
+
+本轮使用实际 PowerShell + WinPTY/classic Console 和 ConPTY，无模型运行 TaskInput。每轮增加 13 行历史，10 轮期间在第 4、7 轮保留草稿时改变尺寸：30→32→38→48→40→30 行，另测 90→70→110→90 列。读取实际 Console 单元与硬件光标，独立于外层 ANSI 转录；没有将 PTY 尺寸变更声称为人工鼠标拖拽验收。
+
+观察到三处相互叠加的差异：
+
+1. screen-bottom toolbar 把绘制范围拉到视口底部；原生 Console 也需要让帮助行跟随编辑框，不依赖屏幕底部锚点。
+2. 中文多行重绘后，真实 cursor.X 可比 renderer 记录多 4 列。旧实现下一次相对移动、擦除从错误列开始，留下 `┌───`，随后历史输出和新边框累积。只预留终端行虽然改善短输入，却不能修复多行中文，故没有采用。
+3. 横向缩窄时 Console 先把旧顶部边框折成两行，而 resize 擦除仍按原先一行光标距离回退，留下旧第一行。只修光标 X 不足以覆盖这种 resize。
+
+### Pi 参考及最终修改
+
+检查了用户实际 `pi` 命令使用的 `@earendil-works/pi-tui` **1.4.0**，上游为 [earendil-works/pi，packages/tui](https://github.com/earendil-works/pi/tree/main/packages/tui)，MIT。
+本地文件是 `D:\software\node\node_global\node_modules\@earendil-works\pi-coding-agent\node_modules\@earendil-works\pi-tui\dist\tui-main-screen.js` 和 `dist\terminal.js`。
+Pi 的 `positionHardwareCursor` 在绘制后使用绝对列定位；`doRender` 将宽高变化作为布局失效并重绘。Nexus 借鉴这两项策略，没有复制 Pi 源码、引入依赖或移植它的整屏历史渲染器。
+
+生产修改仅在 `src/nexus/app/input.py`：
+
+- 原生 Console 的帮助行移入编辑器布局。
+- 每次完成输入框绘制，核对实际 X 与 renderer X，仅有偏差时通过 prompt_toolkit 已有 Win32 输出接口绝对定位，保持 Y 不变。
+- resize 清除旧框前，按新缓冲区宽度计算旧绘制行发生的折行，修正回退距离，再调用已有 resize 流程。保留会话历史。
+- JetBrains Reworked 路径保持原行为；Linux VT 路径、输入按键、消息、Agent Loop、Sandbox、HITL 和模型配置未改。
+
+该适配使用 prompt_toolkit 的 `_on_resize` 与 `_cursor_pos`，针对本机 **3.0.53** 实测。升级依赖时应重跑这组真实终端探针，不能把当前结果扩展为所有终端和字体均通过。
+
+### 最终验证
+
+原始证据在 [stage4-console](../next/evidence/stage4-console/README.md)。
+
+| 检查 | 结果 |
+| --- | --- |
+| Windows 全量 | 1007 passed，10 skipped；跳过的是 opt-in Docker 隔离验收，本轮未重建或重验 Sandbox |
+| WSL 源码 TUI 回归 | 67 passed |
+| Ruff / Mypy | PASS；Mypy 61 source files |
+| 原生 Console，10 轮长历史、7 行中文输入、16 次纵横缩放检查 | 输入原文、实际 Console 布局和 resize 全部 PASS |
+| ConPTY，同上 | PASS，见 final-02-conpty |
+| 原生 Console raw / bracketed paste | 原文 SHA256 PASS |
+| 用户六行测试文本 | SHA256 `574aecd1367b77be792e21ee63f5d8250756360d96b4f9cb3c43b1eb16eaaef6`，全部内容一致 |
+| Reworked 分支对照 | 10 轮 PASS；这是环境标志分支测试，不冒充 PyCharm GUI 重验 |
+| 原生 Console HITL 键盘回归 | Deny / Allow / Cancel / 下一次默认 Deny PASS；权限协议未改 |
+| 安装与源码哈希、CLI --help | PASS |
+
+外层 WinPTY/pyte 转录存在失真，`capture_layout_pass` 单独保留；原生布局以直接读取的 Console 单元为准。没有隐藏旧失败或把内容完整性当作布局通过。
+最初 targeted pytest 有 13 个临时目录 setup errors（访问此前不同权限创建的系统 pytest 目录）；改用本轮独占 TEMP 后全量通过，没有改 ACL。失败日志、预留行等中间实验均保留。
+
+### 最新人工启动命令
+
+在普通 Windows PowerShell 中运行；使用现有 Windows 模型配置和凭据：
+
+```powershell
+cd D:\WorkSpace\nexus-native-hardening-manual-20261026\workspace
+& D:\WorkSpace\nexus-stage4d-console-windows-20261028\Scripts\nexus.exe --permission-mode workspace-write
+```
+
+请复验中文输入、粘贴多行、连续三轮后向上拖大窗口，以及横向缩放。实际 IME 预编辑、字体和鼠标拖动仍以用户窗口验收为准。
+本轮没有升级 WSL 已安装程序；Linux 源码回归通过不等于部署了新的 Linux 候选。Sandbox、HITL 已验收状态保持，不合并 V0.3/main。

@@ -1,0 +1,24 @@
+{
+  "python": "D:\\WorkSpace\\nexus-stage4d-console-windows-20261028\\Scripts\\python.exe",
+  "input_path": "D:\\WorkSpace\\nexus-stage4d-console-windows-20261028\\Lib\\site-packages\\nexus\\app\\input.py",
+  "input_sha256": "19c9e524edfcfc206cf79d8fe1ee0851679466ec6c4a47272c9297db2fc25e06",
+  "prompt_toolkit": "3.0.53",
+  "rich": "14.3.4",
+  "docker_worker_fingerprint": "2927d7ed4632f291e3b265405f497de1537d3904dda2927d00296521e9298f04",
+  "source_input_sha256": "19c9e524edfcfc206cf79d8fe1ee0851679466ec6c4a47272c9297db2fc25e06",
+  "installed_matches_source": true,
+  "wheel_sha256": "b69a6bf403224232ca54fb55b821425e4ba8185186f0bbc9963efdb389895b7b",
+  "baseline_commit": "2ba0c5fb38d7a369e92b8d24f141d8103fc21777",
+  "pi_reference": {
+    "package": "@earendil-works/pi-tui",
+    "version": "1.4.0",
+    "repository": "https://github.com/earendil-works/pi",
+    "files": [
+      "dist/tui-main-screen.js",
+      "dist/terminal.js"
+    ],
+    "copied_source": false
+  },
+  "implementation_commit": "d293d601b6a24e5f83638e913d1c5e76c6b9c8ab",
+  "sandbox_and_hitl_production_files_changed": false
+}
