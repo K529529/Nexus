@@ -173,8 +173,10 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
     (None, "eof"),
 ])
 @pytest.mark.parametrize("input_mode", ["bracketed", "raw"])
+@pytest.mark.parametrize("terminal", [False, True])
 async def test_real_cli_one_task_one_run_replay_and_exit(
     tmp_path: Path, monkeypatch: Any, exit_keys: str | None, reason: str, input_mode: str,
+    terminal: bool,
 ) -> None:
     cfg = config(monkeypatch)
     cfg.memory_enabled = False
@@ -208,7 +210,8 @@ async def test_real_cli_one_task_one_run_replay_and_exit(
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
     monkeypatch.setattr(cli, "load_config", lambda: cfg)
-    monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=100))
+    monkeypatch.setattr(cli, "Console", lambda **_: Console(
+        file=output, width=100, force_terminal=terminal, color_system=None))
     monkeypatch.setattr(cli, "Conversation", Conversation)
     monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
     with create_pipe_input() as pipe, create_app_session(input=pipe, output=DummyOutput()):

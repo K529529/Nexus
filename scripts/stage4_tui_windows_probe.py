@@ -91,6 +91,17 @@ def main(args):
                         return
                 raise TimeoutError(case)
 
+            def native_screen():
+                if args.wsl:
+                    # An independent Windows reader sees the outer Console,
+                    # avoiding pyte's lossy resize reconstruction for WSL.
+                    return json.loads(subprocess.check_output(
+                        [sys.executable, str(script.with_name("stage4_console_snapshot.py")),
+                         str(proc.pid)], text=True, encoding="utf-8",
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                    ))
+                return status().get("console_rows", list(screen.display))
+
             snapshots = []
             console_snapshots = []
             resize_snapshots = []
@@ -103,7 +114,7 @@ def main(args):
                     + "- 保留代码与 Markdown café\n" * 100
                     + "```python\nprint('你好')\n```"
                 )
-                if case == "manual-paste":
+                if case.startswith("manual-paste"):
                     body = (
                         "这是 Nexus Stage 4D 多行输入完整性测试。\n"
                         "第一项：Windows 和 Linux。\n"
@@ -117,14 +128,14 @@ def main(args):
                     if case.startswith("rounds")
                     else [body]
                 )
-                if case == "approval":
+                if case.startswith("approval"):
                     expected = ["deny", "allow", "cancel", "deny"]
                 if "multiline" in case:
                     expected = [text + "\n" + "\n".join(
                         f"line {line} 中文内容" for line in range(6)
                     ) for text in expected]
                 for i, text in enumerate(expected):
-                    if case == "approval":
+                    if case.startswith("approval"):
                         until(lambda s: s.get("approval_running") and s.get("approval_index") == i)
                         if i == 1:
                             proc.write("\x1b[200~allow\t\r\x1b[201~")
@@ -142,39 +153,63 @@ def main(args):
                             proc.setwinsize(height, 90)
                             screen.resize(lines=height, columns=90)
                             pump(0.2)
-                        proc.write(text.replace("\n", "\x1b[14~"))
-                        until(lambda s: s.get("buffer") == text)
+                        empty_resize = "empty" in case
+                        if not empty_resize:
+                            proc.write(text.replace("\n", "\x1b[14~"))
+                            until(lambda s: s.get("buffer") == text)
                         if (case.startswith("rounds-drag") or "history" in case) and i in (3, 6):
                             # Resize only AFTER history exists, with an active draft.
                             sizes = ((32, 90), (38, 90), (48, 90), (40, 90), (30, 90))
                             if case.startswith("rounds-drag"):
                                 sizes += ((30, 70), (35, 110), (30, 90))
-                            for height, width in sizes:
+                            if "stress" in case:
+                                sizes = tuple((max(10, 30 - n // 2), w) for n, w in enumerate(
+                                    list(range(90, 39, -3)) + list(range(40, 131, 3))
+                                )) + ((12, 40), (48, 130), (10, 60), (30, 90))
+                            for resize_index, (height, width) in enumerate(sizes):
                                 proc.setwinsize(height, width)
                                 screen.resize(lines=height, columns=width)
-                                pump(0.7)
+                                pump(0.04 if "stress" in case else 0.7)
+                                if "stress" in case and resize_index < len(sizes) - 4:
+                                    continue
+                                if "stress" in case:
+                                    pump(1.2)
                                 shot = list(screen.display)
-                                native = status().get("console_rows", shot)
+                                native = native_screen()
                                 resize_snapshots.append({"round": i, "size": [height, width],
                                                          "screen": shot, "console": native})
                                 resize_checks.append(
-                                    status().get("buffer") == text
+                                    status().get("buffer") == ("" if empty_resize else text)
                                     and sum("┌" in line for line in native) == 1
-                                    and any(f"第{i}轮 English，中文" in line
-                                            and "Nexus" in line for line in native)
+                                    and any(("line 5 中文内容" in line
+                                             if "multiline" in case and height < 12 else
+                                             "Nexus" in line and (empty_resize or
+                                             f"第{i}轮 English，中文" in line)) for line in native)
+                                    and (height < 20 or any(
+                                        f"Transcript {i - 1}.11:" in line for line in native))
                                 )
+                        if empty_resize:
+                            proc.write(text.replace("\n", "\x1b[14~"))
+                            until(lambda s: s.get("buffer") == text)
+                        if "clear" in case and i in (3, 6):
+                            proc.setwinsize(28, 85)
+                            screen.resize(lines=28, columns=85)
+                            proc.write("\x03")
+                            until(lambda s: s.get("buffer") == "")
+                            proc.write(text.replace("\n", "\x1b[14~"))
+                            until(lambda s: s.get("buffer") == text)
+                            pump(1.2)
                     else:
                         proc.write(
                             "\x1b[200~" + text + "\x1b[201~"
-                            if case == "bracketed-paste"
+                            if case.startswith("bracketed-paste")
                             else text.replace("\n", "\r\n")
                         )
                     pump(0.5)
                     snapshots.append(list(screen.display))
                     rendered_states.append(status().get("diagnostic"))
-                    if "console_rows" in status():
-                        console_snapshots.append(status()["console_rows"])
-                    proc.write("\x1b" if case == "approval" and i == 2 else "\r")
+                    console_snapshots.append(native_screen())
+                    proc.write("\x1b" if case.startswith("approval") and i == 2 else "\r")
                     until(lambda s: len(s.get("submitted", [])) == i + 1)
                 until(lambda s: s.get("done"))
                 actual = status()["submitted"]

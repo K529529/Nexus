@@ -64,21 +64,6 @@ async def test_native_console_help_flows_with_editor_except_reworked(
             assert "Enter send" in rows[3]
             assert all(not row.strip() for row in rows[4:])
             assert output.positions[-1] == (9, prompt.app.renderer._cursor_pos.x)
-            # Native Console wraps the 80-column old top rail when narrowed to
-            # 70: erase must move up two rows, not leave its first row behind.
-            previous = prompt.app.renderer._cursor_pos
-            resized = []
-            with monkeypatch.context() as patch:
-                patch.setattr(editor, "_resize", lambda: resized.append(
-                    prompt.app.renderer._cursor_pos))
-                editor.resize_console()
-                assert resized[-1] == previous  # height-only resize
-                output.width = 70
-                editor.resize_console()
-                assert resized[-1].y == previous.y + 1
-                assert resized[-1].x == previous.x
-            output.width = 80
-            prompt.app.renderer._cursor_pos = previous
         pipe.send_text("中文\r")
         assert await pending == "中文"
 

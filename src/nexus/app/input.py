@@ -13,7 +13,7 @@ from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
-from prompt_toolkit.data_structures import Point
+from prompt_toolkit.data_structures import Size
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import Condition, to_filter
 from prompt_toolkit.formatted_text import StyleAndTextTuples
@@ -28,6 +28,7 @@ from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
 from prompt_toolkit.output.vt100 import Vt100_Output
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.renderer import CPR_Support
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
 
@@ -143,10 +144,16 @@ class ExpandedClipboard(InMemoryClipboard):
 class TaskInput:
     """Enter sends; marked paste and explicit F2 capture never execute newlines."""
 
-    def __init__(self, prompt: PromptSession[str]) -> None:
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
         self.prompt = prompt
         self.prompt.app.erase_when_done = True
         reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.resize_pending = False
+        self.rendered_size: Size | None = None
         if reworked:
             # Reworked places IME preedit inline, increasing the host editor's line
             # width before Python receives any committed text (IJPL-248517).
@@ -167,9 +174,15 @@ class TaskInput:
         native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
         if native_console and not reworked:
             self.prompt.app.after_render += self.align_console_cursor
-            self._resize = self.prompt.app._on_resize
-            # prompt_toolkit's resize erases using the pre-resize relative cursor.
-            self.prompt.app._on_resize = self.resize_console  # type: ignore[method-assign]
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+            self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            app = self.prompt.app
+            app._request_absolute_cursor_position = lambda: None  # type: ignore[method-assign]
+            self.prompt.app.after_render += self.remember_size
         self.inline_toolbar = isinstance(output, Vt100_Output) or (native_console and not reworked)
         if self.inline_toolbar:
             # A screen-bottom toolbar stretches rendering to the viewport edge.
@@ -179,10 +192,10 @@ class TaskInput:
             layout = self.prompt.app.layout
             root = layout.container
             layout.container = HSplit([
-                HSplit([root], height=lambda: Dimension.exact(root.preferred_height(
+                HSplit([root], height=lambda: Dimension.exact(min(root.preferred_height(
                     self.prompt.app.output.get_size().columns,
                     self.prompt.app.output.get_size().rows,
-                ).preferred)),
+                ).preferred, max(3, self.prompt.app.output.get_size().rows - 2)))),
                 Window(FormattedTextControl(self.toolbar), height=1),
             ])
         self.bindings = KeyBindings()
@@ -388,6 +401,10 @@ class TaskInput:
             if (isinstance(window.content, BufferControl)
                     and window.content.buffer is self.prompt.default_buffer):
                 window.dont_extend_height = to_filter(True)
+        if (self.repaint is not None and (self.resize_pending or
+                self.rendered_size is not None
+                and self.rendered_size != self.prompt.app.output.get_size())):
+            self.paint_history()
 
     def align_console_cursor(self, app: Application[str]) -> None:
         # Classic Console's relative VT movements across CJK cells can leave X
@@ -401,23 +418,38 @@ class TaskInput:
                 native = getattr(output, "win32_output", output)
                 native.cursor_goto(info.dwCursorPosition.Y, column)
 
-    def resize_console(self) -> None:
-        # A narrower Console reflows the old frame before notifying the app.
-        # Include those extra physical rows when erasing, then let the existing
-        # resize path rebuild the input at its new size. History is left intact.
+    def remember_size(self, app: Application[str]) -> None:
+        self.rendered_size = app.output.get_size()
+        if isinstance(app.output, Vt100_Output) and not app.is_done:
+            # Pi also finishes each frame at an absolute column, avoiding CJK
+            # relative cursor movement differences in Console -> WSL bridges.
+            app.output.write_raw(f"\x1b[{app.renderer._cursor_pos.x + 1}G")
+            app.output.flush()
+
+    def queue_resize(self) -> None:
+        self.resize_pending = True
+        if self.resize_handle is not None:
+            self.resize_handle.cancel()
+        self.resize_handle = asyncio.get_running_loop().call_later(0.1, self.repaint_input)
+
+    def paint_history(self) -> None:
+        assert self.repaint is not None
         app = self.prompt.app
-        renderer = app.renderer
-        screen = renderer.last_rendered_screen
-        cursor = renderer._cursor_pos
-        info = app.output.get_win32_screen_buffer_info()  # type: ignore[attr-defined]
-        width = info.dwSize.X
-        if screen is not None and width > 0:
-            extra = sum(max(0, max((x + char.width for x, char in screen.data_buffer[y].items()
-                                   if char.char.strip()), default=0) - 1) // width
-                        for y in range(cursor.y))
-            renderer._cursor_pos = Point(cursor.x % width,
-                                         cursor.y + extra + cursor.x // width)
-        self._resize()
+        app.renderer.reset()
+        app.output.reset_attributes()
+        app.output.enable_autowrap()
+        # Like Pi's full redraw: old physical lines cannot reliably be mapped
+        # through multiple host reflows. Rebuild from committed UI output.
+        app.output.write_raw("\x1b[2J\x1b[H\x1b[3J" + self.repaint())
+        app.output.flush()
+        self.resize_pending = False
+
+    def repaint_input(self) -> None:
+        self.resize_handle = None
+        app = self.prompt.app
+        if app.is_running and not app.is_done:
+            self.paint_history()
+            app._redraw()
 
     def toolbar(self) -> str:
         if self.capture is not None:
@@ -472,6 +504,9 @@ class TaskInput:
                 )
                 return self.expand(result)
         finally:
+            if self.resize_handle is not None:
+                self.resize_handle.cancel()
+                self.resize_handle = None
             self.clear()
             active = False
             signal.signal(signal.SIGINT, previous)

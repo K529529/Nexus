@@ -301,11 +301,12 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            from types import SimpleNamespace
 
+            from prompt_toolkit import Application
             from prompt_toolkit.input import DummyInput
+            from prompt_toolkit.output import DummyOutput
 
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)

@@ -46,7 +46,40 @@ async def child(state: Path, case: str) -> None:
                 ctypes.windll.kernel32.SetConsoleMode(output._hconsole, original)
 
         output.flush = flush_preserving_mode
-    editor = TaskInput(prompt)
+    console = Console(highlight=False)
+    if "repaint" in case:
+        from nexus.app.console import DisplayReplay
+        display = DisplayReplay(console)
+        editor = TaskInput(prompt, display.repaint)
+    else:
+        editor = TaskInput(prompt)
+    if "nocprfix" in case:
+        from prompt_toolkit.data_structures import Point
+        from prompt_toolkit.renderer import CPR_Support
+
+        prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+        original_vt_resize = prompt.app._on_resize
+
+        def vt_align(app):
+            if not app.is_done:
+                app.output.write_raw(f"\x1b[{app.renderer._cursor_pos.x + 1}G")
+                app.output.flush()
+
+        def vt_resize():
+            renderer = prompt.app.renderer
+            screen = renderer.last_rendered_screen
+            cursor = renderer._cursor_pos
+            width = prompt.app.output.get_size().columns
+            if screen is not None:
+                extra = sum(max(0, max((x + c.width for x, c in screen.data_buffer[y].items()
+                                       if c.char.strip()), default=0) - 1) // width
+                            for y in range(cursor.y))
+                renderer._cursor_pos = Point(cursor.x % width,
+                                             cursor.y + extra + cursor.x // width)
+            original_vt_resize()
+
+        prompt.app._on_resize = vt_resize
+        prompt.app.after_render += vt_align
     if "align" in case:
         def align_cursor(app):
             if not app.is_done:
@@ -157,6 +190,7 @@ async def child(state: Path, case: str) -> None:
                 "inline_toolbar": getattr(editor, "inline_toolbar", None),
                 "toolbar_empty": prompt.bottom_toolbar == "",
                 "reservations": reservations[-3:],
+                "display_entries": len(display.entries) if "repaint" in case else None,
             },
             **extra,
         }
@@ -190,7 +224,7 @@ async def child(state: Path, case: str) -> None:
             file.write(json.dumps(data, ensure_ascii=True) + "\n")
 
     prompt.app.after_render += lambda app: save()
-    if case == "approval":
+    if case.startswith("approval"):
         from nexus.app.tui import approval_text
         from nexus.core.security import ApprovalRequest
 
@@ -230,9 +264,9 @@ async def child(state: Path, case: str) -> None:
         submitted.append(text)
         save()
         with editor.busy(lambda: None):
-            Console(highlight=False).print(f"Tool output {i}: 中文完成")
+            console.print(f"Tool output {i}: 中文完成")
             if "history" in case:
-                Console(highlight=False).print("\n".join(
+                console.print("\n".join(
                     f"Transcript {i}.{line}: 多轮历史输出 English" for line in range(12)
                 ))
             await asyncio.sleep(0.03)

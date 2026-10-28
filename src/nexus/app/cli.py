@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import signal
 import sys
 from contextlib import nullcontext
@@ -29,6 +30,7 @@ from nexus.app.config import (
     set_memory_enabled,
     validate_acl_authority,
 )
+from nexus.app.console import DisplayReplay
 from nexus.app.input import INPUT_HELP, TaskInput
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_index import MemoryIndex, installed_command
@@ -230,6 +232,8 @@ async def application(args: argparse.Namespace) -> int:
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
     console = Console(highlight=False)
+    display = (DisplayReplay(console) if interactive and console.is_terminal
+               and os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") != "1" else None)
     # Explicit output keeps our bindings active even under TERM=dumb; otherwise
     # PromptSession silently substitutes its separate single-line dumb prompt.
     prompt: PromptSession[str] | None = (
@@ -280,7 +284,7 @@ async def application(args: argparse.Namespace) -> int:
     transcript = Transcript(console)
     profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
     summary = InteractionSummary(profile or transcript)
-    editor = TaskInput(prompt)
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
     conversation = Conversation(workspace, config, summary)
     select = args.command == "resume"
     exit_reason: str | None = None

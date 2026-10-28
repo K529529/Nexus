@@ -55,11 +55,12 @@ async def test_interactive_select_switch_off_new_no_model_calls(
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            from types import SimpleNamespace
 
+            from prompt_toolkit import Application
             from prompt_toolkit.input import DummyInput
+            from prompt_toolkit.output import DummyOutput
 
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)
@@ -181,11 +182,12 @@ async def test_resume_bad_selection_keeps_current(tmp_path: Path, monkeypatch: A
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            from types import SimpleNamespace
 
+            from prompt_toolkit import Application
             from prompt_toolkit.input import DummyInput
+            from prompt_toolkit.output import DummyOutput
 
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             assert len(instances) == 1 and not instances[0].closed
