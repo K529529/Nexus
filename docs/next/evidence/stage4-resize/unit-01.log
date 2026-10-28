@@ -1,0 +1,201 @@
+F.F.....................................................FFFFFFFF......   [100%]
+================================== FAILURES ===================================
+____ test_replay_preserves_print_options_and_snapshots_without_live_frames ____
+
+    def test_replay_preserves_print_options_and_snapshots_without_live_frames() -> None:
+        console = RepaintConsole(file=io.StringIO(), force_terminal=True, width=80)
+        text = Text("original ����", style="bold")
+        console.print(text, style="red", end="\n\n")
+        text.append(" MUTATED")
+        with Live("TRANSIENT SPINNER", console=console, transient=True, auto_refresh=False):
+            console.print("committed result")
+        console.print(Control.move_to(0, 0))
+        count = len(console.entries)
+        first = console.repaint()
+        assert "original ����" in first and "committed result" in first
+        assert "MUTATED" not in first and "TRANSIENT SPINNER" not in first
+>       assert "\x1b[1;31m" in first
+E       AssertionError: assert '\x1b[1;31m' in 'original ����\n\ncommitted result\n'
+
+tests\test_tui_resize.py:34: AssertionError
+_____ test_resize_rebuilds_history_and_preserves_draft_without_cpr[True] ______
+
+cancel = True
+
+    @pytest.mark.parametrize("cancel", [False, True])
+    async def test_resize_rebuilds_history_and_preserves_draft_without_cpr(cancel: bool) -> None:
+        stream = io.StringIO()
+        size = Size(rows=30, columns=90)
+        output = Vt100_Output(stream, lambda: size, enable_cpr=True)
+        history = RepaintConsole(file=io.StringIO(), force_terminal=True, width=90)
+        history.print("committed transcript")
+        with create_pipe_input() as pipe, create_app_session(input=pipe, output=output):
+            prompt: PromptSession[str] = PromptSession(output=output)
+            editor = TaskInput(prompt, history.repaint)
+            pending = asyncio.create_task(editor.read())
+            try:
+                await until(lambda: prompt.app.is_running)
+                # This literal is user data and must not be scrubbed to hide CPR bugs.
+                draft = "\u4e2d\u6587 \U0001f431\\n[14;1R\\nthird\\nfourth"
+                pipe.send_text(paste(draft))
+                await until(lambda: editor.expand(prompt.default_buffer.text) == draft)
+                for size in (Size(10, 40), Size(48, 130), Size(12, 60), Size(30, 90)):
+                    editor.queue_resize()
+                await until(lambda: "\x1b[3J" in stream.getvalue())
+                assert "committed transcript" in stream.getvalue()
+                assert "\x1b[6n" not in stream.getvalue()
+                assert editor.expand(prompt.default_buffer.text) == draft
+                if cancel:
+                    editor.queue_resize()
+                pipe.send_text("\r")
+                assert await pending == draft
+                await asyncio.sleep(0.15)
+                assert editor.resize_handle is None
+>               assert stream.getvalue().count("committed transcript") == 1
+E               AssertionError: assert 2 == 1
+E                +  where 2 = <built-in method count of str object at 0x000001DE02A50F60>('committed transcript')
+E                +    where <built-in method count of str object at 0x000001DE02A50F60> = '\x1b[?12l\x1b[?25h\x1b[?2004h\x1b[?1l\x1b[?25l\x1b[0m\x1b[?7l\x1b[0m\x1b[J\x1b[0;38;5;141m������������������������������������������������������...\x1b[2A\x1b[29C\x1b[?7h\x1b[0m\x1b[?12l\x1b[?25h\x1b[5 q\x1b[30G\x1b[29D\x1b[A\x1b[J\x1b[0m\x1b[?7h\x1b[?2004l\x1b[0 q'.count
+E                +      where '\x1b[?12l\x1b[?25h\x1b[?2004h\x1b[?1l\x1b[?25l\x1b[0m\x1b[?7l\x1b[0m\x1b[J\x1b[0;38;5;141m������������������������������������������������������...\x1b[2A\x1b[29C\x1b[?7h\x1b[0m\x1b[?12l\x1b[?25h\x1b[5 q\x1b[30G\x1b[29D\x1b[A\x1b[J\x1b[0m\x1b[?7h\x1b[?2004l\x1b[0 q' = <built-in method getvalue of _io.StringIO object at 0x000001DE05ACEF80>()
+E                +        where <built-in method getvalue of _io.StringIO object at 0x000001DE05ACEF80> = <_io.StringIO object at 0x000001DE05ACEF80>.getvalue
+
+tests\test_tui_resize.py:71: AssertionError
+_ test_real_cli_one_task_one_run_replay_and_exit[bracketed-/exit\r-slash-exit] _
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE061B4710>
+exit_keys = '/exit\r', reason = 'slash-exit', input_mode = 'bracketed'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE06029000>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE06029000> = <_io.StringIO object at 0x000001DE06029000>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       eeafc558c5d14fd5945f8b9b8994a4ba\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.5s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+_____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x04-eof] ______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE05E53D10>
+exit_keys = '\x04', reason = 'eof', input_mode = 'bracketed'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE0602A680>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE0602A680> = <_io.StringIO object at 0x000001DE0602A680>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       324249fa65804f35a0b3a38a9a5326dc\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.3s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x03-ctrl-c] ____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE05BFA030>
+exit_keys = '\x03', reason = 'ctrl-c', input_mode = 'bracketed'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE05ACF1C0>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE05ACF1C0> = <_io.StringIO object at 0x000001DE05ACF1C0>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       1c5cab85e8254fff8eb73dc855e7b1fa\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.4s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+_____ test_real_cli_one_task_one_run_replay_and_exit[bracketed-None-eof] ______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE06111160>
+exit_keys = None, reason = 'eof', input_mode = 'bracketed'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE06028400>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE06028400> = <_io.StringIO object at 0x000001DE06028400>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       19c9870382194e2aa977d5a92c5eff15\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.3s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+___ test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit] ____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE06270380>
+exit_keys = '/exit\r', reason = 'slash-exit', input_mode = 'raw'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE0602AE00>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE0602AE00> = <_io.StringIO object at 0x000001DE0602AE00>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       792ce1b1d10f4068aa0fe00681693ed6\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.7s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+________ test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE062700E0>
+exit_keys = '\x04', reason = 'eof', input_mode = 'raw'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE05C68A00>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE05C68A00> = <_io.StringIO object at 0x000001DE05C68A00>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       79c4a8b4f0e94222aa35207cc45d0106\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.7s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+_______ test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c] _______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE072E1100>
+exit_keys = '\x03', reason = 'ctrl-c', input_mode = 'raw'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE0602A800>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE0602A800> = <_io.StringIO object at 0x000001DE0602A800>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       4caec31ae9bf4a19af2755cea7684344\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.7s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+________ test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-0/test_real_cli_one_task_one_run7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE05B4E6C0>
+exit_keys = None, reason = 'eof', input_mode = 'raw'
+
+>   ???
+E   AssertionError: assert 0 == 1
+E    +  where 0 = <built-in method count of str object at 0x00007FFA0C2F9CA0>('Interaction Summary')
+E    +    where <built-in method count of str object at 0x00007FFA0C2F9CA0> = ''.count
+E    +      where '' = <built-in method getvalue of _io.StringIO object at 0x000001DE05C6A140>()
+E    +        where <built-in method getvalue of _io.StringIO object at 0x000001DE05C6A140> = <_io.StringIO object at 0x000001DE05C6A140>.getvalue
+
+/mnt/d/WorkSpace/releasePro/github/Nexus/Nexus-next/tests/test_cli_ux.py:244: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Nexus \xb7 execution mode: local \xb7 /help for commands\nEnter: send \xb7 Ctrl+J/F4: newline \xb7 F2: paste mode \xb7 F3: expand paste \xb7 Ctrl+C: \nclear/exit\nNo bracketed paste? Press F2 before pasting, F2 to finish, then Enter to send.\n\n\u4f60 \u203a\n  # \u4e2d\u6587\u4efb\u52a1 \U0001f40d\n\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n- \u4fdd\u7559\u6bb5\u843d\u548c\u7f29\u8fdb caf\xe9\n\u2026 159 lines \xb7 2,315 characters\n\nMissing [compaction_model]: automatic and /compact summarization require an \nindependent model and API-key environment variable. Legacy configuration can run\nwhile context fits; no main-model fallback is used.\n\u4e0a\u4e0b\u6587\u7ea6 4,263 tokens \xb7 \u538b\u7f29\u9608\u503c 29,491\nDone\n\ncompleted \xb7 tokens 15 \xb7 0.0s \n\nNexus powering down. Goodbye!\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nInteraction Summary \xb7 this CLI lifetime\nSession ID       a40a3d6d83524b83b8f7249c625ffb22\nRuns             1                               \nTool Calls       0                               \nTool Success     0 \xb7 N/A                         \nTool Failures    0                               \nTool Unfinished  0                               \nModel Calls      1                               \n\nPerformance\nWall Time   0.6s (includes editing/cleanup)\nModel Time  unknown                        \nTool Time   0.0s                           \nTokens      15                             \nLive run/compaction events only; excludes history and private Memory exit \nsummary. Tool success is not task success. Times are not additive.
+=========================== short test summary info ===========================
+FAILED tests/test_tui_resize.py::test_replay_preserves_print_options_and_snapshots_without_live_frames
+FAILED tests/test_tui_resize.py::test_resize_rebuilds_history_and_preserves_draft_without_cpr[True]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-/exit\r-slash-exit]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x04-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-\x03-ctrl-c]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[bracketed-None-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-/exit\r-slash-exit]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x04-eof]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-\x03-ctrl-c]
+FAILED tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[raw-None-eof]
+10 failed, 60 passed in 21.02s

@@ -1,0 +1,210 @@
+[0m[0KNexus · Permission Request[0K[?25l
+[0K
+Operation: apply_patch[0K
+Target:    example.py[0K
+Mode:      read-only[0K
+Scope:     This patch only; no shell[0K
+Reason (agent): 修改测试文件[0K
+[0K
+[0;1m  ● Deny[0m[0K
+    Allow once[0K
+    Cancel[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[21A[?25h[0m[1;1H[2J[0mNexus · Permission Request[0K[?25l
+[0K[?25hNexus · Permission Request[0K[?25l
+[0K
+Operation: apply_patch[0K
+Target:    example.py[0K
+Mode:      read-only[0K
+Scope:     This patch only; no shell[0K
+Reason (agent): 修改测试文件[0K
+[0K
+[0;1m  ● Deny[0m[0K
+    Allow once[0K
+    Cancel[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[20A[?25h[?25l    Denyw once[0K
+[0;1m  ● Allow once[0m[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[20A[2G[?25h[?25l
+
+
+Host request: fixture                                                                   [0;1m^[0m[0K
+Tool call: call[0K
+Arguments digest: fixture-digest[0K
+[0K
+Host scope:[0K
+tool: apply_patch[0K
+mode: read-only[0K
+grant: This patch only; no shell[0K
+[0K
+Tool arguments:[0K
+patch:[0K
+*** Begin Patch                                                                         [0;1mv[0m[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K[19A[?25h[?25l[8ANexus · Permission Request[0K
+[0K
+Operation: apply_patch[0K
+Target:    example.py[0K
+Mode:      read-only[0K
+Scope:     This patch only; no shell[0K
+Reason (agent): 修改测试文件[0K
+[0K
+[0;1m  ● Deny[0m[0K
+    Allow once[0K
+    Cancel[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[27A[?25h[?25l
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[0K[19A[?25h[6n[?25l[8ANexus · Permission Request[0K
+[0K
+Operation: apply_patch[0K
+Target:    example.py[0K
+Mode:      read-only[0K
+Scope:     This patch only; no shell[0K
+Reason (agent): 修改测试文件[0K
+[0K
+[0;1m  ● Deny[0m[0K
+    Allow once[0K
+    Cancel[0K
+Tab/Shift+Tab or ↑/↓ select · Enter confirm · Esc/Ctrl+C cancel[0K
+[0K
+D/F3 details · PgUp/PgDn scroll details[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[19A[?25h[?25l[7A[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+[0K[27A[?25h

@@ -1,0 +1,18 @@
+..........................F............................................. [ 92%]
+......                                                                   [100%]
+=================================== FAILURES ===================================
+_________ test_visible_approval_keeps_gateway_checks_and_jsonl[allow] __________
+
+tmp_path = PosixPath('/tmp/pytest-of-archer/pytest-1/test_visible_approval_keeps_ga0')
+choice = 'allow'
+
+>   ???
+E   AssertionError: assert False == ('allow' == 'allow'
+E    +  where False = ToolResult(call_id='c1', ok=False, data={'execution_state': 'not_executed'}, error_code='approval_expired', duration_ms=0, truncated=False).ok
+E     
+E       allow)
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_tui_stage4d.py:321: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tui_stage4d.py::test_visible_approval_keeps_gateway_checks_and_jsonl[allow]
+1 failed, 77 passed in 30.47s

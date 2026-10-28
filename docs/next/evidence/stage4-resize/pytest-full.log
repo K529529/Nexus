@@ -1,0 +1,1068 @@
+...................FF................................................... [  7%]
+....................................F..........ssssssssss............... [ 14%]
+........................................................................ [ 21%]
+...............................................................F........ [ 28%]
+............F.............................FF............................ [ 35%]
+........................................................................ [ 42%]
+........................................................................ [ 49%]
+........................................................................ [ 56%]
+................................................................F....... [ 63%]
+........................................................................ [ 70%]
+...............................F......F................................. [ 77%]
+........................................................................ [ 84%]
+........................................................................ [ 91%]
+........................................................................ [ 98%]
+............                                                             [100%]
+================================== FAILURES ===================================
+_____ test_permissions_transition_preserves_session_until_consent[False] ______
+
+consent_fixture = (WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_permissions_transition_pr0...ge', docker_cpus=2.0, docker_memory_mb=1024, docker_pids=128, domain_policy_configured=False, docker_configured=False))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E0B63470>
+answer = False
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows consent")
+    @pytest.mark.parametrize("answer", [False, True])
+    async def test_permissions_transition_preserves_session_until_consent(
+        consent_fixture: tuple[Path, Path, SecurityPolicy],
+        monkeypatch: pytest.MonkeyPatch,
+        answer: bool,
+    ) -> None:
+        from types import SimpleNamespace
+    
+        from prompt_toolkit.input import DummyInput
+    
+        work, path, _ = consent_fixture
+        monkeypatch.chdir(work)
+        monkeypatch.setattr(Path, "home", lambda: path.parent)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        cfg = Config(ModelConfig("fake", 32768), Limits(), memory_enabled=False)
+        monkeypatch.setattr(cli, "load_config", lambda **kw: cfg)
+        monkeypatch.setattr(cli, "config_path", lambda: path)
+        monkeypatch.setattr(acl_consent, "config_path", lambda: path)
+        conversations = []
+        original = Conversation
+    
+        def conversation(*args: Any, **kwargs: Any) -> Any:
+            value = original(*args, **kwargs)
+            if value.config.security.mode == "workspace-write":
+                assert isinstance(value.gateway.backend, WindowsNativeBackend)
+                assert value.gateway.backend.status == "not_initialized"
+            conversations.append(value)
+            return value
+    
+        async def select(*args: Any) -> str:
+            return "workspace-write"
+    
+        async def confirm(root: Path) -> bool:
+            assert root == work and not conversations[0].closed
+            assert conversations[0].config.security.mode == "local"
+            return answer
+    
+        inputs = iter(["/permissions", "/exit"])
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, *args: Any, **kwargs: Any) -> str:
+                return next(inputs)
+    
+        output = io.StringIO()
+        monkeypatch.setattr(cli, "Conversation", conversation)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Console", lambda **kw: Console(file=output, width=180))
+        monkeypatch.setattr(cli, "select_permissions", select)
+        monkeypatch.setattr(cli, "confirm_workspace_acl", confirm)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_acl_consent.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E0A02210>
+prompt = <tests.test_acl_consent.test_permissions_transition_preserves_session_until_consent.<locals>.Prompt object at 0x000001E7E0A01E80>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E0A02A80>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+______ test_permissions_transition_preserves_session_until_consent[True] ______
+
+consent_fixture = (WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_permissions_transition_pr1...ge', docker_cpus=2.0, docker_memory_mb=1024, docker_pids=128, domain_policy_configured=False, docker_configured=False))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E0A03440>
+answer = True
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows consent")
+    @pytest.mark.parametrize("answer", [False, True])
+    async def test_permissions_transition_preserves_session_until_consent(
+        consent_fixture: tuple[Path, Path, SecurityPolicy],
+        monkeypatch: pytest.MonkeyPatch,
+        answer: bool,
+    ) -> None:
+        from types import SimpleNamespace
+    
+        from prompt_toolkit.input import DummyInput
+    
+        work, path, _ = consent_fixture
+        monkeypatch.chdir(work)
+        monkeypatch.setattr(Path, "home", lambda: path.parent)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        cfg = Config(ModelConfig("fake", 32768), Limits(), memory_enabled=False)
+        monkeypatch.setattr(cli, "load_config", lambda **kw: cfg)
+        monkeypatch.setattr(cli, "config_path", lambda: path)
+        monkeypatch.setattr(acl_consent, "config_path", lambda: path)
+        conversations = []
+        original = Conversation
+    
+        def conversation(*args: Any, **kwargs: Any) -> Any:
+            value = original(*args, **kwargs)
+            if value.config.security.mode == "workspace-write":
+                assert isinstance(value.gateway.backend, WindowsNativeBackend)
+                assert value.gateway.backend.status == "not_initialized"
+            conversations.append(value)
+            return value
+    
+        async def select(*args: Any) -> str:
+            return "workspace-write"
+    
+        async def confirm(root: Path) -> bool:
+            assert root == work and not conversations[0].closed
+            assert conversations[0].config.security.mode == "local"
+            return answer
+    
+        inputs = iter(["/permissions", "/exit"])
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, *args: Any, **kwargs: Any) -> str:
+                return next(inputs)
+    
+        output = io.StringIO()
+        monkeypatch.setattr(cli, "Conversation", conversation)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Console", lambda **kw: Console(file=output, width=180))
+        monkeypatch.setattr(cli, "select_permissions", select)
+        monkeypatch.setattr(cli, "confirm_workspace_acl", confirm)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_acl_consent.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7DF991610>
+prompt = <tests.test_acl_consent.test_permissions_transition_preserves_session_until_consent.<locals>.Prompt object at 0x000001E7DF96AC00>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7DF96A960>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+_________________ test_cli_new_and_resume_close_old_lifetimes _________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_cli_new_and_resume_close_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E1CE6090>
+
+    async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatch: Any) -> None:
+        instances: list[Any] = []
+        answers = iter(["/new", "/resume", "/exit"])
+    
+        class Conversation:
+            gateway = SecurityGateway()
+    
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                # The replacement opens before the old conversation closes, so failure is safe.
+                self.closed = False
+                self.session = SimpleNamespace(messages=[], selected_skill=None)
+                self.resume = kwargs.get("resume")
+                instances.append(self)
+    
+            async def start_memory(self) -> None:
+                pass
+    
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+    
+            async def close(self) -> None:
+                self.closed = True
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+    
+        async def select(items: Any) -> Path:
+            return tmp_path / "history.jsonl"
+    
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_conversation.py:325: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1C19100>
+prompt = <tests.test_conversation.test_cli_new_and_resume_close_old_lifetimes.<locals>.Prompt object at 0x000001E7E1A67DA0>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1C1A1E0>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+src\nexus\app\input.py:181: AttributeError
+________________ test_cancel_resume_keeps_current_conversation ________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_cancel_resume_keeps_curre0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E1F96900>
+
+    async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypatch: Any) -> None:
+        instances: list[Any] = []
+        answers = iter(["/resume", "/exit"])
+    
+        class FakeConversation:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.closed = False
+                instances.append(self)
+    
+            async def start_memory(self) -> None:
+                pass
+    
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+    
+            async def close(self) -> None:
+                self.closed = True
+    
+        class FakePrompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                assert len(instances) == 1 and not instances[0].closed
+                return next(answers)
+    
+        async def cancel(items: Any) -> None:
+            assert not instances[0].closed
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
+        monkeypatch.setattr(cli, "PromptSession", FakePrompt)
+        monkeypatch.setattr(cli, "Conversation", FakeConversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", cancel)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_mcp_tui.py:529: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1E202F0>
+prompt = <tests.test_mcp_tui.test_cancel_resume_keeps_current_conversation.<locals>.FakePrompt object at 0x000001E7E1E216A0>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E181D5B0>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+____ test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume ____
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_interactive_switch_opens_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E1B6A720>
+
+    async def test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume(
+        tmp_path: Path, monkeypatch: Any
+    ) -> None:
+        cfg = config(monkeypatch)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        path = tmp_path / ".nexus/config.toml"
+        path.parent.mkdir()
+        path.write_text('[model]\nname="test"\napi_key_env="TEST_CONVERSATION_KEY"\n', encoding="utf-8")
+        MemoryStore(tmp_path / ".nexus/memory").write("MEMORY.md", "PRIVATE_MEMORY_SENTINEL")
+        models: list[Any] = []
+        conversations: list[Any] = []
+    
+        class Main(ScriptedModel):
+            async def close(self) -> None:
+                pass
+    
+        def model(*args: Any) -> Main:
+            value = Main([reply(text="done")])
+            models.append(value)
+            return value
+    
+        original = bootstrap.Conversation
+    
+        def conversation(*args: Any, **kwargs: Any) -> bootstrap.Conversation:
+            value = original(*args, **kwargs)
+            conversations.append(value)
+            return value
+    
+        answers = iter(
+            ["first", "/memory off", "second", "/memory status", "/memory on", "third", "/exit"]
+        )
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+    
+        output = io.StringIO()
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Console", lambda **k: Console(file=output, width=160))
+        monkeypatch.setattr(cli, "Conversation", conversation)
+        monkeypatch.setattr(bootstrap, "ChatModel", model)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_memory_controls.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1B69400>
+prompt = <tests.test_memory_controls.test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume.<locals>.Prompt object at 0x000001E7E1B69CD0>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1B69A00>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+___________ test_cli_terminal_stops_before_exit_summary[slash-exit] ___________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_cli_terminal_stops_before0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E19497F0>
+end = 'slash-exit'
+
+    @pytest.mark.parametrize("end", ["slash-exit", "eof"])
+    async def test_cli_terminal_stops_before_exit_summary(
+        tmp_path: Path, monkeypatch: Any, end: str
+    ) -> None:
+        cfg = config(monkeypatch)
+        order: list[str] = []
+        answers = iter(["/new", "/resume", "/exit"])
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                value = next(answers)
+                if value == "/exit" and end == "eof":
+                    raise EOFError
+                return value
+    
+        async def summarize(self: Any, reason: str) -> None:
+            assert order[-1] == "stop"
+            order.append(reason)
+    
+        async def select(_: Any) -> None:
+            return None
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "select_session", select)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=io.StringIO()))
+        monkeypatch.setattr(Transcript, "stop_activity", lambda self: order.append("stop"))
+        monkeypatch.setattr(bootstrap.Conversation, "summarize_exit", summarize)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_memory_daily.py:324: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1970380>
+prompt = <tests.test_memory_daily.test_cli_terminal_stops_before_exit_summary.<locals>.Prompt object at 0x000001E7E1970290>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1970D10>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+______________ test_cli_terminal_stops_before_exit_summary[eof] _______________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_cli_terminal_stops_before1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E1F3A570>
+end = 'eof'
+
+    @pytest.mark.parametrize("end", ["slash-exit", "eof"])
+    async def test_cli_terminal_stops_before_exit_summary(
+        tmp_path: Path, monkeypatch: Any, end: str
+    ) -> None:
+        cfg = config(monkeypatch)
+        order: list[str] = []
+        answers = iter(["/new", "/resume", "/exit"])
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                value = next(answers)
+                if value == "/exit" and end == "eof":
+                    raise EOFError
+                return value
+    
+        async def summarize(self: Any, reason: str) -> None:
+            assert order[-1] == "stop"
+            order.append(reason)
+    
+        async def select(_: Any) -> None:
+            return None
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "select_session", select)
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=io.StringIO()))
+        monkeypatch.setattr(Transcript, "stop_activity", lambda self: order.append("stop"))
+        monkeypatch.setattr(bootstrap.Conversation, "summarize_exit", summarize)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_memory_daily.py:324: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1977470>
+prompt = <tests.test_memory_daily.test_cli_terminal_stops_before_exit_summary.<locals>.Prompt object at 0x000001E7E1974080>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1977500>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+______________ test_interactive_profile_resets_after_each_drive _______________
+
+offline_cli = namespace(output=<_io.StringIO object at 0x000001E7DF956A40>, conversations=[], models=[])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E19106E0>
+
+    async def test_interactive_profile_resets_after_each_drive(
+        offline_cli: SimpleNamespace, monkeypatch: Any
+    ) -> None:
+        answers = iter(["task A", "task B", "/exit"])
+        profiles: list[Any] = []
+        original_render = profile_module.render_profile
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, _: str, **kwargs: Any) -> str:
+                return next(answers)
+    
+        def render(*args: Any, **kwargs: Any) -> None:
+            profiles.append(deepcopy(args[0]))
+            original_render(*args, **kwargs)
+    
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(profile_module, "render_profile", render)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None, profile=True)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_profile.py:499: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1F1D040>
+prompt = <tests.test_profile.test_interactive_profile_resets_after_each_drive.<locals>.Prompt object at 0x000001E7E1F5F7D0>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1F5DDF0>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+____________ test_interactive_select_switch_off_new_no_model_calls ____________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_interactive_select_switch0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E194A8A0>
+
+    async def test_interactive_select_switch_off_new_no_model_calls(
+        tmp_path: Path, monkeypatch: Any
+    ) -> None:
+        cfg = config(monkeypatch)
+        install(tmp_path / ".nexus" / "skills")
+        install(tmp_path / ".nexus" / "skills", "other")
+        answers = iter(
+            [
+                "/skills",
+                "/memory",
+                "/skill missing",
+                "/skill regression",
+                "/skills",
+                "/skill other",
+                "/skill off",
+                "/skills",
+                "/skill regression",
+                "/new",
+                "/skills",
+                "/typo",
+                "/exit",
+            ]
+        )
+        conversations: list[bootstrap.Conversation] = []
+        original = bootstrap.Conversation
+    
+        def create(*args: Any, **kwargs: Any) -> bootstrap.Conversation:
+            value = original(*args, **kwargs)
+            conversations.append(value)
+            return value
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+    
+        def no_model(_: Any) -> None:
+            raise AssertionError("Slash commands must not call the model")
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", create)
+        monkeypatch.setattr(bootstrap, "ChatModel", no_model)
+        output = io.StringIO()
+        monkeypatch.setattr(cli, "Console", lambda **_: Console(file=output, width=160))
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_skill_cli.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1948500>
+prompt = <tests.test_skill_cli.test_interactive_select_switch_off_new_no_model_calls.<locals>.Prompt object at 0x000001E7E194A810>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E19481A0>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+___________________ test_resume_bad_selection_keeps_current ___________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/nr-5d9eb596/pytest-of-Archer/pytest-1/test_resume_bad_selection_keep0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E7E0A0A450>
+
+    async def test_resume_bad_selection_keeps_current(tmp_path: Path, monkeypatch: Any) -> None:
+        cfg = config(monkeypatch)
+        bad = tmp_path / "bad.jsonl"
+        bad.write_text("broken", encoding="utf-8")
+        answers = iter(["/resume", "/exit"])
+        instances: list[bootstrap.Conversation] = []
+        original = bootstrap.Conversation
+    
+        def create(*args: Any, **kwargs: Any) -> bootstrap.Conversation:
+            value = original(*args, **kwargs)
+            instances.append(value)
+            return value
+    
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+    
+                from prompt_toolkit.input import DummyInput
+    
+                self.app = SimpleNamespace(input=DummyInput())
+    
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                assert len(instances) == 1 and not instances[0].closed
+                return next(answers)
+    
+        async def select(_: Any) -> Path:
+            return bad
+    
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", create)
+        monkeypatch.setattr(cli, "select_session", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_skill_cli.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:287: in application
+    editor = TaskInput(prompt, display.repaint if display is not None else None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.input.TaskInput object at 0x000001E7E1B6A720>
+prompt = <tests.test_skill_cli.test_resume_bad_selection_keeps_current.<locals>.Prompt object at 0x000001E7E1B6B530>
+repaint = <bound method DisplayReplay.repaint of <nexus.app.console.DisplayReplay object at 0x000001E7E1B68350>>
+
+    def __init__(
+        self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
+    ) -> None:
+        self.prompt = prompt
+        self.prompt.app.erase_when_done = True
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        self.repaint = repaint if not reworked else None
+        self.resize_handle: asyncio.TimerHandle | None = None
+        self.rendered_size: Size | None = None
+        if reworked:
+            # Reworked places IME preedit inline, increasing the host editor's line
+            # width before Python receives any committed text (IJPL-248517).
+            # Headroom prevents soft-wrap, but a right rail still shifts during
+            # composition. Leave that rail unpainted; retain the Frame's top,
+            # bottom, left edge, buffer, completion floats and focus.
+            layout = self.prompt.app.layout
+            for container in layout.walk():
+                if isinstance(container, VSplit) and len(container.children) == 3:
+                    left, _, right = container.children
+                    if (isinstance(left, Window) and isinstance(right, Window)
+                            and left.char == right.char == "│"
+                            and left.style == right.style == "class:frame.border"):
+                        right.char = " "
+                        right.style = ""
+            layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+        if self.repaint is not None:
+            self.prompt.app._on_resize = self.queue_resize  # type: ignore[method-assign]
+            self.prompt.app.terminal_size_polling_interval = 0.05
+            # Inline help needs no screen-bottom/CPR anchor. Resize uses a known
+            # home position, so there are no asynchronous replies to pollute input.
+>           self.prompt.app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'types.SimpleNamespace' object has no attribute 'renderer'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\input.py:181: AttributeError
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_acl_consent.py::test_permissions_transition_preserves_session_until_consent[False]
+FAILED tests/test_acl_consent.py::test_permissions_transition_preserves_session_until_consent[True]
+FAILED tests/test_conversation.py::test_cli_new_and_resume_close_old_lifetimes
+FAILED tests/test_mcp_tui.py::test_cancel_resume_keeps_current_conversation
+FAILED tests/test_memory_controls.py::test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume
+FAILED tests/test_memory_daily.py::test_cli_terminal_stops_before_exit_summary[slash-exit]
+FAILED tests/test_memory_daily.py::test_cli_terminal_stops_before_exit_summary[eof]
+FAILED tests/test_profile.py::test_interactive_profile_resets_after_each_drive
+FAILED tests/test_skill_cli.py::test_interactive_select_switch_off_new_no_model_calls
+FAILED tests/test_skill_cli.py::test_resume_bad_selection_keeps_current - Att...
+10 failed, 1000 passed, 10 skipped in 98.36s (0:01:38)

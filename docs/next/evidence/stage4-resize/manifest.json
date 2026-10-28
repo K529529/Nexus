@@ -1,0 +1,30 @@
+{
+  "baseline_commit": "a07a9c832ec6acd3d3adc2681d34d6e80dbb612f",
+  "source": {
+    "src\\nexus\\app\\input.py": "91f142b801345c8dbb8cf36e6e6d279571e89ed74c997bb372d649710a48e13d",
+    "src\\nexus\\app\\console.py": "9bfefbc0d392ab0a6ccd3674a5347adbf0bfc146078c281d020f24997c1d1515",
+    "src\\nexus\\app\\cli.py": "af1c23392e2416c1be1a47755c01d1a622978325695290735e05e46ca275cdf0"
+  },
+  "installed": {
+    "windows": {
+      "files": {
+        "nexus.app.input": "91f142b801345c8dbb8cf36e6e6d279571e89ed74c997bb372d649710a48e13d",
+        "nexus.app.console": "9bfefbc0d392ab0a6ccd3674a5347adbf0bfc146078c281d020f24997c1d1515",
+        "nexus.app.cli": "af1c23392e2416c1be1a47755c01d1a622978325695290735e05e46ca275cdf0"
+      },
+      "prompt_toolkit": "3.0.53",
+      "worker": "2927d7ed4632f291e3b265405f497de1537d3904dda2927d00296521e9298f04"
+    },
+    "wsl": {
+      "files": {
+        "nexus.app.input": "91f142b801345c8dbb8cf36e6e6d279571e89ed74c997bb372d649710a48e13d",
+        "nexus.app.console": "9bfefbc0d392ab0a6ccd3674a5347adbf0bfc146078c281d020f24997c1d1515",
+        "nexus.app.cli": "af1c23392e2416c1be1a47755c01d1a622978325695290735e05e46ca275cdf0"
+      },
+      "prompt_toolkit": "3.0.53",
+      "worker": "2927d7ed4632f291e3b265405f497de1537d3904dda2927d00296521e9298f04"
+    }
+  },
+  "wheel_sha256": "b38db61cb375dd3f4ed186e7dd67e09c66433fcb0a42ebe080b1d0511e20ea88",
+  "implementation_commit": "e98190657166179e821f37fe9ad2d054682438fe"
+}

@@ -1,0 +1,234 @@
+{
+  "cases": [
+    {
+      "case": "rounds-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": null,
+      "capture_layout_pass": true,
+      "directory": "final-reworked",
+      "backend": 0,
+      "wsl": false,
+      "resize_checks": [],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": false,
+      "directory": "final-windows",
+      "backend": 1,
+      "wsl": false,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "approval-repaint",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-windows-approval",
+      "backend": 1,
+      "wsl": false,
+      "resize_checks": [],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-clear-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": false,
+      "directory": "final-windows-clear",
+      "backend": 1,
+      "wsl": false,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": true,
+      "directory": "final-windows-conpty",
+      "backend": 0,
+      "wsl": false,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-empty-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": false,
+      "directory": "final-windows-empty",
+      "backend": 1,
+      "wsl": false,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "manual-paste-repaint",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-windows-six",
+      "backend": 1,
+      "wsl": false,
+      "resize_checks": [],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": true,
+      "directory": "final-wsl",
+      "backend": 1,
+      "wsl": true,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "approval-repaint",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-wsl-approval",
+      "backend": 1,
+      "wsl": true,
+      "resize_checks": [],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-clear-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": false,
+      "directory": "final-wsl-clear",
+      "backend": 1,
+      "wsl": true,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-multiline-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": true,
+      "directory": "final-wsl-conpty",
+      "backend": 0,
+      "wsl": true,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "rounds-drag-history-stress-empty-repaint",
+      "pass": true,
+      "console_layout_pass": true,
+      "resize_layout_pass": true,
+      "capture_layout_pass": true,
+      "directory": "final-wsl-empty",
+      "backend": 1,
+      "wsl": true,
+      "resize_checks": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "cpr_reports": 0
+    },
+    {
+      "case": "manual-paste-repaint",
+      "pass": true,
+      "console_layout_pass": null,
+      "resize_layout_pass": null,
+      "capture_layout_pass": null,
+      "directory": "final-wsl-six",
+      "backend": 1,
+      "wsl": true,
+      "resize_checks": [],
+      "cpr_reports": 0
+    }
+  ],
+  "gui_drag_and_ime": "pending user acceptance",
+  "no_paid_model_calls": true
+}

@@ -1,0 +1,6 @@
+{
+  "entries": 1000,
+  "characters": 61890,
+  "replay_ms": 129.39,
+  "note": "Local render/capture only; terminal flush and GUI drag latency are not measured."
+}

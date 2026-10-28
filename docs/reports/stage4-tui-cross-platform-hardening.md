@@ -2,7 +2,7 @@
 
 日期：2026-10-28。分支：`codex/nexus-v0.3-stage4-sandbox`。
 
-**最新补充：原生 Windows Console 的针对性修复已安装，见文末“原生 Console 专项修复”。下面的初轮失败状态保留为历史记录。Sandbox 和 HITL 已由用户验收，本轮仅等待新版 Console 输入体验复验。**
+**最新补充：Windows + WSL 已安装统一缩放重绘，见文末“统一处理连续缩放”。此前局部 Console 修复仍被用户复现横向残框，旧结论保留为历史记录。Sandbox 和 HITL 已由用户验收。**
 
 基线：`a9de1b78950d39cc25fb88f072c38f2fb864e750`。
 最终实现 Commit：`cf50a4b14d8344e78072e24b3bc4cbc887ecaf02`。
@@ -216,3 +216,70 @@ cd D:\WorkSpace\nexus-native-hardening-manual-20261026\workspace
 
 请复验中文输入、粘贴多行、连续三轮后向上拖大窗口，以及横向缩放。实际 IME 预编辑、字体和鼠标拖动仍以用户窗口验收为准。
 本轮没有升级 WSL 已安装程序；Linux 源码回归通过不等于部署了新的 Linux 候选。Sandbox、HITL 已验收状态保持，不合并 V0.3/main。
+
+## 2026-10-28 统一处理连续缩放
+
+实现提交：`e98190657166179e821f37fe9ad2d054682438fe`，基线 `a07a9c832ec6acd3d3adc2681d34d6e80dbb612f`。
+**Windows 和 WSL 两边都已重新安装本轮 wheel**，三个显示模块与工作区源码 SHA256 一致，见 [manifest](../next/evidence/stage4-resize/manifest.json)。安装目录不变，运行中的旧进程必须 `/exit` 后重开。
+
+### 人工反馈与复现
+
+用户复验：Windows 向上扩大、向下压缩已通过，但横向拖动仍异常；WSL 向下压缩和横向拖动均异常，截图还显示 `[14;1R`。上一轮等候 700ms 的离散尺寸切换不能代表这种交互，不能继续视为完整验收。
+
+本轮每个压力场景连续运行 10 轮、每轮插入 13 行历史，在已有历史的第 4、7 轮各发送 52 次尺寸变更，间隔约 40ms，宽度覆盖 40–130 列、高度覆盖 10–48 行，并在四个极端尺寸停留检查。Windows 旧候选在这一 PTY 场景仍能通过，故不声称自动化重现了用户 Windows GUI 的所有差异。WSL 旧候选则真实出现输入原文变化、CPR 响应激增和残框。禁用 CPR 加旧框折行估算的实验能保护原文，却仍不能稳定清除残框。
+
+根因不只是一个边框坐标：终端可在应用收到 resize 前多次重排、滚动旧输出，局部相对擦除无法可靠还原旧输入框的物理起点；异步 CPR 定位又使 WSL 路径依赖过期位置响应。本轮不再叠加旧框行数猜测。
+
+### 显示层方案
+
+继续参考实际安装的 Pi TUI 1.4.0：宽高改变后以持有的会话显示内容做完整重排，并用绝对列定位。未复制 Pi 源码或替换 Agent 架构。
+
+- `DisplayReplay` 保存现有 Rich Console 已打印内容及打印参数的快照。重排不读取模型上下文、JSONL 或真实用户文件，不改变消息、调用次数或授权。Live 的瞬态 Control/spinner 不进入回放。
+- 原生 Windows 与 Linux/WSL 使用同一 resize 流程：100ms 合并连续事件，清除失效屏幕和 scrollback，按新宽度回放本次 Nexus 的显示历史，再绘制当前草稿。重绘会清掉启动 Nexus 之前的 shell scrollback，和 Pi 的整屏恢复策略一致；Nexus 自己的已显示会话保留。
+- 输入编辑器不再发 CPR 查询；不通过正则删除输入中的 `[14;1R` 来掩盖问题。用户主动粘贴相同字面字符串仍被原样保留。
+- 保留中文光标绝对列归位，小高度时给帮助行及终端边界留空间，长草稿在编辑框内部滚动。
+- Ctrl+C 清空草稿仍执行待定重绘；提交/退出取消延迟回调，未完成的重绘可在下一次输入前恢复。JetBrains Reworked 路径保持原实现。
+- 仅真实交互 TTY 启用显示回放；`exec`、JSON 输出、Sandbox、HITL 实现及模型配置未改。
+
+显示快照只存本进程内存，成本随已显示会话增长。1000 条合成输出本机重新排版与捕获约 **129ms**（不含终端 flush/GUI 拖拽延迟），详见 `replay-timing.json`。这不是跨设备性能承诺。
+
+### 验证与证据边界
+
+[原始证据及失败记录](../next/evidence/stage4-resize/README.md)，[最终验证清单](../next/evidence/stage4-resize/verification.json)。
+
+| 项目 | 结果 |
+| --- | --- |
+| Windows 全量 | **1019 passed，10 skipped**（opt-in Docker 验收未重跑） |
+| WSL UI 套件 | 78 passed；最终 Ctrl+C 边界增量另测 4 passed |
+| Ruff / Mypy | PASS；62 source files |
+| Windows / WSL，classic Console | 多行、空草稿、连续缩放、小窗口、缩放时 Ctrl+C 后继续输入：原文、实际 Console 单元布局、历史保留均 PASS |
+| Windows / WSL，ConPTY | 同一多行连续缩放场景 PASS |
+| 双平台用户六行原文 | 提交 SHA256 一致，PASS |
+| 双平台 HITL 键盘回归 | Deny / Allow / Cancel / 下一次默认 Deny PASS；未改审批实现 |
+| Reworked 代码路径对照 | PASS；不等同于 PyCharm GUI 重验 |
+| 双平台安装 | 三个模块源码/安装哈希一致；Docker Worker 指纹不变 |
+
+WSL 场景新增独立 Windows 读者附着测试 PTY，通过 `CONOUT$` 读取实际 Console 单元。这样不再只凭 pyte 对 resize 转录的重建作判断；仿真转录仍保存并单独标记。最终 13 个真实终端场景通过，其中 8 个缩放场景各有 8 个停留检查。
+
+失败保留：首次新 Console 子类绕过测试注入导致 8 项 CLI 输出断言失败，改为包装原 Console；旧 SimpleNamespace Prompt 替身缺少 renderer，补成真实 Application；WSL 套件并发压力下有一次 3 秒审批单测超时，终端压力测试结束后单独运行 78 项通过，未放宽生产审批期限。`windows-multiline` 的 10 行窗口暴露帮助行/边框边界，最终小窗口滚动与直接 Console 检查通过。
+
+这些是真实 PTY/Console 的程序化尺寸测试，**不是鼠标拖拽或 IME GUI 自动验收**；用户截图中的真实 GUI 是最终复验标准。没有付费模型调用、Sandbox 重建、ACL 修改或 V0.3/main 合并。
+
+### 本轮两个启动命令
+
+先退出当前运行中的 Nexus，再重开。Windows 普通 PowerShell：
+
+```powershell
+cd D:\WorkSpace\nexus-native-hardening-manual-20261026\workspace
+& D:\WorkSpace\nexus-stage4d-console-windows-20261028\Scripts\nexus.exe --permission-mode workspace-write
+```
+
+PowerShell 运行 `wsl -d Ubuntu -u archer` 进入 Ubuntu 后：
+
+```bash
+source /home/archer/.nexus/model-env.sh
+cd /home/archer/nexus-stage4c-20261027/work
+/home/archer/nexus-stage4d-20261028/venv/bin/nexus --permission-mode workspace-write
+```
+
+两端复验同一组合：多轮历史后上下缩放、左右连续缩放、空草稿与多行草稿、缩放后 Ctrl+C 清空并继续输入。
