@@ -6,12 +6,14 @@ import io
 import json
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.data_structures import Size
 from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.output import DummyOutput
 from prompt_toolkit.output.vt100 import Vt100_Output
 
 from nexus.app.events import Events
@@ -25,6 +27,60 @@ from tests.conftest import call
 from tests.test_cli_ux import TASK, until
 from tests.test_input_v02 import editor_session, paste
 from tests.test_security_stage4 import Backend
+
+
+@pytest.mark.parametrize("reworked", [False, True])
+async def test_native_console_help_flows_with_editor_except_reworked(
+    monkeypatch: pytest.MonkeyPatch, reworked: bool,
+) -> None:
+    class ConsoleOutput(DummyOutput):
+        # The same capability exposed by Win32Output / Windows10_Output.
+        def __init__(self) -> None:
+            self.positions: list[tuple[int, int]] = []
+            self.width = 80
+
+        def get_win32_screen_buffer_info(self) -> SimpleNamespace:
+            assert not reworked
+            return SimpleNamespace(dwSize=SimpleNamespace(X=self.width),
+                                   dwCursorPosition=SimpleNamespace(X=25, Y=9))
+
+        def cursor_goto(self, row: int = 0, column: int = 0) -> None:
+            self.positions.append((row, column))
+
+        def get_rows_below_cursor_position(self) -> int:
+            return 40
+
+    monkeypatch.setenv("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED", "1" if reworked else "0")
+    output = ConsoleOutput()
+    async with editor_session(output) as (editor, prompt, pipe, pending):
+        assert editor.inline_toolbar is not reworked
+        if not reworked:
+            assert prompt.bottom_toolbar is None
+            screen = prompt.app.renderer.last_rendered_screen
+            assert screen is not None
+            rows = ["".join(c.char for _, c in sorted(screen.data_buffer[y].items()))
+                    for y in range(screen.height)]
+            assert "Nexus" in rows[1]
+            assert "Enter send" in rows[3]
+            assert all(not row.strip() for row in rows[4:])
+            assert output.positions[-1] == (9, prompt.app.renderer._cursor_pos.x)
+            # Native Console wraps the 80-column old top rail when narrowed to
+            # 70: erase must move up two rows, not leave its first row behind.
+            previous = prompt.app.renderer._cursor_pos
+            resized = []
+            with monkeypatch.context() as patch:
+                patch.setattr(editor, "_resize", lambda: resized.append(
+                    prompt.app.renderer._cursor_pos))
+                editor.resize_console()
+                assert resized[-1] == previous  # height-only resize
+                output.width = 70
+                editor.resize_console()
+                assert resized[-1].y == previous.y + 1
+                assert resized[-1].x == previous.x
+            output.width = 80
+            prompt.app.renderer._cursor_pos = previous
+        pipe.send_text("中文\r")
+        assert await pending == "中文"
 
 
 @pytest.mark.parametrize("ending", ["\n", "\r", "\r\n"])

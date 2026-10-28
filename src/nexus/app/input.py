@@ -13,6 +13,7 @@ from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
+from prompt_toolkit.data_structures import Point
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import Condition, to_filter
 from prompt_toolkit.formatted_text import StyleAndTextTuples
@@ -145,7 +146,8 @@ class TaskInput:
     def __init__(self, prompt: PromptSession[str]) -> None:
         self.prompt = prompt
         self.prompt.app.erase_when_done = True
-        if os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1":
+        reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
+        if reworked:
             # Reworked places IME preedit inline, increasing the host editor's line
             # width before Python receives any committed text (IJPL-248517).
             # Headroom prevents soft-wrap, but a right rail still shifts during
@@ -161,12 +163,19 @@ class TaskInput:
                         right.char = " "
                         right.style = ""
             layout.container = VSplit([HSplit([layout.container], width=self.ime_width)])
-        self.inline_toolbar = isinstance(getattr(self.prompt.app, "output", None), Vt100_Output)
+        output = getattr(self.prompt.app, "output", None)
+        native_console = callable(getattr(output, "get_win32_screen_buffer_info", None))
+        if native_console and not reworked:
+            self.prompt.app.after_render += self.align_console_cursor
+            self._resize = self.prompt.app._on_resize
+            # prompt_toolkit's resize erases using the pre-resize relative cursor.
+            self.prompt.app._on_resize = self.resize_console  # type: ignore[method-assign]
+        self.inline_toolbar = isinstance(output, Vt100_Output) or (native_console and not reworked)
         if self.inline_toolbar:
-            # A bottom-of-screen toolbar depends on CPR/viewport accounting. The
-            # classic Console -> WSL bridge can misplace that redraw by a row,
-            # leaving frames behind. Keep VT help in the same flow as the editor;
-            # retain native Windows console layout, CPR, paste and all bindings.
+            # A screen-bottom toolbar stretches rendering to the viewport edge.
+            # Classic Console can scroll that redraw and leave stale frame rows,
+            # both natively and through WSL. Keep help in the editor's flow; retain
+            # the already accepted JetBrains native layout and all input bindings.
             layout = self.prompt.app.layout
             root = layout.container
             layout.container = HSplit([
@@ -379,6 +388,36 @@ class TaskInput:
             if (isinstance(window.content, BufferControl)
                     and window.content.buffer is self.prompt.default_buffer):
                 window.dont_extend_height = to_filter(True)
+
+    def align_console_cursor(self, app: Application[str]) -> None:
+        # Classic Console's relative VT movements across CJK cells can leave X
+        # ahead of the renderer. Like Pi's final absolute-column positioning,
+        # reconcile before the next input/diff/erase; never alter the buffer.
+        if not app.is_done:
+            output = app.output
+            info = output.get_win32_screen_buffer_info()  # type: ignore[attr-defined]
+            column = app.renderer._cursor_pos.x
+            if info.dwCursorPosition.X != column:
+                native = getattr(output, "win32_output", output)
+                native.cursor_goto(info.dwCursorPosition.Y, column)
+
+    def resize_console(self) -> None:
+        # A narrower Console reflows the old frame before notifying the app.
+        # Include those extra physical rows when erasing, then let the existing
+        # resize path rebuild the input at its new size. History is left intact.
+        app = self.prompt.app
+        renderer = app.renderer
+        screen = renderer.last_rendered_screen
+        cursor = renderer._cursor_pos
+        info = app.output.get_win32_screen_buffer_info()  # type: ignore[attr-defined]
+        width = info.dwSize.X
+        if screen is not None and width > 0:
+            extra = sum(max(0, max((x + char.width for x, char in screen.data_buffer[y].items()
+                                   if char.char.strip()), default=0) - 1) // width
+                        for y in range(cursor.y))
+            renderer._cursor_pos = Point(cursor.x % width,
+                                         cursor.y + extra + cursor.x // width)
+        self._resize()
 
     def toolbar(self) -> str:
         if self.capture is not None:

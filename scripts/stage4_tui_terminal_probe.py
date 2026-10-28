@@ -30,7 +30,68 @@ async def child(state: Path, case: str) -> None:
     from nexus.app.input import TaskInput
 
     prompt = PromptSession(output=get_app_session().output)
+    if "preservemode" in case:
+        import ctypes
+        from ctypes.wintypes import DWORD
+
+        output = prompt.app.output
+
+        def flush_preserving_mode():
+            original = DWORD()
+            ctypes.windll.kernel32.GetConsoleMode(output._hconsole, ctypes.byref(original))
+            ctypes.windll.kernel32.SetConsoleMode(output._hconsole, DWORD(original.value | 4))
+            try:
+                output.vt100_output.flush()
+            finally:
+                ctypes.windll.kernel32.SetConsoleMode(output._hconsole, original)
+
+        output.flush = flush_preserving_mode
     editor = TaskInput(prompt)
+    if "align" in case:
+        def align_cursor(app):
+            if not app.is_done:
+                info = app.output.get_win32_screen_buffer_info()
+                app.output.win32_output.cursor_goto(info.dwCursorPosition.Y,
+                                                   app.renderer._cursor_pos.x)
+        prompt.app.after_render += align_cursor
+    if "reflow" in case:
+        from prompt_toolkit.data_structures import Point
+        original_resize = prompt.app._on_resize
+
+        def resize_reflow():
+            renderer = prompt.app.renderer
+            screen = renderer.last_rendered_screen
+            cursor = renderer._cursor_pos
+            width = prompt.app.output.get_win32_screen_buffer_info().dwSize.X
+            if screen is not None:
+                extra = sum(max(0, max((x + 1 for x, c in screen.data_buffer[y].items()
+                                       if c.char.strip()), default=0) - 1) // width
+                            for y in range(cursor.y))
+                renderer._cursor_pos = Point(cursor.x % width,
+                                             cursor.y + extra + cursor.x // width)
+            original_resize()
+
+        prompt.app._on_resize = resize_reflow
+    reservations = []
+    if "trace" in case:
+        def trace_reservation(app):
+            size = app.output.get_size()
+            reservations.append({"done": app.is_done,
+                                 "below": app.output.get_rows_below_cursor_position(),
+                                 "preferred": app.layout.container.preferred_height(
+                                     size.columns, size.rows).preferred})
+        prompt.app.before_render += trace_reservation
+    if "reserve" in case:
+        original_prepare_reserve = editor.prepare
+
+        def reserve_prepare():
+            original_prepare_reserve()
+            output = prompt.app.output
+            output.write("\r\n" * 4)
+            output.cursor_up(4)
+            output.flush()
+
+        editor.prepare = reserve_prepare
     if case.endswith("inline"):
         from prompt_toolkit.layout.containers import HSplit, Window
         from prompt_toolkit.layout.controls import FormattedTextControl
@@ -53,10 +114,17 @@ async def child(state: Path, case: str) -> None:
         original_prompt = prompt.prompt_async
 
         async def inline_prompt(*args, **kwargs):
-            kwargs["bottom_toolbar"] = ""
+            kwargs["bottom_toolbar"] = None
             return await original_prompt(*args, **kwargs)
 
         prompt.prompt_async = inline_prompt
+        original_prepare = editor.prepare
+
+        def inline_prepare():
+            original_prepare()
+            prompt.bottom_toolbar = None
+
+        editor.prepare = inline_prepare
     submitted = []
     cpr_rows = []
     original_report = prompt.app.renderer.report_absolute_cursor_row
@@ -88,6 +156,7 @@ async def child(state: Path, case: str) -> None:
                 "term": os.environ.get("TERM"),
                 "inline_toolbar": getattr(editor, "inline_toolbar", None),
                 "toolbar_empty": prompt.bottom_toolbar == "",
+                "reservations": reservations[-3:],
             },
             **extra,
         }
@@ -101,6 +170,10 @@ async def child(state: Path, case: str) -> None:
 
             output = prompt.app.output
             info = output.get_win32_screen_buffer_info()
+            data["diagnostic"]["console_cursor"] = [
+                info.dwCursorPosition.X, info.dwCursorPosition.Y,
+            ]
+            data["diagnostic"]["console_window"] = [info.srWindow.Top, info.srWindow.Bottom]
             rows = []
             for y in range(info.srWindow.Top, info.srWindow.Bottom + 1):
                 cells = ctypes.create_unicode_buffer(info.dwSize.X + 1)
@@ -158,6 +231,10 @@ async def child(state: Path, case: str) -> None:
         save()
         with editor.busy(lambda: None):
             Console(highlight=False).print(f"Tool output {i}: 中文完成")
+            if "history" in case:
+                Console(highlight=False).print("\n".join(
+                    f"Transcript {i}.{line}: 多轮历史输出 English" for line in range(12)
+                ))
             await asyncio.sleep(0.03)
     save(done=True)
 
