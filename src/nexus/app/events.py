@@ -105,6 +105,9 @@ class Events:
         clean = redact(data, self.secrets)
         event = RuntimeEvent(kind, now(), self.session.session_id, self.session.run_id, clean)
         seq = self.writer.append(event, protocol_data)
+        if kind == "tool_checkpoint":
+            # No UI await/cancellation window between the barrier and its caller.
+            return seq
         if publish:
             await self._publish(kind, clean)
         return seq

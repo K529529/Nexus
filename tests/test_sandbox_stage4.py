@@ -129,7 +129,8 @@ async def test_bridge_worker_reuses_patch_core_and_audit(tmp_path: Path) -> None
         value = await client.execute("apply_patch", {"patch": patch}, context, recorder)
         assert value.ok and (workspace / "a.txt").read_text() == "hello\n"
         assert value.data["changed_files"] == 1
-        assert [k for k, _ in recorder.events] == ["patch_diff"]
+        assert [k for k, _ in recorder.events] == [
+            "patch_manifest", "patch_diff", "patch_committed"]
         assert recorder.events[0][1]["call_id"] == context.call_id
         conflict = await client.execute("apply_patch", {"patch": patch}, context, Recorder())
         assert not conflict.ok and conflict.error_code == "patch_conflict"
@@ -333,7 +334,7 @@ async def test_worker_audit_failure_stops_further_files(tmp_path: Path) -> None:
             failing,
         )
         assert value.error_code == "cleanup_incomplete"
-        assert (tmp_path / "work/a").exists()
+        assert not (tmp_path / "work/a").exists()
         assert not (tmp_path / "work/b").exists()
     finally:
         await client.close()

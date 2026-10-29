@@ -36,7 +36,7 @@ async def test_only_interior_add_blanks_normalized(
     assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
     expected = b"first\n" + b"\n" * blanks + b"last\n"
     assert (execution.workspace / "a").read_bytes() == expected
-    audit = events.events[0][1]
+    audit = next(data for kind, data in events.events if kind == "patch_diff")
     assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
     assert audit["added_lines"] == blanks + 2
     assert '"diff"' not in result.message().content
@@ -158,7 +158,7 @@ async def test_real_filepilot_stale_old_block_and_actual_repair(
     repaired = await apply_patch(
         json.loads(sample["recovery_call"]["arguments_json"]), execution, events
     )
-    assert repaired.ok and events.events[0][0] == "patch_diff"
+    assert repaired.ok and any(kind == "patch_diff" for kind, _ in events.events)
     assert (
         repaired.data["files"][0]["after_hash"]
         == "09bb8514537ef79afbb83a348911d00a74887c00da3830fb95e6d2ccdf7fed98"

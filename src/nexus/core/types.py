@@ -164,6 +164,10 @@ class Session:
     checkpoint: ContextSnapshot | None = None
     # Latest execution outcome per run, rebuilt from existing run_finished records.
     run_outcomes: dict[str, Json] = field(default_factory=dict)
+    # Only verified PREPARED calls may execute on the next explicit resumed turn.
+    pending_tools: list[ToolCall] = field(default_factory=list)
+    recovered_results: dict[str, ToolResult] = field(default_factory=dict)
+    unresolved_effects: dict[str, Json] = field(default_factory=dict)
     plan: PlanState | None = None
     skill_catalog: tuple[SkillInfo, ...] = ()
     selected_skill: SkillSnapshot | None = None

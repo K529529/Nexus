@@ -1,0 +1,546 @@
+...........................................................F...FFFF.FF.. [ 63%]
+...................FFFF.......F.........F                                [100%]
+================================== FAILURES ===================================
+_________________ test_actual_diff_metadata_and_no_model_diff _________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_actual_diff_...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+
+    async def test_actual_diff_metadata_and_no_model_diff(execution: ExecutionContext) -> None:
+        before = b"--old\nkeep\n"
+        after = b"++new\nkeep\n"
+        (execution.workspace / "a").write_bytes(before)
+        (execution.workspace / "gone").write_bytes(b"bye\n")
+        events = Recorder()
+        result = await apply_patch(
+            {
+                "patch": wrapped(
+                    "*** Update File: a\n@@\n---old\n+++new\n"
+                    "*** Add File: sub/b\n+added\n*** Delete File: gone"
+                )
+            },
+            execution,
+            events,
+        )
+        assert result.ok and result.data["changed_files"] == 3
+        assert result.data["created_directories"] == ["sub"]
+        assert '"diff"' not in result.message().content
+>       assert [kind for kind, _ in events.events] == ["patch_diff"] * 3
+E       AssertionError: assert ['patch_manif...ch_diff', ...] == ['patch_diff'... 'patch_diff']
+E
+E         At index 0 diff: 'patch_manifest' != 'patch_diff'
+E         Left contains 4 more items, first extra item: 'patch_diff'
+E         Use -v to get more diff
+
+tests\test_patch_audit.py:53: AssertionError
+_______________ test_diff_caps_and_independent_metadata_budget ________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_diff_caps_an...er\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=400)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000160DE4D7F80>
+
+    async def test_diff_caps_and_independent_metadata_budget(
+        execution: ExecutionContext,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(module, "MAX_DIFF_BYTES", 100)
+        monkeypatch.setattr(module, "MAX_CALL_DIFF_BYTES", 110)
+        execution.output_limit_bytes = 400
+        events = Recorder()
+        result = await apply_patch(
+            {
+                "patch": wrapped(
+                    "\n".join(
+                        f"*** Add File: {name}\n+{body}"
+                        for name, body in [
+                            ("a", "x" * 200),
+                            ("b", "��" * 10),
+                            ("c", "��" * 10),
+                            ("d", "x"),
+                        ]
+                    )
+                )
+            },
+            execution,
+            events,
+        )
+        assert result.ok and result.truncated
+        assert result.data["omitted_files"] > 0 and result.data["changed_files"] == 4
+>       assert len(events.events) == 4
+E       AssertionError: assert 9 == 4
+E        +  where 9 = len([('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...': 'added', ...}), ('patch_diff', {'call_id': 'test-call', 'file_index': 3, 'path': 'c', 'status': 'added', ...}), ...])
+E        +    where [('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...': 'added', ...}), ('patch_diff', {'call_id': 'test-call', 'file_index': 3, 'path': 'c', 'status': 'added', ...}), ...] = <tests.conftest.Recorder object at 0x00000160DE51C0B0>.events
+
+tests\test_patch_audit.py:128: AssertionError
+___________________ test_default_capacity_omits_large_diff ____________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_default_capa...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+
+    async def test_default_capacity_omits_large_diff(execution: ExecutionContext) -> None:
+        events = Recorder()
+        result = await apply_patch(
+            {"patch": wrapped("*** Add File: large\n+" + "z" * (module.MAX_DIFF_BYTES + 1))},
+            execution,
+            events,
+        )
+        assert result.ok and not result.truncated  # model metadata is complete
+>       assert events.events[0][1]["omitted"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'omitted'
+
+tests\test_patch_audit.py:151: KeyError
+______________ test_partial_failure_records_only_committed_files ______________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_partial_fail...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000160DE51CB90>
+
+    async def test_partial_failure_records_only_committed_files(
+        execution: ExecutionContext,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        commit = module._commit
+
+        def fail(path: Path, change: module.Change) -> OSError | None:
+            if path.name == "b":
+                raise PermissionError("injected")
+            return commit(path, change)
+
+        monkeypatch.setattr(module, "_commit", fail)
+        events = Recorder()
+        result = await apply_patch(
+            {"patch": wrapped("*** Add File: a\n+yes\n*** Add File: b\n+no")}, execution, events
+        )
+        assert not result.ok and result.error_code == "patch_io_error"
+        assert result.data["partial"] and result.data["changed_files"] == 1
+        assert result.data["failed_file"] == "b" and result.data["detail"] == "PermissionError"
+>       assert len(events.events) == 1 and events.events[0][1]["path"] == "a"
+E       AssertionError: assert (4 == 1)
+E        +  where 4 = len([('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...tatus': 'added', ...}), ('patch_diff', {'call_id': 'test-call', 'file_index': 2, 'path': 'b', 'status': 'added', ...})])
+E        +    where [('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...tatus': 'added', ...}), ('patch_diff', {'call_id': 'test-call', 'file_index': 2, 'path': 'b', 'status': 'added', ...})] = <tests.conftest.Recorder object at 0x00000160DE51D850>.events
+
+tests\test_patch_audit.py:177: AssertionError
+_______________ test_cleanup_failure_after_commit_keeps_receipt _______________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_cleanup_fail...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000160DE51DAF0>
+
+    async def test_cleanup_failure_after_commit_keeps_receipt(
+        execution: ExecutionContext,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        unlink = Path.unlink
+
+        def fail(path: Path, *args: Any, **kwargs: Any) -> None:
+            if path.name.startswith(".nexus-patch-"):
+                raise PermissionError("cleanup failed")
+            unlink(path, *args, **kwargs)
+
+        with monkeypatch.context() as scoped:
+            scoped.setattr(Path, "unlink", fail)
+            events = Recorder()
+            result = await apply_patch(
+                {"patch": wrapped("*** Add File: a\n+yes\n*** Add File: b\n+no")}, execution, events
+            )
+        assert (execution.workspace / "a").read_bytes() == b"yes\n"
+        assert not (execution.workspace / "b").exists()
+        assert not result.ok and result.data["partial"] and result.data["changed_files"] == 1
+        assert result.data["failed_file"] == "a"
+>       assert len(events.events) == 1 and events.events[0][1]["path"] == "a"
+E       AssertionError: assert (3 == 1)
+E        +  where 3 = len([('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...': 'added', ...}), ('patch_committed', {'call_id': 'test-call', 'file_index': 1, 'path': 'a', 'status': 'added', ...})])
+E        +    where [('patch_manifest', {'call_id': 'test-call', 'file_index': 0, 'files': [{'path': 'a', 'status': 'added', 'before_hash'...': 'added', ...}), ('patch_committed', {'call_id': 'test-call', 'file_index': 1, 'path': 'a', 'status': 'added', ...})] = <tests.conftest.Recorder object at 0x00000160DE51EE10>.events
+
+tests\test_patch_audit.py:202: AssertionError
+_________ test_interrupted_audit_does_not_dispatch_next_file[cancel] __________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_interrupted_audit_does_no0')
+fault = 'cancel'
+
+    @pytest.mark.parametrize("fault", ["cancel", "log_failure", "crash_after_audit"])
+    async def test_interrupted_audit_does_not_dispatch_next_file(tmp_path: Path, fault: str) -> None:
+        session = Session(tmp_path)
+        writer = SessionLog.create(session, "fault", {}, tmp_path)
+        reached = asyncio.Event()
+
+        async def consumer(event: RuntimeEvent) -> None:
+            if event.kind == "patch_diff" and fault == "cancel":
+                reached.set()
+                await asyncio.Event().wait()
+
+        class FaultLog:
+            def append(self, event: RuntimeEvent, protocol_data: Json | None = None) -> int:
+                if event.kind == "patch_diff" and fault == "log_failure":
+                    writer.failed = True
+                    raise SessionError("injected write failure")
+                return writer.append(event, protocol_data)
+
+        events = Events(session, writer, consumer)
+        if fault == "log_failure":
+            events.writer = FaultLog()  # type: ignore[assignment]
+        patch = wrapped("*** Add File: a\n+yes\n*** Add File: b\n+no")
+        if fault == "crash_after_audit":
+            session.run_id = "crashed"
+            await events("run_started", {})
+            await append_message(session, reply(call("apply_patch", {"patch": patch})).message, events)
+            await events("tool_started", {"call_id": "c1", "name": "apply_patch"})
+            # A process can stop between durable audit and result. Do not fabricate a result.
+            await apply_patch(
+                {"patch": wrapped("*** Add File: a\n+yes")},
+                ExecutionContext(tmp_path, "c1", ""),
+                events,
+            )
+        else:
+            task = asyncio.create_task(
+                run_turn(
+                    session,
+                    "edit",
+                    ScriptedModel(
+                        [
+                            reply(call("apply_patch", {"patch": patch})),
+                            reply(text="done"),
+                        ]
+                    ),
+                    native_tools(),
+                    events,
+                    Limits(),
+                )
+            )
+            if fault == "cancel":
+                await asyncio.wait_for(reached.wait(), 5)
+                task.cancel()
+            result = await task
+            assert result.outcome == ("aborted" if fault == "cancel" else "failed")
+            if fault == "cancel":
+                receipt = json.loads(next(m.content for m in session.messages if m.role == "tool"))
+>               assert receipt["error_code"] == "cancelled" and receipt["data"]["partial"]
+E               AssertionError: assert ('cancelled' == 'cancelled'
+E
+E                   cancelled and False)
+
+tests\test_patch_audit.py:321: AssertionError
+_______ test_interrupted_audit_does_not_dispatch_next_file[log_failure] _______
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_interrupted_audit_does_no1')
+fault = 'log_failure'
+
+    @pytest.mark.parametrize("fault", ["cancel", "log_failure", "crash_after_audit"])
+    async def test_interrupted_audit_does_not_dispatch_next_file(tmp_path: Path, fault: str) -> None:
+        session = Session(tmp_path)
+        writer = SessionLog.create(session, "fault", {}, tmp_path)
+        reached = asyncio.Event()
+
+        async def consumer(event: RuntimeEvent) -> None:
+            if event.kind == "patch_diff" and fault == "cancel":
+                reached.set()
+                await asyncio.Event().wait()
+
+        class FaultLog:
+            def append(self, event: RuntimeEvent, protocol_data: Json | None = None) -> int:
+                if event.kind == "patch_diff" and fault == "log_failure":
+                    writer.failed = True
+                    raise SessionError("injected write failure")
+                return writer.append(event, protocol_data)
+
+        events = Events(session, writer, consumer)
+        if fault == "log_failure":
+            events.writer = FaultLog()  # type: ignore[assignment]
+        patch = wrapped("*** Add File: a\n+yes\n*** Add File: b\n+no")
+        if fault == "crash_after_audit":
+            session.run_id = "crashed"
+            await events("run_started", {})
+            await append_message(session, reply(call("apply_patch", {"patch": patch})).message, events)
+            await events("tool_started", {"call_id": "c1", "name": "apply_patch"})
+            # A process can stop between durable audit and result. Do not fabricate a result.
+            await apply_patch(
+                {"patch": wrapped("*** Add File: a\n+yes")},
+                ExecutionContext(tmp_path, "c1", ""),
+                events,
+            )
+        else:
+            task = asyncio.create_task(
+                run_turn(
+                    session,
+                    "edit",
+                    ScriptedModel(
+                        [
+                            reply(call("apply_patch", {"patch": patch})),
+                            reply(text="done"),
+                        ]
+                    ),
+                    native_tools(),
+                    events,
+                    Limits(),
+                )
+            )
+            if fault == "cancel":
+                await asyncio.wait_for(reached.wait(), 5)
+                task.cancel()
+            result = await task
+            assert result.outcome == ("aborted" if fault == "cancel" else "failed")
+            if fault == "cancel":
+                receipt = json.loads(next(m.content for m in session.messages if m.role == "tool"))
+                assert receipt["error_code"] == "cancelled" and receipt["data"]["partial"]
+                assert receipt["data"]["changed_files"] == 1
+            else:
+                assert result.reason == "session_write_failed; recovery incomplete"
+        path = writer.path
+        writer.close()
+>       assert (tmp_path / "a").read_bytes() == b"yes\n" and not (tmp_path / "b").exists()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_patch_audit.py:327:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\Tools\python\py312\Lib\pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_interrupted_audit_does_no1/a')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\Archer\\AppData\\Local\\Temp\\pytest-of-Archer\\pytest-0\\test_interrupted_audit_does_no1\\a'
+
+D:\Tools\python\py312\Lib\pathlib.py:1013: FileNotFoundError
+_____________ test_prewrite_barrier_leaves_no_side_effects[False] _____________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_prewrite_barrier_leaves_n0')
+cancel = False
+
+    @pytest.mark.parametrize("cancel", [False, True])
+    async def test_prewrite_barrier_leaves_no_side_effects(tmp_path: Path, cancel: bool) -> None:
+        ctx = ExecutionContext(tmp_path, "one", "/bin/sh")
+        seen = []
+
+        async def reject(kind: str, data: dict[str, Any], **kw: Any) -> int:
+            seen.append((kind, data))
+            assert not (tmp_path / "parent").exists()
+            if cancel:
+                raise asyncio.CancelledError
+            raise OSError("durable audit failed")
+
+        patch = "*** Begin Patch\n*** Add File: parent/one.txt\n+one\n*** End Patch"
+        with pytest.raises(ToolCancelled if cancel else OSError):
+            await apply_patch({"patch": patch}, ctx, reject, audit_before_write=True)
+>       assert seen[0][1]["phase"] == "planned" and not (tmp_path / "parent").exists()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'phase'
+
+tests\test_linux_docker.py:110: KeyError
+_____________ test_prewrite_barrier_leaves_no_side_effects[True] ______________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_prewrite_barrier_leaves_n1')
+cancel = True
+
+    @pytest.mark.parametrize("cancel", [False, True])
+    async def test_prewrite_barrier_leaves_no_side_effects(tmp_path: Path, cancel: bool) -> None:
+        ctx = ExecutionContext(tmp_path, "one", "/bin/sh")
+        seen = []
+
+        async def reject(kind: str, data: dict[str, Any], **kw: Any) -> int:
+            seen.append((kind, data))
+            assert not (tmp_path / "parent").exists()
+            if cancel:
+                raise asyncio.CancelledError
+            raise OSError("durable audit failed")
+
+        patch = "*** Begin Patch\n*** Add File: parent/one.txt\n+one\n*** End Patch"
+        with pytest.raises(ToolCancelled if cancel else OSError):
+            await apply_patch({"patch": patch}, ctx, reject, audit_before_write=True)
+>       assert seen[0][1]["phase"] == "planned" and not (tmp_path / "parent").exists()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'phase'
+
+tests\test_linux_docker.py:110: KeyError
+_________ test_prewrite_ack_rechecks_conflicts_and_records_completion _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_prewrite_ack_rechecks_con0')
+
+    async def test_prewrite_ack_rechecks_conflicts_and_records_completion(tmp_path: Path) -> None:
+        ctx = ExecutionContext(tmp_path, "one", "/bin/sh")
+        target = tmp_path / "one.txt"
+        events = []
+
+        async def emit(kind: str, data: dict[str, Any], **kw: Any) -> int:
+            events.append((kind, data))
+            if kind == "patch_diff":
+                assert not target.exists()
+            else:
+                assert target.read_text() == "one\n"
+            return 0
+
+        args = {"patch": "*** Begin Patch\n*** Add File: one.txt\n+one\n*** End Patch"}
+>       result = await apply_patch(args, ctx, emit, audit_before_write=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_linux_docker.py:127:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\tools\patch.py:338: in apply_patch
+    await emit("patch_manifest", {
+tests\test_linux_docker.py:123: in emit
+    assert target.read_text() == "one\n"
+           ^^^^^^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_prewrite_ack_rechecks_con0/one.txt')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\Archer\\AppData\\Local\\Temp\\pytest-of-Archer\\pytest-0\\test_prewrite_ack_rechecks_con0\\one.txt'
+
+D:\Tools\python\py312\Lib\pathlib.py:1013: FileNotFoundError
+_____________________ test_worker_wrong_ack_cannot_write ______________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_worker_wrong_ack_cannot_w0')
+
+    async def test_worker_wrong_ack_cannot_write(tmp_path: Path) -> None:
+        from nexus.tools import patch_worker
+
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-I",
+            patch_worker.__file__,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        assert proc.stdin and proc.stdout
+        request = {
+            "id": "request",
+            "call_id": "call",
+            "workspace": str(tmp_path),
+            "output_limit_bytes": 32768,
+            "audit_before_write": True,
+            "arguments": {"patch": "*** Begin Patch\n*** Add File: one\n+one\n*** End Patch"},
+        }
+        proc.stdin.write((json.dumps(request) + "\n").encode())
+        await proc.stdin.drain()
+        async with asyncio.timeout(10):
+            event = json.loads(await proc.stdout.readline())
+>           assert event["data"]["phase"] == "planned" and not (tmp_path / "one").exists()
+                   ^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'phase'
+
+tests\test_linux_docker.py:163: KeyError
+_______________ test_bridge_worker_reuses_patch_core_and_audit ________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_bridge_worker_reuses_patc0')
+
+    async def test_bridge_worker_reuses_patch_core_and_audit(tmp_path: Path) -> None:
+        client = await connected(tmp_path)
+        workspace = tmp_path / "work"
+        # Poisoned workspace code must never be imported by python -I trusted-worker.py.
+        (workspace / "nexus").mkdir()
+        (workspace / "nexus/__init__.py").write_text("raise RuntimeError('workspace imported')")
+        (workspace / "sitecustomize.py").write_text("raise RuntimeError('workspace imported')")
+        recorder = Recorder()
+        context = ExecutionContext(workspace, "patch-call", "", 4096)
+        try:
+            patch = "*** Begin Patch\n*** Add File: a.txt\n+hello\n*** End Patch"
+            value = await client.execute("apply_patch", {"patch": patch}, context, recorder)
+            assert value.ok and (workspace / "a.txt").read_text() == "hello\n"
+            assert value.data["changed_files"] == 1
+>           assert [k for k, _ in recorder.events] == ["patch_diff"]
+E           AssertionError: assert ['patch_manif...ch_committed'] == ['patch_diff']
+E
+E             At index 0 diff: 'patch_manifest' != 'patch_diff'
+E             Left contains 2 more items, first extra item: 'patch_diff'
+E             Use -v to get more diff
+
+tests\test_sandbox_stage4.py:132: AssertionError
+________________ test_worker_audit_failure_stops_further_files ________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_worker_audit_failure_stop0')
+
+    async def test_worker_audit_failure_stops_further_files(tmp_path: Path) -> None:
+        client = await connected(tmp_path)
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <function BaseSubprocessTransport.__del__ at 0x00000160DA73F100>
+
+Traceback (most recent call last):
+  File "D:\Tools\python\py312\Lib\asyncio\base_subprocess.py", line 125, in __del__
+    _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
+                               ^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\base_subprocess.py", line 70, in __repr__
+    info.append(f'stdin={stdin.pipe}')
+                        ^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\proactor_events.py", line 80, in __repr__
+    info.append(f'fd={self._sock.fileno()}')
+                      ^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\windows_utils.py", line 102, in fileno
+    raise ValueError("I/O operation on closed pipe")
+ValueError: I/O operation on closed pipe
+
+Enable tracemalloc to get traceback where the object was allocated.
+See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+  warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <function _ProactorBasePipeTransport.__del__ at 0x00000160DA760900>
+
+Traceback (most recent call last):
+  File "D:\Tools\python\py312\Lib\asyncio\proactor_events.py", line 116, in __del__
+    _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
+                               ^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\proactor_events.py", line 80, in __repr__
+    info.append(f'fd={self._sock.fileno()}')
+                      ^^^^^^^^^^^^^^^^^^^
+  File "D:\Tools\python\py312\Lib\asyncio\windows_utils.py", line 102, in fileno
+    raise ValueError("I/O operation on closed pipe")
+ValueError: I/O operation on closed pipe
+
+Enable tracemalloc to get traceback where the object was allocated.
+See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+  warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+        async def failing(kind: str, data: Json, **_: object) -> int:
+            raise OSError("disk full")
+
+        try:
+            value = await client.execute(
+                "apply_patch",
+                {
+                    "patch": "*** Begin Patch\n"
+                    "*** Add File: a\n+first\n*** Add File: b\n+second\n*** End Patch"
+                },
+                ExecutionContext(tmp_path / "work", "c", ""),
+                failing,
+            )
+            assert value.error_code == "cleanup_incomplete"
+>           assert (tmp_path / "work/a").exists()
+E           AssertionError: assert False
+E            +  where False = exists()
+E            +    where exists = (WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-0/test_worker_audit_failure_stop0') / 'work/a').exists
+
+tests\test_sandbox_stage4.py:336: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_patch_audit.py::test_actual_diff_metadata_and_no_model_diff
+FAILED tests/test_patch_audit.py::test_diff_caps_and_independent_metadata_budget
+FAILED tests/test_patch_audit.py::test_default_capacity_omits_large_diff - Ke...
+FAILED tests/test_patch_audit.py::test_partial_failure_records_only_committed_files
+FAILED tests/test_patch_audit.py::test_cleanup_failure_after_commit_keeps_receipt
+FAILED tests/test_patch_audit.py::test_interrupted_audit_does_not_dispatch_next_file[cancel]
+FAILED tests/test_patch_audit.py::test_interrupted_audit_does_not_dispatch_next_file[log_failure]
+FAILED tests/test_linux_docker.py::test_prewrite_barrier_leaves_no_side_effects[False]
+FAILED tests/test_linux_docker.py::test_prewrite_barrier_leaves_no_side_effects[True]
+FAILED tests/test_linux_docker.py::test_prewrite_ack_rechecks_conflicts_and_records_completion
+FAILED tests/test_linux_docker.py::test_worker_wrong_ack_cannot_write - KeyEr...
+FAILED tests/test_sandbox_stage4.py::test_bridge_worker_reuses_patch_core_and_audit
+FAILED tests/test_sandbox_stage4.py::test_worker_audit_failure_stops_further_files
+13 failed, 100 passed in 17.52s

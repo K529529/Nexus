@@ -150,7 +150,6 @@ export async function serve(manager, packageRoot) {
       if (patch) {
         job.ackPath = join(ipcDirectory, row.id + '.ack.json');
         job.requestPath = join(ipcDirectory, row.id + '.request.json');
-        job.ackIndex = 0;
         await writeFile(job.requestPath,
           JSON.stringify({id: row.id, ...p, ack_path: job.ackPath}) + '\n', {flag: 'wx'});
       }
@@ -193,7 +192,8 @@ export async function serve(manager, packageRoot) {
           if (Buffer.byteLength(line) > MAX_FRAME) throw new Error('worker_frame_too_large');
           const message = JSON.parse(line);
           if (message.id !== row.id) throw new Error('worker_correlation');
-          if (message.type === 'event' && message.kind === 'patch_diff'
+          if (message.type === 'event'
+              && ['patch_diff', 'patch_committed', 'patch_manifest'].includes(message.kind)
               && message.data.call_id === p.call_id) await send(message);
           else if (message.type === 'result' && !workerResult) workerResult = message;
           else throw new Error('invalid_worker_frame');
@@ -265,7 +265,8 @@ export async function serve(manager, packageRoot) {
       if (row.method === 'shutdown') { await shutdown(); return; }
       if (row.method === 'cancel' && active?.id === row.id) { await stop(active); return; }
       if (row.method === 'ack' && active?.id === row.id && active.patch) {
-        await acknowledge(active, {id: row.id, method: 'ack', index: ++active.ackIndex});
+        await acknowledge(active, {id: row.id, method: 'ack', index: row.index,
+          event_kind: row.event_kind});
         return;
       }
       if (seen.has(row.id) || executing || initializing) {

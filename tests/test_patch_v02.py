@@ -172,7 +172,7 @@ async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> 
     assert fact["before_hash"] == hashlib.sha256(before.encode()).hexdigest()
     assert fact["after_hash"] == hashlib.sha256(expected).hexdigest()
     assert "diff" not in fact
-    audit = events.events[0][1]
+    audit = next(data for kind, data in events.events if kind == "patch_diff")
     assert "--- a/a" in audit["diff"] and "+    if auth:" in audit["diff"]
 
 

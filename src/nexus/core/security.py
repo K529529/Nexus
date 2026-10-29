@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass
 from typing import Literal, Protocol
 from uuid import uuid4
 
+from nexus.core.durable import save_result
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -204,6 +205,14 @@ class SecurityGateway:
             ):
                 retry_patch = json.loads(denial[3])
                 decision, backend, cap = "ask", "restricted-once", "workspace-patch-once"
+        risks = list(session.unresolved_effects.values())
+        # Shell strings cannot reliably prove absence of side effects. Even Local
+        # requires a fresh, exact-call approval while interrupted effects are unresolved.
+        recovery_guard = bool(risks) and cap not in {
+            "internal", "skill-read", "memory-read", "memory-search",
+        }
+        if recovery_guard and decision != "deny":
+            decision = "ask"
         scope = json_text(
             {
                 "capability": cap,
@@ -211,6 +220,10 @@ class SecurityGateway:
                 "mode": self.policy.mode,
                 "workspace": str(context.workspace),
                 "writable_roots": self.policy.writable_roots,
+                **({"unresolved_effects": risks,
+                    "recovery_warning": "Prior effects UNKNOWN; inspect before authorizing "
+                    "this new operation. Approval does not resolve the old call."}
+                   if recovery_guard else {}),
                 **(
                     {
                         "grant": "one apply_patch only; no shell; baseline restored afterwards",
@@ -310,6 +323,7 @@ class SecurityGateway:
             if choice != "allow_once":
                 return failed("approval_" + ("denied" if choice == "deny" else choice))
         await emit("tool_execution", {**facts, "state": "dispatching"})
+        await emit("tool_checkpoint", {"call_id": call.id, "phase": "DISPATCHING"})
         try:
             if backend == "restricted-once":
                 execute_once = getattr(self.backend, "execute_patch_once", None)
@@ -327,6 +341,7 @@ class SecurityGateway:
             else:
                 value = await tool.execute(args, context, emit)
         except ToolCancelled as exc:
+            await save_result(exc.result, emit)
             await emit(
                 "tool_execution",
                 {**facts, "state": "cancelled", "error_code": exc.result.error_code},
@@ -335,6 +350,9 @@ class SecurityGateway:
         except BaseException:
             await emit("tool_execution", {**facts, "state": "interrupted_unknown"})
             raise
+        if value.call_id != call.id:
+            raise RuntimeError("Tool returned mismatched call_id")
+        await save_result(value, emit)
         await emit(
             "tool_execution",
             {**facts, "state": "finished", "ok": value.ok, "error_code": value.error_code},

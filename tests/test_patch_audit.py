@@ -50,16 +50,18 @@ async def test_actual_diff_metadata_and_no_model_diff(execution: ExecutionContex
     assert result.ok and result.data["changed_files"] == 3
     assert result.data["created_directories"] == ["sub"]
     assert '"diff"' not in result.message().content
-    assert [kind for kind, _ in events.events] == ["patch_diff"] * 3
+    assert [kind for kind, _ in events.events] == ["patch_manifest"] + [
+        "patch_diff", "patch_committed"] * 3
+    audits = [(kind, data) for kind, data in events.events if kind == "patch_diff"]
     for index, ((_, event), fact) in enumerate(
-        zip(events.events, result.data["files"], strict=True)
+        zip(audits, result.data["files"], strict=True)
     ):
         assert event["file_index"] == index + 1
         assert event["call_id"] == execution.call_id
         assert all(event[key] == value for key, value in fact.items())
         assert event["diff_bytes"] == len(event["diff"].encode())
         assert not event["truncated"] and not event["omitted"]
-    audit = events.events[0][1]
+    audit = audits[0][1]
     assert audit["diff"] == "".join(
         difflib.unified_diff(
             before.decode().splitlines(True),
@@ -71,8 +73,8 @@ async def test_actual_diff_metadata_and_no_model_diff(execution: ExecutionContex
     assert audit["added_lines"] == audit["deleted_lines"] == 1
     assert audit["before_hash"] == hashlib.sha256(before).hexdigest()
     assert audit["after_hash"] == hashlib.sha256(after).hexdigest()
-    assert events.events[1][1]["before_hash"] is None
-    assert events.events[2][1]["after_hash"] is None
+    assert audits[1][1]["before_hash"] is None
+    assert audits[2][1]["after_hash"] is None
     assert [f["status"] for f in result.data["files"]] == ["modified", "added", "deleted"]
 
 
@@ -125,8 +127,8 @@ async def test_diff_caps_and_independent_metadata_budget(
     )
     assert result.ok and result.truncated
     assert result.data["omitted_files"] > 0 and result.data["changed_files"] == 4
-    assert len(events.events) == 4
-    audits = [data for _, data in events.events]
+    assert len(events.events) == 9
+    audits = [data for kind, data in events.events if kind == "patch_diff"]
     assert audits[0]["omitted"] and audits[2]["omitted"]
     assert not audits[1]["omitted"] and not audits[3]["omitted"]
     assert sum(len(e["diff"].encode()) for e in audits) <= 110
@@ -148,7 +150,7 @@ async def test_default_capacity_omits_large_diff(execution: ExecutionContext) ->
         events,
     )
     assert result.ok and not result.truncated  # model metadata is complete
-    assert events.events[0][1]["omitted"]
+    assert next(data for kind, data in events.events if kind == "patch_diff")["omitted"]
     assert (
         result.data["files"][0]["after_hash"]
         == hashlib.sha256((execution.workspace / "large").read_bytes()).hexdigest()
@@ -174,7 +176,8 @@ async def test_partial_failure_records_only_committed_files(
     assert not result.ok and result.error_code == "patch_io_error"
     assert result.data["partial"] and result.data["changed_files"] == 1
     assert result.data["failed_file"] == "b" and result.data["detail"] == "PermissionError"
-    assert len(events.events) == 1 and events.events[0][1]["path"] == "a"
+    commits = [data for kind, data in events.events if kind == "patch_committed"]
+    assert len(commits) == 1 and commits[0]["path"] == "a"
     assert not (execution.workspace / "b").exists()
 
 
@@ -199,7 +202,8 @@ async def test_cleanup_failure_after_commit_keeps_receipt(
     assert not (execution.workspace / "b").exists()
     assert not result.ok and result.data["partial"] and result.data["changed_files"] == 1
     assert result.data["failed_file"] == "a"
-    assert len(events.events) == 1 and events.events[0][1]["path"] == "a"
+    commits = [data for kind, data in events.events if kind == "patch_committed"]
+    assert len(commits) == 1 and commits[0]["path"] == "a"
     for path in execution.workspace.glob(".nexus-patch-*"):
         path.unlink()
 
@@ -269,7 +273,7 @@ async def test_interrupted_audit_does_not_dispatch_next_file(tmp_path: Path, fau
     reached = asyncio.Event()
 
     async def consumer(event: RuntimeEvent) -> None:
-        if event.kind == "patch_diff" and fault == "cancel":
+        if event.kind == "patch_committed" and fault == "cancel":
             reached.set()
             await asyncio.Event().wait()
 
@@ -324,7 +328,11 @@ async def test_interrupted_audit_does_not_dispatch_next_file(tmp_path: Path, fau
             assert result.reason == "session_write_failed; recovery incomplete"
     path = writer.path
     writer.close()
-    assert (tmp_path / "a").read_bytes() == b"yes\n" and not (tmp_path / "b").exists()
+    if fault == "log_failure":
+        assert not (tmp_path / "a").exists()
+    else:
+        assert (tmp_path / "a").read_bytes() == b"yes\n"
+    assert not (tmp_path / "b").exists()
     restored, writer, _ = resume_session(path, tmp_path, tmp_path)
     records, _ = read_records(writer.stream)
     writer.close()

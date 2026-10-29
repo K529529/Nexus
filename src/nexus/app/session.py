@@ -1,4 +1,4 @@
-"""Append-only local sessions. Recovery restores messages, never executions."""
+"""Append-only local sessions with durable tool boundaries and conservative recovery."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from typing import BinaryIO
 
 from nexus import __version__
 from nexus.core.context import ContextBuilder
+from nexus.core.durable import sync_directory
 from nexus.core.memory_snapshot import validate_snapshot
 from nexus.core.plan import plan_data, validate_plan
 from nexus.core.skills import active_skills, check_active, restore_skill
@@ -23,7 +24,6 @@ from nexus.core.types import (
     PlanState,
     RuntimeEvent,
     Session,
-    ToolResult,
     json_text,
 )
 
@@ -308,9 +308,12 @@ class SessionLog:
                         "nexus_version": __version__,
                         "model": model,
                         "recovered_from": recovered_from,
+                        "recovery_requires_commit": recovered_from is not None,
                     },
                 )
             )
+            for directory in (folder, folder.parent, folder.parent.parent):
+                sync_directory(directory)
         except BaseException:
             writer.close()
             raise
@@ -328,9 +331,15 @@ class SessionLog:
             self.stream.seek(0, os.SEEK_END)
             self.stream.write((json_text(row) + "\n").encode("utf-8"))
             self.stream.flush()
+            if event.kind in {
+                "session_created", "tool_checkpoint", "patch_diff", "patch_committed",
+                "patch_manifest", "tool_recovery", "approval_resolved",
+                "tail_recovery_completed",
+            } or (event.kind == "message" and event.data.get("role") == "tool"):
+                os.fsync(self.stream.fileno())
         except (OSError, ValueError):
             self.failed = True
-            raise SessionError("Session write/flush failed; recovery may be incomplete") from None
+            raise SessionError("Session write/flush/fsync failed; recovery incomplete") from None
         self.seq += 1
         return self.seq
 
@@ -346,13 +355,48 @@ def resume_session(
     path: Path, workspace: Path, home: Path | None = None
 ) -> tuple[Session, SessionLog, list[str]]:
     writer = SessionLog(path)
+    source_writer: SessionLog | None = None
     warnings: list[str] = []
     try:
         records, truncated = read_records(writer.stream)
+        prior_source = records[0]["data"].get("recovered_from")
+        if prior_source and not any(
+            r["kind"] == "tail_recovery_completed"
+            and r["data"].get("source_session_id") == prior_source for r in records
+        ):
+            # Legacy recovery copies have no executable PREPARED checkpoint.
+            if records[0]["data"].get("recovery_requires_commit") or any(
+                r["kind"] == "tool_checkpoint" for r in records
+            ):
+                raise SessionError("Incomplete recovery copy; inspect before continuing")
+        if truncated:
+            # Keep the original writer lock while choosing/creating its unique
+            # successor. Reopening the preserved torn source must not fork a second
+            # PREPARED execution after the first successor already completed it.
+            successors = []
+            folders = {path.parent, session_directory(workspace, home)}
+            for folder in folders:
+                for candidate in folder.glob("*.jsonl"):
+                    if candidate.resolve() == path.resolve():
+                        continue
+                    try:
+                        with candidate.open("rb") as stream:
+                            header = json.loads(stream.readline())
+                    except (OSError, ValueError):
+                        continue
+                    if (isinstance(header, dict)
+                            and header.get("data", {}).get("recovered_from")
+                            == records[0]["session_id"]):
+                        successors.append(candidate)
+            if len(successors) > 1:
+                raise SessionError("Multiple recovery copies; inspect before continuing")
+            if successors:
+                writer.close()
+                return resume_session(successors[0], workspace, home)
         session = replay(records, workspace)
         writer.seq = records[-1]["seq"]
         if truncated:
-            writer.close()
+            source_writer = writer
             prior = session.session_id
             fresh = Session(
                 workspace.resolve(),
@@ -388,45 +432,14 @@ def resume_session(
                     ),
                     record.get("protocol_data"),
                 )
+            writer.append(RuntimeEvent(
+                "tail_recovery_completed", now(), session.session_id, None,
+                {"source_session_id": prior},
+            ))
             warnings.append("Truncated tail recovered into a new session; original file preserved.")
-        pending: list[str] = []
-        pending_run: str | None = None
-        for message in session.messages:
-            if message.tool_calls:
-                pending = [call.id for call in message.tool_calls]
-                pending_run = message.run_id
-            elif message.role == "tool" and pending:
-                pending.pop(0)
-        for call_id in pending:
-            security_events = [
-                record for record in records
-                if record.get("run_id") == pending_run
-                and record["data"].get("call_id") == call_id
-                and record["kind"] in {"tool_policy", "approval_requested",
-                                       "approval_resolved", "tool_execution"}
-            ]
-            not_executed = bool(security_events) and not any(
-                row["kind"] == "tool_execution" for row in security_events
-            )
-            message = ToolResult(
-                call_id,
-                False,
-                {
-                    "detail": ("Interrupted before dispatch; approval is not restored."
-                               if not_executed else
-                               "Interrupted; effects unknown. Inspect actual state before retry."),
-                },
-                "not_executed" if not_executed else "interrupted_unknown",
-            ).message()
-            message.run_id = pending_run
-            message.seq = writer.append(
-                RuntimeEvent("message", now(), session.session_id, pending_run, message.public())
-            )
-            session.messages.append(message)
-        if pending:
-            warnings.append(
-                "Interrupted calls recorded; no calls replayed and no one-time approvals restored."
-            )
+        from nexus.app.tool_recovery import recover_tools
+
+        warnings.extend(recover_tools(records, session, writer))
         if records[-1]["kind"] != "run_finished":
             writer.append(
                 RuntimeEvent(
@@ -441,6 +454,9 @@ def resume_session(
     except BaseException:
         writer.close()
         raise
+    finally:
+        if source_writer is not None:
+            source_writer.close()
 
 
 def list_sessions(workspace: Path, home: Path | None = None) -> list[Json]:

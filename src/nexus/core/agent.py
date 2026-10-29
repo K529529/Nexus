@@ -8,6 +8,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from nexus.core.context import Context, ContextBuilder, execution_budget
+from nexus.core.durable import prepared, remember_risk, save_result
 from nexus.core.handoff import make_handoff
 from nexus.core.security import SecurityGateway
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
@@ -77,6 +78,7 @@ async def run_turn(
     active: ToolCall | None = None
     known_cancel: ToolResult | None = None
     usages: list[Usage] = []
+    saved_results: dict[str, ToolResult] = {}
 
     async def observed(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
         if kind in {
@@ -88,12 +90,18 @@ async def run_turn(
             "skill_loaded",
             "stagnation_nudge",
         }:
-            data = {**data, "step": result.steps}
+            # A recovered PREPARED call runs before the first new model step.
+            # Internal plan/skill audit records still require a positive step.
+            data = {**data, "step": max(1, result.steps)}
         if kind == "model_started" and data.get("purpose") != "compaction":
             result.model_calls += 1
         if kind == "model_finished" and "usage" in data and data.get("purpose") != "compaction":
             usages.append(Usage(**data["usage"]))
-        return await emit(kind, data, protocol_data=protocol_data)
+        seq = await emit(kind, data, protocol_data=protocol_data)
+        if kind == "tool_checkpoint" and "result" in data:
+            value = ToolResult(**data["result"])
+            saved_results[value.call_id] = value
+        return seq
 
     async def task_events(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
         if kind == "model_started" and pending_guidance:
@@ -101,6 +109,11 @@ async def run_turn(
         return await observed(kind, data, protocol_data=protocol_data)
 
     async def record_tool(value: ToolResult) -> None:
+        if value.call_id not in saved_results:
+            await save_result(value, observed)
+        name = next((c.name for m in reversed(session.messages) for c in m.tool_calls
+                     if c.id == value.call_id and m.run_id == session.run_id), "unknown")
+        remember_risk(session, value, name)
         message = value.message()
         await append_message(session, message, observed)
         await observed(
@@ -117,10 +130,32 @@ async def run_turn(
             },
         )
 
+    async def dispatch(call: ToolCall) -> ToolResult:
+        await observed("tool_started", {"call_id": call.id, "name": call.name,
+                                        "arguments_json": call.arguments_json})
+        result.tool_calls += 1
+        return await gateway.execute(
+            call, registry, session,
+            ExecutionContext(session.workspace, call.id, limits.shell,
+                             limits.output_limit_bytes), observed,
+        )
+
     try:
         await observed("run_started", {"workspace": str(session.workspace),
                                        "execution_mode": gateway.policy.mode})
         session.resume_run_id = None
+        # Finish the interrupted message group before adding any new user message.
+        pending = list(session.pending_tools)
+        session.pending_tools.clear()
+        while pending:
+            active = pending.pop(0)
+            value = session.recovered_results.pop(active.id, None)
+            if value is None:
+                value = await dispatch(active)
+            await record_tool(value)
+            active = None
+            if value.error_code == "cleanup_incomplete":
+                raise RuntimeError("cleanup_incomplete")
         if environment:
             await append_message(session, Message("user", environment), observed)
         await append_message(session, Message("user", user_text), observed)
@@ -227,23 +262,12 @@ async def run_turn(
                 result.outcome, result.final_text = "completed", reply.message.content
                 break
             pending = list(reply.message.tool_calls)
+            for call in pending:
+                await observed("tool_checkpoint", prepared(call))
             batch: list[tuple[ToolCall, ToolResult]] = []
             while pending:
                 active = pending.pop(0)
-                await observed(
-                    "tool_started",
-                    {
-                        "call_id": active.id,
-                        "name": active.name,
-                        "arguments_json": active.arguments_json,
-                    },
-                )
-                result.tool_calls += 1
-                value = await gateway.execute(
-                    active, registry, session,
-                    ExecutionContext(session.workspace, active.id, limits.shell,
-                                     limits.output_limit_bytes), observed,
-                )
+                value = await dispatch(active)
                 if value.call_id != active.id:
                     raise RuntimeError("Tool returned mismatched call_id")
                 await record_tool(value)
@@ -282,7 +306,8 @@ async def run_turn(
             )
             if not paired:
                 await record_tool(
-                    known_cancel
+                    saved_results.get(active.id)
+                    or known_cancel
                     or ToolResult(
                         active.id,
                         False,
@@ -291,7 +316,8 @@ async def run_turn(
                     )
                 )
         for call in pending:
-            await record_tool(ToolResult(call.id, False, {}, "not_executed"))
+            await record_tool(session.recovered_results.pop(
+                call.id, ToolResult(call.id, False, {}, "not_executed")))
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"
     result.duration_ms = int((time.monotonic() - started) * 1000)

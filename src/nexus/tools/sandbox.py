@@ -398,12 +398,15 @@ class BridgeClient:
                     elif kind == "event":
                         if (
                             name != "apply_patch"
-                            or row.get("kind") != "patch_diff"
+                            or row.get("kind") not in {
+                                "patch_diff", "patch_committed", "patch_manifest"}
                             or row["data"].get("call_id") != context.call_id
                         ):
                             raise BridgeError("invalid_worker_event")
-                        await emit("patch_diff", row["data"])
-                        await self.send({"id": ident, "method": "ack"})
+                        await emit(row["kind"], row["data"])
+                        await self.send({"id": ident, "method": "ack",
+                                         "index": row["data"]["file_index"],
+                                         "event_kind": row["kind"]})
                     elif kind == "result":
                         for stream, decoder in decoders.items():
                             tail = decoder.decode(b"", final=True)
@@ -490,6 +493,7 @@ class BridgeClient:
                             "workspace": str(context.workspace),
                             "shell": context.shell,
                             "output_limit_bytes": context.output_limit_bytes,
+                            "audit_before_write": True,
                         },
                     }
                 )

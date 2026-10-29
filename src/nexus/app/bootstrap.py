@@ -322,7 +322,8 @@ class Conversation:
                             if self.session.resume_run_id
                             else "Next input starts a new run with continuous session history. "
                         )
-                        + "Saved tool calls are never replayed."
+                        + "Only verified PREPARED calls may continue through current policy; "
+                        "unknown effects are never automatically replayed."
                     },
                 )
                 self.resumed = False

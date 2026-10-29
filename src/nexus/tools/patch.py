@@ -13,6 +13,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path, PureWindowsPath
 
+from nexus.core.durable import sync_directory
 from nexus.core.types import Emit, ExecutionContext, Json, ToolCancelled, ToolResult, json_text
 from nexus.tools.patch_format import (
     MAX_ERROR_DETAIL_BYTES,
@@ -216,8 +217,17 @@ def _hash(data: bytes | None) -> str | None:
 
 
 def _commit(path: Path, change: Change) -> OSError | None:
+    def sync_commit() -> None:
+        try:
+            sync_directory(path.parent)
+        except OSError as exc:
+            # The rename/unlink already happened. No trustworthy completed result
+            # can be emitted when its persistence barrier fails.
+            raise RuntimeError("Patch metadata durability failed after write") from exc
+
     if change.after is None:
         path.unlink()
+        sync_commit()
         return None
     descriptor, name = tempfile.mkstemp(prefix=".nexus-patch-", dir=path.parent)
     temporary = Path(name)
@@ -226,14 +236,17 @@ def _commit(path: Path, change: Change) -> OSError | None:
     try:
         with os.fdopen(descriptor, "wb") as stream:
             stream.write(change.after)
-        if change.mode is not None:
-            temporary.chmod(change.mode)
+            stream.flush()
+            if change.mode is not None:
+                temporary.chmod(change.mode)
+            os.fsync(stream.fileno())
         if change.kind == "added":
             # link fails if the destination appeared after preflight; never clobber it.
             os.link(temporary, path)
         else:
             os.replace(temporary, path)
         committed = True
+        sync_commit()
     finally:
         try:
             temporary.unlink(missing_ok=True)
@@ -273,7 +286,7 @@ def _fact(change: Change) -> Json:
 
 
 async def apply_patch(
-    arguments: Json, context: ExecutionContext, emit: Emit, *, audit_before_write: bool = False
+    arguments: Json, context: ExecutionContext, emit: Emit, *, audit_before_write: bool = True
 ) -> ToolResult:
     started = time.monotonic()
     facts: list[Json] = []
@@ -328,6 +341,15 @@ async def apply_patch(
                 if change.after:
                     raise PatchError("patch_conflict", "Deletion does not remove the whole file")
                 change.after = None
+        if audit_before_write and any(c.before != c.after for c in changes):
+            emitting = True
+            await emit("patch_manifest", {
+                "call_id": context.call_id, "file_index": 0,
+                "files": [{"path": c.path, "status": c.kind,
+                           "before_hash": _hash(c.before), "after_hash": _hash(c.after)}
+                          for c in changes if c.before != c.after],
+            })
+            emitting = False
         for change in changes:
             failed_file = change.path
             path = checked_path(context.workspace, change.path)
@@ -370,6 +392,7 @@ async def apply_patch(
                 parent = parent.parent
             for parent in reversed(parents):
                 parent.mkdir()
+                sync_directory(parent.parent)
                 created.append(parent.relative_to(context.workspace).as_posix())
             checked_path(context.workspace, change.path)
             cleanup_error = _commit(path, change)

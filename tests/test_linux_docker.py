@@ -107,7 +107,7 @@ async def test_prewrite_barrier_leaves_no_side_effects(tmp_path: Path, cancel: b
     patch = "*** Begin Patch\n*** Add File: parent/one.txt\n+one\n*** End Patch"
     with pytest.raises(ToolCancelled if cancel else OSError):
         await apply_patch({"patch": patch}, ctx, reject, audit_before_write=True)
-    assert seen[0][1]["phase"] == "planned" and not (tmp_path / "parent").exists()
+    assert seen[0][0] == "patch_manifest" and not (tmp_path / "parent").exists()
 
 
 async def test_prewrite_ack_rechecks_conflicts_and_records_completion(tmp_path: Path) -> None:
@@ -117,7 +117,7 @@ async def test_prewrite_ack_rechecks_conflicts_and_records_completion(tmp_path: 
 
     async def emit(kind: str, data: dict[str, Any], **kw: Any) -> int:
         events.append((kind, data))
-        if kind == "patch_diff":
+        if kind in {"patch_manifest", "patch_diff"}:
             assert not target.exists()
         else:
             assert target.read_text() == "one\n"
@@ -125,7 +125,8 @@ async def test_prewrite_ack_rechecks_conflicts_and_records_completion(tmp_path: 
 
     args = {"patch": "*** Begin Patch\n*** Add File: one.txt\n+one\n*** End Patch"}
     result = await apply_patch(args, ctx, emit, audit_before_write=True)
-    assert result.ok and [e[0] for e in events] == ["patch_diff", "patch_committed"]
+    assert result.ok and [e[0] for e in events] == [
+        "patch_manifest", "patch_diff", "patch_committed"]
     target.unlink()
 
     async def race(kind: str, data: dict[str, Any], **kw: Any) -> int:
@@ -160,7 +161,7 @@ async def test_worker_wrong_ack_cannot_write(tmp_path: Path) -> None:
     await proc.stdin.drain()
     async with asyncio.timeout(10):
         event = json.loads(await proc.stdout.readline())
-        assert event["data"]["phase"] == "planned" and not (tmp_path / "one").exists()
+        assert event["kind"] == "patch_manifest" and not (tmp_path / "one").exists()
         proc.stdin.write(b'{"id":"request","method":"ack","index":2,"event_kind":"patch_diff"}\n')
         await proc.stdin.drain()
         result = json.loads(await proc.stdout.readline())

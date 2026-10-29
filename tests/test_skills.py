@@ -149,7 +149,8 @@ async def test_dispatch_dedup_invalid_order_no_workspace_changes(tmp_path: Path)
     assert body(model.requests[1]).count("Unique regression guidance.") == 1
     assert all("Unique regression guidance." not in m.content for m in session.messages)
     assert path.read_bytes() == original
-    kinds = [kind for kind, _ in events.events if kind not in {"tool_policy", "tool_execution"}]
+    kinds = [kind for kind, _ in events.events
+             if kind not in {"tool_policy", "tool_execution", "tool_checkpoint"}]
     i = kinds.index("skill_loaded")
     assert kinds[i - 1 : i + 3] == ["tool_started", "skill_loaded", "message", "tool_finished"]
 

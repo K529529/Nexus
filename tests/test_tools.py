@@ -129,7 +129,8 @@ async def test_patch_multifile_crlf_no_newline(execution: ExecutionContext) -> N
     assert (
         result.data["files"][0]["after_hash"] == hashlib.sha256(b"first\r\nnew\r\nlast").hexdigest()
     )
-    assert "No newline" in events.events[0][1]["diff"]
+    audit = next(data for kind, data in events.events if kind == "patch_diff")
+    assert "No newline" in audit["diff"]
     assert result.data["created_directories"] == ["sub"]
 
 

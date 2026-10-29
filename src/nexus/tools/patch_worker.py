@@ -24,7 +24,7 @@ def read_request() -> bytes:
     return sys.stdin.buffer.readline(MAX_REQUEST + 1)
 
 
-def wait_ack(path: str, ident: str, index: int) -> None:
+def wait_ack(path: str, ident: str, index: int, kind: str) -> None:
     while True:
         try:
             ack = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -33,7 +33,8 @@ def wait_ack(path: str, ident: str, index: int) -> None:
         if ack.get("id") == ident:
             if ack.get("method") == "cancel":
                 raise asyncio.CancelledError
-            if ack.get("method") == "ack" and ack.get("index") == index:
+            if (ack.get("method") == "ack" and ack.get("index") == index
+                    and ack.get("event_kind") == kind):
                 return
         time.sleep(0.01)
 
@@ -59,11 +60,13 @@ async def main() -> None:
 
     async def emit(kind: str, data: Json, **_: object) -> int:
         prewrite = request.get("audit_before_write") is True
-        if kind != "patch_diff" and not (prewrite and kind == "patch_committed"):
+        if kind != "patch_diff" and not (
+            prewrite and kind in {"patch_committed", "patch_manifest"}
+        ):
             raise ValueError("Unexpected worker event")
         send({"id": ident, "type": "event", "kind": kind, "data": data})
         if request.get("ack_path"):
-            wait_ack(request["ack_path"], ident, data["file_index"])
+            wait_ack(request["ack_path"], ident, data["file_index"], kind)
             return 0
         # This is a one-call process. Blocking for the host ACK avoids a Windows
         # asyncio loop's loopback socketpair, without weakening SRT networking.

@@ -10,6 +10,11 @@
 连续 Session 历史、独立双模型、唯一 Session Compaction，替代有界摘录、Run 压缩与 HOT/COLD。
 以下 V0.2 设计原文用于基线对照，发生上述差异时以最新增量说明为准。
 
+2026-10-29 用户授权的 [Stage 6 Durable Execution V1](stage6-durable-execution.md)
+为工具调用增加 PREPARED / DISPATCHING / COMPLETED 持久化边界。只有明确未分发的
+PREPARED 调用允许经当前 Gateway 续跑；未知副作用不重放，Patch 恢复核对实际哈希。
+本增量取代下文对应的原始 resume 限制，保留单 Loop 与现有 HITL。
+
 ## 1. 最小运行结构
 
 ```mermaid

@@ -580,7 +580,10 @@ class LinuxDockerBackend:
                     index = event.get("file_index")
                     if event.get("call_id") != context.call_id:
                         raise DockerError("Patch event call_id mismatch")
-                    if kind == "patch_diff":
+                    if kind == "patch_manifest":
+                        if index != 0 or planned or completed:
+                            raise DockerError("Invalid patch manifest sequence")
+                    elif kind == "patch_diff":
                         if (
                             index != len(planned) + 1
                             or len(planned) != len(completed)
@@ -600,7 +603,8 @@ class LinuxDockerBackend:
                     else:
                         raise DockerError("Invalid patch event kind")
                     await emit(kind, event)  # Durable Events.append completes before ACK.
-                    (planned if kind == "patch_diff" else completed).append(event)
+                    if kind != "patch_manifest":
+                        (planned if kind == "patch_diff" else completed).append(event)
                     process.stdin.write(
                         (
                             json_text(

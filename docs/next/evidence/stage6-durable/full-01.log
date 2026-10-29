@@ -1,0 +1,430 @@
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........ssssssssss...................................................... [ 20%]
+........................................................................ [ 27%]
+........................................................................ [ 34%]
+........................................................................ [ 40%]
+........................................................................ [ 47%]
+......................F................................................. [ 54%]
+........................................FF.............................. [ 61%]
+........................................................................ [ 68%]
+........................................................................ [ 75%]
+.....F.........................FFFFFF..................F................ [ 81%]
+........................................................................ [ 88%]
+................................F....................................... [ 95%]
+..............................................                           [100%]
+================================== FAILURES ===================================
+____________________ test_requests_intended_edit_and_audit ____________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_requests_int...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+
+    async def test_requests_intended_edit_and_audit(execution: ExecutionContext) -> None:
+        before = (
+            "def prepend_scheme_if_needed(url, new_scheme):\n"
+            "    parsed = parse_url(url)\n"
+            "    scheme, auth, host, port, path, query, fragment = parsed\n"
+            "    netloc = parsed.netloc\n"
+            "    if not netloc:\n"
+            "        netloc, path = path, netloc\n"
+            "    if scheme is None:\n"
+            "        scheme = new_scheme\n"
+            "    return urlunparse((scheme, netloc, path, '', query, fragment))\n"
+        )
+        addition = '\n    if auth:\n        netloc = "{}@{}".format(auth, netloc)\n'
+        path = execution.workspace / "a"
+        path.write_bytes(before.encode())
+        patch = update(
+            "@@ def prepend_scheme_if_needed(url, new_scheme):\n"
+            "     netloc = parsed.netloc\n"
+            "     if not netloc:\n"
+            "         netloc, path = path, netloc\n"
+            '+\n+    if auth:\n+        netloc = "{}@{}".format(auth, netloc)'
+        )
+        events = Recorder()
+        result = await apply_patch({"patch": patch}, execution, events)
+        expected = before.replace(
+            "    if scheme is None:", addition + "    if scheme is None:"
+        ).encode()
+        assert result.ok and type(result.data["changed_files"]) is int
+        assert result.data["changed_files"] == 1 and path.read_bytes() == expected
+        fact = result.data["files"][0]
+        assert fact["before_hash"] == hashlib.sha256(before.encode()).hexdigest()
+        assert fact["after_hash"] == hashlib.sha256(expected).hexdigest()
+        assert "diff" not in fact
+        audit = events.events[0][1]
+>       assert "--- a/a" in audit["diff"] and "+    if auth:" in audit["diff"]
+                            ^^^^^^^^^^^^^
+E       KeyError: 'diff'
+
+tests\test_patch_v02.py:176: KeyError
+_________ test_dispatch_order_budget_final_and_next_request[pending] __________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_dispatch_order_budget_fin0')
+status = 'pending'
+
+    @pytest.mark.parametrize("status", ["pending", "completed"])
+    async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, status: str) -> None:
+        session = Session(tmp_path)
+        events = Recorder()
+        await append_message(session, Message("system", "root instructions"), events)
+        seen = []
+
+        async def inspect(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            seen.append(session.plan)
+            return ToolResult(context.call_id, True, {})
+
+        registry = {
+            "update_plan": create_update_plan_tool(session),
+            "inspect": Tool(ToolSpec("inspect", "", {}), inspect),
+        }
+        first = reply(
+            call("update_plan", {"plan": [item(status=status)]}, "p1"),
+            call("inspect", {}, "i"),
+            call("update_plan", {"plan": [item("Latest", status)], "explanation": "audit only"}, "p2"),
+        )
+        first.message.protocol_data = {"reasoning_content": "private continuation"}
+        model = ScriptedModel([first, reply(text="Legal final with any plan status")])
+        result = await run_turn(session, "task", model, registry, events, Limits())
+        assert result.outcome == "completed" and result.steps == 2 and result.tool_calls == 3
+        assert result.model_calls == 2 and len(model.requests) == 2
+        assert seen[0] and seen[0].items[0].step == "Inspect"
+        assert snapshot(model.requests[0]) == {"plan": []}
+        assert snapshot(model.requests[1]) == {"plan": [item("Latest", status)]}
+        assert "audit only" not in model.requests[1][0].content
+        assert model.requests[1][2].protocol_data == first.message.protocol_data
+        groups(model.requests[1])
+        assert all(SNAPSHOT_HEADER not in m.content for m in session.messages)
+        updates = [data for kind, data in events.events if kind == "plan_updated"]
+        assert [data["call_id"] for data in updates] == ["p1", "p2"]
+        assert all(data["step"] == 1 for data in updates)
+        kinds = [kind for kind, _ in events.events if kind not in {"tool_policy", "tool_execution"}]
+        for index, kind in enumerate(kinds):
+            if kind == "plan_updated":
+>               assert kinds[index - 1] == "tool_started"
+E               AssertionError: assert 'tool_checkpoint' == 'tool_started'
+E
+E                 - tool_started
+E                 + tool_checkpoint
+
+tests\test_plan.py:180: AssertionError
+________ test_dispatch_order_budget_final_and_next_request[completed] _________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_dispatch_order_budget_fin1')
+status = 'completed'
+
+    @pytest.mark.parametrize("status", ["pending", "completed"])
+    async def test_dispatch_order_budget_final_and_next_request(tmp_path: Path, status: str) -> None:
+        session = Session(tmp_path)
+        events = Recorder()
+        await append_message(session, Message("system", "root instructions"), events)
+        seen = []
+
+        async def inspect(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            seen.append(session.plan)
+            return ToolResult(context.call_id, True, {})
+
+        registry = {
+            "update_plan": create_update_plan_tool(session),
+            "inspect": Tool(ToolSpec("inspect", "", {}), inspect),
+        }
+        first = reply(
+            call("update_plan", {"plan": [item(status=status)]}, "p1"),
+            call("inspect", {}, "i"),
+            call("update_plan", {"plan": [item("Latest", status)], "explanation": "audit only"}, "p2"),
+        )
+        first.message.protocol_data = {"reasoning_content": "private continuation"}
+        model = ScriptedModel([first, reply(text="Legal final with any plan status")])
+        result = await run_turn(session, "task", model, registry, events, Limits())
+        assert result.outcome == "completed" and result.steps == 2 and result.tool_calls == 3
+        assert result.model_calls == 2 and len(model.requests) == 2
+        assert seen[0] and seen[0].items[0].step == "Inspect"
+        assert snapshot(model.requests[0]) == {"plan": []}
+        assert snapshot(model.requests[1]) == {"plan": [item("Latest", status)]}
+        assert "audit only" not in model.requests[1][0].content
+        assert model.requests[1][2].protocol_data == first.message.protocol_data
+        groups(model.requests[1])
+        assert all(SNAPSHOT_HEADER not in m.content for m in session.messages)
+        updates = [data for kind, data in events.events if kind == "plan_updated"]
+        assert [data["call_id"] for data in updates] == ["p1", "p2"]
+        assert all(data["step"] == 1 for data in updates)
+        kinds = [kind for kind, _ in events.events if kind not in {"tool_policy", "tool_execution"}]
+        for index, kind in enumerate(kinds):
+            if kind == "plan_updated":
+>               assert kinds[index - 1] == "tool_started"
+E               AssertionError: assert 'tool_checkpoint' == 'tool_started'
+E
+E                 - tool_started
+E                 + tool_checkpoint
+
+tests\test_plan.py:180: AssertionError
+___________ test_dispatch_dedup_invalid_order_no_workspace_changes ____________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_dispatch_dedup_invalid_or0')
+
+    async def test_dispatch_dedup_invalid_order_no_workspace_changes(tmp_path: Path) -> None:
+        path = install(tmp_path / "skills")
+        original = path.read_bytes()
+        catalog = SkillCatalog(tmp_path / "skills")
+        session = Session(tmp_path, skill_catalog=catalog.items)
+        events = Recorder()
+        model = ScriptedModel(
+            [
+                reply(
+                    call("load_skill", {"name": "unknown"}, "bad"),
+                    call("load_skill", {"name": "regression"}, "first"),
+                    call("load_skill", {"name": "regression"}, "again"),
+                ),
+                reply(text="done"),
+            ]
+        )
+        result = await run_turn(
+            session, "task", model, default_tools(session, skill_loader=catalog.load), events, Limits()
+        )
+        assert result.outcome == "completed" and result.tool_calls == 3 and result.steps == 2
+        updates = [data for kind, data in events.events if kind == "skill_loaded"]
+        assert len(updates) == 1 and updates[0]["step"] == 1 and updates[0]["call_id"] == "first"
+        assert [data["call_id"] for kind, data in events.events if kind == "tool_finished"] == [
+            "bad",
+            "first",
+            "again",
+        ]
+        assert "Unique regression guidance." not in body(model.requests[0])
+        assert body(model.requests[1]).count("Unique regression guidance.") == 1
+        assert all("Unique regression guidance." not in m.content for m in session.messages)
+        assert path.read_bytes() == original
+        kinds = [kind for kind, _ in events.events if kind not in {"tool_policy", "tool_execution"}]
+        i = kinds.index("skill_loaded")
+>       assert kinds[i - 1 : i + 3] == ["tool_started", "skill_loaded", "message", "tool_finished"]
+E       AssertionError: assert ['tool_checkp...t', 'message'] == ['tool_starte...ool_finished']
+E
+E         At index 0 diff: 'tool_checkpoint' != 'tool_started'
+E         Use -v to get more diff
+
+tests\test_skills.py:154: AssertionError
+_______________ test_only_interior_add_blanks_normalized[1-\n] ________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\n', blanks = 1
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+______________ test_only_interior_add_blanks_normalized[1-\r\n] _______________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\r\n', blanks = 1
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+_______________ test_only_interior_add_blanks_normalized[3-\n] ________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\n', blanks = 3
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+______________ test_only_interior_add_blanks_normalized[3-\r\n] _______________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\r\n', blanks = 3
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+______________ test_only_interior_add_blanks_normalized[2000-\n] ______________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\n', blanks = 2000
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+_____________ test_only_interior_add_blanks_normalized[2000-\r\n] _____________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_only_interio...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+newline = '\r\n', blanks = 2000
+
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"])
+    @pytest.mark.parametrize("blanks", [1, 3, 2000])
+    async def test_only_interior_add_blanks_normalized(
+        execution: ExecutionContext,
+        newline: str,
+        blanks: int,
+    ) -> None:
+        body = "*** Add File: a\n+first\n" + "\n" * blanks + "+last"
+        raw = wrapped(body).replace("\n", newline)
+        events = Recorder()
+        result = await apply_patch({"patch": raw}, execution, events)
+        assert result.ok and result.data["add_file_blank_lines_normalized"] == blanks
+        expected = b"first\n" + b"\n" * blanks + b"last\n"
+        assert (execution.workspace / "a").read_bytes() == expected
+        audit = events.events[0][1]
+>       assert audit["after_hash"] == hashlib.sha256(expected).hexdigest()
+               ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'after_hash'
+
+tests\test_stage31b_reliability.py:40: KeyError
+____________ test_real_filepilot_stale_old_block_and_actual_repair ____________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_real_filepil...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+
+    async def test_real_filepilot_stale_old_block_and_actual_repair(
+        execution: ExecutionContext,
+    ) -> None:
+        evidence = json.loads((FIXTURES / "rename-failures.json").read_text(encoding="utf-8"))
+        sample = evidence["samples"][3]
+        source = (FIXTURES / "create_delete_harness.js").read_bytes()
+        assert hashlib.sha256(source).hexdigest() == evidence["harness_sha256"]
+        path = execution.workspace / "tests/web/create_delete_harness.js"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(source)
+        events = Recorder()
+        result = await apply_patch(json.loads(sample["call"]["arguments_json"]), execution, events)
+        assert result.error_code == "patch_conflict"
+        assert result.data["failed_file"] == sample["result"]["data"]["failed_file"]
+        assert result.data["failed_hunk"] == 5 and "old block not found" in result.data["detail"]
+        assert "current file has" in result.data["detail"] and not events.events
+        assert path.read_bytes() == source
+        repaired = await apply_patch(
+            json.loads(sample["recovery_call"]["arguments_json"]), execution, events
+        )
+>       assert repaired.ok and events.events[0][0] == "patch_diff"
+E       AssertionError: assert (True and 'patch_manifest' == 'patch_diff'
+E        +  where True = ToolResult(call_id='test-call', ok=True, data={'files': [{'path': 'tests/web/create_delete_harness.js', 'status': 'mod...ized': False, 'failed_file': None, 'failed_hunk': None, 'detail': ''}, error_code=None, duration_ms=0, truncated=False).ok
+E
+E         - patch_diff
+E         + patch_manifest)
+
+tests\test_stage31b_reliability.py:161: AssertionError
+____________________ test_patch_multifile_crlf_no_newline _____________________
+
+execution = ExecutionContext(workspace=WindowsPath('C:/Users/Archer/AppData/Local/Temp/pytest-of-Archer/pytest-1/test_patch_multif...\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE', output_limit_bytes=32768)
+
+    async def test_patch_multifile_crlf_no_newline(execution: ExecutionContext) -> None:
+        root = execution.workspace
+        (root / "a.txt").write_bytes(b"first\r\nold\r\nlast")
+        (root / "delete.txt").write_bytes(b"bye\n")
+        patch = (
+            "--- a/a.txt\n+++ b/a.txt\n@@ -1,3 +1,3 @@\n first\n-old\n+new\n last\n"
+            "\\ No newline at end of file\n"
+            "--- /dev/null\n+++ b/sub/new.txt\n@@ -0,0 +1 @@\n+created\n"
+            "--- a/delete.txt\n+++ /dev/null\n@@ -1 +0,0 @@\n-bye\n"
+        )
+        events = Recorder()
+        result = await apply_patch({"patch": patch}, execution, events)
+        assert result.ok, result
+        assert (root / "a.txt").read_bytes() == b"first\r\nnew\r\nlast"
+        assert (root / "sub/new.txt").read_bytes() == b"created\n"
+        assert not (root / "delete.txt").exists()
+        assert (
+            result.data["files"][0]["after_hash"] == hashlib.sha256(b"first\r\nnew\r\nlast").hexdigest()
+        )
+>       assert "No newline" in events.events[0][1]["diff"]
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'diff'
+
+tests\test_tools.py:132: KeyError
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_patch_v02.py::test_requests_intended_edit_and_audit - KeyEr...
+FAILED tests/test_plan.py::test_dispatch_order_budget_final_and_next_request[pending]
+FAILED tests/test_plan.py::test_dispatch_order_budget_final_and_next_request[completed]
+FAILED tests/test_skills.py::test_dispatch_dedup_invalid_order_no_workspace_changes
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[1-\n]
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[1-\r\n]
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[3-\n]
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[3-\r\n]
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[2000-\n]
+FAILED tests/test_stage31b_reliability.py::test_only_interior_add_blanks_normalized[2000-\r\n]
+FAILED tests/test_stage31b_reliability.py::test_real_filepilot_stale_old_block_and_actual_repair
+FAILED tests/test_tools.py::test_patch_multifile_crlf_no_newline - KeyError: ...
+12 failed, 1032 passed, 10 skipped in 124.61s (0:02:04)
