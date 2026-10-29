@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from dataclasses import asdict
 from pathlib import Path
@@ -25,6 +26,24 @@ def call_digest(call: ToolCall) -> str:
     return hashlib.sha256((call.name + "\0" + call.arguments_json).encode()).hexdigest()
 
 
+def digest(arguments: Json) -> str:
+    """The existing Gateway argument digest, shared with recovery matching."""
+    return hashlib.sha256(
+        json.dumps(arguments, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()
+    ).hexdigest()
+
+
+def risk_identity(call: ToolCall | None, arguments_digest: str | None = None) -> Json:
+    if call is not None and arguments_digest is None:
+        try:
+            arguments = json.loads(call.arguments_json)
+            if isinstance(arguments, dict):
+                arguments_digest = digest(arguments)
+        except (ValueError, TypeError):
+            pass  # Retain the risk even when legacy arguments cannot be matched.
+    return {"name": call.name if call else "unknown", "arguments_digest": arguments_digest}
+
+
 def prepared(call: ToolCall) -> Json:
     return {
         "call_id": call.id,
@@ -34,7 +53,7 @@ def prepared(call: ToolCall) -> Json:
     }
 
 
-def remember_risk(session: Session, value: ToolResult, name: str) -> None:
+def remember_risk(session: Session, value: ToolResult, call: ToolCall | None) -> None:
     if (
         value.error_code in {"interrupted_unknown", "cleanup_incomplete"}
         or value.data.get("execution_state") in {"UNKNOWN", "interrupted_unknown"}
@@ -44,7 +63,7 @@ def remember_risk(session: Session, value: ToolResult, name: str) -> None:
         session.unresolved_effects[key] = {
             "run_id": session.run_id,
             "call_id": value.call_id,
-            "name": name,
+            **risk_identity(call),
         }
 
 

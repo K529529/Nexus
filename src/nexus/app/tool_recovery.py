@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
-from nexus.core.durable import call_digest
+from nexus.core.durable import call_digest, risk_identity
 from nexus.core.types import Json, RuntimeEvent, Session, ToolCall, ToolResult
 from nexus.tools.patch import MAX_BYTES, _hash, checked_path
 from nexus.tools.patch_format import PatchError
@@ -60,6 +60,14 @@ def recover_tools(records: list[Json], session: Session, writer: SessionLog) -> 
 
     checkpoints: dict[tuple[str | None, str], Json] = {}
     calls = {(m.run_id, c.id): c for m in session.messages for c in m.tool_calls}
+    # Gateway digests precede redaction of the call text. Prefer these existing
+    # audit facts, falling back to normalized saved arguments for legacy records.
+    argument_digests = {
+        (r.get("run_id"), r["data"].get("call_id")): r["data"]["arguments_digest"]
+        for r in records
+        if r["kind"] in {"tool_policy", "tool_execution"}
+        and isinstance(r["data"].get("arguments_digest"), str)
+    }
     for record in records:
         if record["kind"] != "tool_checkpoint":
             continue
@@ -125,7 +133,7 @@ def recover_tools(records: list[Json], session: Session, writer: SessionLog) -> 
             session.unresolved_effects[f"{message.run_id or ''}:{message.tool_call_id}"] = {
                 "run_id": message.run_id,
                 "call_id": message.tool_call_id,
-                "name": call.name if call else "unknown",
+                **risk_identity(call, argument_digests.get((message.run_id, message.tool_call_id))),
             }
 
     pending: list[ToolCall] = []
@@ -180,7 +188,7 @@ def recover_tools(records: list[Json], session: Session, writer: SessionLog) -> 
             session.unresolved_effects[f"{pending_run or ''}:{call.id}"] = {
                 "run_id": pending_run,
                 "call_id": call.id,
-                "name": call.name,
+                **risk_identity(call, argument_digests.get((pending_run, call.id))),
             }
         writer.append(
             RuntimeEvent(

@@ -74,12 +74,15 @@ UNKNOWN 和 cleanup_incomplete 风险由工具记录重建，保留在 Session �
 再次 resume 和上下文压缩都不会消失。新 call_id、模型的“已解决”文字或一次性批准
 均不能清除旧风险。
 
-存在风险时，新 Shell/Patch/外部工具及其他可能写入的能力通过原 HITL 请求单次确认。
-确认内容绑定新调用及其参数，并包含旧风险的 run_id/call_id。已有 Deny 不会升级为
-Allow；无人值守或无 approver 时返回 approval_unavailable，不执行。Internal、
-skill-read 和已声明的 memory-read/search 保持原策略。
+只有工具名和规范化参数摘要均匹配旧 UNKNOWN 风险的新调用，才额外通过原 HITL
+请求单次确认。复用 Gateway 的参数摘要算法，忽略 JSON 键顺序及格式空白；恢复时优先
+读取 tool_policy/tool_execution 的摘要，兼容从旧日志中的参数重建摘要。
+确认内容绑定新调用及其参数，并包含匹配风险的 run_id/call_id。已有 Deny 不会升级为
+Allow；匹配时无人值守或无 approver 则返回 approval_unavailable，不执行。
+其他新调用继续遵循原 Security Policy、工具权限及 HITL 规则。
 
-V1 不分析 Shell 文本来证明只读，因此同一受影响会话中的查看命令也可能需要确认。
+匹配不分析 Shell 语义：不同命令文本、参数默认值或别名即使效果相同，也不保证匹配。
+缺少有效参数及审计摘要的遗留风险仍保留，但无法进行相同调用匹配。
 V1 没有批量解除风险命令，每次确认只批准当前新操作；用户应先核实实际副作用。
 
 ## 验证与限制

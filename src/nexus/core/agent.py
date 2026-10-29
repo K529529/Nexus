@@ -111,9 +111,16 @@ async def run_turn(
     async def record_tool(value: ToolResult) -> None:
         if value.call_id not in saved_results:
             await save_result(value, observed)
-        name = next((c.name for m in reversed(session.messages) for c in m.tool_calls
-                     if c.id == value.call_id and m.run_id == session.run_id), "unknown")
-        remember_risk(session, value, name)
+        call = next(
+            (
+                c
+                for m in reversed(session.messages)
+                for c in m.tool_calls
+                if c.id == value.call_id and m.run_id == session.run_id
+            ),
+            None,
+        )
+        remember_risk(session, value, call)
         message = value.message()
         await append_message(session, message, observed)
         await observed(

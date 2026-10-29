@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import re
 import time
@@ -12,6 +11,7 @@ from dataclasses import asdict, dataclass
 from typing import Literal, Protocol
 from uuid import uuid4
 
+from nexus.core.durable import digest as digest
 from nexus.core.durable import save_result
 from nexus.core.types import (
     Emit,
@@ -111,12 +111,6 @@ class RestrictedBackend(Protocol):
     ) -> ToolResult: ...
 
 
-def digest(arguments: Json) -> str:
-    return hashlib.sha256(
-        json.dumps(arguments, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()
-    ).hexdigest()
-
-
 class SecurityGateway:
     def __init__(
         self,
@@ -205,12 +199,14 @@ class SecurityGateway:
             ):
                 retry_patch = json.loads(denial[3])
                 decision, backend, cap = "ask", "restricted-once", "workspace-patch-once"
-        risks = list(session.unresolved_effects.values())
-        # Shell strings cannot reliably prove absence of side effects. Even Local
-        # requires a fresh, exact-call approval while interrupted effects are unresolved.
-        recovery_guard = bool(risks) and cap not in {
-            "internal", "skill-read", "memory-read", "memory-search",
-        }
+        risks = [
+            risk
+            for risk in session.unresolved_effects.values()
+            if risk.get("name") == call.name and risk.get("arguments_digest") == argument_digest
+        ]
+        # Only a repeat of the same tool/arguments needs recovery-specific approval.
+        # Authorizing a new call never resolves the old UNKNOWN execution.
+        recovery_guard = bool(risks)
         if recovery_guard and decision != "deny":
             decision = "ask"
         scope = json_text(
@@ -220,10 +216,17 @@ class SecurityGateway:
                 "mode": self.policy.mode,
                 "workspace": str(context.workspace),
                 "writable_roots": self.policy.writable_roots,
-                **({"unresolved_effects": risks,
-                    "recovery_warning": "Prior effects UNKNOWN; inspect before authorizing "
-                    "this new operation. Approval does not resolve the old call."}
-                   if recovery_guard else {}),
+                **(
+                    {
+                        "unresolved_effects": risks,
+                        "recovery_warning": "This tool with the same arguments previously "
+                        "interrupted with UNKNOWN effects; inspect before authorizing "
+                        "this new call. "
+                        "Approval does not resolve the old call.",
+                    }
+                    if recovery_guard
+                    else {}
+                ),
                 **(
                     {
                         "grant": "one apply_patch only; no shell; baseline restored afterwards",

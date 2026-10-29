@@ -13,13 +13,14 @@ from nexus.app.config import default_shell
 from nexus.app.events import Events
 from nexus.app.session import SessionError, SessionLog, read_records, resume_session
 from nexus.core.agent import append_message, run_turn
-from nexus.core.durable import prepared
+from nexus.core.durable import digest, prepared, remember_risk
 from nexus.core.security import ApprovalDecision, ApprovalRequest, SecurityGateway, SecurityPolicy
 from nexus.core.types import (
     ExecutionContext,
     Limits,
     RuntimeEvent,
     Session,
+    ToolCall,
     ToolResult,
 )
 from nexus.tools.plan import create_update_plan_tool
@@ -201,24 +202,32 @@ def test_patch_hash_reconciliation_never_reapplies(
 
 
 @pytest.mark.parametrize("answer", [None, "deny", "allow_once"])
+@pytest.mark.parametrize("same_call", [False, True])
 async def test_unknown_shell_guard_survives_new_call_ids_and_resume(
     tmp_path: Path,
     answer: str | None,
+    same_call: bool,
 ) -> None:
     path = crash(tmp_path, "result_not_saved")
     session, writer, _ = resume_session(path, tmp_path, tmp_path)
+    risks = dict(session.unresolved_effects)
+    original = next(c for m in session.messages for c in m.tool_calls)
     requests: list[ApprovalRequest] = []
 
     async def approve(request: ApprovalRequest) -> ApprovalDecision:
         requests.append(request)
         assert "unresolved_effects" in request.capability_scope
+        assert "same arguments" in request.capability_scope
         assert answer in {"deny", "allow_once"}
         return ApprovalDecision(request.request_id, answer)  # type: ignore[arg-type]
 
     gateway = SecurityGateway(approver=approve if answer else None)
-    new = call(
-        "exec_command", {"command": python_command("open('counter','ab').write(b'y')")}, "new-id"
+    arguments = (
+        json.loads(original.arguments_json)
+        if same_call
+        else {"command": python_command("open('counter','ab').write(b'y')")}
     )
+    new = call("exec_command", arguments, "new-id")
     try:
         result = await run_turn(
             session,
@@ -230,15 +239,20 @@ async def test_unknown_shell_guard_survives_new_call_ids_and_resume(
             gateway=gateway,
         )
         assert result.outcome == "completed"
-        assert session.unresolved_effects
+        assert session.unresolved_effects == risks
+        assert (
+            json.loads(next(m.content for m in session.messages if m.role == "tool"))["error_code"]
+            == "interrupted_unknown"
+        )
         path = writer.path
     finally:
         writer.close()
-    assert (tmp_path / "counter").read_bytes() == (b"xy" if answer == "allow_once" else b"x")
+    expected = (b"xx" if answer == "allow_once" else b"x") if same_call else b"xy"
+    assert (tmp_path / "counter").read_bytes() == expected
     again, writer, _ = resume_session(path, tmp_path, tmp_path)
     writer.close()
     assert again.unresolved_effects == session.unresolved_effects
-    assert bool(requests) == bool(answer)
+    assert bool(requests) == (same_call and bool(answer))
     # Existing deny policy remains a deny, even if the recovery approver would allow.
     denied = await SecurityGateway(SecurityPolicy("read-only"), approver=approve).execute(
         call("apply_patch", {"patch": "unused"}, "patch-new"),
@@ -248,6 +262,92 @@ async def test_unknown_shell_guard_survives_new_call_ids_and_resume(
         Recorder(),
     )
     assert denied.error_code == "policy_denied"
+
+
+@pytest.mark.parametrize("audited", [False, True])
+async def test_matching_risk_uses_audit_digest_or_legacy_arguments(
+    tmp_path: Path, audited: bool
+) -> None:
+    session = Session(tmp_path, run_id="old-run")
+    writer = SessionLog.create(session, "unknown", {}, tmp_path)
+    events = Events(session, writer, ignore, ("secret-value",) if audited else ())
+    arguments = {"command": "echo secret-value", "timeout_ms": 1000}
+    original = call("exec_command", arguments, "old-call")
+    await events("run_started", {})
+    await append_message(session, reply(original).message, events)
+    await events("tool_checkpoint", prepared(original))
+    if audited:
+        await events(
+            "tool_policy",
+            {"call_id": original.id, "arguments_digest": digest(arguments), "decision": "allow"},
+        )
+    await events("tool_checkpoint", {"call_id": original.id, "phase": "DISPATCHING"})
+    writer.close()
+    session, writer, _ = resume_session(writer.path, tmp_path, tmp_path)
+    writer.close()
+    assert not session.pending_tools
+    risks = dict(session.unresolved_effects)
+    assert risks["old-run:old-call"]["arguments_digest"] == digest(arguments)
+    if audited:
+        assert "secret-value" not in writer.path.read_text(encoding="utf-8")
+
+    requests: list[ApprovalRequest] = []
+
+    async def deny(request: ApprovalRequest) -> ApprovalDecision:
+        requests.append(request)
+        return ApprovalDecision(request.request_id, "deny")
+
+    # Key order, whitespace and call/run IDs do not change normalized arguments.
+    new = ToolCall(
+        "new-call", "exec_command", json.dumps(dict(reversed(list(arguments.items()))), indent=2)
+    )
+    session.run_id = "new-run"
+    result = await SecurityGateway(approver=deny).execute(
+        new,
+        native_tools(),
+        session,
+        ExecutionContext(tmp_path, new.id, default_shell()),
+        Recorder(),
+    )
+    assert result.error_code == "approval_denied" and len(requests) == 1
+    assert session.unresolved_effects == risks
+
+
+@pytest.mark.parametrize("same_name", [False, True])
+@pytest.mark.parametrize("policy_asks", [False, True])
+async def test_runtime_risk_matches_tool_name_and_preserves_policy(
+    tmp_path: Path, same_name: bool, policy_asks: bool
+) -> None:
+    session = Session(tmp_path, run_id="old-run")
+    arguments = {"command": python_command("open('effect','ab').write(b'x')")}
+    original = call("exec_command" if same_name else "other-tool", arguments, "old")
+    remember_risk(session, ToolResult("old", False, {}, "interrupted_unknown"), original)
+    risks = dict(session.unresolved_effects)
+    requests: list[ApprovalRequest] = []
+
+    async def approve(request: ApprovalRequest) -> ApprovalDecision:
+        requests.append(request)
+        assert ("unresolved_effects" in request.capability_scope) == same_name
+        return ApprovalDecision(request.request_id, "allow_once")
+
+    gateway = SecurityGateway(
+        SecurityPolicy(ask_tools=("exec_command",) if policy_asks else ()), approver=approve
+    )
+    for run_id in ("new-run-1", "new-run-2"):
+        result = await run_turn(
+            session,
+            "continue",
+            ScriptedModel([reply(call("exec_command", arguments, run_id)), reply(text="done")]),
+            native_tools(),
+            Recorder(),
+            Limits(shell=default_shell()),
+            gateway=gateway,
+        )
+        assert result.outcome == "completed" and session.unresolved_effects == risks
+    assert len(requests) == (2 if same_name or policy_asks else 0)
+    assert (tmp_path / "effect").read_bytes() == b"xx"
+    if requests:
+        assert requests[0].run_id != requests[1].run_id
 
 
 async def test_prepared_redacted_arguments_are_not_reexecuted(tmp_path: Path) -> None:
