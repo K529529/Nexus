@@ -32,8 +32,13 @@ def spec(name: str, description: str, fields: Json, required: list[str]) -> Tool
 SPECS = [
     spec(
         "memory_write",
-        "Save valuable durable facts/preferences/engineering lessons or daily "
-        "notes across sessions. Include project names when relevant. Append by default; to "
+        "Save information when the user explicitly asks to remember it, or when it will help "
+        "future tasks. target=memory (default) writes long-term facts, project decisions, "
+        "preferences, and reusable lessons to MEMORY.md. target=daily writes the day's "
+        "progress, interim notes, and running context to Daily Notes (daily/YYYY-MM-DD.md). "
+        "Use scratchpad for cross-session to-do items and follow-up actions. Ordinary answers "
+        "and temporary check results can stay in the Session. Include project names when "
+        "relevant. Append by default; to "
         "correct an entry, first memory_read then supply its exact id and revision. Never "
         "save secrets. Ordinary writes do not refresh the current session snapshot.",
         {**TARGET, **IDENTITY, "content": {**TEXT, "maxLength": MAX_CONTENT}},
@@ -73,7 +78,8 @@ SPECS = [
     ),
     spec(
         "scratchpad",
-        "Cross-session tasks: add/list/complete/reopen/remove. Mutations of "
+        "Track cross-session to-do items and follow-up actions in SCRATCHPAD.md: "
+        "add/list/complete/reopen/remove. Mutations of "
         "existing items require exact id and revision from list; remove is recoverable. "
         "Clean up completed items individually by ID, never clear the whole file.",
         {

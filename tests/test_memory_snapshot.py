@@ -5,6 +5,50 @@ import pytest
 from nexus.core.memory_snapshot import HEADER, MAX_SNAPSHOT_TOKENS, build_snapshot
 from nexus.core.tokens import TokenEstimator
 from nexus.core.types import Message
+from nexus.tools.memory import SPECS
+
+
+def test_memory_instructions_have_no_final_response_write_gate() -> None:
+    instructions = build_snapshot([], TokenEstimator())["content"]
+    for old_instruction in ("Before the final response", "decide whether this task"):
+        assert old_instruction not in instructions
+    assert "Choose when to write or retrieve memory as needed" in instructions
+    assert (
+        "When the user explicitly asks you to remember information, save it promptly"
+        in instructions
+    )
+    assert "there is no need to write long-term memory just to summarize a task" in instructions
+    assert "Ordinary answers, temporary check results, and current task progress" in instructions
+    assert "Memory may be stale or wrong" in instructions
+
+
+@pytest.mark.parametrize(
+    "label, purpose, tool",
+    [
+        (
+            "MEMORY.md",
+            "long-term facts, project decisions, preferences, and reusable lessons",
+            "memory_write",
+        ),
+        (
+            "Daily Notes (daily/YYYY-MM-DD.md)",
+            "the day's progress, interim notes, and running context",
+            "memory_write",
+        ),
+        (
+            "SCRATCHPAD.md",
+            "to-do items and follow-up actions to track across sessions",
+            "scratchpad",
+        ),
+    ],
+)
+def test_memory_roles_are_explicit_in_prompt_and_tool_descriptions(
+    label: str, purpose: str, tool: str
+) -> None:
+    assert f"- {label}: {purpose}" in HEADER
+    description = next(spec.description for spec in SPECS if spec.name == tool)
+    assert label in description
+    assert "cross-session to-do items and follow-up actions" in description
 
 
 @pytest.mark.parametrize(

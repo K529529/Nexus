@@ -19,7 +19,7 @@ class Main(ScriptedModel):
         pass
 
 
-async def test_snapshot_stable_across_runs_restart_and_ordinary_write(
+async def test_explicit_memory_request_keeps_snapshot_stable_across_runs_and_restart(
     tmp_path: Path,
     monkeypatch: Any,
 ) -> None:
@@ -39,10 +39,15 @@ async def test_snapshot_stable_across_runs_restart_and_ordinary_write(
     monkeypatch.setattr(bootstrap, "ChatModel", lambda _: main)
     convo = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path)
     try:
-        assert (await convo.turn("do work")).outcome == "completed"
+        assert (
+            await convo.turn("Remember this: NEW_MEMORY: preserve failures")
+        ).outcome == "completed"
+        assert "NEW_MEMORY: preserve failures" in store.read("MEMORY.md")
         assert (await convo.turn("next")).outcome == "completed"
         prefixes = [request[0].content for request in main.requests]
         assert len(set(prefixes)) == 1
+        assert "Before the final response, decide whether this task" not in prefixes[0]
+        assert "When the user explicitly asks you to remember information" in prefixes[0]
         assert "ORIGINAL_MEMORY" in prefixes[0] and "OPEN_ITEM" in prefixes[0]
         assert "COMPLETED_ITEM" not in prefixes[0] and "NEW_MEMORY" not in prefixes[0]
         assert convo.writer
