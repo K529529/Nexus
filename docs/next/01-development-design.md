@@ -15,6 +15,10 @@
 PREPARED 调用允许经当前 Gateway 续跑；未知副作用不重放，Patch 恢复核对实际哈希。
 本增量取代下文对应的原始 resume 限制，保留单 Loop 与现有 HITL。
 
+2026-10-31 用户批准 [Stage 7 Web 工具增量](stage7-web-tools.md)：在 Local 模式按配置
+提供内置 `web_search` / `web_fetch`，使用独立 DeepSeek Search/Fetch API。此增量扩展
+原 V0 的内置工具范围，复用 ToolResult、Gateway 和 Stage 6 checkpoint，不改变 Agent Loop。
+
 ## 1. 最小运行结构
 
 ```mermaid

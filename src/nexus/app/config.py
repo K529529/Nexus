@@ -45,6 +45,13 @@ class ModelConfig:
 
 
 @dataclass
+class WebConfig:
+    enabled: bool = False
+    api_key_env: str = "DEEPSEEK_API_KEY"
+    timeout_seconds: int = 60
+
+
+@dataclass
 class Config:
     model: ModelConfig
     limits: Limits
@@ -54,6 +61,7 @@ class Config:
     memory_enabled: bool = True
     memory_qmd_command: tuple[str, ...] = ("qmd",)
     security: SecurityPolicy = field(default_factory=SecurityPolicy)
+    web: WebConfig = field(default_factory=WebConfig)
 
 
 def config_path() -> Path:
@@ -236,6 +244,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         "mcp",
         "memory",
         "security",
+        "web",
     }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
@@ -277,8 +286,26 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         if compaction is not None:
             compaction.key()
     policy = security_policy(data, path)
+    web = _table(data, "web", {"enabled", "api_key_env", "timeout_seconds"})
+    enabled = web.get("enabled", False)
+    if type(enabled) is not bool:
+        raise ConfigError("web.enabled: expected boolean")
+    key_env = _text(web.get("api_key_env", "DEEPSEEK_API_KEY"), "web.api_key_env")
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key_env):
+        raise ConfigError("web.api_key_env: invalid environment variable name")
+    timeout = _integer(web.get("timeout_seconds", 60), "web.timeout_seconds")
+    if timeout > 600:
+        raise ConfigError("web.timeout_seconds: expected integer <= 600")
     return Config(
-        settings, limits, servers, language, compaction, memory_enabled, tuple(qmd_command), policy
+        settings,
+        limits,
+        servers,
+        language,
+        compaction,
+        memory_enabled,
+        tuple(qmd_command),
+        policy,
+        WebConfig(enabled, key_env, timeout),
     )
 
 

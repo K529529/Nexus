@@ -42,6 +42,7 @@ from nexus.tools.mcp import connect_servers
 from nexus.tools.memory import create_memory_tools
 from nexus.tools.registry import default_tools, permission_tool
 from nexus.tools.skills import create_load_skill_tool
+from nexus.tools.web import WebTools
 
 
 class Conversation:
@@ -65,6 +66,7 @@ class Conversation:
             from nexus.tools.platform_backend import platform_backend
 
             key_names = [config.model.api_key_env]
+            key_names.append(config.web.api_key_env)
             if config.compaction_model:
                 key_names.append(config.compaction_model.api_key_env)
             self.gateway.backend = platform_backend(config.security, secret_env=tuple(key_names))
@@ -140,6 +142,22 @@ class Conversation:
         self.base_registry = dict(resolved) if resolved is not None else default_tools(self.session)
         if config.security.mode != "local" and resolved is None:
             self.base_registry["request_permissions"] = permission_tool()
+        self.web_unavailable = ""
+        if registry is None and config.web.enabled:
+            key = os.environ.get(config.web.api_key_env, "")
+            if config.security.mode != "local":
+                self.web_unavailable = "Web tools are available only in Local mode."
+            elif not key:
+                self.web_unavailable = (
+                    f"Web tools disabled: {config.web.api_key_env} is missing from the current "
+                    "process. Set it in this terminal or restart the terminal/IDE."
+                )
+            else:
+                web = WebTools(key, config.web.timeout_seconds)
+                self.resources.push_async_callback(web.close)
+                self.base_registry.update(web.tools())
+            if self.web_unavailable:
+                self.warnings.append(self.web_unavailable)
         self.registry = dict(self.base_registry)
         # Custom/evaluation registries never inherit the operator's global memory.
         self.memory = (
@@ -188,6 +206,7 @@ class Conversation:
 
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
+        values.append(os.environ.get(self.config.web.api_key_env, ""))
         if self.config.compaction_model is not None:
             values.append(os.environ.get(self.config.compaction_model.api_key_env, ""))
         for raw in self.config.mcp_servers.values():
@@ -308,6 +327,7 @@ class Conversation:
                         else None,
                         "response_language": self.config.response_language,
                         "security": asdict(self.config.security),
+                        "web": asdict(self.config.web),
                         "tools": [asdict(t.spec) for t in self.registry.values()],
                         **provenance(),
                     }
@@ -343,6 +363,7 @@ class Conversation:
                     else None,
                     "response_language": self.config.response_language,
                     "security": asdict(self.config.security),
+                    "web": asdict(self.config.web),
                     **provenance(),
                 },
             )
@@ -360,6 +381,8 @@ class Conversation:
                     "Initialization/permission errors never fall back to Local. "
                     "MCP and background memory indexing are disabled."
                 )
+            if self.web_unavailable:
+                environment += "\n[Environment fact] " + self.web_unavailable
             result = await run_turn(
                 self.session,
                 text,

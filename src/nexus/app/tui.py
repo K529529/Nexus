@@ -118,6 +118,11 @@ def tool_title(data: Json) -> str:
         args = json.loads(data.get("arguments_json", "{}"))
     except ValueError:
         args = {}
+    if data["name"] in {"web_search", "web_fetch"} and isinstance(args, dict):
+        label, field = (
+            ("Search web", "query") if data["name"] == "web_search" else ("Fetch web", "url")
+        )
+        return short_line(f"{label} {args.get(field, '')}")
     if data["name"] == "exec_command" and isinstance(args, dict):
         command = str(args.get("command", "")).strip()
         # Conservative display hints only, never shell parsing or execution policy.
