@@ -40,7 +40,7 @@ from nexus.core.types import (
     ToolResult,
     ToolSpec,
 )
-from nexus.tools.mcp import adapt_tool, connect_servers, public_name
+from nexus.tools.mcp import adapt_tool, connect_servers, public_name, server_parameters
 from nexus.tools.registry import native_tools
 from tests.conftest import Recorder, ScriptedModel, call, reply
 
@@ -68,6 +68,47 @@ async def test_real_stdio_and_failed_server_same_loop(tmp_path: Path) -> None:
         assert result.outcome == "completed"
         value = json.loads([m for m in model.requests[-1] if m.role == "tool"][-1].content)
         assert value["ok"] and value["data"]["structured_content"]["sum"] == 7
+
+
+async def test_mcp_missing_environment_diagnostic_and_process_refresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("NEXUS_TEST_MCP_TOKEN", raising=False)
+    raw = {
+        "command": "docker",
+        "env_from": {"GITHUB_PERSONAL_ACCESS_TOKEN": "NEXUS_TEST_MCP_TOKEN"},
+    }
+    events = Recorder()
+    registry = native_tools()
+
+    def unexpected_client(*args: Any, **kwargs: Any) -> None:
+        pytest.fail("missing credentials must fail before launching a server")
+
+    async with AsyncExitStack() as stack:
+        unavailable = await connect_servers(
+            {"github": raw}, registry, stack, events, client_factory=unexpected_client
+        )
+    assert unavailable == ["github"]
+    assert {"exec_command", "apply_patch"} <= registry.keys()
+    detail = events.events[0][1]["detail"]
+    assert "NEXUS_TEST_MCP_TOKEN" in detail
+    assert "current process" in detail and "restart the terminal/IDE" in detail
+    monkeypatch.setenv("NEXUS_TEST_MCP_TOKEN", "test-private-token")
+    assert server_parameters(raw).env == {"GITHUB_PERSONAL_ACCESS_TOKEN": "test-private-token"}
+    assert "test-private-token" not in str(events.events)
+
+
+async def test_mcp_remote_value_error_details_are_not_exposed() -> None:
+    def failed_client(*args: Any, **kwargs: Any) -> None:
+        raise ValueError("secret-from-remote-exception")
+
+    events = Recorder()
+    async with AsyncExitStack() as stack:
+        assert await connect_servers(
+            {"github": {"command": "docker"}}, {}, stack, events, client_factory=failed_client
+        ) == ["github"]
+    assert "ValueError" in str(events.events)
+    assert "secret-from-remote-exception" not in str(events.events)
 
 
 async def test_mcp_pagination_invalid_partial_discovery_and_names() -> None:

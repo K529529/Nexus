@@ -11,6 +11,7 @@ from contextlib import AsyncExitStack
 from typing import Any
 
 from mcp import Client, StdioServerParameters
+from mcp.types import TextResourceContents
 
 from nexus.core.types import (
     Emit,
@@ -30,20 +31,31 @@ def public_name(server: str, remote: str) -> str:
     return f"{readable}_{digest}"
 
 
+class MCPConfigError(ValueError):
+    """Locally constructed diagnostics safe to display without remote exception text."""
+
+
 def server_parameters(raw: Any) -> StdioServerParameters:
     if not isinstance(raw, dict) or raw.keys() - {"command", "args", "env_from"}:
-        raise ValueError("invalid server fields")
+        raise MCPConfigError("invalid server fields")
     command, args, env_from = raw.get("command"), raw.get("args", []), raw.get("env_from", {})
     if not isinstance(command, str) or not command.strip():
-        raise ValueError("command must be a non-empty string")
+        raise MCPConfigError("command must be a non-empty string")
     if not isinstance(args, list) or any(not isinstance(a, str) for a in args):
-        raise ValueError("args must be a string list")
+        raise MCPConfigError("args must be a string list")
     if not isinstance(env_from, dict):
-        raise ValueError("env_from must be a table")
+        raise MCPConfigError("env_from must be a table")
     env: dict[str, str] = {}
     for target, source in env_from.items():
-        if not isinstance(source, str) or not os.environ.get(source):
-            raise ValueError("a configured environment variable is missing")
+        if not isinstance(source, str):
+            raise MCPConfigError("env_from values must be environment variable names")
+        if not os.environ.get(source):
+            label = source if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", source) else "<configured>"
+            raise MCPConfigError(
+                f"environment variable {label} is missing from the current process; "
+                "set it in this terminal, or restart the terminal/IDE after updating user "
+                "environment variables"
+            )
         env[target] = os.environ[source]
     return StdioServerParameters(command=command, args=args, env=env)
 
@@ -53,13 +65,17 @@ def _bounded_result(result: Any, limit: int) -> tuple[Json, bool, bool]:
     truncated = False
     for block in result.content:
         if block.type == "text":
-            raw = block.text.encode("utf-8")
-            data["text"].append(raw[:limit].decode("utf-8", errors="ignore"))
-            truncated |= len(raw) > limit
-            limit = max(0, limit - len(raw))
+            text = block.text
+        elif block.type == "resource" and isinstance(block.resource, TextResourceContents):
+            text = block.resource.text
         else:
             if block.type not in data["unsupported_content"]:
                 data["unsupported_content"].append(block.type)
+            continue
+        raw = text.encode("utf-8")
+        data["text"].append(raw[:limit].decode("utf-8", errors="ignore"))
+        truncated |= len(raw) > limit
+        limit = max(0, limit - len(raw))
     if result.structured_content is not None:
         raw = json_text(result.structured_content).encode("utf-8")
         if len(raw) <= limit:
@@ -197,7 +213,8 @@ async def connect_servers(
         except Exception as exc:
             await local.aclose()
             unavailable.append(server)
+            reason = str(exc) if isinstance(exc, MCPConfigError) else type(exc).__name__
             await emit(
-                "warning", {"detail": f"MCP server {server} unavailable ({type(exc).__name__})."}
+                "warning", {"detail": f"MCP server {server} unavailable ({reason})."}
             )
     return unavailable

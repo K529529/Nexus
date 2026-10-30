@@ -307,7 +307,7 @@ TUI 渲染错误降级为纯文本，不修改模型消息；future OTel sink �
 
 无 MCP 配置时完全跳过。调用阶段断连/错误形成 tool observation，副作用未知时如实记录；可停用该失联服务器并更新可用工具清单，但不自动重连、不重试带副作用调用、不重新发现新增工具。用户重新进入会话时重新连接。没有健康检查平台或 failover 子系统。
 
-文本块与 structured JSON 按统一预算回传；`is_error` 保持失败语义。非文本内容返回类型与不可用说明，明确标记 unsupported content，不把 base64 塞入上下文，也不自动抓 resource URL。timeout 使用同一调用预算，取消关闭本地客户端/子进程并说明远端副作用可能未知。
+文本块、内嵌文本资源（`resource.text`）与 structured JSON 按统一预算回传；内嵌文本资源提取正文到现有 `data.text`，不另建结果格式，`is_error` 保持失败语义。二进制资源、资源链接及其他非文本内容返回类型与不可用说明，明确标记 unsupported content，不把 base64 塞入上下文，也不自动抓 resource URL。timeout 使用同一调用预算，取消关闭本地客户端/子进程并说明远端副作用可能未知。
 
 不注册 sampling/elicitation handler，不开启 SDK 的自动多轮 input-required 处理；服务请求这些能力时返回不支持的工具结果。MCP server instructions、工具描述或结果不会成为高优先级项目指令。配置只读用户目录，不自动读取仓库 MCP 配置，不从 repo 安装服务器。
 
