@@ -1,5 +1,89 @@
 # Stage 6 Durable Execution V1 · 实施与验证
 
+## 2026-10-30 封版与合入记录
+
+用户在了解本次 Local 8 Case 为 **5/8** 及失败原因后，明确授权将 Stage 6 合入并推送
+`codex/nexus-v0.3`。这是保留已知模型解题失败的合入决定，不将其记为八例全部通过。
+开发分支保留，`main` 不在本次合入范围内。
+
+### 最终增量与自动化验证
+
+| 提交 | 变更 | 本会话已执行的检查 |
+| --- | --- | --- |
+| `d7feff7` | Tool-level Durable Execution V1 初版 | 见下文 2026-10-29 原始记录 |
+| `1929de4` | Recovery Guard 仅匹配工具名与规范化参数摘要；旧 UNKNOWN 不重放、不因新调用获准而清除 | 定向测试 89 passed；全量 pytest 1057 passed、10 skipped；Ruff、mypy 通过 |
+| `cbe55f1` | 区分 MEMORY.md、Daily Notes、SCRATCHPAD.md；删除最终回复前专门判断写入的要求 | Memory 相关测试 92 passed；Ruff、mypy 通过；AST 对比确认仅提示词/描述变化，六个工具 schema 一致 |
+| `38d1b03` | 删除关于无需为总结任务写入长期记忆的后半句，保留前句 | Memory Prompt/会话测试 13 passed；Ruff 通过 |
+
+以上后续检查结果来自本次开发会话执行输出；不冒用下文初版日志作为后续提交的原始日志。
+10 项 skipped 是既有可选 Docker 隔离验收。合入收尾只增加本说明与证据归档，未修改运行代码，
+未重跑模型或用重试结果替换失败记录。最终 Recovery Guard 语义以
+[技术说明](../next/stage6-durable-execution.md) 为准；下文“未知风险下所有新 Shell 均审批”
+是初版历史行为，已由 `1929de4` 收窄。
+
+### 用户手动 Local 8 Case：5 PASS / 3 FAIL
+
+- 命令：`uv run --frozen nexus eval --all --permission-mode local`。
+- Run：`20261030T090846Z-5c8b8566`；被测提交：`38d1b0352bebc5be1b014d089f566544b995ed66`。
+- 结果：**5 PASS、3 FAIL、0 ERROR、0 ABORTED、0 NOT_RUN**；失败均为固定验证断言失败。
+- 模型：`deepseek-flash`，reasoning effort `high`，128000 context，32768 max output，40 steps。
+- 原始目录：`C:\Users\Archer\.nexus\evaluation\results\20261030T090846Z-5c8b8566`。
+
+| Case | 本次结果 | 失败原因 |
+| --- | --- | --- |
+| pvlib__pvlib-python-1707 | PASS | — |
+| matplotlib__matplotlib-22835 | FAIL | `test_format_cursor_data_BoundaryNorm`：期望 `[0.9]`，实际 `[0.9000000000000000]`，补丁的数值格式精度不符合要求 |
+| django__django-11734 | FAIL | `test_subquery_exclude_outerref`：`qs.exists()` 仍返回 True，期望 False，补丁没有正确解决查询语义 |
+| psf__requests-6028 | PASS | — |
+| sphinx-doc__sphinx-10323 | PASS | — |
+| click__path-generic-type | PASS | — |
+| pytest__doctest-optionflag-leak | PASS | — |
+| rich__double-width-wrap | FAIL | `test_width_smaller_than_glyph`：宽度 1 时额外产生开头空行；固定验证 156 passed、1 failed |
+
+### Rich 失败与前次对照
+
+本次模型在 `rich/_wrap.py` 新增 `_fold_word()`。首字符“中”的终端宽度为 2，
+行宽为 1 时，函数立即将偏移量 0 加入切分点，产生首个空行。因此：
+
+```python
+Text("中A文").wrap(Console(), 1)
+# 期望 plain 列表：[" ", "A", " "]
+# 实际 plain 列表：["", " ", "A", " "]
+```
+
+从保存的补丁提取该函数，在内存中连续三次调用均得到切分点 `[0, 1, 2]`，
+确认首个空段是确定性代码缺陷。模型新增的参数化测试仅覆盖宽度 2–6；修改后的额外
+检查也从宽度 2 起步，遗漏了宽度 1。模型自己的定向测试为 137 passed，不能替代固定验证。
+模型尝试全套测试时还遇到缺少 `pkg_resources`，忽略对应模块后遇到 Markdown 颜色码断言
+差异；这些是另行保留的验证限制，不是上述 Rich 固定验证失败的原因。
+
+前次 `20261028T104039Z-57e6d22e`（提交 `6853e70`）是 6/8，Rich 通过，
+Matplotlib 与 Django 失败。本次这两个失败仍是同一断言；前次 Matplotlib 实际为 `[0.900]`。
+前次 Rich 修改 `chop_cells()`，只有当前行已有内容时才换行；本次选择了不同补丁方案。
+
+两轮 manifest 中模型配置、预算相同；这三个 Case 的来源提交、镜像、任务及验证器
+provenance 相同。Rich 会话的持久化系统指令与用户任务逐字相同；本次没有恢复事件、
+审批事件、Memory Snapshot 注入或上下文压缩，Gateway 未产生额外审批。
+因此工程归因是模型生成方案的波动与边界测试遗漏，未发现 Stage 6 恢复机制导致失败的证据。
+这不是同版本多次受控实验，不能从两轮结果证明全部版本影响为零，也不据此声称模型能力提升。
+
+### 证据保留
+
+- [本次八例结构化结果](../next/evidence/stage6-durable/local-8case-20261030/summary.json)。
+- [原始证据 ZIP](../next/evidence/stage6-durable/local-8case-20261030/raw-evidence.zip)：
+  本次八例的 result、patch、tests、validator log 及 run manifest/summary/report；
+  Docker 未启动的 `20261030T090702Z-27b43d64` 准备失败记录（8 NOT_RUN）；
+  前次 6/8 的 run manifest/summary/report 与三个失败对照 Case 的产物。
+- [SHA-256 清单](../next/evidence/stage6-durable/local-8case-20261030/sha256.json)：
+  ZIP 内 61 份文件逐字节核对通过，保留原始换行和失败输出。
+
+完整会话 JSONL 留在原始本机目录，未打包发布；result 中保留其相对定位信息。
+下文为初版交付时的历史结果，初版的 NOT RUN 和“尚不合入”不覆盖本节后续验收与授权。
+
+---
+
+## 2026-10-29 初版交付记录
+
 日期：2026-10-29（Asia/Shanghai）。开发分支：
 `codex/nexus-v0.3-stage6-durable-execution`。基线：
 `10b473ef0da38125b64abf20e3c5947b6d7f2c78`，抓取和交付前远端核对均一致。

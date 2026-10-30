@@ -1,0 +1,1113 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "pvlib__pvlib-python-1707",
+      "status": "PASS",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "3b053bf55ab042fb8ee5347b05968fb0",
+        "run_id": "fc559b7baf57461ab975f07fecb9a4f4"
+      },
+      "validation": {
+        "status": "passed",
+        "reason": "All checks passed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "passed",
+            "reason": "All required tests and retention checks passed",
+            "exit_code": 0,
+            "duration_s": 2.485000000000582
+          }
+        ],
+        "duration_s": 24.937000000005355
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 23,
+        "duration_ms": 112092,
+        "model_calls": 23,
+        "retries": 0,
+        "failed_attempts": 0,
+        "tool_calls": 36,
+        "tool_failures": 2,
+        "tool_result_bytes": 45336,
+        "usage_coverage": 23,
+        "usage_calls": 23,
+        "usage": {
+          "input_tokens": {
+            "reported": 512357,
+            "coverage": 23,
+            "calls": 23
+          },
+          "output_tokens": {
+            "reported": 17572,
+            "coverage": 23,
+            "calls": 23
+          },
+          "total_tokens": {
+            "reported": 529929,
+            "coverage": 23,
+            "calls": 23
+          },
+          "cached_input_tokens": {
+            "reported": 470528,
+            "coverage": 23,
+            "calls": 23
+          }
+        },
+        "first_context": 1933,
+        "peak_context": 35486,
+        "final_context": 35486,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 23,
+            "reported_calls": 23,
+            "input_tokens": 512357,
+            "output_tokens": 17572,
+            "total_tokens": 529929
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 23,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 35656,
+            "calibrated_context_tokens": 35492,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9953869960001168,
+            "reported_input_tokens": 34614,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 199.77649999782443,
+            "token_count_calls": 4,
+            "main_token_count_ms": 199.77649999782443,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 23
+          }
+        }
+      },
+      "timing": {
+        "prepare": 24.046999999991385,
+        "agent": 112.092,
+        "validation": 24.937000000005355,
+        "total": 177.79699999999139
+      },
+      "provenance": {
+        "case_id": "pvlib__pvlib-python-1707",
+        "source": "swe-bench-lite/dev",
+        "repo": "pvlib/pvlib-python",
+        "base_commit": "40e9e978c170bdde4eeee1547729417665dbc34c",
+        "image": "sha256:2888c3e2a07507677081161630001dc78da24f64c2333aef365807115280e997",
+        "task_hash": "68256900a82223432d3f81e5c86cd0683109cd60e7983dcedb17611089a0fde4",
+        "validator_hash": "78206b01be2b412364167e0a441bada5d0977842f1919c9a291774e8c436c27f",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "e6a4d8eef0a196421bafd5e04a64f157b6f25f91",
+        "workspace_base_commit": "be53b43934be488356c08692c5666f9082bdc65b"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/09ed00872d4a4a37a681ecde/3b053bf55ab042fb8ee5347b05968fb0.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": []
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "matplotlib__matplotlib-22835",
+      "status": "FAIL",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "5ba66a4304554f469983caa40f63d4a9",
+        "run_id": "fe0a9f3f9b3c48e1afd4d793a445809e"
+      },
+      "validation": {
+        "status": "failed",
+        "reason": "Fixed checks failed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "failed",
+            "reason": "Fixed checks failed",
+            "exit_code": 1,
+            "duration_s": 9.405999999988126
+          }
+        ],
+        "duration_s": 50.375
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 28,
+        "duration_ms": 355969,
+        "model_calls": 28,
+        "retries": 0,
+        "failed_attempts": 0,
+        "tool_calls": 48,
+        "tool_failures": 8,
+        "tool_result_bytes": 77813,
+        "usage_coverage": 28,
+        "usage_calls": 28,
+        "usage": {
+          "input_tokens": {
+            "reported": 662917,
+            "coverage": 28,
+            "calls": 28
+          },
+          "output_tokens": {
+            "reported": 24692,
+            "coverage": 28,
+            "calls": 28
+          },
+          "total_tokens": {
+            "reported": 687609,
+            "coverage": 28,
+            "calls": 28
+          },
+          "cached_input_tokens": {
+            "reported": 604544,
+            "coverage": 28,
+            "calls": 28
+          }
+        },
+        "first_context": 2298,
+        "peak_context": 51274,
+        "final_context": 51274,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 28,
+            "reported_calls": 28,
+            "input_tokens": 662917,
+            "output_tokens": 24692,
+            "total_tokens": 687609
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 28,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 51488,
+            "calibrated_context_tokens": 51268,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9957142534906277,
+            "reported_input_tokens": 49760,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 297.66760001075454,
+            "token_count_calls": 4,
+            "main_token_count_ms": 297.66760001075454,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 28
+          }
+        }
+      },
+      "timing": {
+        "prepare": 36.26600000000326,
+        "agent": 355.969,
+        "validation": 50.375,
+        "total": 488.8439999999973
+      },
+      "provenance": {
+        "case_id": "matplotlib__matplotlib-22835",
+        "source": "swe-bench-lite/test",
+        "repo": "matplotlib/matplotlib",
+        "base_commit": "c33557d120eefe3148ebfcf2e758ff2357966000",
+        "image": "sha256:2fd6dcf3e140c658b59e9c4aae41c6fbbde81e7da73b9174f907080ddcf93eea",
+        "task_hash": "0e40a16640977e4d216c41a8fef5411ae326e3d94206bfb8512e81dc1de32ef1",
+        "validator_hash": "290057cae8d83c714a9c9e58d352e9298596870d34bc6460c3d78714cde4fcde",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "e7299aa0b60bae02d2fe60aa52595b9eeb94173e",
+        "workspace_base_commit": "62e8f060e69a733081b7188cab112674166f13d4"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/f2e3a5feb6ea4d835350f12e/5ba66a4304554f469983caa40f63d4a9.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": [
+        {
+          "phase": "validation",
+          "category": "validation_failed",
+          "reason": "Fixed checks failed"
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "django__django-11734",
+      "status": "FAIL",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "88422b4c3fcc467d91337da975ff9357",
+        "run_id": "b539d17fa8b84dcd8f9efe1c5c546f7d"
+      },
+      "validation": {
+        "status": "failed",
+        "reason": "Fixed checks failed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "failed",
+            "reason": "Fixed checks failed",
+            "exit_code": 1,
+            "duration_s": 9.10899999999674
+          }
+        ],
+        "duration_s": 77.20299999999406
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 36,
+        "duration_ms": 289172,
+        "model_calls": 36,
+        "retries": 0,
+        "failed_attempts": 0,
+        "tool_calls": 53,
+        "tool_failures": 2,
+        "tool_result_bytes": 117947,
+        "usage_coverage": 36,
+        "usage_calls": 36,
+        "usage": {
+          "input_tokens": {
+            "reported": 1293393,
+            "coverage": 36,
+            "calls": 36
+          },
+          "output_tokens": {
+            "reported": 24043,
+            "coverage": 36,
+            "calls": 36
+          },
+          "total_tokens": {
+            "reported": 1317436,
+            "coverage": 36,
+            "calls": 36
+          },
+          "cached_input_tokens": {
+            "reported": 1223680,
+            "coverage": 36,
+            "calls": 36
+          }
+        },
+        "first_context": 2009,
+        "peak_context": 59053,
+        "final_context": 59053,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 36,
+            "reported_calls": 36,
+            "input_tokens": 1293393,
+            "output_tokens": 24043,
+            "total_tokens": 1317436
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 36,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 59309,
+            "calibrated_context_tokens": 59059,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9957836048436275,
+            "reported_input_tokens": 58798,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 357.5423000147566,
+            "token_count_calls": 4,
+            "main_token_count_ms": 357.5423000147566,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 36
+          }
+        }
+      },
+      "timing": {
+        "prepare": 51.73500000000058,
+        "agent": 289.172,
+        "validation": 77.20299999999406,
+        "total": 496.14100000000326
+      },
+      "provenance": {
+        "case_id": "django__django-11734",
+        "source": "swe-bench-verified/test",
+        "repo": "django/django",
+        "base_commit": "999891bd80b3d02dd916731a7a239e1036174885",
+        "image": "sha256:221a943944b673c247110ecb250970be2d985640ea766e0a60d4a5fe11a75c53",
+        "task_hash": "0776749c8cc9c775b6a93aec06660856bb45a6cd0f30ece5071e0916082ca5b3",
+        "validator_hash": "8d9ca8e2721cfbf61edc56921a7b9853e192fe43b06fd0a46ef009659e157575",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "5bc06ca2beefc0a3dd022d170b4074514c729be2",
+        "workspace_base_commit": "909e96acf83c901e9c4f4b77c75639e220cbd812"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/6036a24c119c2c8a462a42ee/88422b4c3fcc467d91337da975ff9357.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": [
+        {
+          "phase": "validation",
+          "category": "validation_failed",
+          "reason": "Fixed checks failed"
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "psf__requests-6028",
+      "status": "PASS",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "389596a06f5545ddb995956bb053f722",
+        "run_id": "ac33e7d2af494ea8a131aa7ef7259c99"
+      },
+      "validation": {
+        "status": "passed",
+        "reason": "All checks passed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "passed",
+            "reason": "All required tests and retention checks passed",
+            "exit_code": 0,
+            "duration_s": 1.0930000000080327
+          }
+        ],
+        "duration_s": 10.485000000000582
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 33,
+        "duration_ms": 241468,
+        "model_calls": 34,
+        "retries": 1,
+        "failed_attempts": 1,
+        "tool_calls": 74,
+        "tool_failures": 6,
+        "tool_result_bytes": 247466,
+        "usage_coverage": 33,
+        "usage_calls": 34,
+        "usage": {
+          "input_tokens": {
+            "reported": 2310278,
+            "coverage": 33,
+            "calls": 34
+          },
+          "output_tokens": {
+            "reported": 28008,
+            "coverage": 33,
+            "calls": 34
+          },
+          "total_tokens": {
+            "reported": 2338286,
+            "coverage": 33,
+            "calls": 34
+          },
+          "cached_input_tokens": {
+            "reported": 2187904,
+            "coverage": 33,
+            "calls": 34
+          }
+        },
+        "first_context": 2155,
+        "peak_context": 114594,
+        "final_context": 114594,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 34,
+            "reported_calls": 33,
+            "input_tokens": 2310278,
+            "output_tokens": 28008,
+            "total_tokens": 2338286
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 33,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 114880,
+            "calibrated_context_tokens": 114603,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9975867055869541,
+            "reported_input_tokens": 113980,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 722.9683000186924,
+            "token_count_calls": 4,
+            "main_token_count_ms": 722.9683000186924,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 33
+          }
+        }
+      },
+      "timing": {
+        "prepare": 7.889999999999418,
+        "agent": 241.468,
+        "validation": 10.485000000000582,
+        "total": 265.1869999999908
+      },
+      "provenance": {
+        "case_id": "psf__requests-6028",
+        "source": "swe-bench-verified/test",
+        "repo": "psf/requests",
+        "base_commit": "0192aac24123735b3eaf9b08df46429bb770c283",
+        "image": "sha256:7f1bbc5e6f0c02a72329d92664a6fa859a53af6d0d70f5061e3810540ac61cc5",
+        "task_hash": "14d3a5b04d20af9cd580fb4d431ee0678673b4dccb9e196c961a8bef91023c8e",
+        "validator_hash": "ad68f9ac02e04556fa4e48d5fe2275fc461399f4ac0d4ea41c9aa3078a51c88c",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "94369dd609f8ae984d2397ca8bde82369e348a60",
+        "workspace_base_commit": "c9fafd19f340a345ae67d8f2acb5d16999c908f7"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/3e52701dee248f1832dceb3f/389596a06f5545ddb995956bb053f722.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": []
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "sphinx-doc__sphinx-10323",
+      "status": "PASS",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "cfdd06d32ed849c886c0702848d647d3",
+        "run_id": "54be5aaa590741648db34ee50bf2bf0b"
+      },
+      "validation": {
+        "status": "passed",
+        "reason": "All checks passed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "passed",
+            "reason": "All required tests and retention checks passed",
+            "exit_code": 0,
+            "duration_s": 6.297000000005937
+          }
+        ],
+        "duration_s": 26.5
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 17,
+        "duration_ms": 81593,
+        "model_calls": 17,
+        "retries": 0,
+        "failed_attempts": 0,
+        "tool_calls": 24,
+        "tool_failures": 2,
+        "tool_result_bytes": 96421,
+        "usage_coverage": 17,
+        "usage_calls": 17,
+        "usage": {
+          "input_tokens": {
+            "reported": 537849,
+            "coverage": 17,
+            "calls": 17
+          },
+          "output_tokens": {
+            "reported": 6408,
+            "coverage": 17,
+            "calls": 17
+          },
+          "total_tokens": {
+            "reported": 544257,
+            "coverage": 17,
+            "calls": 17
+          },
+          "cached_input_tokens": {
+            "reported": 494720,
+            "coverage": 17,
+            "calls": 17
+          }
+        },
+        "first_context": 2569,
+        "peak_context": 39767,
+        "final_context": 39767,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 17,
+            "reported_calls": 17,
+            "input_tokens": 537849,
+            "output_tokens": 6408,
+            "total_tokens": 544257
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 17,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 39889,
+            "calibrated_context_tokens": 39778,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9972052582548391,
+            "reported_input_tokens": 38904,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 222.18720000819303,
+            "token_count_calls": 4,
+            "main_token_count_ms": 222.18720000819303,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 17
+          }
+        }
+      },
+      "timing": {
+        "prepare": 17.10899999999674,
+        "agent": 81.593,
+        "validation": 26.5,
+        "total": 144.32799999999406
+      },
+      "provenance": {
+        "case_id": "sphinx-doc__sphinx-10323",
+        "source": "swe-bench-verified/test",
+        "repo": "sphinx-doc/sphinx",
+        "base_commit": "31eba1a76dd485dc633cae48227b46879eda5df4",
+        "image": "sha256:d4923b1a7b44c15cec293e8e800cc6a190ea4b58c8b22c2dd928a567ae468cf6",
+        "task_hash": "2819c8b48505fea704ead6bee0441b12eced45676a05241d5908dd5690a720d8",
+        "validator_hash": "05bdce3e8cfc9bc1df8926f9fcc193f990deb5284cd3f80c58663a0f6a6d80fd",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "221989e45dffcf98538e72da2ced67bbad548cd6",
+        "workspace_base_commit": "5f216d8e2f6a0fb8a94238aa979047908be77a8e"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/580b7f2ee1408ec38f67d705/cfdd06d32ed849c886c0702848d647d3.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": []
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "click__path-generic-type",
+      "status": "PASS",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "b6415c9a06134fbf8439b8e39a9a094f",
+        "run_id": "42fa6c338a26477287b4611b0cb3ecd8"
+      },
+      "validation": {
+        "status": "passed",
+        "reason": "All checks passed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "passed",
+            "reason": "All required tests and retention checks passed",
+            "exit_code": 0,
+            "duration_s": 1.0939999999973224
+          },
+          {
+            "name": "typing",
+            "status": "passed",
+            "reason": "Check passed",
+            "exit_code": 0,
+            "duration_s": 3.764999999999418
+          }
+        ],
+        "duration_s": 9.952999999994063
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 31,
+        "duration_ms": 209764,
+        "model_calls": 32,
+        "retries": 1,
+        "failed_attempts": 1,
+        "tool_calls": 55,
+        "tool_failures": 7,
+        "tool_result_bytes": 139692,
+        "usage_coverage": 31,
+        "usage_calls": 32,
+        "usage": {
+          "input_tokens": {
+            "reported": 1329968,
+            "coverage": 31,
+            "calls": 32
+          },
+          "output_tokens": {
+            "reported": 22913,
+            "coverage": 31,
+            "calls": 32
+          },
+          "total_tokens": {
+            "reported": 1352881,
+            "coverage": 31,
+            "calls": 32
+          },
+          "cached_input_tokens": {
+            "reported": 1254528,
+            "coverage": 31,
+            "calls": 32
+          }
+        },
+        "first_context": 1844,
+        "peak_context": 65914,
+        "final_context": 65914,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 32,
+            "reported_calls": 31,
+            "input_tokens": 1329968,
+            "output_tokens": 22913,
+            "total_tokens": 1352881
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 31,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 66154,
+            "calibrated_context_tokens": 65917,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9964160999816211,
+            "reported_input_tokens": 65058,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 406.24590002698824,
+            "token_count_calls": 4,
+            "main_token_count_ms": 406.24590002698824,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 31
+          }
+        }
+      },
+      "timing": {
+        "prepare": 3.5310000000026776,
+        "agent": 209.764,
+        "validation": 9.952999999994063,
+        "total": 228.34399999999732
+      },
+      "provenance": {
+        "case_id": "click__path-generic-type",
+        "source": "curated",
+        "repo": "pallets/click",
+        "base_commit": "7944461a80b780d060899c8835acab3c273a04a6",
+        "image": "sha256:67e973fe31f33221c1462f48ac87a7a3d991170aecdb902ecc5b39563244c39e",
+        "task_hash": "1ca4a66be799aed8eb7944573713a5bbde7efdf33bd16c0660a47b18c971c162",
+        "validator_hash": "ef2ff597b4c39816d44ac46cdf91cf4cabfd2c23d4a2aaafd5947b8c444392ae",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "014c6c60967424c964e69a4517b1a310b38d9c54",
+        "workspace_base_commit": "87a9a18c2c961f9eb008c5df1507ab8838393a7b"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/99cd7204ce0841a9317ae628/b6415c9a06134fbf8439b8e39a9a094f.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": []
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "pytest__doctest-optionflag-leak",
+      "status": "PASS",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "040e45f519e8400e85d91e0b5d0d4675",
+        "run_id": "ba01f73ec0cc4fd2980acb2f6abf167c"
+      },
+      "validation": {
+        "status": "passed",
+        "reason": "All checks passed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "passed",
+            "reason": "All required tests and retention checks passed",
+            "exit_code": 0,
+            "duration_s": 8.639999999999418
+          }
+        ],
+        "duration_s": 39.671000000002095
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 25,
+        "duration_ms": 138531,
+        "model_calls": 26,
+        "retries": 1,
+        "failed_attempts": 1,
+        "tool_calls": 35,
+        "tool_failures": 4,
+        "tool_result_bytes": 98772,
+        "usage_coverage": 25,
+        "usage_calls": 26,
+        "usage": {
+          "input_tokens": {
+            "reported": 697247,
+            "coverage": 25,
+            "calls": 26
+          },
+          "output_tokens": {
+            "reported": 13922,
+            "coverage": 25,
+            "calls": 26
+          },
+          "total_tokens": {
+            "reported": 711169,
+            "coverage": 25,
+            "calls": 26
+          },
+          "cached_input_tokens": {
+            "reported": 646656,
+            "coverage": 25,
+            "calls": 26
+          }
+        },
+        "first_context": 1829,
+        "peak_context": 44234,
+        "final_context": 44234,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 26,
+            "reported_calls": 25,
+            "input_tokens": 697247,
+            "output_tokens": 13922,
+            "total_tokens": 711169
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 25,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 44410,
+            "calibrated_context_tokens": 44239,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9961410119628629,
+            "reported_input_tokens": 43883,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 230.11319999932311,
+            "token_count_calls": 4,
+            "main_token_count_ms": 230.11319999932311,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 25
+          }
+        }
+      },
+      "timing": {
+        "prepare": 29.343999999997322,
+        "agent": 138.531,
+        "validation": 39.671000000002095,
+        "total": 216.48399999999674
+      },
+      "provenance": {
+        "case_id": "pytest__doctest-optionflag-leak",
+        "source": "curated",
+        "repo": "pytest-dev/pytest",
+        "base_commit": "f8ad1f6f95307ed5b7da9b73f1c585695bf2b51a",
+        "image": "sha256:5377942c004dcf865b2d9a9e57aca3471c7aec0275aa58b5119adac2113e18d7",
+        "task_hash": "b2ba0853d581ddbbebd15850939244295039ede2de54c1ce9e77f958656cc3c4",
+        "validator_hash": "73aea8913bfd6efe5b494add5facdcfe93ed3c91ce2a4e43f4928de00b8636ba",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "07d0e9f3c2fe5e611136a95e08f9f3ac55713ae5",
+        "workspace_base_commit": "92566555c793ed3dbfe7545a93397dd6cfe2db43"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/51091645e5fbb0a5629c32dd/040e45f519e8400e85d91e0b5d0d4675.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": []
+    },
+    {
+      "schema_version": 1,
+      "evaluation_run_id": "20261030T090846Z-5c8b8566",
+      "case_id": "rich__double-width-wrap",
+      "status": "FAIL",
+      "agent": {
+        "outcome": "completed",
+        "reason": null,
+        "session_id": "b30c63d60697425f81bcba11e130c1a6",
+        "run_id": "3ce4a233f7a741ebb7591cbb7464e16a"
+      },
+      "validation": {
+        "status": "failed",
+        "reason": "Fixed checks failed",
+        "checks": [
+          {
+            "name": "tests",
+            "status": "failed",
+            "reason": "Fixed checks failed",
+            "exit_code": 1,
+            "duration_s": 1.625
+          }
+        ],
+        "duration_s": 11.718000000008033
+      },
+      "metrics": {
+        "available": true,
+        "unavailable_reason": null,
+        "steps": 25,
+        "duration_ms": 167687,
+        "model_calls": 25,
+        "retries": 0,
+        "failed_attempts": 0,
+        "tool_calls": 36,
+        "tool_failures": 4,
+        "tool_result_bytes": 78814,
+        "usage_coverage": 25,
+        "usage_calls": 25,
+        "usage": {
+          "input_tokens": {
+            "reported": 782472,
+            "coverage": 25,
+            "calls": 25
+          },
+          "output_tokens": {
+            "reported": 22965,
+            "coverage": 25,
+            "calls": 25
+          },
+          "total_tokens": {
+            "reported": 805437,
+            "coverage": 25,
+            "calls": 25
+          },
+          "cached_input_tokens": {
+            "reported": 724480,
+            "coverage": 25,
+            "calls": 25
+          }
+        },
+        "first_context": 1805,
+        "peak_context": 51046,
+        "final_context": 51046,
+        "compaction_calls": 0,
+        "usage_by_purpose": {
+          "main": {
+            "calls": 25,
+            "reported_calls": 25,
+            "input_tokens": 782472,
+            "output_tokens": 22965,
+            "total_tokens": 805437
+          },
+          "compaction": {
+            "calls": 0,
+            "reported_calls": 0,
+            "input_tokens": null,
+            "output_tokens": null,
+            "total_tokens": null
+          }
+        },
+        "compactions": 0,
+        "context_requests": {
+          "requests": 25,
+          "last": {
+            "context_policy": "continuous-session-v1",
+            "estimated_context_tokens": 51224,
+            "calibrated_context_tokens": 51053,
+            "token_estimator": "deepseek",
+            "calibration_factor": 0.9966458548018832,
+            "reported_input_tokens": 50698,
+            "compaction_trigger": 115200,
+            "managed_context_window": 128000,
+            "token_count_ms": 293.8760999968508,
+            "token_count_calls": 4,
+            "main_token_count_ms": 293.8760999968508,
+            "main_token_count_calls": 4,
+            "compaction_token_count_ms": 0.0,
+            "compaction_token_count_calls": 0,
+            "history_split_ms": 0.0,
+            "performance_scope": "step_before_request_cumulative",
+            "step": 25
+          }
+        }
+      },
+      "timing": {
+        "prepare": 8.406000000002678,
+        "agent": 167.687,
+        "validation": 11.718000000008033,
+        "total": 196.82799999999406
+      },
+      "provenance": {
+        "case_id": "rich__double-width-wrap",
+        "source": "curated",
+        "repo": "Textualize/rich",
+        "base_commit": "e76f3c3ea78481342e21a7b3328075462ab69c2b",
+        "image": "sha256:67bb303f04cf7c41f8d8b407c346a554bf2a1043b1fdda31a77ea86ff2f3e8fa",
+        "task_hash": "daf313eec1fa29b53f360b32a0746017ce62d05250ba600b600ca0799dc5e708",
+        "validator_hash": "b7703ca113ee1eae35efd562d361de5b77ab7e1e100dd19af5f87736fcdfeb3f",
+        "reporter_hash": "954be0349684192d50d43b650cb4c021f6c1ff356c247cffbf063dfb00d1ef30",
+        "manifest": "../manifest.json",
+        "base_tree": "e1e3e8e8b1462e55c6076a3bcd668dcf8a29c966",
+        "workspace_base_commit": "2515dd1654548b4d7d76ee3577f09942573900a6"
+      },
+      "artifacts": {
+        "patch": "patch.diff",
+        "session": "session/sessions/fa4922407dd30790f251313a/b30c63d60697425f81bcba11e130c1a6.jsonl",
+        "validator_log": "validator.log"
+      },
+      "diagnostics": [
+        {
+          "phase": "validation",
+          "category": "validation_failed",
+          "reason": "Fixed checks failed"
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "PASS": 5,
+    "FAIL": 3,
+    "ERROR": 0,
+    "ABORTED": 0,
+    "NOT_RUN": 0
+  },
+  "selected": [
+    "pvlib__pvlib-python-1707",
+    "matplotlib__matplotlib-22835",
+    "django__django-11734",
+    "psf__requests-6028",
+    "sphinx-doc__sphinx-10323",
+    "click__path-generic-type",
+    "pytest__doctest-optionflag-leak",
+    "rich__double-width-wrap"
+  ],
+  "totals": {
+    "input_tokens": {
+      "reported": 8126481,
+      "coverage": 218,
+      "calls": 221
+    },
+    "output_tokens": {
+      "reported": 160523,
+      "coverage": 218,
+      "calls": 221
+    },
+    "total_tokens": {
+      "reported": 8287004,
+      "coverage": 218,
+      "calls": 221
+    },
+    "cached_input_tokens": {
+      "reported": 7607040,
+      "coverage": 218,
+      "calls": 221
+    },
+    "model_calls": 221,
+    "tool_calls": 361,
+    "duration_ms": 1596276,
+    "usage_coverage": 218
+  }
+}
