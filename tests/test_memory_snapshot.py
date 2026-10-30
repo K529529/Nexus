@@ -17,8 +17,11 @@ def test_memory_instructions_have_no_final_response_write_gate() -> None:
         "When the user explicitly asks you to remember information, save it promptly"
         in instructions
     )
-    assert "there is no need to write long-term memory just to summarize a task" in instructions
-    assert "Ordinary answers, temporary check results, and current task progress" in instructions
+    assert "there is no need to write long-term memory just to summarize a task" not in instructions
+    assert (
+        "Ordinary answers, temporary check results, and current task progress can stay in the "
+        "Session." in instructions
+    )
     assert "Memory may be stale or wrong" in instructions
 
 

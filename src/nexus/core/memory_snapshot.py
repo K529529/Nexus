@@ -21,7 +21,7 @@ HEADER = (
     "You may also save concrete long-term facts, project decisions, or reusable lessons "
     "when they will help future tasks. Keep entries concise and project-labelled. "
     "Ordinary answers, temporary check results, and current task progress can stay in the "
-    "Session; there is no need to write long-term memory just to summarize a task. "
+    "Session. "
     "Distinguish verified facts from assumptions. Read before correcting an existing entry. "
     "Never store credentials. Use memory_search to find past context when useful. "
     "The runtime also appends daily handoffs "
