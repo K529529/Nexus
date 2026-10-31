@@ -67,6 +67,7 @@ class Conversation:
 
             key_names = [config.model.api_key_env]
             key_names.append(config.web.api_key_env)
+            key_names.append(config.tracing.api_key_env)
             if config.compaction_model:
                 key_names.append(config.compaction_model.api_key_env)
             self.gateway.backend = platform_backend(config.security, secret_env=tuple(key_names))
@@ -207,6 +208,7 @@ class Conversation:
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
         values.append(os.environ.get(self.config.web.api_key_env, ""))
+        values.append(os.environ.get(self.config.tracing.api_key_env, ""))
         if self.config.compaction_model is not None:
             values.append(os.environ.get(self.config.compaction_model.api_key_env, ""))
         for raw in self.config.mcp_servers.values():
@@ -226,7 +228,9 @@ class Conversation:
                 asdict(self.config.model),
                 self.home,
             )
-        self.events = Events(self.session, self.writer, self.consumer, self.secret_values())
+        self.events = Events(
+            self.session, self.writer, self.consumer, self.secret_values(), self.config.tracing
+        )
 
     async def start_memory(self) -> None:
         """Start once per Conversation; dependency failure never blocks the coding loop."""

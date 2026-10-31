@@ -1,0 +1,88 @@
+{
+  "run_id": "0336eba911504e5586c045f30b8dd150",
+  "trace_id": "637e701947d55da030de724376b4ace9",
+  "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-otel-2n4a7mwi\\state\\sessions\\df18397d7cffc78f357c76be\\2568a4213fb74a82bf852c90b175b2dc.jsonl",
+  "outcome": "completed",
+  "tool_calls": 1,
+  "model_calls": 2,
+  "diagnostics": [],
+  "cloud_runs": [
+    {
+      "id": "00000000-0000-0000-d9f1-21568737bd11",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": "00000000-0000-0000-4554-13107bce2a53",
+      "name": "nexus.model.request",
+      "run_type": "chain",
+      "start_time": "2026-10-31T10:06:35.001982",
+      "end_time": "2026-10-31T10:06:35.758345",
+      "status": "success",
+      "prompt_tokens": 2263,
+      "completion_tokens": 7
+    },
+    {
+      "id": "00000000-0000-0000-9e9f-47966be1f8e7",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": "00000000-0000-0000-d9f1-21568737bd11",
+      "name": "nexus.model.attempt",
+      "run_type": "llm",
+      "start_time": "2026-10-31T10:06:35.001982",
+      "end_time": "2026-10-31T10:06:35.758345",
+      "status": "success",
+      "prompt_tokens": 2263,
+      "completion_tokens": 7
+    },
+    {
+      "id": "00000000-0000-0000-eb5f-1c9c78a481c1",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": "00000000-0000-0000-4554-13107bce2a53",
+      "name": "exec_command",
+      "run_type": "tool",
+      "start_time": "2026-10-31T10:06:34.595147",
+      "end_time": "2026-10-31T10:06:34.989984",
+      "status": "success",
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    {
+      "id": "00000000-0000-0000-ff5e-7e8148be97c5",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": "00000000-0000-0000-f07a-b24f35e40d66",
+      "name": "nexus.model.attempt",
+      "run_type": "llm",
+      "start_time": "2026-10-31T10:06:33.405000",
+      "end_time": "2026-10-31T10:06:34.584738",
+      "status": "success",
+      "prompt_tokens": 2000,
+      "completion_tokens": 48
+    },
+    {
+      "id": "00000000-0000-0000-f07a-b24f35e40d66",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": "00000000-0000-0000-4554-13107bce2a53",
+      "name": "nexus.model.request",
+      "run_type": "chain",
+      "start_time": "2026-10-31T10:06:33.405000",
+      "end_time": "2026-10-31T10:06:34.584738",
+      "status": "success",
+      "prompt_tokens": 2000,
+      "completion_tokens": 48
+    },
+    {
+      "id": "00000000-0000-0000-4554-13107bce2a53",
+      "trace_id": "00000000-0000-0000-4554-13107bce2a53",
+      "parent_run_id": null,
+      "name": "nexus.run",
+      "run_type": "chain",
+      "start_time": "2026-10-31T10:06:33.182780",
+      "end_time": "2026-10-31T10:06:35.767863",
+      "status": "success",
+      "prompt_tokens": 4263,
+      "completion_tokens": 55
+    }
+  ],
+  "cloud_query_status": 200,
+  "ui_validation": "pending manual",
+  "cloud_trace_id": "00000000-0000-0000-4554-13107bce2a53",
+  "cloud_trace_url": "https://smith.langchain.com/o/8af719d0-a967-4c10-b9d4-2058148d4366/projects/p/cd644b92-b80b-467b-bcf3-f6ea9ae68ea2?peek=00000000-0000-0000-4554-13107bce2a53",
+  "verified": "6 nodes: root, 2 logical requests, 2 llm attempts, 1 tool; root usage equals sum of attempts"
+}

@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import re
 import time
+import uuid
 from dataclasses import asdict
 from typing import Any
 from urllib.parse import urlsplit
@@ -192,6 +193,7 @@ class ChatModel:
             request["extra_body"] = {"enable_thinking": self.config.enable_thinking}
         if self.config.include_usage:
             request["stream_options"] = {"include_usage": True}
+        request_id = uuid.uuid4().hex
         for attempt in (1, 2):
             started = time.monotonic()
             seen_delta = False
@@ -201,7 +203,14 @@ class ChatModel:
             diagnostic: Json = {}
             phase = "create"
             retry = False
-            await emit("model_started", {"model": self.config.name, "attempt": attempt})
+            identity = {
+                "model": self.config.name,
+                "attempt": attempt,
+                "request_id": request_id,
+                "provider": urlsplit(self.config.base_url).hostname,
+                "purpose": "chat",
+            }
+            await emit("model_started", identity)
             try:
                 async with asyncio.timeout(self.config.request_timeout_seconds):
                     stream = await self.client.chat.completions.create(**request)
@@ -212,6 +221,8 @@ class ChatModel:
                     finish: str | None = None
                     usage = Usage()
                     async for chunk in stream:
+                        if isinstance(getattr(chunk, "model", None), str):
+                            diagnostic["response_model"] = chunk.model
                         if chunk.usage is not None:
                             details = getattr(chunk.usage, "prompt_tokens_details", None)
                             cached = getattr(details, "cached_tokens", None)
@@ -375,6 +386,7 @@ class ChatModel:
                 await emit(
                     "model_finished",
                     {
+                        **identity,
                         "model": self.config.name,
                         "attempt": attempt,
                         "phase": phase,

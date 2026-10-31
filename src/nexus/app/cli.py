@@ -198,6 +198,17 @@ async def drive(
 
 
 async def application(args: argparse.Namespace) -> int:
+    if args.command == "trace":
+        from nexus.app.tracing import export_file, parse_trace
+
+        tracing = parse_trace(read_toml(config_path()).get("tracing", {}))
+        ok, diagnostics = await export_file(
+            Path(args.path), args.run_id, replace(tracing, enabled=True)
+        )
+        print("Trace export " + ("accepted" if ok else "failed"))
+        for diagnostic in diagnostics:
+            print(diagnostic)
+        return 0 if ok else 1
     if args.command == "sandbox":
         from nexus.app.sandbox_setup import sandbox_command
 
@@ -524,6 +535,10 @@ def main() -> None:
     )
     parser.add_argument("--skill", help="Select a local Skill for this session")
     subparsers = parser.add_subparsers(dest="command")
+    trace = subparsers.add_parser("trace", help="Export one saved run through OTLP/HTTP")
+    trace.add_argument("action", choices=["export"])
+    trace.add_argument("path")
+    trace.add_argument("--run-id", required=True)
     sandbox = subparsers.add_parser("sandbox", help="Linux Docker diagnostics and explicit setup")
     sandbox.add_argument("action", choices=["doctor", "setup"])
     memory = subparsers.add_parser("memory", help="Inspect memory/index state without a model call")

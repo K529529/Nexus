@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 import tomlkit
 
 from nexus.app.memory import atomic_write
+from nexus.app.tracing import TraceConfig, parse_trace
 from nexus.core.security import Mode, SecurityPolicy
 from nexus.core.types import Json, Limits
 
@@ -62,6 +63,7 @@ class Config:
     memory_qmd_command: tuple[str, ...] = ("qmd",)
     security: SecurityPolicy = field(default_factory=SecurityPolicy)
     web: WebConfig = field(default_factory=WebConfig)
+    tracing: TraceConfig = field(default_factory=TraceConfig)
 
 
 def config_path() -> Path:
@@ -245,6 +247,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         "memory",
         "security",
         "web",
+        "tracing",
     }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
@@ -306,6 +309,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         tuple(qmd_command),
         policy,
         WebConfig(enabled, key_env, timeout),
+        parse_trace(data.get("tracing", {})),
     )
 
 

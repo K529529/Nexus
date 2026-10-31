@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from collections.abc import Awaitable, Callable
+from dataclasses import asdict
 from typing import Any
 
-from nexus.app.session import SessionLog, now
+from nexus.app.session import SessionLog, now, read_records
+from nexus.app.tracing import TraceConfig, export_rows
 from nexus.core.types import Json, RuntimeEvent, Session
 
 DELTA_KINDS = {"assistant_delta", "tool_output_delta"}
@@ -32,11 +35,19 @@ class Events:
         writer: SessionLog,
         consumer: Callable[[RuntimeEvent], Awaitable[None]],
         secrets: tuple[str, ...] = (),
+        tracing: TraceConfig | None = None,
     ) -> None:
         self.session, self.writer, self.consumer = session, writer, consumer
         self.secrets = tuple(s for s in secrets if s)
         self.pending: dict[tuple[str, str, str], tuple[str, Json]] = {}
         self.consumer_failed = False
+        self.tracing = tracing or TraceConfig()
+        self.trace_rows: list[Json] = []
+        self.exported: set[str] = set()
+        if self.tracing.enabled and session.resume_run_id:
+            with writer.path.open("rb") as stream:
+                records, _ = read_records(stream)
+            self.trace_rows = [r for r in records if r.get("run_id") == session.resume_run_id]
 
     async def _publish(self, kind: str, data: Json) -> None:
         event = RuntimeEvent(
@@ -105,6 +116,43 @@ class Events:
         clean = redact(data, self.secrets)
         event = RuntimeEvent(kind, now(), self.session.session_id, self.session.run_id, clean)
         seq = self.writer.append(event, protocol_data)
+        if self.tracing.enabled and self.session.run_id not in self.exported:
+            if kind == "run_started" and not self.session.resume_run_id:
+                self.trace_rows.clear()
+            if kind in {
+                "run_started",
+                "run_finished",
+                "model_started",
+                "model_finished",
+                "tool_started",
+                "tool_finished",
+                "compaction_started",
+                "context_compacted",
+                "compaction_failed",
+            }:
+                self.trace_rows.append({"seq": seq, **asdict(event)})
+        if (
+            kind == "run_finished"
+            and self.tracing.enabled
+            and self.session.run_id is not None
+            and self.session.run_id not in self.exported
+        ):
+            self.exported.add(self.session.run_id)
+            try:
+                ok, diagnostics = await export_rows(
+                    self.trace_rows, self.session.run_id, self.tracing
+                )
+            except (Exception, asyncio.CancelledError):
+                ok, diagnostics = False, ["export_failed"]
+            if not ok:
+                print(
+                    f'Trace export unavailable; retry: nexus trace export "{self.writer.path}" '
+                    f"--run-id {self.session.run_id}",
+                    file=sys.stderr,
+                )
+            for diagnostic in diagnostics:
+                print("Trace: " + diagnostic, file=sys.stderr)
+            self.trace_rows.clear()
         if kind == "tool_checkpoint":
             # No UI await/cancellation window between the barrier and its caller.
             return seq
