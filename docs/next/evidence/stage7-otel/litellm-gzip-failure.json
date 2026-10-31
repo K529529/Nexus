@@ -1,0 +1,32 @@
+[
+  {
+    "alias": "qwen3_8flash",
+    "model": "qwen3.8-flash",
+    "provider": "dashscope",
+    "outcome": "completed",
+    "reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "run_id": "c1d67941ae684cb4a4bec38c317324bb",
+    "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-model-smoke-bmpuyhtb\\state\\sessions\\f875a5a8d340dcf6c95b3bc2\\e0541db973ea4fa58aa8cbd3a25c8f13.jsonl",
+    "diagnostics": [],
+    "trace_id": "963aa9ecfa7f5a68b5ca4dd1380c0b94",
+    "root_span_id": "be397f08a8e1d46c",
+    "private_continuation_saved": true
+  },
+  {
+    "alias": "deepseek_v4_pro",
+    "model": "deepseek-v4-pro",
+    "provider": "deepseek",
+    "outcome": "failed",
+    "reason": "incomplete_stream",
+    "tool_calls": 0,
+    "model_calls": 1,
+    "run_id": "6dc89aca71064dfbb086a322822a2fa7",
+    "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-model-smoke-bmpuyhtb\\state\\sessions\\f875a5a8d340dcf6c95b3bc2\\e0541db973ea4fa58aa8cbd3a25c8f13.jsonl",
+    "diagnostics": [],
+    "trace_id": "38acdfa60076bc1fd964f3b8caa37e9c",
+    "root_span_id": "cdd8158e0f5922f0",
+    "private_continuation_saved": false
+  }
+]

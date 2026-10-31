@@ -1,0 +1,174 @@
+[
+  {
+    "alias": "qwen3_8flash",
+    "model": "qwen3.8-flash",
+    "provider": "dashscope",
+    "outcome": "completed",
+    "reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "run_id": "012334b3dd2b422786aabf17f605ae98",
+    "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-model-smoke-1mwweuf4\\state\\sessions\\40e58473ceb74fd4ee5a285f\\7d2d9ee581c7495c86873c6848c28f27.jsonl",
+    "diagnostics": [],
+    "trace_id": "07ed7fca698044e6eb549c7e8a697fc5",
+    "root_span_id": "81ea79a3b721866a",
+    "private_continuation_saved": true,
+    "cloud_runs": [
+      {
+        "id": "00000000-0000-0000-844d-5274730aa871",
+        "parent_run_id": "00000000-0000-0000-81ea-79a3b721866a",
+        "run_type": "chain",
+        "name": "nexus.model.request",
+        "status": "success",
+        "prompt_tokens": 2351,
+        "completion_tokens": 66,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-28f3-01d7b7bd0b77",
+        "parent_run_id": "00000000-0000-0000-844d-5274730aa871",
+        "run_type": "llm",
+        "name": "nexus.model.attempt",
+        "status": "success",
+        "prompt_tokens": 2351,
+        "completion_tokens": 66,
+        "model": "qwen3.8-flash",
+        "provider": "dashscope"
+      },
+      {
+        "id": "00000000-0000-0000-d080-0af4c3890a6f",
+        "parent_run_id": "00000000-0000-0000-81ea-79a3b721866a",
+        "run_type": "tool",
+        "name": "exec_command",
+        "status": "success",
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-ecc5-2bde64bd15db",
+        "parent_run_id": "00000000-0000-0000-81ea-79a3b721866a",
+        "run_type": "chain",
+        "name": "nexus.model.request",
+        "status": "success",
+        "prompt_tokens": 2069,
+        "completion_tokens": 62,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-3ac1-2f9f17827e64",
+        "parent_run_id": "00000000-0000-0000-ecc5-2bde64bd15db",
+        "run_type": "llm",
+        "name": "nexus.model.attempt",
+        "status": "success",
+        "prompt_tokens": 2069,
+        "completion_tokens": 62,
+        "model": "qwen3.8-flash",
+        "provider": "dashscope"
+      },
+      {
+        "id": "00000000-0000-0000-81ea-79a3b721866a",
+        "parent_run_id": null,
+        "run_type": "chain",
+        "name": "nexus.run",
+        "status": "success",
+        "prompt_tokens": 4420,
+        "completion_tokens": 128,
+        "model": null,
+        "provider": null
+      }
+    ],
+    "cloud_trace_id": "00000000-0000-0000-81ea-79a3b721866a",
+    "cloud_trace_url": "https://smith.langchain.com/o/8af719d0-a967-4c10-b9d4-2058148d4366/projects/p/cd644b92-b80b-467b-bcf3-f6ea9ae68ea2?peek=00000000-0000-0000-81ea-79a3b721866a",
+    "ui_validation": "pending manual"
+  },
+  {
+    "alias": "deepseek_v4_pro",
+    "model": "deepseek-v4-pro",
+    "provider": "deepseek",
+    "outcome": "completed",
+    "reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "run_id": "fd3607dfbb964dcbaa00341f91cab6ae",
+    "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-model-smoke-1mwweuf4\\state\\sessions\\40e58473ceb74fd4ee5a285f\\7d2d9ee581c7495c86873c6848c28f27.jsonl",
+    "diagnostics": [],
+    "trace_id": "a2d9c6f0c255c4b8ca04c370d5988eed",
+    "root_span_id": "ecffa005faa89dec",
+    "private_continuation_saved": false,
+    "cloud_runs": [
+      {
+        "id": "00000000-0000-0000-202e-6c37effcc5d9",
+        "parent_run_id": "00000000-0000-0000-1185-94f37ae6cc5a",
+        "run_type": "llm",
+        "name": "nexus.model.attempt",
+        "status": "success",
+        "prompt_tokens": 2720,
+        "completion_tokens": 29,
+        "model": "deepseek-v4-pro",
+        "provider": "deepseek"
+      },
+      {
+        "id": "00000000-0000-0000-1185-94f37ae6cc5a",
+        "parent_run_id": "00000000-0000-0000-ecff-a005faa89dec",
+        "run_type": "chain",
+        "name": "nexus.model.request",
+        "status": "success",
+        "prompt_tokens": 2720,
+        "completion_tokens": 29,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-80ae-77727fec8fe6",
+        "parent_run_id": "00000000-0000-0000-ecff-a005faa89dec",
+        "run_type": "tool",
+        "name": "exec_command",
+        "status": "success",
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-ecff-a005faa89dec",
+        "parent_run_id": null,
+        "run_type": "chain",
+        "name": "nexus.run",
+        "status": "success",
+        "prompt_tokens": 5157,
+        "completion_tokens": 87,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-3531-79b43905ff55",
+        "parent_run_id": "00000000-0000-0000-ecff-a005faa89dec",
+        "run_type": "chain",
+        "name": "nexus.model.request",
+        "status": "success",
+        "prompt_tokens": 2437,
+        "completion_tokens": 58,
+        "model": null,
+        "provider": null
+      },
+      {
+        "id": "00000000-0000-0000-072f-e67cc73d537e",
+        "parent_run_id": "00000000-0000-0000-3531-79b43905ff55",
+        "run_type": "llm",
+        "name": "nexus.model.attempt",
+        "status": "success",
+        "prompt_tokens": 2437,
+        "completion_tokens": 58,
+        "model": "deepseek-v4-pro",
+        "provider": "deepseek"
+      }
+    ],
+    "cloud_trace_id": "00000000-0000-0000-ecff-a005faa89dec",
+    "cloud_trace_url": "https://smith.langchain.com/o/8af719d0-a967-4c10-b9d4-2058148d4366/projects/p/cd644b92-b80b-467b-bcf3-f6ea9ae68ea2?peek=00000000-0000-0000-ecff-a005faa89dec",
+    "ui_validation": "pending manual"
+  }
+]

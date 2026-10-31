@@ -1,0 +1,5 @@
+{
+  "outcome": "failed",
+  "cause": "Audited stream mistakenly recorded normal GeneratorExit as failure; fixed",
+  "session_path": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nexus-stage7-litellm-cr8zekx9\\state\\sessions\\d06778efdb2de34cfb8b1faa\\09b8c244c28b44c5bbbd109d42a07b4d.jsonl"
+}

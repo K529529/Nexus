@@ -636,8 +636,9 @@ async def test_continuation_bound_to_service_and_model() -> None:
         assert "private" not in json.dumps(message.public())
         assert message.protocol_data is not None
         message.protocol_data["binding"] = "other-service"
-        with pytest.raises(ModelError, match="protocol_binding"):
-            model.wire_messages([message])
+        switched = model.wire_messages([message])[0]
+        assert "reasoning_content" not in switched
+        assert switched["tool_calls"][0]["id"] == "a"
     finally:
         await model.close()
 
@@ -663,13 +664,13 @@ async def test_request_timeout_applies_to_sdk_and_whole_stream(monkeypatch: Any)
         )
 
     monkeypatch.setenv("TEST_MODEL_KEY", "test-secret")
-    monkeypatch.setattr(model_module, "AsyncOpenAI", client)
+    monkeypatch.setattr("nexus.core.transport.AsyncOpenAI", client)
     monkeypatch.setattr(asyncio, "timeout", timed)
     model = ChatModel(
         ModelConfig("test", 32768, api_key_env="TEST_MODEL_KEY", request_timeout_seconds=300)
     )
     try:
-        assert model.client.timeout == 300
+        assert model.client.client.timeout == 300
         reply = await model.complete([Message("user", "test")], [], Recorder())
         assert reply.message.content == "done"
         assert observed == [300, model_module.CLEANUP_TIMEOUT_SECONDS]

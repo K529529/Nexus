@@ -23,6 +23,7 @@ dependencies = [
     "tomlkit>=0.13,<1",
     "opentelemetry-sdk>=1.39,<2",
     "opentelemetry-exporter-otlp-proto-http>=1.39,<2",
+    "litellm>=1.80,<2",
 ]
 
 [project.urls]
@@ -53,6 +54,7 @@ include = [
     "/scripts/memory_setup_smoke.py",
     "/scripts/memory_controls_smoke.py",
     "/scripts/memory_daily_smoke.py",
+    "/scripts/stage7_model_smoke.py",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [

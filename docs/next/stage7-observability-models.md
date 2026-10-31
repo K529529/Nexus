@@ -91,3 +91,80 @@ unknown usage 不发送，不补零；父 span 不重复发送 Token。实际 UT
 第一轮验证：完整回归 1125 passed / 10 skipped；补充后 OTel 专项 14 passed。
 ruff、mypy、uv lock --check、uv build、wheel 源码目录外导入通过。
 初次完整回归因新增 trace CLI 局部导入遮蔽模块导入失败，已修复并完整重跑；未删除原有断言。
+
+## LiteLLM 与 /model
+
+底层调用统一为锁定的 LiteLLM 1.106.6 `acompletion`。仍由 ChatModel 组装文本与工具参数，
+CompactionModel 保持独立配置、JSON object 约束和 purpose。不引入 Router、Proxy、自动 fallback，
+不注册 LiteLLM tracing callbacks；OTel 继续只从 Nexus 事件构建。
+Nexus 管理重试，SDK wrapper `num_retries=0`、底层 `max_retries=0`，显式传每次请求的 key/base/model。
+各模型独占并关闭客户端；流与客户端关闭保留原有有界 cleanup/退役策略。
+
+当前明确支持三个 provider：`openai`（默认，兼容原有配置及自定义 OpenAI-compatible endpoint）、
+`deepseek`、`dashscope`。其它 SDK provider 不在本轮验收范围，配置时明确拒绝。
+保留原 `[model]` 作为默认模型，新增：
+
+```toml
+[models.qwen3_8flash]
+name = "qwen3.8-flash"
+provider = "dashscope"
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+api_key_env = "DASHSCOPE_API_KEY"
+context_window = 128000
+max_output_tokens = 8192
+enable_thinking = true
+
+[models.deepseek_v4_pro]
+name = "deepseek-v4-pro"
+provider = "deepseek"
+base_url = "https://api.deepseek.com/v1"
+api_key_env = "DEEPSEEK_API_KEY"
+context_window = 128000
+max_output_tokens = 8192
+reasoning_effort = "high"
+```
+
+表名是 Nexus alias，`name` 是实际 API ID；SDK 内部使用 `dashscope/qwen3.8-flash`、
+`deepseek/deepseek-v4-pro`。context_window 是 Nexus 管理预算，示例的 128000 不代表供应商最大窗口。
+Qwen endpoint 采用北京区域，本机现有 DASHSCOPE_API_KEY 已真实调用成功。
+
+```text
+/model                  列表，* 标记当前选择
+/model qwen3_8flash      切换到 Qwen
+/model deepseek_v4_pro   切换到 DeepSeek V4 Pro
+/model default          返回原 [model]
+```
+
+在交互输入空闲处生效，不改正在进行的请求；无效 alias、缺失 key 保留原会话与当前模型。
+切换保留公共消息、工具调用和完整结果，私有 continuation 绑定 provider/endpoint/model，
+不同身份的 reasoning 不发送。旧 chat-v1 的 OpenAI-compatible 同服务同模型绑定仍能读取。
+本轮支持的 provider 使用 reasoning_content；未添加 Anthropic signature 等其它协议的支持声明。
+DeepSeek SDK 在思考模式遇到其它模型留下的公共 assistant 消息时，可能提示并插入空白 reasoning
+占位以满足 API；不会传入 Qwen 的私有推理。这一切换路径已真实验证。
+
+`/new`、重新启动与 resume 沿用当前用户配置 `[model]`，不自动恢复上次的 alias。
+`[compaction_model]` 始终独立，不随 `/model` 切换；main estimator 随新模型重建。
+
+SDK 的估算 usage、合成 stop 不视为供应商报告：对这三个 OpenAI-compatible SSE 服务只审计
+真实 finish/usage 字段（含 gzip），模型内容归一化仍由 LiteLLM 完成。缺 usage 保持 unknown，
+没有真实 finish 的流报 incomplete_stream；输出后异常不整次重放。关闭 SDK debug/内容日志及遥测。
+
+首次真实 smoke 暴露正常 GeneratorExit 的识别问题，随后暴露 DeepSeek gzip SSE 的审计问题，
+均已修复并加测试。失败原始 JSONL 留在本地临时验收目录；gzip 失败与最终成功记录分别保存在
+`evidence/stage7-otel/litellm-gzip-failure.json` 和 `litellm-live.json`。
+两模型最终各 2 个实际请求、1 次工具执行，云端各 6 个节点，provider/model/父子关系已用 API 核对。
+Qwen 本轮保存了私有续接；DeepSeek 的简单工具任务未返回私有续接，另一次小型算术请求验证了
+thinking 参数实际发送及 reasoning_content 保存；两者多轮 reasoning 回传均由实际 SDK HTTP 测试覆盖。
+平台网页具体呈现仍标记为待人工验收，不把 API 入库检查当成已查看 UI。
+
+可复现付费 smoke（读取本地配置和凭据，保存临时会话，执行无文件变更的打印命令）：
+`python scripts/stage7_model_smoke.py`。先确保当前进程能读到三个 API Key 环境变量。
+
+官方核对：
+- https://help.aliyun.com/en/model-studio/qwen3-8-flash
+- https://api-docs.deepseek.com/quick_start/pricing-details-cny/
+- https://docs.litellm.ai/docs/providers/dashscope
+- https://docs.litellm.ai/docs/providers/deepseek
+
+第二轮最终完整回归：1142 passed / 10 skipped，12 条 LiteLLM 内部 Pydantic 弃用警告。
+ruff、mypy、锁文件、build 均通过。先前 2 个旧工厂注入测试失败已按新工厂位置修复，断言保留。

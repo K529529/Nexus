@@ -208,7 +208,7 @@ async def test_valid_reply_survives_recoverable_cleanup(close: str, monkeypatch:
 
 async def test_owned_client_replaced_after_cleanup(monkeypatch: Any) -> None:
     clients = [Client([success("transport")]), Client([success()])]
-    monkeypatch.setattr(model_module, "AsyncOpenAI", lambda **kwargs: clients.pop(0))
+    monkeypatch.setattr(model_module.ChatModel, "_new_client", lambda self: clients.pop(0))
     monkeypatch.setenv("TRANSPORT_TEST_KEY", "fake")
     model = ChatModel(ModelConfig("test", 32768, api_key_env="TRANSPORT_TEST_KEY"))
     first = model.client
@@ -405,7 +405,7 @@ async def test_owned_pool_cleanup_then_safe_retry(monkeypatch: Any) -> None:
     first = Client([Stream([httpx.ReadError(SECRET)], "transport")])
     second = Client([success()])
     clients = [first, second]
-    monkeypatch.setattr(model_module, "AsyncOpenAI", lambda **kwargs: clients.pop(0))
+    monkeypatch.setattr(model_module.ChatModel, "_new_client", lambda self: clients.pop(0))
     monkeypatch.setenv("TRANSPORT_TEST_KEY", "fake")
     model = ChatModel(ModelConfig("test", 32768, api_key_env="TRANSPORT_TEST_KEY"))
     emit = Recorder()

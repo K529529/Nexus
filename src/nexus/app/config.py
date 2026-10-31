@@ -37,6 +37,7 @@ class ModelConfig:
     request_timeout_seconds: int = 120
     output_token_parameter: str = "max_tokens"
     enable_thinking: bool | None = None
+    provider: str = "openai"
 
     def key(self) -> str:
         value = os.environ.get(self.api_key_env, "")
@@ -64,6 +65,7 @@ class Config:
     security: SecurityPolicy = field(default_factory=SecurityPolicy)
     web: WebConfig = field(default_factory=WebConfig)
     tracing: TraceConfig = field(default_factory=TraceConfig)
+    models: dict[str, ModelConfig] = field(default_factory=dict)
 
 
 def config_path() -> Path:
@@ -178,6 +180,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
                 "request_timeout_seconds",
                 "output_token_parameter",
                 "enable_thinking",
+                "provider",
             },
         )
     )
@@ -221,6 +224,9 @@ def parse_model(data: Json, section: str) -> ModelConfig:
     thinking = model.get("enable_thinking")
     if thinking is not None and type(thinking) is not bool:
         raise ConfigError(f"{section}.enable_thinking: expected boolean")
+    provider = model.get("provider", "openai")
+    if provider not in {"openai", "deepseek", "dashscope"}:
+        raise ConfigError(f"{section}.provider: supported values are openai, deepseek, dashscope")
     return ModelConfig(
         name,
         window,
@@ -232,6 +238,7 @@ def parse_model(data: Json, section: str) -> ModelConfig:
         request_timeout,
         output_parameter,
         thinking,
+        provider,
     )
 
 
@@ -248,10 +255,19 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         "security",
         "web",
         "tracing",
+        "models",
     }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
     settings = parse_model(data, "model")
+    model_entries = data.get("models", {})
+    if not isinstance(model_entries, dict):
+        raise ConfigError("models: expected alias tables")
+    models: dict[str, ModelConfig] = {}
+    for alias, entry in model_entries.items():
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", alias) or alias == "default":
+            raise ConfigError("models: invalid alias or reserved default name")
+        models[alias] = parse_model({"selected": entry}, "selected")
     compaction = parse_model(data, "compaction_model") if "compaction_model" in data else None
     runtime = _table(data, "runtime", {"max_steps", "response_language"})
     language = runtime.get("response_language", "zh-CN")
@@ -310,6 +326,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         policy,
         WebConfig(enabled, key_env, timeout),
         parse_trace(data.get("tracing", {})),
+        models,
     )
 
 

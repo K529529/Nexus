@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from nexus.app import memory_daily
-from nexus.app.config import Config
+from nexus.app.config import Config, ConfigError
 from nexus.app.events import Events, redact
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_context import root_id, snapshot
@@ -60,6 +60,9 @@ class Conversation:
     ) -> None:
         self.workspace = workspace.resolve()
         self.config, self.consumer, self.home = config, consumer, home
+        self.default_model = config.model
+        self.model_alias = "default"
+        self.turn_lock = asyncio.Lock()
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
             # No Node import/process in Local; restricted startup stays lazy.
@@ -68,6 +71,7 @@ class Conversation:
             key_names = [config.model.api_key_env]
             key_names.append(config.web.api_key_env)
             key_names.append(config.tracing.api_key_env)
+            key_names.extend(m.api_key_env for m in config.models.values())
             if config.compaction_model:
                 key_names.append(config.compaction_model.api_key_env)
             self.gateway.backend = platform_backend(config.security, secret_env=tuple(key_names))
@@ -207,8 +211,10 @@ class Conversation:
 
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
+        values.append(os.environ.get(self.default_model.api_key_env, ""))
         values.append(os.environ.get(self.config.web.api_key_env, ""))
         values.append(os.environ.get(self.config.tracing.api_key_env, ""))
+        values.extend(os.environ.get(m.api_key_env, "") for m in self.config.models.values())
         if self.config.compaction_model is not None:
             values.append(os.environ.get(self.config.compaction_model.api_key_env, ""))
         for raw in self.config.mcp_servers.values():
@@ -273,6 +279,45 @@ class Conversation:
             self.session.run_id = run_id
 
     async def turn(self, text: str) -> RunResult:
+        async with self.turn_lock:
+            return await self._turn(text)
+
+    async def select_model(self, alias: str) -> None:
+        if self.closed or self.turn_lock.locked():
+            raise ConfigError("Model selection requires an idle conversation")
+        selected = self.default_model if alias == "default" else self.config.models.get(alias)
+        if selected is None:
+            raise ConfigError(f"Unknown model alias: {alias}")
+        selected.key()
+        candidate = ChatModel(selected)
+        previous = self.model
+        try:
+            if previous is not None:
+                await previous.close()
+            else:
+                await candidate.close()  # First turn still owns MCP/bootstrap setup.
+        except BaseException:
+            await candidate.close()
+            raise
+        self.config = replace(self.config, model=selected, limits=replace(
+            self.config.limits, context_window=selected.context_window,
+            max_output_tokens=selected.max_output_tokens))
+        self.model = candidate if previous is not None else None
+        if self.model is not None:
+            self.resources.push_async_callback(self.model.close)
+        self.model_alias = alias
+        self.context.budget = selected.context_window
+        self.context.trigger = int(selected.context_window * 0.9)
+        self.context.main_estimator = TokenEstimator(
+            selected.name, selected.base_url, reasoning_effort=selected.reasoning_effort,
+            enable_thinking=selected.enable_thinking)
+        self.context.secrets = self.secret_values()
+        if self.events is not None:
+            self.events.secrets = self.secret_values()
+            await self.events("model_selected", {"alias": alias, "model": selected.name,
+                                                  "provider": selected.provider})
+
+    async def _turn(self, text: str) -> RunResult:
         if self.closed:
             raise RuntimeError("Conversation is closed")
         self.session.run_id = None

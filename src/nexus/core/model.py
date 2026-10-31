@@ -7,12 +7,12 @@ import hashlib
 import re
 import time
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
-from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpenAI
+from openai import APIConnectionError, APIStatusError, APITimeoutError
 
 from nexus.app.config import ModelConfig
 from nexus.core.tokens import wire_message, wire_tools
@@ -99,20 +99,22 @@ class ChatModel:
         self._cleanup_incomplete = False
         self.client: Any = client or self._new_client()
         self.binding = hashlib.sha256(
-            f"{config.base_url.rstrip('/')}\n{config.name}".encode(),
+            (f"{config.provider}\n{config.base_url.rstrip('/')}\n{config.name}").encode(),
         ).hexdigest()
-
-    def _new_client(self) -> AsyncOpenAI:
-        config = self.config
-        return AsyncOpenAI(
-            api_key=config.key(),
-            base_url=config.base_url,
-            timeout=config.request_timeout_seconds,
-            max_retries=0,
+        self.legacy_binding = (
+            hashlib.sha256(f"{config.base_url.rstrip('/')}\n{config.name}".encode()).hexdigest()
+            if config.provider == "openai"
+            else None
         )
 
+    def _new_client(self) -> Any:
+        from nexus.core.transport import LiteTransport
+
+        return LiteTransport(self.config)
+
     async def close(self) -> None:
-        await self.client.close()
+        async with asyncio.timeout(CLEANUP_TIMEOUT_SECONDS):
+            await self.client.close()
 
     async def _close_stream(self, stream: Any) -> tuple[Json | None, BaseException | None]:
         try:
@@ -148,12 +150,17 @@ class ChatModel:
     def wire_messages(self, messages: list[Message]) -> list[Json]:
         result: list[Json] = []
         for message in messages:
-            wire = wire_message(message)
+            wire = wire_message(replace(message, protocol_data=None))
             if message.protocol_data:
                 # Only adapter-generated, bound continuation fields can cross the wire.
                 data = message.protocol_data
-                if data.get("format") != "chat-v1" or data.get("binding") != self.binding:
-                    raise ModelError("protocol_binding", "Start a new session for this service.")
+                if data.get("binding") != self.binding and (
+                    not self.legacy_binding or data.get("binding") != self.legacy_binding
+                ):
+                    result.append(wire)
+                    continue  # Public conversation survives model changes; private state does not.
+                if data.get("format") != "chat-v1":
+                    raise ModelError("protocol_data_invalid")
                 fields = data.get("fields")
                 if not isinstance(fields, dict) or set(fields) != {"reasoning_content"}:
                     raise ModelError("protocol_data_invalid")
@@ -207,7 +214,7 @@ class ChatModel:
                 "model": self.config.name,
                 "attempt": attempt,
                 "request_id": request_id,
-                "provider": urlsplit(self.config.base_url).hostname,
+                "provider": self.config.provider,
                 "purpose": "chat",
             }
             await emit("model_started", identity)
@@ -223,7 +230,7 @@ class ChatModel:
                     async for chunk in stream:
                         if isinstance(getattr(chunk, "model", None), str):
                             diagnostic["response_model"] = chunk.model
-                        if chunk.usage is not None:
+                        if getattr(chunk, "usage", None) is not None:
                             details = getattr(chunk.usage, "prompt_tokens_details", None)
                             cached = getattr(details, "cached_tokens", None)
                             if (
@@ -250,11 +257,11 @@ class ChatModel:
                         if (
                             delta.content
                             or delta.tool_calls
-                            or delta.refusal
+                            or getattr(delta, "refusal", None)
                             or getattr(delta, "reasoning_content", None)
                         ):
                             seen_delta = True
-                        if delta.refusal:
+                        if getattr(delta, "refusal", None):
                             raise ModelError("model_refusal")
                         fragment = getattr(delta, "reasoning_content", None)
                         if fragment is not None and not isinstance(fragment, str):
