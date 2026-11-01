@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
-from openai import AsyncOpenAI
+from openai import APIStatusError, AsyncOpenAI
 
 from nexus.app.config import ModelConfig
 from nexus.core.types import ModelError
@@ -26,7 +26,14 @@ class LiteStream:
         return self
 
     async def __anext__(self) -> Any:
-        chunk = await self.stream.__anext__()
+        try:
+            chunk = await self.stream.__anext__()
+        except StopAsyncIteration:
+            if self.facts.refused:
+                raise ModelError("model_refusal") from None
+            raise
+        if self.facts.refused:
+            raise ModelError("model_refusal")
         if self.facts.failure is not None:
             raise self.facts.failure
         if any(c.finish_reason for c in chunk.choices):
@@ -67,7 +74,7 @@ class LiteStream:
 
 
 class WireFacts:
-    """Audit only finish/usage in the supported providers' OpenAI-compatible SSE.
+    """Audit only refusal/finish/usage in the supported providers' OpenAI-compatible SSE.
 
     LiteLLM still owns payload normalization. These facts distinguish provider
     reports from SDK-synthesized values; they never enter logs or callbacks.
@@ -76,6 +83,8 @@ class WireFacts:
     def __init__(self) -> None:
         self.pending = b""
         self.finished = False
+        self.refused = False
+        self.context_overflow = False
         self.usage: dict[str, Any] | None = None
         self.failure: BaseException | None = None
 
@@ -93,6 +102,9 @@ class WireFacts:
                 continue
             self.finished |= any(
                 c.get("finish_reason") is not None for c in chunk.get("choices", [])
+            )
+            self.refused |= any(
+                bool((c.get("delta") or {}).get("refusal")) for c in chunk.get("choices", [])
             )
             if isinstance(chunk.get("usage"), dict):
                 self.usage = chunk["usage"]
@@ -152,6 +164,19 @@ class LiteTransport:
         http_client.headers["Accept-Encoding"] = "identity"
 
     async def audit(self, response: httpx.Response) -> None:
+        if response.is_error:
+            # Some SDK provider adapters discard the original JSON error body.
+            # Keep only the existing classification, never the error text.
+            from nexus.core.model import context_overflow
+
+            await response.aread()
+            try:
+                body = response.json()
+            except ValueError:
+                return
+            self.facts.context_overflow = context_overflow(
+                response.status_code, body, self.config.base_url
+            )
         if response.is_success:
             if response.is_stream_consumed:
                 self.facts.observe(response.content)
@@ -163,21 +188,30 @@ class LiteTransport:
                 )
 
     async def create(self, **request: Any) -> LiteStream:
+        from litellm.exceptions import ContextWindowExceededError
+
         # Neither Router nor fallback nor callbacks. Both wrapper and wire retries off.
         config = self.config
         self.facts = WireFacts()
-        stream = await self.sdk.acompletion(
-            **{**request, "model": f"{config.provider}/{config.name}", "no-log": True},
-            api_base=config.base_url,
-            api_key=config.key(),
-            client=self.client,
-            timeout=config.request_timeout_seconds,
-            num_retries=0,
-            max_retries=0,
-            drop_params=False,
-            fallbacks=[],
-            caching=False,
-        )
+        try:
+            stream = await self.sdk.acompletion(
+                **{**request, "model": f"{config.provider}/{config.name}", "no-log": True},
+                api_base=config.base_url,
+                api_key=config.key(),
+                client=self.client,
+                timeout=config.request_timeout_seconds,
+                num_retries=0,
+                max_retries=0,
+                drop_params=False,
+                fallbacks=[],
+                caching=False,
+            )
+        except ContextWindowExceededError:
+            raise ModelError("context_limit") from None
+        except APIStatusError:
+            if self.facts.context_overflow:
+                raise ModelError("context_limit") from None
+            raise
         return LiteStream(stream, self.facts)
 
     async def close(self) -> None:

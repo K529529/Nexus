@@ -77,7 +77,7 @@ async def test_real_sdk_text_and_unknown_usage(wire: list[Json], provider: str) 
         await model.close()
 
 
-@pytest.mark.parametrize("provider", ["deepseek", "dashscope"])
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "dashscope"])
 async def test_sdk_tools_reasoning_continuation_and_usage(wire: list[Json], provider: str) -> None:
     response(
         [
@@ -231,15 +231,20 @@ async def test_sdk_compaction_structured(wire: list[Json]) -> None:
         await model.close()
 
 
-async def test_sdk_empty_final_repairs_once(wire: list[Json]) -> None:
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "dashscope"])
+async def test_sdk_empty_final_repairs_once(wire: list[Json], provider: str) -> None:
     response([chunk({}, "stop")])
     response([chunk({"content": "fixed"}, "stop")])
-    model = ChatModel(config("deepseek"))
+    model = ChatModel(config(provider))
+    recorder = Recorder()
     try:
         assert (
-            await model.complete([Message("user", "hi")], [], Recorder())
+            await model.complete([Message("user", "hi")], [], recorder)
         ).message.content == "fixed"
         assert len(wire) == 2
+        attempts = projected_attempts(recorder)
+        assert [a["error"] for a in attempts] == ["empty_or_invalid_final", None]
+        assert len([k for k, _ in recorder.events if k == "model_finished"]) == len(wire)
     finally:
         await model.close()
 
@@ -309,3 +314,143 @@ async def test_sdk_gzip_sse_reports_real_usage(wire: list[Json]) -> None:
         assert reply.usage.input_tokens == 9
     finally:
         await model.close()
+
+
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "dashscope"])
+@pytest.mark.parametrize(
+    "code,message,expected",
+    [
+        ("context_length_exceeded", "maximum context length exceeded", "context_limit"),
+        ("unknown", "This model's maximum context length is 100 tokens", "context_limit"),
+        ("invalid_parameter", "Unsupported parameter", "model_http_400"),
+        ("insufficient_quota", "Insufficient quota", "model_http_400"),
+    ],
+)
+async def test_sdk_error_classification(
+    wire: list[Json], provider: str, code: str, message: str, expected: str
+) -> None:
+    globals()["wire"].responses.append(
+        httpx.Response(
+            400,
+            json={
+                "error": {
+                    "code": code,
+                    "message": message + " PRIVATE_ERROR",
+                    "type": "invalid_request_error",
+                }
+            },
+        )
+    )
+    model = ChatModel(config(provider))
+    recorder = Recorder()
+    try:
+        with pytest.raises(ModelError, match=expected):
+            await model.complete([Message("user", "PRIVATE_PROMPT")], [], recorder)
+        assert len(wire) == 1
+        assert [d["error"] for k, d in recorder.events if k == "model_finished"] == [expected]
+        assert "PRIVATE" not in json.dumps(recorder.events)
+        assert_attempt_projection(recorder, expected)
+    finally:
+        await model.close()
+
+
+def projected_attempts(recorder: Recorder) -> list[Json]:
+    from nexus.app.tracing import project_run
+
+    events = [("run_started", {}), *recorder.events, ("run_finished", {"outcome": "failed"})]
+    rows = [
+        {
+            "seq": i + 1,
+            "kind": k,
+            "data": d,
+            "run_id": "r",
+            "session_id": "s",
+            "timestamp": f"2026-11-01T00:00:{i:02d}+00:00",
+        }
+        for i, (k, d) in enumerate(events)
+    ]
+    spans, _ = project_run(rows, "r")
+    return [s for s in spans if s["name"] == "nexus.model.attempt"]
+
+
+def assert_attempt_projection(recorder: Recorder, error: str) -> None:
+    attempts = projected_attempts(recorder)
+    assert len(attempts) == 1
+    assert attempts[0]["error"] == error
+    assert attempts[0]["attributes"]["error.type"] == error
+
+
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "dashscope"])
+@pytest.mark.parametrize("text", ["", "ordinary text"])
+async def test_sdk_refusal_is_terminal(wire: list[Json], provider: str, text: str) -> None:
+    class Body(httpx.AsyncByteStream):
+        async def __aiter__(self) -> Any:
+            payload = sse(
+                [chunk({"refusal": "PRIVATE_REFUSAL", "content": text}), chunk({}, "stop")]
+            )
+            for line in payload.splitlines(keepends=True):
+                yield line
+
+    globals()["wire"].responses.append(httpx.Response(200, stream=Body()))
+    response([chunk({"content": "must never be requested"}, "stop")])
+    model = ChatModel(config(provider))
+    recorder = Recorder()
+    try:
+        with pytest.raises(ModelError, match="model_refusal"):
+            await model.complete([Message("user", "test")], [], recorder)
+        assert len(wire) == 1
+        assert not any(k == "assistant_delta" for k, d in recorder.events)
+        assert "PRIVATE_REFUSAL" not in json.dumps(recorder.events)
+        assert_attempt_projection(recorder, "model_refusal")
+    finally:
+        await model.close()
+
+
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "dashscope"])
+async def test_sdk_overflow_runs_existing_compaction(
+    wire: list[Json], provider: str, tmp_path: Path
+) -> None:
+    from nexus.app.events import Events
+    from nexus.app.session import SessionLog
+    from nexus.core.agent import run_turn
+    from nexus.core.types import Session
+    from tests.test_session_compaction import SummaryModel, seed, summary_reply
+
+    globals()["wire"].responses.append(
+        httpx.Response(
+            400,
+            json={
+                "error": {
+                    "code": "context_length_exceeded",
+                    "message": "maximum context length exceeded",
+                }
+            },
+        )
+    )
+    response([chunk({"content": "done"}, "stop")])
+    session = Session(tmp_path)
+    writer = SessionLog.create(session, "test", {}, tmp_path)
+
+    async def consume(event: Any) -> None:
+        pass
+
+    events = Events(session, writer, consume)
+    model = ChatModel(config(provider))
+    compactor = SummaryModel([summary_reply()])
+    try:
+        await seed(session, events)
+        result = await run_turn(
+            session,
+            "continue",
+            model,
+            {},
+            events,
+            Limits(context_window=128000),
+            compaction_model=compactor,
+        )
+        assert result.outcome == "completed", result.reason
+        assert len(wire) == 2 and len(compactor.requests) == 1
+        assert session.checkpoint is not None
+    finally:
+        await model.close()
+        writer.close()
