@@ -47,8 +47,14 @@ async def test_approval_requires_visible_selection_and_enter(word: str, moves: i
         with editor.busy(lambda: None):
             decision = asyncio.create_task(editor.approve())
             await until(lambda: editor.approval is not None and editor.approval.is_running)
+            await until(lambda: editor.approval is not None and editor.approval.render_counter > 0)
+            assert editor.approval is not None
+            rendered = editor.approval.render_counter
             pipe.send_text("\x1b[200~allow\r\x1b[201~\r")
-            await asyncio.sleep(0.05)
+            # Confirm only after the pasted input has caused a visible repaint.
+            # A fixed sleep races the production painted-selection guard under load.
+            await until(lambda: editor.approval is not None
+                        and editor.approval.render_counter > rendered)
             assert not decision.done()
             for _ in range(moves):
                 pipe.send_text("\t")

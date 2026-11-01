@@ -171,8 +171,13 @@ async def test_visible_approval_navigation_and_focus(keys: list[str], expected: 
             await until(lambda: editor.approval is not None and editor.approval.is_running)
             assert "Deny" in captured.getvalue() and "Allow once" in captured.getvalue()
             for key in keys:
+                assert editor.approval is not None
+                rendered = editor.approval.render_counter
                 pipe.send_text(key)
-                await asyncio.sleep(0.08)
+                await until(lambda: decision.done() or (
+                    editor.approval is not None
+                    and editor.approval.render_counter > rendered  # noqa: B023 - awaited within this iteration
+                ))
             if not decision.done():
                 pipe.send_text("\r")
             assert await asyncio.wait_for(decision, 3) == expected

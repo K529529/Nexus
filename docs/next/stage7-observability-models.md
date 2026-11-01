@@ -129,7 +129,7 @@ reasoning_effort = "high"
 Qwen endpoint 采用北京区域，本机现有 DASHSCOPE_API_KEY 已真实调用成功。
 
 ```text
-/model                  列表，* 标记当前选择
+/model                  上下键选择菜单，默认当前模型；Enter 确认，Esc 取消
 /model qwen3_8flash      切换到 Qwen
 /model deepseek_v4_pro   切换到 DeepSeek V4 Pro
 /model default          返回原 [model]
@@ -168,3 +168,48 @@ thinking 参数实际发送及 reasoning_content 保存；两者多轮 reasoning
 
 第二轮最终完整回归：1142 passed / 10 skipped，12 条 LiteLLM 内部 Pydantic 弃用警告。
 ruff、mypy、锁文件、build 均通过。先前 2 个旧工厂注入测试失败已按新工厂位置修复，断言保留。
+
+
+## Stage7 收官复核（2026-11-02）
+
+用户授权将 Stage7 合入 `codex/nexus-v0.3`，不涉及 `main` 或发布。
+
+- `a8d0233` 修复 LiteLLM 上下文超限分类及流式 refusal 丢失；真实 SDK +
+  MockTransport 覆盖 openai/deepseek/dashscope、压缩恢复和 OTel attempt 分类。
+- `88d2a5d` 增加 `/model` 键盘菜单，保留直接 alias 切换；新增 11 项按键和 CLI 测试。
+- 菜单开发及收官首轮全仓均出现既有审批菜单 `deny-0` 等待超时：1176 passed、
+  10 skipped、1 failed；单独复跑均通过。测试以固定 50ms 等待粘贴后的重绘，
+  与生产逻辑的 painted-selection 检查存在时序竞争；收官改为等待实际 render_counter
+  递增，保留粘贴不得确认的断言，不改生产审批逻辑。
+
+用户真实 8-case 运行 `20261101T170552Z-04bdb90a`，代码为 `88d2a5d`：
+5 PASS / 3 FAIL；全部 Agent 正常 completed，失败由独立固定检查给出。
+原始证据位于 `~/.nexus/evaluation/results/20261101T170552Z-04bdb90a/`。
+
+| Case | Stage6 上轮 | Stage7 本轮 | 本轮失败证据 |
+| --- | --- | --- | --- |
+| Matplotlib | FAIL | FAIL | BoundaryNorm 格式输出 `[0.900]`，预期 `[0.9]` |
+| Django | FAIL | FAIL | `test_subquery_exclude_outerref`：预期 False，实际 True |
+| Requests | PASS | FAIL | 补丁改了 HTTPS 代理头；未修复 URL 用户名密码丢失，两项断言失败 |
+| Rich | FAIL | PASS | 宽字符换行固定检查通过 |
+| pvlib / Sphinx / Click / Pytest | PASS | PASS | 固定检查通过 |
+
+两轮任务、镜像及验收器 provenance 一致；主模型均为 deepseek-flash / high。
+本轮三个失败案例均无 model_finished 错误；Click、Pytest 各遇到一次 HTTP 500，
+恢复后通过。Requests 发生一次阈值压缩，不能仅凭轨迹断定或排除压缩对决策的影响。
+5/8 是本次开发验收集结果，不作为通用能力分数或 Stage7 无回归的证明。
+
+评测传入专用 registry，因此不注册 web_search/web_fetch，且清空 MCP servers；
+Docker 命令环境禁网。模型请求仍经过 LiteLLM，并传递 reasoning_effort，
+所以传输及推理字段适配会参与评测，OTel 不承担解题逻辑。
+LangSmith 网页呈现仍待人工验收；本次收官不重复运行付费模型。
+
+收官第二轮修复后原 `deny-0` 通过，另一项审批导航 `keys2-cancel` 暴露同类固定
+80ms 重绘等待竞争（1176 passed / 10 skipped / 1 failed）。同样仅改测试等待实际
+重绘或菜单完成，不改生产逻辑或预期结果。各轮失败日志保留于系统临时目录
+`nexus-stage7-closeout*-pytest.txt`。
+
+最终收官完整回归：**1177 passed / 10 skipped**（128.49s），16 条 LiteLLM
+内部 Pydantic 弃用警告。10 项跳过均为显式 opt-in Docker 验收。
+Ruff、Mypy、uv lock --check、uv build、源码目录外 wheel 导入和 git diff --check
+通过；最终导航测试的类型兼容写法单独复核 8 passed。
