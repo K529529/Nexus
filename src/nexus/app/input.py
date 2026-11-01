@@ -52,6 +52,7 @@ COMMANDS = {
     "/new": "New conversation",
     "/resume": "Choose a saved session",
     "/compact": "Compact current history",
+    "/model": "Choose a model (or /model alias)",
     "/memory": "Memory status",
     "/memory on": "Enable Memory",
     "/memory off": "Disable Memory",

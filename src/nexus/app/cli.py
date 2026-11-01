@@ -42,6 +42,7 @@ from nexus.app.tui import (
     Transcript,
     confirm_workspace_acl,
     json_consumer,
+    select_model,
     select_permissions,
     select_session,
     setup,
@@ -365,7 +366,7 @@ async def application(args: argparse.Namespace) -> int:
                 console.print(
                     "/skills list skills · /skill <name> select · /skill off cancel selection. "
                     "/resume recent sessions · /compact summarize history · "
-                    "/model [alias] list or switch models · "
+                    "/model [alias] choose or switch models · "
                     "/memory [on|off|status] · /permissions view or change execution mode · "
                     "/new new conversation · /exit quit. "
                     "Each input starts a new run with continuous session history; "
@@ -379,11 +380,13 @@ async def application(args: argparse.Namespace) -> int:
             elif text == "/model" or text.startswith("/model "):
                 alias = text.removeprefix("/model").strip()
                 if not alias:
-                    for name, model in {"default": conversation.default_model,
-                                        **conversation.config.models}.items():
-                        marker = "*" if name == conversation.model_alias else " "
-                        console.print(Text(f"{marker} {name}: {model.provider}/{model.name}"))
-                else:
+                    alias = await select_model(
+                        {name: f"{model.provider}/{model.name}"
+                         for name, model in {"default": conversation.default_model,
+                                             **conversation.config.models}.items()},
+                        conversation.model_alias,
+                    ) or ""
+                if alias and alias != conversation.model_alias:
                     try:
                         await conversation.select_model(alias)
                         active = conversation.config.model

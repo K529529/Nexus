@@ -639,6 +639,49 @@ async def select_permissions(current: str, status: str, detail: str) -> str | No
     return await app.run_async()
 
 
+async def select_model(models: dict[str, str], current: str) -> str | None:
+    """Use the same inline arrow/Enter/Esc interaction as the other selectors."""
+    aliases = list(models)
+    selected = aliases.index(current)
+    bindings = KeyBindings()
+
+    def text() -> str:
+        return "\n".join([
+            f"Models · current: {terminal_text(current)}",
+            "Up/down browse · Enter select · Esc cancel",
+            *[("› " if i == selected else "  ")
+              + terminal_text(f"{alias}: {models[alias]}")
+              + (" (current)" if alias == current else "")
+              for i, alias in enumerate(aliases)],
+        ])
+
+    @bindings.add("up")
+    def up(event: KeyPressEvent) -> None:
+        nonlocal selected
+        selected = max(0, selected - 1)
+
+    @bindings.add("down")
+    def down(event: KeyPressEvent) -> None:
+        nonlocal selected
+        selected = min(len(aliases) - 1, selected + 1)
+
+    @bindings.add("enter")
+    def enter(event: KeyPressEvent) -> None:
+        event.app.exit(result=aliases[selected])
+
+    @bindings.add("escape")
+    @bindings.add("c-c")
+    def cancel(event: KeyPressEvent) -> None:
+        event.app.exit(result=None)
+
+    app: Application[str | None] = Application(
+        layout=Layout(Window(FormattedTextControl(text), wrap_lines=True)),
+        key_bindings=bindings,
+        full_screen=False,
+    )
+    return await app.run_async()
+
+
 async def select_session(items: list[Json]) -> Path | None:
     if not items:
         Console().print("No sessions in this workspace.")
