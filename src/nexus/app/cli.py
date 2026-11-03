@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import signal
 import sys
 from contextlib import nullcontext
@@ -30,13 +29,13 @@ from nexus.app.config import (
     set_memory_enabled,
     validate_acl_authority,
 )
-from nexus.app.console import DisplayReplay
 from nexus.app.events import redact
 from nexus.app.input import INPUT_HELP, TaskInput
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_index import MemoryIndex, installed_command
 from nexus.app.memory_setup import DependencyBootstrap
 from nexus.app.profile import InteractionSummary, ProfileConsumer
+from nexus.app.screen import ConversationScreen
 from nexus.app.session import SessionError, list_sessions, now
 from nexus.app.skills import SkillCatalog
 from nexus.app.tui import (
@@ -145,8 +144,13 @@ async def agent_command(conversation: Conversation, editor: TaskInput, text: str
     output = "Multi-Agent is disabled; no agents are available."
     if manager is not None:
         parts = text.split()
+        if len(parts) == 2 and parts[0] == "/agents" and parts[1] != "history":
+            parts[0] = "/agent"  # The natural plural spelling is an alias, not a silent no-op.
         if parts[0] == "/agents":
             if parts in (["/agents"], ["/agents", "history"]):
+                if editor.screen is not None:
+                    editor.screen.open_picker(history=len(parts) == 2)
+                    return True
                 output = manager.panel(editor.target_agent, history=len(parts) == 2,
                                        compact=False) or "No subagents yet."
             else:
@@ -156,8 +160,14 @@ async def agent_command(conversation: Conversation, editor: TaskInput, text: str
             if target is None:
                 output = "Unknown or ambiguous agent ID. Use /agents."
             else:
+                if editor.screen is not None:
+                    await editor.screen.select(target)
+                    return True
                 editor.target_agent = target
-                output = f"Guidance target: {target}. Tab still queues a root task."
+                agent = manager.agents.get(target)
+                output = (f"Agent {target[:8]} is {agent.state}; read-only, no guidance accepted."
+                          if agent is not None and not agent.accepting else
+                          f"Guidance target: {target}. Tab still queues a root task.")
         elif len(parts) == 3 and parts[1] in {"detail", "cancel"}:
             target = manager.resolve(parts[2])
             if target is None or target == "root":
@@ -242,6 +252,17 @@ async def drive(
                     conversation.ensure_events(text)
                 assert conversation.events is not None
                 emit = conversation.events
+                async def feedback(kind: str, data: Json) -> None:
+                    await emit(kind, data)
+                    if editor.screen is not None and editor.target_agent != "root":
+                        if kind == "input_pending":
+                            detail = "\n".join(
+                                f"[{m['id']}] {m['mode']}: {m['text']}" for m in data["messages"]
+                            ) or "No pending messages."
+                        else:
+                            detail = str(data["detail"])
+                        editor.screen.inspect(terminal_text(redact(
+                            detail, conversation.secret_values())))
                 pending_emit = emit
                 inbox = conversation.inbox
                 if await agent_command(conversation, editor, text):
@@ -252,31 +273,39 @@ async def drive(
                         inbox = selected.conversation.inbox
                         pending_emit = selected.conversation.events or emit
                 if text.strip() == "/pending":
-                    await emit("input_pending", {"messages": [
+                    await feedback("input_pending", {"messages": [
                         {"id": m.id, "mode": m.mode, "text": m.text} for m in inbox.pending
                     ]})
                 elif text.split(maxsplit=1)[0:1] in (["/withdraw"], ["/edit"]):
                     parts = text.split(maxsplit=2)
                     replacement = parts[2] if parts[0] == "/edit" and len(parts) == 3 else None
                     if parts[0] == "/withdraw" and len(parts) != 2:
-                        await emit("warning", {"detail": "Use /withdraw ID."})
+                        await feedback("warning", {"detail": "Use /withdraw ID."})
                     elif parts[0] == "/edit" and (replacement is None or not replacement.strip()):
-                        await emit("warning", {"detail": "Use /edit ID replacement text."})
+                        await feedback("warning", {"detail": "Use /edit ID replacement text."})
                     elif not await inbox.change(parts[1], replacement, pending_emit):
-                        await emit("warning", {"detail": "Message already delivered or unknown."})
+                        await feedback("warning", {
+                            "detail": "Message already delivered or unknown."})
                 elif text.startswith("/"):
-                    await emit("warning", {"detail": (
+                    await feedback("warning", {"detail": (
                         "During execution use /pending, /edit ID text or /withdraw ID."
                     )})
                 else:
                     if mode == "guide" and target != "root" and manager is not None:
                         result = await manager.user_message(target, text)
+                        if editor.screen is not None:
+                            editor.screen.inspect(
+                                "指导已送达此代理，父代理已知悉。" if "error" not in result else
+                                "此代理已停止接收指导；当前为只读历史。Esc 返回主代理。")
+                            return
                         await emit("warning", {"detail": (
                             f"Received by agent {target[:8]}; parent informed."
                             if "error" not in result else str(result["error"])
                         )})
                     else:
                         await conversation.inbox.receive(text, mode, emit)
+                        if editor.screen is not None and mode == "queue":
+                            editor.screen.inspect("已排队到主代理；当前任务结束后执行。")
 
             async with editor.during_run(receive, lambda: interrupt(signal.SIGINT, None)):
                 result = await conversation.turn(text)
@@ -353,8 +382,6 @@ async def application(args: argparse.Namespace) -> int:
     if interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise ConfigError('Interactive mode requires a TTY; use nexus exec "task" [--json].')
     console = Console(highlight=False)
-    display = (DisplayReplay(console) if interactive and console.is_terminal
-               and os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") != "1" else None)
     # Explicit output keeps our bindings active even under TERM=dumb; otherwise
     # PromptSession silently substitutes its separate single-line dumb prompt.
     prompt: PromptSession[str] | None = (
@@ -405,9 +432,11 @@ async def application(args: argparse.Namespace) -> int:
     transcript = Transcript(console)
     profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
     summary = InteractionSummary(profile or transcript)
-    editor = TaskInput(prompt, display.repaint if display is not None else None)
+    editor = TaskInput(prompt)
     transcript.editor = editor
     conversation = Conversation(workspace, config, summary)
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              if console.is_terminal else None)
     def current_panel() -> str:
         manager = getattr(conversation, "coordinator", None)
         return terminal_text(manager.panel(editor.target_agent)) if manager is not None else ""
@@ -505,8 +534,8 @@ async def application(args: argparse.Namespace) -> int:
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
                     "During execution Enter guides the task; Tab queues the next task. "
                     "/pending lists messages; /edit ID text edits; /withdraw ID removes."
-                    " /agents current tree; /agents history; "
-                    "/agent ID|root chooses guidance target; "
+                    " F6 opens agents; Enter enters a conversation; Esc returns to root. "
+                    "/agents [ID|history]; /agent ID|root switches conversation; "
                     "/agent detail ID shows trajectory; /agent cancel ID cancels its subtree."
                 )
             elif text == "/model" or text.startswith("/model "):
@@ -645,6 +674,11 @@ async def application(args: argparse.Namespace) -> int:
                     "Unknown command. Use /help; slash commands are not sent to the model."
                 )
             else:
+                if screen is not None and queued is None and editor.target_agent != "root":
+                    screen.inspect("此代理已停止接收指导；当前为只读历史。Esc 返回主代理。")
+                    continue
+                if screen is not None and queued is not None:
+                    await screen.select("root")
                 if profile:
                     profile.reset()
                 transcript.user_message(draft)
@@ -674,6 +708,8 @@ async def application(args: argparse.Namespace) -> int:
                     await conversation.close()
         finally:
             signal.signal(signal.SIGINT, previous)
+            if screen is not None:
+                screen.close()
             summary.render(console)
 
 

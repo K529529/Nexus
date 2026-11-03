@@ -1,0 +1,6 @@
+Retained without permission changes: C:\Users\Archer\AppData\Local\Temp\n8s-4a9ee1ae : Access to the path 'C:\Users\Archer\AppData\Local\Temp\n8s-4a9ee1ae\pytest-of-Archer' is denied.
+Retained without permission changes: C:\Users\Archer\AppData\Local\Temp\n8s-a9fe59a7 : Access to the path 'C:\Users\Archer\AppData\Local\Temp\n8s-a9fe59a7\pytest-of-Archer' is denied.
+Retained without permission changes: C:\Users\Archer\AppData\Local\Temp\n8s-8c861b86 : Access to the path 'C:\Users\Archer\AppData\Local\Temp\n8s-8c861b86\pytest-of-Archer' is denied.
+Removed own temporary directory: C:\Users\Archer\AppData\Local\Temp\n8s-e77ede1f
+Removed own temporary directory: C:\Users\Archer\AppData\Local\Temp\n8s-afd6a20b
+Removed own temporary directory: C:\Users\Archer\AppData\Local\Temp\n8s-pkg-8b5a7206

@@ -50,9 +50,11 @@ scout 只能委派 scout，reviewer 可委派 scout/reviewer。scout/reviewer �
 | 执行中 Tab | 排队为根代理的后续任务 |
 | `/pending` | 查看当前选中代理尚未投递的消息及 ID |
 | `/edit ID 新内容`、`/withdraw ID` | 修改、撤回未投递输入 |
-| `/agents` | 当前任务及跨轮仍需处理的代理树；任务名、角色、短 ID、状态和该代理累计用量 |
-| `/agents history` | 已归档的历史任务代理；名称、ID 和详情入口仍保留 |
-| `/agent ID`、`/agent root` | 选择指导目标；ID 支持唯一前缀 |
+| F6 / `/agents` | 打开当前任务及跨轮待处理代理选择器；↑↓ 选择，Enter 进入会话 |
+| 选择器 H / `/agents history` | 已归档的历史任务代理；名称、ID 和详情入口仍保留 |
+| `/agents ID`、`/agent ID` | 进入子代理独立会话视图；ID 支持唯一前缀 |
+| Esc / `/agent root` | 关闭选择器，或从子视图回到主代理；各自草稿保留 |
+| PgUp / PgDn / Ctrl+End | 阅读当前视图历史 / 翻页 / 回到最新；新输出不抢回阅读位置 |
 | `/agent detail ID` | 按需查看该代理独立轨迹 |
 | `/agent cancel ID` | 取消该代理及后代，并等待工具清理 |
 
@@ -60,6 +62,11 @@ scout 只能委派 scout，reviewer 可委派 scout/reviewer。scout/reviewer �
 开始投递后不再接受编辑或撤回；排队内容按任务文本执行，即使以 `/` 开头也不执行空闲命令。
 选中子代理后 Enter 只指导它，同时通知其父代理；Tab 仍排到主代理。审批标明所属代理，
 全树审批串行，审批结束保留输入草稿。子代理详细输出不混入主区域。
+完成后的子代理会话为只读，不会因 Enter 自动复活或误把文字发成主代理新任务。
+运行中的输入框持续存在；输入消息不重启整个输入应用。状态未变时不定时刷新，
+流式预览合并更新，编辑草稿时不由模型 token 驱动重绘。
+代理树只占紧凑区域，完整名单在选择器中滚动；累计用量仍是主代理和全部子代理的
+会话总计（包括历史任务），不是本轮用量。实现和证据见 [完整交互改版](stage8-interaction.md)。
 
 模型通过原生 `spawn_agent`、`wait_agents`、`list_agents`、`message_agent`、
 `report_parent`、`cancel_agent`、`resume_agent` 协作，不需要用户手写工具调用。

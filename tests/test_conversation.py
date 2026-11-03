@@ -16,7 +16,7 @@ from nexus.app import bootstrap, cli
 from nexus.app.config import Config, ModelConfig, default_shell
 from nexus.core.context import SYSTEM
 from nexus.core.security import SecurityGateway
-from nexus.core.types import Limits, ModelReply, RunResult, RuntimeEvent
+from nexus.core.types import Limits, ModelReply, RunResult, RuntimeEvent, Session
 from nexus.tools.mcp import connect_servers, public_name
 from nexus.tools.registry import native_tools
 from tests.conftest import ScriptedModel, call, python_command, reply
@@ -282,14 +282,13 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
         gateway = SecurityGateway()
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            from types import SimpleNamespace
-
             # The replacement opens before the old conversation closes, so failure is safe.
             self.closed = False
             from nexus.core.inbox import Inbox
 
             self.inbox = Inbox()
-            self.session = SimpleNamespace(messages=[], selected_skill=None)
+            self.session = Session(tmp_path)
+            self.coordinator = None
             self.resume = kwargs.get("resume")
             instances.append(self)
 

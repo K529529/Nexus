@@ -1,0 +1,3 @@
+C:\Users\Archer\AppData\Local\Temp\n8s-pkg-8b5a7206\venv\Lib\site-packages\nexus\app\screen.py
+Installed UI modules match final source; no editable source import
+0.2.0

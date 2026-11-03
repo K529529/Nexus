@@ -525,8 +525,6 @@ async def test_exec_json_exit_code_and_same_runtime(
 
 
 async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypatch: Any) -> None:
-    from types import SimpleNamespace
-
     from nexus.core.inbox import Inbox
 
     instances: list[Any] = []
@@ -536,7 +534,8 @@ async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypa
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             self.closed = False
             self.inbox = Inbox()
-            self.session = SimpleNamespace(resume_run_id=None)
+            self.session = Session(tmp_path)
+            self.coordinator = None
             instances.append(self)
 
         async def start_memory(self) -> None:

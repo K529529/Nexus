@@ -1,0 +1,503 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+.....................ssssssssss......................................... [ 17%]
+........................................................................ [ 22%]
+........................................................................ [ 28%]
+................F....................................................... [ 34%]
+........................................................................ [ 40%]
+.....................FFFF............................................... [ 45%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 63%]
+........................................................................ [ 68%]
+........................................................................ [ 74%]
+........................................................................ [ 80%]
+........................................................................ [ 86%]
+........................................................................ [ 91%]
+........................................................................ [ 97%]
+.............................                                            [100%]
+================================== FAILURES ===================================
+________________ test_cancel_resume_keeps_current_conversation ________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/n8s-afd6a20b/pytest-of-Archer/pytest-0/test_cancel_resume_keeps_curre0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028F2B380E00>
+
+    async def test_cancel_resume_keeps_current_conversation(tmp_path: Path, monkeypatch: Any) -> None:
+        from types import SimpleNamespace
+
+        from nexus.core.inbox import Inbox
+
+        instances: list[Any] = []
+        answers = iter(["/resume", "/exit"])
+
+        class FakeConversation:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.closed = False
+                self.inbox = Inbox()
+                self.session = SimpleNamespace(resume_run_id=None)
+                instances.append(self)
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+
+            async def close(self) -> None:
+                self.closed = True
+
+        class FakePrompt:
+            def __init__(self, **kwargs: Any) -> None:
+
+                from prompt_toolkit import Application
+                from prompt_toolkit.input import DummyInput
+                from prompt_toolkit.output import DummyOutput
+
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                assert len(instances) == 1 and not instances[0].closed
+                return next(answers)
+
+        async def cancel(items: Any) -> None:
+            assert not instances[0].closed
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
+        monkeypatch.setattr(cli, "PromptSession", FakePrompt)
+        monkeypatch.setattr(cli, "Conversation", FakeConversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", cancel)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\tests\test_mcp_tui.py:577:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x0000028F2B40C380>
+editor = <nexus.app.input.TaskInput object at 0x0000028F2B3FDA90>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x0000028F2B409E40>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+D:\WorkSpace\releasePro\github\Nexus\Nexus-next\src\nexus\app\screen.py:36: AttributeError
+__________________ test_model_command[/model-qwen-expected0] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028F2C2EB560>
+command = '/model', selection = 'qwen', expected = ['qwen']
+
+    @pytest.mark.parametrize(
+        "command,selection,expected",
+        [("/model", "qwen", ["qwen"]), ("/model", None, []),
+         ("/model", "default", []), ("/model qwen", None, ["qwen"])],
+    )
+    async def test_model_command(
+        monkeypatch: Any, command: str, selection: str | None, expected: list[str]
+    ) -> None:
+        from prompt_toolkit import Application
+        from prompt_toolkit.input import DummyInput
+
+        from nexus.app import cli
+        from nexus.app.config import Config, ModelConfig
+        from nexus.core.inbox import Inbox
+        from nexus.core.security import SecurityGateway
+        from nexus.core.types import Limits
+
+        cfg = Config(ModelConfig("test", 32768), Limits())
+        cfg.models = {"qwen": ModelConfig("qwen-test", 32768)}
+        calls: list[str] = []
+        answers = iter([command, "/exit"])
+
+        class Conversation:
+            gateway = SecurityGateway()
+            config = cfg
+            default_model = cfg.model
+            model_alias = "default"
+            session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.inbox = Inbox()
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                pass
+
+            async def close(self) -> None:
+                pass
+
+            async def select_model(self, alias: str) -> None:
+                calls.append(alias)
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(models: dict[str, str], current: str) -> str | None:
+            assert command == "/model"
+            assert list(models) == ["default", "qwen"]
+            assert current == "default"
+            return selection
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "select_model", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_menu.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x0000028F2C383BF0>
+editor = <nexus.app.input.TaskInput object at 0x0000028F2C3813A0>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x0000028F2C37F1A0>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+src\nexus\app\screen.py:36: AttributeError
+__________________ test_model_command[/model-None-expected1] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028F2C2EB200>
+command = '/model', selection = None, expected = []
+
+    @pytest.mark.parametrize(
+        "command,selection,expected",
+        [("/model", "qwen", ["qwen"]), ("/model", None, []),
+         ("/model", "default", []), ("/model qwen", None, ["qwen"])],
+    )
+    async def test_model_command(
+        monkeypatch: Any, command: str, selection: str | None, expected: list[str]
+    ) -> None:
+        from prompt_toolkit import Application
+        from prompt_toolkit.input import DummyInput
+
+        from nexus.app import cli
+        from nexus.app.config import Config, ModelConfig
+        from nexus.core.inbox import Inbox
+        from nexus.core.security import SecurityGateway
+        from nexus.core.types import Limits
+
+        cfg = Config(ModelConfig("test", 32768), Limits())
+        cfg.models = {"qwen": ModelConfig("qwen-test", 32768)}
+        calls: list[str] = []
+        answers = iter([command, "/exit"])
+
+        class Conversation:
+            gateway = SecurityGateway()
+            config = cfg
+            default_model = cfg.model
+            model_alias = "default"
+            session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.inbox = Inbox()
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                pass
+
+            async def close(self) -> None:
+                pass
+
+            async def select_model(self, alias: str) -> None:
+                calls.append(alias)
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(models: dict[str, str], current: str) -> str | None:
+            assert command == "/model"
+            assert list(models) == ["default", "qwen"]
+            assert current == "default"
+            return selection
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "select_model", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_menu.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x0000028F2C2FEE10>
+editor = <nexus.app.input.TaskInput object at 0x0000028F2C36E690>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x0000028F2C367100>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+src\nexus\app\screen.py:36: AttributeError
+________________ test_model_command[/model-default-expected2] _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028F2C2FCD70>
+command = '/model', selection = 'default', expected = []
+
+    @pytest.mark.parametrize(
+        "command,selection,expected",
+        [("/model", "qwen", ["qwen"]), ("/model", None, []),
+         ("/model", "default", []), ("/model qwen", None, ["qwen"])],
+    )
+    async def test_model_command(
+        monkeypatch: Any, command: str, selection: str | None, expected: list[str]
+    ) -> None:
+        from prompt_toolkit import Application
+        from prompt_toolkit.input import DummyInput
+
+        from nexus.app import cli
+        from nexus.app.config import Config, ModelConfig
+        from nexus.core.inbox import Inbox
+        from nexus.core.security import SecurityGateway
+        from nexus.core.types import Limits
+
+        cfg = Config(ModelConfig("test", 32768), Limits())
+        cfg.models = {"qwen": ModelConfig("qwen-test", 32768)}
+        calls: list[str] = []
+        answers = iter([command, "/exit"])
+
+        class Conversation:
+            gateway = SecurityGateway()
+            config = cfg
+            default_model = cfg.model
+            model_alias = "default"
+            session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.inbox = Inbox()
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                pass
+
+            async def close(self) -> None:
+                pass
+
+            async def select_model(self, alias: str) -> None:
+                calls.append(alias)
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(models: dict[str, str], current: str) -> str | None:
+            assert command == "/model"
+            assert list(models) == ["default", "qwen"]
+            assert current == "default"
+            return selection
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "select_model", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_menu.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x0000028F2C422630>
+editor = <nexus.app.input.TaskInput object at 0x0000028F2C3CBCE0>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x0000028F2C3EF880>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+src\nexus\app\screen.py:36: AttributeError
+_______________ test_model_command[/model qwen-None-expected3] ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028F2C2FD9D0>
+command = '/model qwen', selection = None, expected = ['qwen']
+
+    @pytest.mark.parametrize(
+        "command,selection,expected",
+        [("/model", "qwen", ["qwen"]), ("/model", None, []),
+         ("/model", "default", []), ("/model qwen", None, ["qwen"])],
+    )
+    async def test_model_command(
+        monkeypatch: Any, command: str, selection: str | None, expected: list[str]
+    ) -> None:
+        from prompt_toolkit import Application
+        from prompt_toolkit.input import DummyInput
+
+        from nexus.app import cli
+        from nexus.app.config import Config, ModelConfig
+        from nexus.core.inbox import Inbox
+        from nexus.core.security import SecurityGateway
+        from nexus.core.types import Limits
+
+        cfg = Config(ModelConfig("test", 32768), Limits())
+        cfg.models = {"qwen": ModelConfig("qwen-test", 32768)}
+        calls: list[str] = []
+        answers = iter([command, "/exit"])
+
+        class Conversation:
+            gateway = SecurityGateway()
+            config = cfg
+            default_model = cfg.model
+            model_alias = "default"
+            session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                self.inbox = Inbox()
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                pass
+
+            async def close(self) -> None:
+                pass
+
+            async def select_model(self, alias: str) -> None:
+                calls.append(alias)
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(models: dict[str, str], current: str) -> str | None:
+            assert command == "/model"
+            assert list(models) == ["default", "qwen"]
+            assert current == "default"
+            return selection
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: cfg)
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "select_model", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_menu.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x0000028F2C406A80>
+editor = <nexus.app.input.TaskInput object at 0x0000028F2C404170>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x0000028F2C4082C0>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+src\nexus\app\screen.py:36: AttributeError
+============================== warnings summary ===============================
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+FAILED tests/test_mcp_tui.py::test_cancel_resume_keeps_current_conversation
+FAILED tests/test_model_menu.py::test_model_command[/model-qwen-expected0] - ...
+FAILED tests/test_model_menu.py::test_model_command[/model-None-expected1] - ...
+FAILED tests/test_model_menu.py::test_model_command[/model-default-expected2]
+FAILED tests/test_model_menu.py::test_model_command[/model qwen-None-expected3]
+5 failed, 1238 passed, 10 skipped, 16 warnings in 168.42s (0:02:48)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from types import SimpleNamespace
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -40,7 +40,7 @@ async def test_model_menu_keys(keys: str, expected: str | None) -> None:
      ("/model", "default", []), ("/model qwen", None, ["qwen"])],
 )
 async def test_model_command(
-    monkeypatch: Any, command: str, selection: str | None, expected: list[str]
+    tmp_path: Path, monkeypatch: Any, command: str, selection: str | None, expected: list[str]
 ) -> None:
     from prompt_toolkit import Application
     from prompt_toolkit.input import DummyInput
@@ -49,7 +49,7 @@ async def test_model_command(
     from nexus.app.config import Config, ModelConfig
     from nexus.core.inbox import Inbox
     from nexus.core.security import SecurityGateway
-    from nexus.core.types import Limits
+    from nexus.core.types import Limits, Session
 
     cfg = Config(ModelConfig("test", 32768), Limits())
     cfg.models = {"qwen": ModelConfig("qwen-test", 32768)}
@@ -61,7 +61,8 @@ async def test_model_command(
         config = cfg
         default_model = cfg.model
         model_alias = "default"
-        session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
+        session = Session(tmp_path)
+        coordinator = None
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             self.inbox = Inbox()

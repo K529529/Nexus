@@ -157,10 +157,12 @@ class Transcript:
         self.flush_handle: asyncio.TimerHandle | None = None
         self.working: Spinner | None = None
         self.editor: TaskInput | None = None
+        self.agent_id = "root"
 
     @property
     def live_output(self) -> bool:
-        return self.console.is_terminal and not self.console.is_dumb_terminal
+        return bool(self.editor and self.editor.screen) or (
+            self.console.is_terminal and not self.console.is_dumb_terminal)
 
     def stop_preview(self) -> None:
         if self.flush_handle is not None:
@@ -171,7 +173,10 @@ class Transcript:
             self.preview = None
         self.working = None
         if self.editor is not None:
-            self.editor.set_activity()
+            if self.editor.screen is not None:
+                self.editor.screen.activity(self.agent_id)
+            else:
+                self.editor.set_activity()
 
     def stop_activity(self) -> None:
         self.stop_preview()
@@ -203,7 +208,10 @@ class Transcript:
 
     def show_preview(self, text: Text) -> None:
         if self.editor is not None:
-            self.editor.set_activity("", text.plain)
+            if self.editor.screen is not None:
+                self.editor.screen.activity(self.agent_id, "Thinking", text.plain)
+            else:
+                self.editor.set_activity("", text.plain)
             return
         if self.preview is None:
             self.working = Spinner("dots", text=Text("Working...", style="dim"), style=PURPLE)
@@ -302,12 +310,23 @@ class Transcript:
             self.console.print(Text("  … audit diff omitted/truncated", style="dim"))
 
     async def __call__(self, event: RuntimeEvent) -> None:
+        screen = self.editor.screen if self.editor is not None else None
+        if screen is not None:
+            screen.refresh_status()
         if event.kind == "agent_inspect":
+            if screen is not None:
+                screen.inspect(terminal_text(event.data["text"]))
+                return
             self.stop_activity()
             self.console.print(Text(terminal_text(event.data["text"])))
             return
         if event.kind == "subagent_event":
             kind, data = event.data["kind"], event.data["data"]
+            if screen is not None:
+                ident = event.data["agent_id"]
+                await screen.child_event(ident, RuntimeEvent(kind, event.timestamp,
+                    ident, event.run_id, data))
+                return
             if kind == "approval_requested":
                 self.stop_activity()
             elif kind in {"input_received", "input_delivered", "input_updated", "input_withdrawn"}:
@@ -322,7 +341,8 @@ class Transcript:
             if event.kind == "agent_message" and not important:
                 return
             if self.editor is not None and not important:
-                self.editor.prompt.app.invalidate()
+                if screen is None:
+                    self.editor.prompt.app.invalidate()
                 return
             self.stop_activity()
             label = ("DECISION NEEDED: " + str(data.get("text", ""))) if data.get(
@@ -398,7 +418,10 @@ class Transcript:
             title = tool_title(data)
             self.tools[data.get("call_id", "")] = title
             if self.editor is not None:
-                self.editor.set_activity(title)
+                if screen is not None:
+                    screen.activity(self.agent_id, title)
+                else:
+                    self.editor.set_activity(title)
             elif self.console.is_terminal and not self.console.is_dumb_terminal:
                 self.activity = Live(
                     Text(f"› {title} …", style="dim", overflow="ellipsis", no_wrap=True),

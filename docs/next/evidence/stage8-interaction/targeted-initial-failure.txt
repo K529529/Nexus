@@ -1,0 +1,132 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Scripts\python.exe
+rootdir: D:\WorkSpace\releasePro\github\Nexus\Nexus-next
+configfile: pyproject.toml
+plugins: anyio-4.14.2, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 181 items
+
+tests/test_cli_ux.py::test_approval_requires_visible_selection_and_enter[deny-0] PASSED [  0%]
+tests/test_cli_ux.py::test_approval_requires_visible_selection_and_enter[allow-1] PASSED [  1%]
+tests/test_cli_ux.py::test_approval_requires_visible_selection_and_enter[cancel-2] PASSED [  1%]
+tests/test_cli_ux.py::test_multiline_input_never_submits_without_explicit_key[\n-False] PASSED [  2%]
+tests/test_cli_ux.py::test_multiline_input_never_submits_without_explicit_key[\n-True] PASSED [  2%]
+tests/test_cli_ux.py::test_multiline_input_never_submits_without_explicit_key[\r\n-False] PASSED [  3%]
+tests/test_cli_ux.py::test_multiline_input_never_submits_without_explicit_key[\r\n-True] PASSED [  3%]
+tests/test_cli_ux.py::test_cancel_draft_discards_queued_submission_and_can_exit[False] PASSED [  4%]
+tests/test_cli_ux.py::test_cancel_draft_discards_queued_submission_and_can_exit[True] PASSED [  4%]
+tests/test_cli_ux.py::test_run_cancellation_quarantines_residual_input_and_cleans_once PASSED [  5%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-bracketed-/exit\r-slash-exit] PASSED [  6%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-bracketed-\x04-eof] PASSED [  6%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-bracketed-\x03-ctrl-c] PASSED [  7%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-bracketed-None-eof] PASSED [  7%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-raw-/exit\r-slash-exit] PASSED [  8%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-raw-\x04-eof] PASSED [  8%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-raw-\x03-ctrl-c] PASSED [  9%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[False-raw-None-eof] PASSED [  9%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-bracketed-/exit\r-slash-exit] PASSED [ 10%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-bracketed-\x04-eof] PASSED [ 11%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-bracketed-\x03-ctrl-c] PASSED [ 11%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-bracketed-None-eof] PASSED [ 12%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-raw-/exit\r-slash-exit] PASSED [ 12%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-raw-\x04-eof] PASSED [ 13%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-raw-\x03-ctrl-c] PASSED [ 13%]
+tests/test_cli_ux.py::test_real_cli_one_task_one_run_replay_and_exit[True-raw-None-eof] PASSED [ 14%]
+tests/test_cli_ux.py::test_transient_preview_classifies_public_content_once PASSED [ 14%]
+tests/test_cli_ux.py::test_large_preview_bounded_and_interrupt_restores_terminal PASSED [ 15%]
+tests/test_cli_ux.py::test_no_color_or_dumb_terminal_and_private_fields[False] PASSED [ 16%]
+tests/test_cli_ux.py::test_no_color_or_dumb_terminal_and_private_fields[True] PASSED [ 16%]
+tests/test_cli_ux.py::test_lifetime_summary_partial_usage_unknown_and_once PASSED [ 17%]
+tests/test_cli_ux.py::test_ctrl_c_queued_just_after_submit_still_cancels_run PASSED [ 17%]
+tests/test_conversation.py::test_reuses_resources_until_close_and_reopens_on_resume PASSED [ 18%]
+tests/test_conversation.py::test_resume_unfinished_conversation_and_refresh_current_environment PASSED [ 18%]
+tests/test_conversation.py::test_real_mcp_two_turns_discover_once_and_release PASSED [ 19%]
+tests/test_conversation.py::test_failed_mcp_stays_disabled_across_turns[TimeoutError] PASSED [ 19%]
+tests/test_conversation.py::test_failed_mcp_stays_disabled_across_turns[CancelledError] PASSED [ 20%]
+tests/test_conversation.py::test_cli_new_and_resume_close_old_lifetimes FAILED [ 20%]
+
+================================== FAILURES ===================================
+_________________ test_cli_new_and_resume_close_old_lifetimes _________________
+
+tmp_path = WindowsPath('C:/Users/Archer/AppData/Local/Temp/n8s-79c382f3/pytest-of-Archer/pytest-0/test_cli_new_and_resume_close_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001644DC89700>
+
+    async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatch: Any) -> None:
+        instances: list[Any] = []
+        answers = iter(["/new", "/resume", "/exit"])
+
+        class Conversation:
+            gateway = SecurityGateway()
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                from types import SimpleNamespace
+
+                # The replacement opens before the old conversation closes, so failure is safe.
+                self.closed = False
+                from nexus.core.inbox import Inbox
+
+                self.inbox = Inbox()
+                self.session = SimpleNamespace(messages=[], selected_skill=None)
+                self.resume = kwargs.get("resume")
+                instances.append(self)
+
+            async def start_memory(self) -> None:
+                pass
+
+            async def summarize_exit(self, reason: str) -> None:
+                assert reason == "slash-exit"
+
+            async def close(self) -> None:
+                self.closed = True
+
+        class Prompt:
+            def __init__(self, **kwargs: Any) -> None:
+
+                from prompt_toolkit import Application
+                from prompt_toolkit.input import DummyInput
+                from prompt_toolkit.output import DummyOutput
+
+                self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+            async def prompt_async(self, text: str, **kwargs: Any) -> str:
+                return next(answers)
+
+        async def select(items: Any) -> Path:
+            return tmp_path / "history.jsonl"
+
+        monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+        monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+        monkeypatch.setattr(cli, "load_config", lambda: Config(ModelConfig("test", 32768), Limits()))
+        monkeypatch.setattr(cli, "PromptSession", Prompt)
+        monkeypatch.setattr(cli, "Conversation", Conversation)
+        monkeypatch.setattr(cli, "list_sessions", lambda _: [])
+        monkeypatch.setattr(cli, "select_session", select)
+        with create_app_session(output=DummyOutput()):
+>           assert await cli.application(argparse.Namespace(command=None)) == 0
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_conversation.py:329:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\nexus\app\cli.py:438: in application
+    screen = (ConversationScreen(editor, console, lambda: conversation)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <nexus.app.screen.ConversationScreen object at 0x000001644DC5ADE0>
+editor = <nexus.app.input.TaskInput object at 0x000001644DD59250>
+console = <console width=79 None>
+conversation = <function application.<locals>.<lambda> at 0x000001644DC409A0>
+
+    def __init__(self, editor: TaskInput, console: Console,
+                 conversation: Callable[[], Conversation]) -> None:
+        self.editor, self.console, self.conversation = editor, console, conversation
+>       self.session_identity = conversation().session.session_id
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+
+src\nexus\app\screen.py:36: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_conversation.py::test_cli_new_and_resume_close_old_lifetimes - AttributeError: 'types.SimpleNamespace' object has no attribute 'session_id'
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 37 passed in 16.86s ========================

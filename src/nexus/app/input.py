@@ -8,7 +8,7 @@ import signal
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, contextmanager, suppress
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.buffer import Buffer
@@ -34,6 +34,9 @@ from prompt_toolkit.renderer import CPR_Support
 from prompt_toolkit.styles import Style
 from prompt_toolkit.utils import get_cwidth
 from prompt_toolkit.widgets import TextArea
+
+if TYPE_CHECKING:
+    from nexus.app.screen import ConversationScreen
 
 PURPLE = "#a78bfa"
 INPUT_HELP = (
@@ -169,6 +172,8 @@ class TaskInput:
         self, prompt: PromptSession[str], repaint: Callable[[], str] | None = None,
     ) -> None:
         self.prompt = prompt
+        self.screen: ConversationScreen | None = None
+        self.submission_queue: list[SubmittedInput] = []
         self.prompt.app.erase_when_done = True
         reworked = os.environ.get("INTELLIJ_TERMINAL_COMMAND_BLOCKS_REWORKED") == "1"
         self.repaint = repaint if not reworked else None
@@ -244,6 +249,7 @@ class TaskInput:
         # One renderer owns all moving rows. Reserve the editor's height first;
         # status/preview rows must never push the input outside the viewport.
         root = self.prompt.app.layout.container
+        self.composer = root
         self.prompt.app.layout.container = HSplit([
             ConditionalContainer(
                 Window(FormattedTextControl(self.runtime_text),
@@ -264,6 +270,11 @@ class TaskInput:
         @self.bindings.add("enter")
         def submit(event: KeyPressEvent) -> None:
             buffer = event.current_buffer
+            if self.screen is not None and self.screen.picker:
+                choices = self.screen.choices()
+                event.app.create_background_task(self.screen.select(
+                    choices[min(self.screen.choice, len(choices) - 1)]))
+                return
             if self.capture is not None:
                 self.blocks[self.capture].text += "\n"
                 return
@@ -339,10 +350,14 @@ class TaskInput:
 
         @self.bindings.add(Keys.Any)
         def typed(event: KeyPressEvent) -> None:
+            if self.screen is not None and self.screen.picker:
+                return
             self.insert(event.data)
 
         @self.bindings.add("tab")
         def tab(event: KeyPressEvent) -> None:
+            if self.screen is not None and self.screen.picker:
+                return
             if event.current_buffer.complete_state is not None:
                 event.current_buffer.complete_next()
             elif self.capture is None and event.current_buffer.text.startswith("/"):
@@ -387,6 +402,52 @@ class TaskInput:
                     self.live_interrupt()
                 else:
                     event.app.exit(exception=KeyboardInterrupt)
+
+        @self.bindings.add("f6", filter=Condition(lambda: self.screen is not None))
+        def agents(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.open_picker()
+
+        @self.bindings.add("up", filter=Condition(lambda: bool(self.screen and self.screen.picker)))
+        def previous_agent(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.choice = max(0, self.screen.choice - 1)
+
+        @self.bindings.add("down", filter=Condition(
+            lambda: bool(self.screen and self.screen.picker)))
+        def next_agent(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.choice = min(len(self.screen.choices()) - 1, self.screen.choice + 1)
+
+        @self.bindings.add("h", filter=Condition(lambda: bool(self.screen and self.screen.picker)))
+        def history_agents(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.open_picker(history=not self.screen.history)
+
+        @self.bindings.add("escape", eager=True, filter=Condition(lambda: bool(
+            self.screen and (self.screen.picker or self.target_agent != "root"))))
+        def root_view(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            if self.screen.picker:
+                self.screen.picker = False
+            else:
+                event.app.create_background_task(self.screen.select("root"))
+
+        @self.bindings.add("pageup", filter=Condition(lambda: self.screen is not None))
+        def page_up(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.page(-1)
+
+        @self.bindings.add("pagedown", filter=Condition(lambda: self.screen is not None))
+        def page_down(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.page(1)
+
+        @self.bindings.add("c-end", filter=Condition(lambda: self.screen is not None))
+        def latest(event: KeyPressEvent) -> None:
+            assert self.screen is not None
+            self.screen.scroll_line = None
+            self.screen.notice = "已回到最新"
 
     def ime_width(self) -> Dimension:
         columns = self.prompt.app.output.get_size().columns
@@ -459,11 +520,13 @@ class TaskInput:
             self.insert(text)
 
     def prepare(self) -> None:
+        if self.screen is not None:
+            self.screen.refresh_status()
         self.prompt.default_buffer.history = self.history
         if self.prompt.default_buffer.accept_handler != self.accept_input:
             self.accept_handler = self.prompt.default_buffer.accept_handler
             self.prompt.default_buffer.accept_handler = self.accept_input
-        if self.inline_toolbar or self.live_submit is not None:
+        if self.inline_toolbar or self.live_submit is not None or self.screen is not None:
             # Empty text still activates prompt_toolkit's bottom toolbar after
             # CPR. None actually removes that screen-anchored window.
             self.prompt.bottom_toolbar = None
@@ -526,6 +589,8 @@ class TaskInput:
     def toolbar(self) -> str:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
+        if self.screen is not None:
+            return self.screen.controls()
         if self.live_submit is not None:
             if self.prompt.app.output.get_size().columns < 55:
                 return "Enter guide · Tab queue"
@@ -591,6 +656,8 @@ class TaskInput:
         return fragments
 
     def editor_height(self) -> int:
+        if self.screen is not None:
+            return max(3, min(8, self.prompt.app.output.get_size().rows // 3))
         return max(3, self.prompt.app.output.get_size().rows - len(self.runtime_rows()) - 2)
 
     def discard(self, interrupt: Callable[[], None] | None = None) -> None:
@@ -619,16 +686,19 @@ class TaskInput:
         try:
             with patch_stdout(raw=True):
                 result = await self.prompt.prompt_async(
-                    [("class:prompt", " Nexus › ")],
+                    lambda: [("class:prompt", f" {self.target_agent[:8]} › "
+                              if self.screen is not None and self.target_agent != "root"
+                              else " Nexus › ")],
                     multiline=True,
                     wrap_lines=True,
                     key_bindings=self.bindings,
                     prompt_continuation=[("class:prompt", "│   ")],
-                    bottom_toolbar=(None if self.inline_toolbar or self.live_submit
+                    bottom_toolbar=(None if self.inline_toolbar or self.live_submit or self.screen
                                     else self.toolbar),
                     show_frame=True,
                     cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
-                    refresh_interval=0.2 if self.live_submit is not None else 0,
+                    refresh_interval=0 if self.screen is not None else (
+                        0.2 if self.live_submit is not None else 0),
                     style=INPUT_STYLE,
                     input_processors=[PasteDisplay(self.blocks)],
                     completer=SlashCompleter(),
@@ -654,6 +724,18 @@ class TaskInput:
 
     def accept_input(self, buffer: Buffer) -> bool:
         assert self.accept_handler is not None
+        if self.screen is not None and self.live_submit is not None:
+            # Keep one input application alive for the entire execution. A send
+            # commits a snapshot, not the prompt, so neither the viewport nor the
+            # terminal's input mode is torn down for every guidance message.
+            text = self.expand(buffer.text)
+            self.submit_input(text)
+            self.submit_mode = "guide"
+            # Buffer appends history after this handler returns. Expand before
+            # clearing paste atoms so Up never restores an orphaned placeholder.
+            buffer.document = Document(text, len(text))
+            self.clear()
+            return False
         keep = self.accept_handler(buffer)
         if self.live_submit is not None:
             # Capture before prompt_async resumes (and before paste atoms are cleared).
@@ -661,6 +743,31 @@ class TaskInput:
         return keep
 
     def submit_input(self, text: str) -> None:
+        if self.screen is not None:
+            assert self.live_submit is not None
+            self.submission_queue.append(SubmittedInput(text, self.submit_mode, self.target_agent))
+            self.saved_draft = ""
+            self.screen.drafts[self.target_agent] = ""
+            if self.delivery is not None and self.delivery.done():
+                self.delivery.result()  # Do not mask a persistence/internal error.
+                self.delivery = None
+            if self.delivery is None:
+                submit = self.live_submit
+
+                async def deliver_queue() -> None:
+                    while self.submission_queue:
+                        self.submitted = item = self.submission_queue.pop(0)
+                        await submit(item.text, item.mode, item.target)
+
+                self.delivery = asyncio.create_task(deliver_queue())
+                def failed(task: asyncio.Task[None]) -> None:
+                    error = None if task.cancelled() else task.exception()
+                    if error is not None:
+                        app = self.prompt.app
+                        if app.is_running and not app.is_done:
+                            app.exit(exception=error)
+                self.delivery.add_done_callback(failed)
+            return
         assert self.live_submit is not None and self.delivery is None
         self.submitted = SubmittedInput(text, self.submit_mode, self.target_agent)
         self.read_submitted = True
