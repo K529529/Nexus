@@ -122,6 +122,7 @@ class SecurityGateway:
     ) -> None:
         self.policy, self.backend, self.approver = policy or SecurityPolicy(), backend, approver
         self.approval_timeout = approval_timeout
+        self.approval_lock = asyncio.Lock()
         # Transient trusted denial, never restored from conversation history.
         self.patch_denial: tuple[str, str, str, str, str, float] | None = None
 
@@ -299,7 +300,8 @@ class SecurityGateway:
             try:
                 if self.approver is not None:
                     async with asyncio.timeout(self.approval_timeout):
-                        answer = await self.approver(request)
+                        async with self.approval_lock:
+                            answer = await self.approver(request)
                     choice = answer.choice if answer.request_id == request.request_id else "invalid"
                     if time.monotonic() >= request.expires_at:
                         choice = "expired"

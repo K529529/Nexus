@@ -65,6 +65,7 @@ async def run_turn(
     gateway: SecurityGateway | None = None,
     inbox: Inbox | None = None,
     finalize: Callable[[], Awaitable[None]] | None = None,
+    before_request: Callable[[], Awaitable[None]] | None = None,
 ) -> RunResult:
     gateway = gateway or SecurityGateway()
     started = time.monotonic()
@@ -181,6 +182,8 @@ async def run_turn(
 
         for step in range(1, limits.max_steps + 1):
             result.steps = step
+            if before_request is not None:
+                await before_request()
             if inbox is not None:
                 for item in inbox.guides():
                     await append_message(session, Message("user", (

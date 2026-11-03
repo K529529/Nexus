@@ -222,6 +222,11 @@ class Conversation:
                 self.base_registry.pop("request_permissions", None)
                 self.registry.pop("apply_patch", None)
                 self.registry.pop("request_permissions", None)
+            self.registry.update(coordinator.inherited_mcp(
+                coordinator.agents[agent_id].parent, set(config.mcp_servers),
+            ))
+            self.base_registry.update(coordinator.tools(agent_id))
+            self.registry.update(self.base_registry)
         elif config.multi_agent.enabled:
             self.coordinator = Subagents(self)
             self.base_registry.update(self.coordinator.tools(agent_id))
@@ -354,7 +359,7 @@ class Conversation:
         if self.agent_id != "root":
             assert self.coordinator is not None
             prefix += "\n" + role_prompt(self.coordinator.agents[self.agent_id].role)
-        elif self.coordinator is not None:
+        if self.coordinator is not None and self.coordinator.can_delegate(self.agent_id):
             prefix += DELEGATION
         self.config.model.key()  # Validate credentials only when actually running a task.
         self.ensure_events(text)
@@ -382,11 +387,11 @@ class Conversation:
                     if self.config.compaction_model is not None and self.compaction_model is None:
                         self.compaction_model = CompactionModel(self.config.compaction_model)
                         self.resources.push_async_callback(self.compaction_model.close)
-                    if self.config.security.mode == "local":
+                    if self.config.security.mode == "local" and self.agent_id == "root":
                         self.unavailable = await connect_servers(
                             self.config.mcp_servers, self.registry, self.resources, self.events
                         )
-                    else:
+                    elif self.config.security.mode != "local":
                         # Connecting stdio MCP can itself spawn arbitrary host processes.
                         self.unavailable = list(self.config.mcp_servers)
                 except BaseException:
@@ -475,6 +480,8 @@ class Conversation:
                 gateway=self.gateway,
                 inbox=self.inbox,
                 finalize=(lambda: coordinator.finish(self.agent_id))
+                if coordinator is not None else None,
+                before_request=(lambda: coordinator.prepare(self.agent_id))
                 if coordinator is not None else None,
             )
             if result.outcome == "completed":

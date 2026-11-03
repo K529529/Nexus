@@ -143,6 +143,7 @@ class Tool:
     execute: Callable[[Json, ExecutionContext, Emit], Awaitable[ToolResult]]
     # Assigned by trusted host factories, never by model schemas or MCP descriptions.
     capability: str = "untrusted"
+    server: str | None = None
 
 
 @dataclass

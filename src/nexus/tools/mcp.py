@@ -97,6 +97,7 @@ def adapt_tool(
     disabled: set[str],
     registry: dict[str, Tool],
     server_names: list[str],
+    lock: asyncio.Lock | None = None,
 ) -> Tool:
     async def execute(arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
         started = time.monotonic()
@@ -152,7 +153,18 @@ def adapt_tool(
                 int((time.monotonic() - started) * 1000),
             )
 
-    return Tool(spec, execute)
+    async def serialized(arguments: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+        if lock is None:
+            return await execute(arguments, context, emit)
+        try:
+            async with lock:
+                return await execute(arguments, context, emit)
+        except asyncio.CancelledError:
+            raise ToolCancelled(ToolResult(context.call_id, False,
+                                           {"execution_state": "not_executed"},
+                                           "not_executed")) from None
+
+    return Tool(spec, serialized, server=server)
 
 
 async def connect_servers(
@@ -202,9 +214,10 @@ async def connect_servers(
                         raise ValueError("invalid/repeated pagination cursor")
                     seen.add(cursor)
             names = [spec.name for spec in found.values()]
+            lock = asyncio.Lock()
             for remote, spec in found.items():
                 registry[spec.name] = adapt_tool(
-                    client, remote, spec, server, disabled, registry, names
+                    client, remote, spec, server, disabled, registry, names, lock
                 )
             stack.push_async_callback(local.aclose)
         except asyncio.CancelledError:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import time
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
@@ -23,6 +24,9 @@ from nexus.core.types import (
 if TYPE_CHECKING:
     from nexus.app.bootstrap import Conversation
     from nexus.app.config import Config
+
+ROLE_CHILDREN = {"worker": {"scout", "worker", "reviewer"},
+                 "scout": {"scout"}, "reviewer": {"scout", "reviewer"}}
 
 DELEGATION = """
 [Native collaboration]
@@ -72,11 +76,17 @@ class Subagents:
         self.root = root
         self.agents: dict[str, Agent] = {}
         self.changed = asyncio.Event()
+        self.wakes: dict[str, asyncio.Event] = {"root": asyncio.Event()}
+        self.decisions: dict[str, asyncio.Future[str]] = {}
+        self.approval_lock = asyncio.Lock()
+        root.gateway.approval_lock = self.approval_lock
 
     async def event(self, kind: str, data: Json) -> None:
         assert self.root.events is not None
         await self.root.events(kind, data)
         self.changed.set()
+        parent = data.get("parent_id", "root")
+        self.wakes.setdefault(parent, asyncio.Event()).set()
 
     def owner(self, ident: str) -> Conversation:
         if ident == "root":
@@ -88,13 +98,21 @@ class Subagents:
     def children(self, parent: str) -> list[Agent]:
         return [a for a in self.agents.values() if a.parent == parent]
 
+    def can_delegate(self, parent: str) -> bool:
+        return self.root.config.multi_agent.enabled and (
+            parent == "root" or self.root.config.multi_agent.allowNestedSubagents
+            and self.agents[parent].depth < 2
+        )
+
     async def spawn(self, parent: str, args: Json) -> Json:
         config = self.root.config.multi_agent
-        if not config.enabled or parent != "root":
+        if not self.can_delegate(parent):
             return {"error": "delegation_disabled"}
         role = args.get("role")
         if role not in config.roles:
             return {"error": "invalid_role"}
+        if parent != "root" and role not in ROLE_CHILDREN[self.agents[parent].role]:
+            return {"error": "role_delegation_denied"}
         if any(not isinstance(args.get(k), str) or not args[k].strip() for k in ("task", "scope")):
             return {"error": "task_and_scope_required"}
         if sum(a.task is None or not a.task.done() or a.state == "cleanup_failed"
@@ -108,7 +126,8 @@ class Subagents:
                     else owner.config.models[settings.model] if settings.model
                     else owner.config.model)
         model = replace(selected, reasoning_effort=settings.reasoning_effort)
-        agent = Agent(uuid4().hex, parent, role, args["task"], args["scope"], 1,
+        depth = 1 if parent == "root" else self.agents[parent].depth + 1
+        agent = Agent(uuid4().hex, parent, role, args["task"], args["scope"], depth,
                       model.name, model.reasoning_effort, started=time.monotonic())
         self.agents[agent.id] = agent  # Reserve capacity before the first await.
         try:
@@ -120,7 +139,8 @@ class Subagents:
             owner.config, model=model,
             limits=replace(owner.config.limits, context_window=model.context_window,
                            max_output_tokens=model.max_output_tokens),
-            mcp_servers={},
+            mcp_servers={name: entry for name, entry in owner.config.mcp_servers.items()
+                         if name in settings.mcp_servers},
         )
         agent.task = asyncio.create_task(self.execute(agent, child_config))
         return {"agent_id": agent.id, "state": agent.state}
@@ -148,7 +168,17 @@ class Subagents:
                 coordinator=self, agent_id=agent.id,
             )
             agent.conversation = child
-            child.gateway.approver = owner.gateway.approver
+            child.session.unresolved_effects = self.root.session.unresolved_effects
+            from nexus.core.security import ApprovalDecision, ApprovalRequest
+
+            async def approve(request: ApprovalRequest) -> ApprovalDecision:
+                approver = self.root.gateway.approver
+                if approver is None:
+                    return ApprovalDecision(request.request_id, "deny")
+                return await approver(request)
+
+            child.gateway.approver = approve
+            child.gateway.approval_lock = self.approval_lock
             agent.state = "running"
             await self.event("agent_state", agent.public())
             agent.result = await child.turn(agent.assignment + "\n\nAssigned scope: " + agent.scope)
@@ -174,13 +204,24 @@ class Subagents:
 
     async def wait(self, parent: str, seconds: float) -> Json:
         children = self.children(parent)
-        if not any(a.result is not None and not a.delivered for a in children):
-            self.changed.clear()
+        inbox = self.owner(parent).inbox
+        wake = self.wakes.setdefault(parent, asyncio.Event())
+        if children and not inbox.guides() and not any(
+            a.result is not None and not a.delivered or a.state == "waiting_decision"
+            for a in children
+        ):
+            wake.clear()
+            inbox.changed.clear()
+            watchers = [asyncio.create_task(wake.wait()), asyncio.create_task(inbox.changed.wait())]
             try:
                 async with asyncio.timeout(max(0, min(seconds, 60))):
-                    await self.changed.wait()
+                    await asyncio.wait(watchers, return_when=asyncio.FIRST_COMPLETED)
             except TimeoutError:
                 pass
+            finally:
+                for watcher in watchers:
+                    watcher.cancel()
+                await asyncio.gather(*watchers, return_exceptions=True)
         values = []
         for agent in children:
             values.append(agent.public())
@@ -189,18 +230,98 @@ class Subagents:
                     "agent_id": agent.id, "parent_id": parent,
                 })
                 agent.delivered = True
-        return {"agents": values}
+        return {"agents": values, "guidance_pending": bool(inbox.guides())}
+
+    async def message(self, parent: str, target: str, text: str) -> Json:
+        agent = self.agents.get(target)
+        if agent is None or agent.parent != parent:
+            return {"error": "not_direct_child"}
+        child = agent.conversation
+        if child is None or child.closed:
+            return {"error": "agent_not_running"}
+        await self.event("agent_message", {"agent_id": target, "parent_id": parent,
+                                           "direction": "to_child", "text": text})
+        decision = self.decisions.get(target)
+        if decision is not None and not decision.done():
+            decision.set_result(text)
+        else:
+            assert child.events is not None
+            await child.inbox.receive(text, "guide", child.events)
+        return {"received": True}
+
+    async def report(self, sender: str, text: str, request_decision: bool) -> Json:
+        agent = self.agents[sender]
+        owner = self.owner(agent.parent)
+        assert owner.events is not None
+        future = asyncio.get_running_loop().create_future() if request_decision else None
+        if future is not None:
+            self.decisions[sender] = future
+            agent.state = "waiting_decision"
+        try:
+            await self.event("agent_message", {"agent_id": sender, "parent_id": agent.parent,
+                "direction": "to_parent", "text": text, "request_decision": request_decision})
+            await owner.inbox.receive(
+                f"[Child {sender} "
+                f"{'requests decision' if request_decision else 'progress'}]\n{text}",
+                "guide", owner.events,
+            )
+            if future is None:
+                return {"received": True}
+            answer = await future
+            return {"answer": answer}
+        finally:
+            self.decisions.pop(sender, None)
+            if agent.state == "waiting_decision":
+                agent.state = "running"
+
+    async def cancel(self, parent: str, target: str) -> Json:
+        agent = self.agents.get(target)
+        if agent is None or agent.parent != parent:
+            return {"error": "not_direct_child"}
+        if agent.task is not None and not agent.task.done():
+            cancelling = agent.state == "cancelling"
+            agent.state = "cancelling"
+            await self.event("agent_state", agent.public())
+            if agent.conversation is not None and not cancelling:
+                agent.task.cancel()
+            await asyncio.shield(agent.task)
+        return agent.public()
+
+    async def prepare(self, ident: str) -> None:
+        owner = self.owner(ident)
+        if ident == "root":
+            return
+        live_servers = {t.server for t in self.root.registry.values() if t.server is not None}
+        removed = set()
+        for name, tool in list(owner.registry.items()):
+            if tool.server is not None and tool.server not in live_servers:
+                owner.registry.pop(name)
+                removed.add(tool.server)
+        if removed:
+            assert owner.events is not None
+            await owner.inbox.receive(
+                "[Environment fact] MCP servers unavailable: " + ", ".join(sorted(removed)),
+                "guide", owner.events,
+            )
+
+    def inherited_mcp(self, parent: str, allowed: set[str]) -> dict[str, Tool]:
+        owner = self.owner(parent)
+        # Adapter calls receive the invoking agent's ExecutionContext and Emit;
+        # only the connection, per-server lock and failure state are shared.
+        return {name: replace(tool) for name, tool in owner.registry.items()
+                if tool.server is not None and tool.server in allowed}
 
     async def finish(self, parent: str) -> None:
         children = self.children(parent)
         for agent in children:
             if agent.task is not None and not agent.task.done():
+                cancelling = agent.state == "cancelling"
                 agent.state = "cancelling"
-                if agent.conversation is not None:
+                if agent.conversation is not None and not cancelling:
                     agent.task.cancel()
         for agent in children:
             if agent.task is not None:
-                await agent.task
+                await asyncio.shield(agent.task)
         if any(a.state == "cleanup_failed" for a in children):
             raise RuntimeError("subagent_cleanup_incomplete")
 
@@ -218,7 +339,19 @@ class Subagents:
                 a.public() for a in self.children(parent)
             ]})
 
-        return {
+        async def message(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            value = await self.message(parent, args["agent_id"], args["message"])
+            return ToolResult(context.call_id, "error" not in value, value, value.get("error"))
+
+        async def report(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            value = await self.report(parent, args["message"], args.get("request_decision", False))
+            return ToolResult(context.call_id, True, value)
+
+        async def cancel(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            value = await self.cancel(parent, args["agent_id"])
+            return ToolResult(context.call_id, "error" not in value, value, value.get("error"))
+
+        tools = {
             "spawn_agent": Tool(ToolSpec("spawn_agent", "Delegate a fresh asynchronous task. "
                 "Specify background, goal, deliverables, constraints and exclusive file scope.", {
                     "type": "object", "properties": {
@@ -235,7 +368,52 @@ class Subagents:
             "list_agents": Tool(ToolSpec("list_agents", "Inspect direct child states/results.", {
                 "type": "object", "properties": {}, "additionalProperties": False,
             }), listing, "internal"),
+            "message_agent": Tool(ToolSpec("message_agent", "Guide or answer a direct child.", {
+                "type": "object", "properties": {"agent_id": {"type": "string"},
+                                                   "message": {"type": "string"}},
+                "required": ["agent_id", "message"], "additionalProperties": False,
+            }), message, "internal"),
+            "cancel_agent": Tool(ToolSpec("cancel_agent", "Cancel a child and its descendants; "
+                "wait for cleanup before reassigning files.", {
+                    "type": "object", "properties": {"agent_id": {"type": "string"}},
+                    "required": ["agent_id"], "additionalProperties": False,
+                }), cancel, "internal"),
         }
+        if not self.can_delegate(parent):
+            tools.pop("spawn_agent")
+        if parent != "root":
+            tools["report_parent"] = Tool(ToolSpec("report_parent", "Send progress to parent, "
+                "or request a decision and wait for its reply (still consumes capacity).", {
+                    "type": "object", "properties": {"message": {"type": "string"},
+                                                       "request_decision": {"type": "boolean"}},
+                    "required": ["message"], "additionalProperties": False,
+                }), report, "internal")
+        def guarded(tool: Tool) -> Tool:
+            async def execute(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+                if not self.root.config.multi_agent.enabled:
+                    return ToolResult(context.call_id, False, {}, "delegation_disabled")
+                schema = tool.spec.input_schema
+                properties = schema["properties"]
+                valid = not (args.keys() - properties.keys()) and all(
+                    key in args for key in schema.get("required", [])
+                )
+                for key, value in args.items():
+                    prop = properties.get(key, {})
+                    kind = prop.get("type")
+                    if kind == "string":
+                        valid &= isinstance(value, str) and bool(value.strip())
+                    elif kind == "boolean":
+                        valid &= type(value) is bool
+                    elif kind == "number":
+                        valid &= (type(value) in {int, float} and math.isfinite(value)
+                                  and prop.get("minimum", 0) <= value <= prop.get("maximum", 60))
+                    if "enum" in prop:
+                        valid &= value in prop["enum"]
+                if not valid:
+                    return ToolResult(context.call_id, False, {}, "invalid_arguments")
+                return await tool.execute(args, context, emit)
+            return replace(tool, execute=execute)
+        return {name: guarded(tool) for name, tool in tools.items()}
 
 
 def role_prompt(role: str) -> str:
