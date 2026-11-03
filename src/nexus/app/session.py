@@ -291,8 +291,9 @@ class SessionLog:
         home: Path | None = None,
         *,
         recovered_from: str | None = None,
+        directory: Path | None = None,
     ) -> SessionLog:
-        folder = session_directory(session.workspace, home)
+        folder = directory or session_directory(session.workspace, home)
         folder.mkdir(parents=True, exist_ok=True, mode=0o700)
         writer = cls(folder / f"{session.session_id}.jsonl", create=True)
         try:

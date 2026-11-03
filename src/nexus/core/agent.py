@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict
 from uuid import uuid4
 
@@ -63,6 +64,7 @@ async def run_turn(
     context: Context | None = None,
     gateway: SecurityGateway | None = None,
     inbox: Inbox | None = None,
+    finalize: Callable[[], Awaitable[None]] | None = None,
 ) -> RunResult:
     gateway = gateway or SecurityGateway()
     started = time.monotonic()
@@ -339,6 +341,11 @@ async def run_turn(
                 call.id, ToolResult(call.id, False, {}, "not_executed")))
     except Exception:
         result.outcome, result.reason = "failed", "session_write_failed; recovery incomplete"
+    if finalize is not None:
+        try:
+            await finalize()
+        except Exception:
+            result.outcome, result.reason = "failed", "subagent_cleanup_incomplete"
     result.duration_ms = int((time.monotonic() - started) * 1000)
     complete_usage = bool(usages) and len(usages) == result.model_calls
     result.usage = Usage(

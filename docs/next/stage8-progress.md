@@ -32,3 +32,20 @@ Sub-Agent 排除项；仍使用一套核心循环，不恢复旧架构。授权�
 - Windows 人工终端/中文 IME 实际手感、真实模型指导响应尚未验收。
 
 下一阶段：默认关闭的原生子代理、Fresh 上下文、独立会话/日志、异步创建及结果获取。
+
+## Stage8-2 — 原生子代理闭环
+
+- Stage8-1 已推送：`7733665`。
+- `[multi_agent] enabled=false` 默认关闭；开启提供 `spawn_agent`、`wait_agents`、
+  `list_agents`。三个内置 Markdown 角色与角色模型别名/推理强度配置；模型在创建时固定。
+- 独立 Conversation、Session、Context、模型客户端、工具绑定；一套 `run_turn`。
+  创建立即返回，等待超时不取消。父结束前取消并等待子清理；清理失败保留额度。
+- scout/reviewer 无 apply_patch；角色职责约束不构成 Shell 只读隔离。
+- 子日志存放 `<session_id>/subagents/<agent_id>.jsonl`，不进入 history 顶层。
+- 嵌套/MCP 子代理共享连接/父子消息在 Stage8-3 接入；当前子代理不连接 MCP。
+- 24 项相关测试通过（新增子代理/输入、Conversation、边界）；Ruff、完整 mypy
+  与 diff 检查通过。验证父模型可在子模型等待时继续、Fresh 无父对话复制、客户端
+  在原 Task 关闭、满额及时返回、等待不取消以及子任务首次调度前取消。
+- 使用短系统临时父目录 `n8-<随机值>`：之前过长的测试临时路径加子日志层级超出
+  当前 Windows 文件路径长度限制；未改系统长路径设置。实际超长存储路径仍可能失败。
+- 真实模型并发与 Windows 终端体验未验收；未声称性能优于单 Agent。

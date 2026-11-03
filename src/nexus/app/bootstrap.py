@@ -21,6 +21,7 @@ from nexus.app.memory_index import MemoryIndex
 from nexus.app.memory_setup import DependencyBootstrap
 from nexus.app.session import SessionError, SessionLog, resume_session
 from nexus.app.skills import SkillCatalog
+from nexus.app.subagents import DELEGATION, Subagents, role_prompt
 from nexus.core.agent import run_turn
 from nexus.core.compaction import provenance
 from nexus.core.context import Context, ContextBuilder, instructions
@@ -58,9 +59,13 @@ class Conversation:
         registry: dict[str, Tool] | Callable[[Session], dict[str, Tool]] | None = None,
         environment_display: tuple[str, str] | None = None,
         skill_directory: Path | None = None,
+        coordinator: Subagents | None = None,
+        agent_id: str = "root",
     ) -> None:
         self.workspace = workspace.resolve()
         self.config, self.consumer, self.home = config, consumer, home
+        self.agent_id = agent_id
+        self.coordinator = coordinator
         self.default_model = config.model
         self.model_alias = "default"
         self.turn_lock = asyncio.Lock()
@@ -210,6 +215,17 @@ class Conversation:
         )
         self.skill_tool: Tool | None = None
         self.refresh_skills()
+        if agent_id != "root":
+            assert coordinator is not None
+            if coordinator.agents[agent_id].role != "worker":
+                self.base_registry.pop("apply_patch", None)
+                self.base_registry.pop("request_permissions", None)
+                self.registry.pop("apply_patch", None)
+                self.registry.pop("request_permissions", None)
+        elif config.multi_agent.enabled:
+            self.coordinator = Subagents(self)
+            self.base_registry.update(self.coordinator.tools(agent_id))
+            self.registry.update(self.base_registry)
 
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
@@ -230,11 +246,17 @@ class Conversation:
         if self.closed:
             raise RuntimeError("Conversation is closed")
         if self.writer is None:
+            directory = None
+            if self.agent_id != "root":
+                assert self.coordinator is not None and self.coordinator.root.writer is not None
+                directory = self.coordinator.root.writer.path.with_suffix("") / "subagents"
+                self.session.session_id = self.agent_id
             self.writer = SessionLog.create(
                 self.session,
                 redact(title, self.secret_values()),
                 asdict(self.config.model),
                 self.home,
+                directory=directory,
             )
         self.events = Events(
             self.session, self.writer, self.consumer, self.secret_values(), self.config.tracing
@@ -329,6 +351,11 @@ class Conversation:
             display=self.environment_display,
             response_language=self.config.response_language,
         )
+        if self.agent_id != "root":
+            assert self.coordinator is not None
+            prefix += "\n" + role_prompt(self.coordinator.agents[self.agent_id].role)
+        elif self.coordinator is not None:
+            prefix += DELEGATION
         self.config.model.key()  # Validate credentials only when actually running a task.
         self.ensure_events(text)
         assert self.events is not None
@@ -434,6 +461,7 @@ class Conversation:
                 )
             if self.web_unavailable:
                 environment += "\n[Environment fact] " + self.web_unavailable
+            coordinator = self.coordinator
             result = await run_turn(
                 self.session,
                 text,
@@ -446,6 +474,8 @@ class Conversation:
                 context=self.context,
                 gateway=self.gateway,
                 inbox=self.inbox,
+                finalize=(lambda: coordinator.finish(self.agent_id))
+                if coordinator is not None else None,
             )
             if result.outcome == "completed":
                 try:
@@ -685,16 +715,20 @@ class Conversation:
         self.closed = True
         try:
             try:
-                if self.gateway.backend is not None:
-                    close_backend = getattr(self.gateway.backend, "close", None)
-                    if close_backend is not None:
-                        await close_backend()
+                if self.coordinator is not None:
+                    await self.coordinator.finish(self.agent_id)
             finally:
                 try:
-                    if self.memory_index is not None:
-                        await self.memory_index.close()
+                    if self.gateway.backend is not None:
+                        close_backend = getattr(self.gateway.backend, "close", None)
+                        if close_backend is not None:
+                            await close_backend()
                 finally:
-                    await self.resources.aclose()
+                    try:
+                        if self.memory_index is not None:
+                            await self.memory_index.close()
+                    finally:
+                        await self.resources.aclose()
         finally:
             if self.writer:
                 self.writer.close()

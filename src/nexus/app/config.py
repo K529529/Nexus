@@ -54,6 +54,24 @@ class WebConfig:
 
 
 @dataclass
+class AgentRoleConfig:
+    model: str | None = None
+    reasoning_effort: str = "high"
+    mcp_servers: tuple[str, ...] = ()
+
+
+@dataclass
+class MultiAgentConfig:
+    enabled: bool = False
+    allowNestedSubagents: bool = False
+    max_agents: int = 3
+    roles: dict[str, AgentRoleConfig] = field(default_factory=lambda: {
+        "scout": AgentRoleConfig(reasoning_effort="low"),
+        "worker": AgentRoleConfig(), "reviewer": AgentRoleConfig(),
+    })
+
+
+@dataclass
 class Config:
     model: ModelConfig
     limits: Limits
@@ -66,6 +84,32 @@ class Config:
     web: WebConfig = field(default_factory=WebConfig)
     tracing: TraceConfig = field(default_factory=TraceConfig)
     models: dict[str, ModelConfig] = field(default_factory=dict)
+    multi_agent: MultiAgentConfig = field(default_factory=MultiAgentConfig)
+
+
+def parse_multi_agent(data: Json, models: dict[str, ModelConfig]) -> MultiAgentConfig:
+    raw = _table(data, "multi_agent", {"enabled", "allowNestedSubagents", "max_agents", "roles"})
+    config = MultiAgentConfig()
+    for name in ("enabled", "allowNestedSubagents"):
+        value = raw.get(name, False)
+        if type(value) is not bool:
+            raise ConfigError(f"multi_agent.{name}: expected boolean")
+        setattr(config, name, value)
+    config.max_agents = _integer(raw.get("max_agents", 3), "multi_agent.max_agents")
+    roles = _table(raw, "roles", {"scout", "worker", "reviewer"})
+    for role in config.roles:
+        settings = _table(roles, role, {"model", "reasoning_effort", "mcp_servers"})
+        alias = settings.get("model")
+        if alias is not None and (not isinstance(alias, str) or alias not in {"default", *models}):
+            raise ConfigError(f"multi_agent.roles.{role}.model: expected configured model alias")
+        effort = settings.get("reasoning_effort", config.roles[role].reasoning_effort)
+        if effort not in {"none", "minimal", "low", "medium", "high", "xhigh"}:
+            raise ConfigError(f"multi_agent.roles.{role}.reasoning_effort: invalid value")
+        servers = settings.get("mcp_servers", [])
+        if not isinstance(servers, list) or any(not isinstance(s, str) or not s for s in servers):
+            raise ConfigError(f"multi_agent.roles.{role}.mcp_servers: expected string array")
+        config.roles[role] = AgentRoleConfig(alias, effort, tuple(servers))
+    return config
 
 
 def config_path() -> Path:
@@ -256,6 +300,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         "web",
         "tracing",
         "models",
+        "multi_agent",
     }
     if unknown:
         raise ConfigError(f"{path}: unknown sections: {', '.join(sorted(unknown))}")
@@ -327,6 +372,7 @@ def load_config(path: Path | None = None, *, require_key: bool = True) -> Config
         WebConfig(enabled, key_env, timeout),
         parse_trace(data.get("tracing", {})),
         models,
+        parse_multi_agent(data, models),
     )
 
 
