@@ -402,6 +402,7 @@ async def application(args: argparse.Namespace) -> int:
     profile = ProfileConsumer(transcript) if getattr(args, "profile", False) else None
     summary = InteractionSummary(profile or transcript)
     editor = TaskInput(prompt, display.repaint if display is not None else None)
+    transcript.editor = editor
     conversation = Conversation(workspace, config, summary)
     def current_panel() -> str:
         manager = getattr(conversation, "coordinator", None)

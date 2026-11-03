@@ -139,3 +139,9 @@ Stage8-6 扩展这两个现有入口，不新增通用 history 命令。
 
 基于 `96686de` 的输入交接、命令参数健壮性、子代理收尾指导三个问题，按两个增量
 修复并推送。实现边界、回归与环境限制见 [审查修复记录](stage8-review-fixes.md)。
+
+## Stage8 多 Agent 交互修复
+
+根据 PyCharm PowerShell 截图，将运行态改为单一 prompt_toolkit 渲染区域，代理树置于
+输入框上方并限制高度；保留 Enter 指导、Tab 排队和中文输入适配。回归、离线演示与
+尚待人工确认的宿主体验见 [交互修复记录](stage8-ui-fixes.md)。

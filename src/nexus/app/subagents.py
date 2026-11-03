@@ -397,19 +397,21 @@ class Subagents:
         from nexus.app.events import redact
         if not self.agents:
             return ""
-        lines = [f"Agents · target {selected[:8]} · {self.occupied()}/"
-                 f"{self.root.config.multi_agent.max_agents} occupied · "
+        lines = [f"Async Agents · {self.occupied()}/"
+                 f"{self.root.config.multi_agent.max_agents} active · "
                  + usage_label(combined_usage(list(self.usage.values())))]
         def walk(parent: str) -> None:
             for agent in self.children(parent):
                 usage = self.usage.get(agent.id, AgentUsage()).public()
                 mark = "!" if agent.state in {"waiting_decision", "failed", "cleanup_failed",
-                                             "recovery_failed", "interrupted"} else "·"
+                                             "recovery_failed", "interrupted"} else (
+                                                 "✓" if agent.state == "completed" else "●")
                 elapsed = agent.public()["elapsed_ms"] / 1000
-                summary = " ".join(agent.assignment.split())[:36]
-                lines.append(f"{'  ' * agent.depth}{mark} {agent.id[:8]} {agent.role} "
-                             f"{agent.state} {agent.operation} {elapsed:.1f}s "
-                             f"{usage_label(usage)} | {summary}")
+                target = "→ " if agent.id == selected else ""
+                lines.append(f"{'  ' * (agent.depth - 1)}├ {mark} {target}{agent.role} "
+                             f"{agent.id[:8]} · {agent.state} · {elapsed:.1f}s")
+                lines.append(f"{'  ' * (agent.depth - 1)}│   "
+                             f"{agent.operation or 'idle'} · {usage_label(usage)} · fresh")
                 walk(agent.id)
         walk("root")
         return str(redact("\n".join(lines), self.root.secret_values()))

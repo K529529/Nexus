@@ -29,7 +29,7 @@ from rich.text import Text
 from rich.theme import Theme
 
 from nexus.app.config import ConfigError, read_toml
-from nexus.app.input import PURPLE
+from nexus.app.input import PURPLE, TaskInput
 from nexus.core.security import ApprovalRequest
 from nexus.core.skills import active_skills
 from nexus.core.types import Json, RuntimeEvent, Session, SkillInfo, json_text
@@ -156,6 +156,7 @@ class Transcript:
         self.finish_reason: str | None = None
         self.flush_handle: asyncio.TimerHandle | None = None
         self.working: Spinner | None = None
+        self.editor: TaskInput | None = None
 
     @property
     def live_output(self) -> bool:
@@ -169,6 +170,8 @@ class Transcript:
             self.preview.stop()
             self.preview = None
         self.working = None
+        if self.editor is not None:
+            self.editor.set_activity()
 
     def stop_activity(self) -> None:
         self.stop_preview()
@@ -199,6 +202,9 @@ class Transcript:
         self.last_flush = time.monotonic()
 
     def show_preview(self, text: Text) -> None:
+        if self.editor is not None:
+            self.editor.set_activity("", text.plain)
+            return
         if self.preview is None:
             self.working = Spinner("dots", text=Text("Working...", style="dim"), style=PURPLE)
             self.preview = Live(
@@ -315,6 +321,9 @@ class Transcript:
             important |= bool(data.get("request_decision"))
             if event.kind == "agent_message" and not important:
                 return
+            if self.editor is not None and not important:
+                self.editor.prompt.app.invalidate()
+                return
             self.stop_activity()
             label = ("DECISION NEEDED: " + str(data.get("text", ""))) if data.get(
                 "request_decision"
@@ -388,7 +397,9 @@ class Transcript:
             self.stop_activity()
             title = tool_title(data)
             self.tools[data.get("call_id", "")] = title
-            if self.console.is_terminal and not self.console.is_dumb_terminal:
+            if self.editor is not None:
+                self.editor.set_activity(title)
+            elif self.console.is_terminal and not self.console.is_dumb_terminal:
                 self.activity = Live(
                     Text(f"› {title} …", style="dim", overflow="ellipsis", no_wrap=True),
                     console=self.console,

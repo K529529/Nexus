@@ -1,0 +1,47 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+.....................ssssssssss......................................... [ 17%]
+........................................................................ [ 23%]
+........................................................................ [ 29%]
+........................................................................ [ 34%]
+........................................................................ [ 40%]
+........................................................................ [ 46%]
+........................................................................ [ 52%]
+........................................................................ [ 58%]
+........................................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 75%]
+........................................................................ [ 81%]
+........................................................................ [ 87%]
+........................................................................ [ 93%]
+........................................................................ [ 99%]
+............                                                             [100%]
+============================== warnings summary ===============================
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+1226 passed, 10 skipped, 16 warnings in 193.26s (0:03:13)

@@ -1,0 +1,3 @@
+C:\Users\Archer\AppData\Local\Temp\n8ui-pkg-9b1d8705\venv\Lib\site-packages\nexus\app\input.py
+Installed Stage8 UI modules imported outside source tree
+0.2.0

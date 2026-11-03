@@ -32,6 +32,7 @@ from prompt_toolkit.output.vt100 import Vt100_Output
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.renderer import CPR_Support
 from prompt_toolkit.styles import Style
+from prompt_toolkit.utils import get_cwidth
 from prompt_toolkit.widgets import TextArea
 
 PURPLE = "#a78bfa"
@@ -54,6 +55,10 @@ INPUT_STYLE = Style.from_dict({
     "prompt": PURPLE + " bold",
     "paste": "bg:#302044 " + PURPLE,
     "bottom-toolbar": "noreverse #888888",
+    "runtime": "#9993a6",
+    "runtime.heading": PURPLE + " bold",
+    "runtime.attention": "#e5b95c",
+    "runtime.complete": "#8bdc65",
     "completion-menu.completion": "bg:#241b30 #dddddd",
     "completion-menu.completion.current": "bg:#7c3aed #ffffff bold",
     "completion-menu.meta.completion": "bg:#241b30 #aaaaaa",
@@ -204,12 +209,12 @@ class TaskInput:
             # both natively and through WSL. Keep help in the editor's flow; retain
             # the already accepted JetBrains native layout and all input bindings.
             layout = self.prompt.app.layout
-            root = layout.container
+            frame_root = layout.container
             layout.container = HSplit([
-                HSplit([root], height=lambda: Dimension.exact(min(root.preferred_height(
+                HSplit([frame_root], height=lambda: Dimension.exact(min(frame_root.preferred_height(
                     self.prompt.app.output.get_size().columns,
                     self.prompt.app.output.get_size().rows,
-                ).preferred, max(3, self.prompt.app.output.get_size().rows - 2)))),
+                ).preferred, self.editor_height()))),
                 Window(FormattedTextControl(self.toolbar), height=1),
             ])
         self.bindings = KeyBindings()
@@ -232,12 +237,27 @@ class TaskInput:
         self.saved_draft = ""
         self.target_agent = "root"
         self.agent_panel: Callable[[], str] = lambda: ""
-        panel = ConditionalContainer(
-            Window(FormattedTextControl(lambda: self.agent_panel()),
-                   height=Dimension(max=8), dont_extend_height=True),
-            Condition(lambda: bool(self.agent_panel())),
-        )
-        self.prompt.app.layout.container = HSplit([self.prompt.app.layout.container, panel])
+        self.activity_text = ""
+        self.preview_text = ""
+        # One renderer owns all moving rows. Reserve the editor's height first;
+        # status/preview rows must never push the input outside the viewport.
+        root = self.prompt.app.layout.container
+        self.prompt.app.layout.container = HSplit([
+            ConditionalContainer(
+                Window(FormattedTextControl(self.runtime_text),
+                       height=lambda: len(self.runtime_rows()),
+                       dont_extend_height=True, wrap_lines=False),
+                Condition(lambda: bool(self.runtime_rows())),
+            ),
+            HSplit([root], height=lambda: Dimension.exact(min(root.preferred_height(
+                self.prompt.app.output.get_size().columns,
+                self.prompt.app.output.get_size().rows,
+            ).preferred, self.editor_height() + (1 if self.inline_toolbar else 0)))),
+            ConditionalContainer(
+                Window(FormattedTextControl(self.toolbar), height=1),
+                Condition(lambda: not self.inline_toolbar and self.live_submit is not None),
+            ),
+        ])
 
         @self.bindings.add("enter")
         def submit(event: KeyPressEvent) -> None:
@@ -441,7 +461,7 @@ class TaskInput:
         if self.prompt.default_buffer.accept_handler != self.accept_input:
             self.accept_handler = self.prompt.default_buffer.accept_handler
             self.prompt.default_buffer.accept_handler = self.accept_input
-        if self.inline_toolbar:
+        if self.inline_toolbar or self.live_submit is not None:
             # Empty text still activates prompt_toolkit's bottom toolbar after
             # CPR. None actually removes that screen-anchored window.
             self.prompt.bottom_toolbar = None
@@ -505,9 +525,70 @@ class TaskInput:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
         if self.live_submit is not None:
+            if self.prompt.app.output.get_size().columns < 55:
+                return "Enter guide · Tab queue"
             return (f"→ {self.target_agent[:8]} · Enter guide · Tab queue · "
-                    "/pending · /agents · /agent ID · Ctrl+C cancel")
+                    "Ctrl+C cancel · /agents · /pending")
         return "Enter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit"
+
+    def set_activity(self, title: str = "", preview: str = "") -> None:
+        self.activity_text, self.preview_text = title, preview
+        self.prompt.app.invalidate()
+
+    def runtime_rows(self) -> list[tuple[str, str]]:
+        size = self.prompt.app.output.get_size()
+        budget = min(12, max(0, size.rows - max(4, size.rows // 3) - 2))
+        if not budget:
+            return []
+        panel = self.agent_panel().splitlines()
+        active = self.live_submit is not None
+        rows: list[tuple[str, str]] = []
+        # Agent tree takes priority over the temporary assistant preview.
+        available = budget - int(active)
+        if panel:
+            shown = panel[:available]
+            if len(panel) > available and available:
+                shown[-1] = f"  … {len(panel) - available + 1} more rows · /agents"
+            for line in shown:
+                style = "class:runtime"
+                if line == panel[0]:
+                    style = "class:runtime.heading"
+                elif any(s in line for s in ("waiting_decision", "failed", "interrupted")):
+                    style = "class:runtime.attention"
+                elif "completed" in line:
+                    style = "class:runtime.complete"
+                rows.append((style, line))
+        preview_space = min(3, available - len(rows))
+        if active and preview_space > 0 and self.preview_text:
+            rows[0:0] = [("class:runtime", line) for line in
+                         self.preview_text.splitlines()[-preview_space:]]
+        if active:
+            target = f" → {self.target_agent[:8]}" if size.columns < 55 else ""
+            title = "─ Working" + target + (
+                f" · {self.activity_text}" if self.activity_text else "") + " "
+            rows.append(("class:runtime.heading", title + "─" * max(
+                0, size.columns - get_cwidth(title) - 1)))
+        return rows
+
+    def runtime_text(self) -> StyleAndTextTuples:
+        width = max(1, self.prompt.app.output.get_size().columns - 1)
+        fragments: StyleAndTextTuples = []
+        for index, (style, line) in enumerate(self.runtime_rows()):
+            # Measure terminal cells, not codepoints; CJK must not wrap the dock.
+            clipped = ""
+            for char in line.expandtabs(4):
+                if get_cwidth(clipped + char) > width:
+                    clipped = clipped.rstrip()
+                    while get_cwidth(clipped + "…") > width:
+                        clipped = clipped[:-1]
+                    clipped += "…"
+                    break
+                clipped += char
+            fragments.append((style, ("\n" if index else "") + clipped))
+        return fragments
+
+    def editor_height(self) -> int:
+        return max(3, self.prompt.app.output.get_size().rows - len(self.runtime_rows()) - 2)
 
     def discard(self, interrupt: Callable[[], None] | None = None) -> None:
         source = self.prompt.app.input
@@ -540,7 +621,8 @@ class TaskInput:
                     wrap_lines=True,
                     key_bindings=self.bindings,
                     prompt_continuation=[("class:prompt", "│   ")],
-                    bottom_toolbar=None if self.inline_toolbar else self.toolbar,
+                    bottom_toolbar=(None if self.inline_toolbar or self.live_submit
+                                    else self.toolbar),
                     show_frame=True,
                     cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
                     refresh_interval=0.2 if self.live_submit is not None else 0,
