@@ -66,6 +66,8 @@ INPUT_STYLE = Style.from_dict({
 })
 COMMANDS = {
     "/help": "Commands and shortcuts",
+    "/agents": "Current task agents and outstanding work",
+    "/agents history": "Archived agents from earlier tasks",
     "/permissions": "View or change execution permissions (starts a new conversation)",
     "/new": "New conversation",
     "/resume": "Choose a saved session",
@@ -553,7 +555,8 @@ class TaskInput:
                 style = "class:runtime"
                 if line == panel[0]:
                     style = "class:runtime.heading"
-                elif any(s in line for s in ("waiting_decision", "failed", "interrupted")):
+                elif any(s in line for s in ("waiting_decision", "failed", "interrupted",
+                                            "unresolved")):
                     style = "class:runtime.attention"
                 elif "completed" in line:
                     style = "class:runtime.complete"

@@ -139,14 +139,18 @@ async def memory_command(action: str) -> int:
 
 
 async def agent_command(conversation: Conversation, editor: TaskInput, text: str) -> bool:
-    if text != "/agents" and not text.startswith("/agent "):
+    if text.split()[:1] not in (["/agents"], ["/agent"]):
         return False
     manager = conversation.coordinator
     output = "Multi-Agent is disabled; no agents are available."
     if manager is not None:
         parts = text.split()
-        if text == "/agents":
-            output = manager.panel(editor.target_agent) or "No subagents yet."
+        if parts[0] == "/agents":
+            if parts in (["/agents"], ["/agents", "history"]):
+                output = manager.panel(editor.target_agent, history=len(parts) == 2,
+                                       compact=False) or "No subagents yet."
+            else:
+                output = "Use /agents for current tasks or /agents history for archived agents."
         elif len(parts) == 2:
             target = manager.resolve(parts[1])
             if target is None:
@@ -164,7 +168,7 @@ async def agent_command(conversation: Conversation, editor: TaskInput, text: str
                 result = await manager.cancel(manager.agents[target].parent, target)
                 output = f"Agent {target}: {result.get('state', result.get('error'))}"
         else:
-            output = "Use /agents, /agent ID|root, /agent detail ID, /agent cancel ID."
+            output = "Use /agents [history], /agent ID|root, /agent detail ID, /agent cancel ID."
     # UI detail is read from child logs; do not copy it into the root JSONL.
     await conversation.consumer(RuntimeEvent(
         "agent_inspect", now(), conversation.session.session_id, conversation.session.run_id,
@@ -501,7 +505,8 @@ async def application(args: argparse.Namespace) -> int:
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
                     "During execution Enter guides the task; Tab queues the next task. "
                     "/pending lists messages; /edit ID text edits; /withdraw ID removes."
-                    " /agents tree; /agent ID|root chooses guidance target; "
+                    " /agents current tree; /agents history; "
+                    "/agent ID|root chooses guidance target; "
                     "/agent detail ID shows trajectory; /agent cancel ID cancels its subtree."
                 )
             elif text == "/model" or text.startswith("/model "):

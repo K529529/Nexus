@@ -50,7 +50,8 @@ scout 只能委派 scout，reviewer 可委派 scout/reviewer。scout/reviewer �
 | 执行中 Tab | 排队为根代理的后续任务 |
 | `/pending` | 查看当前选中代理尚未投递的消息及 ID |
 | `/edit ID 新内容`、`/withdraw ID` | 修改、撤回未投递输入 |
-| `/agents` | 显示代理树、额度、实际请求用量 |
+| `/agents` | 当前任务及跨轮仍需处理的代理树；任务名、角色、短 ID、状态和该代理累计用量 |
+| `/agents history` | 已归档的历史任务代理；名称、ID 和详情入口仍保留 |
 | `/agent ID`、`/agent root` | 选择指导目标；ID 支持唯一前缀 |
 | `/agent detail ID` | 按需查看该代理独立轨迹 |
 | `/agent cancel ID` | 取消该代理及后代，并等待工具清理 |

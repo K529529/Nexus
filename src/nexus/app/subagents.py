@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import re
 import time
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
+
+from rich.cells import cell_len
 
 from nexus.app.agent_view import AgentUsage, combined_usage, usage_label
 from nexus.core.types import (
@@ -37,6 +40,7 @@ DELEGATION = """
 [Native collaboration]
 Delegate only when useful. spawn_agent starts an independent fresh conversation
 asynchronously. Supply goal, background, deliverables, constraints and file scope.
+Supply task_name: a short, descriptive task title in the user's language.
 You and your children share one workspace. Assign disjoint files; never modify a
 file currently assigned to another executor. This is a cooperation rule, not a lock.
 Use wait_agents to retrieve results (timeout leaves children running), or continue
@@ -70,6 +74,9 @@ class Agent:
     execution_id: str = field(default_factory=lambda: uuid4().hex)
     accepting: bool = False
     input_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    task_name: str = ""
+    task_run_id: str | None = None
+    run_ids: set[str] = field(default_factory=set)
 
     def public(self) -> Json:
         return {
@@ -83,6 +90,7 @@ class Agent:
             "log_path": self.log_path, "call_id": self.source_call_id,
             "source_run_id": self.source_run_id, "model_settings": self.model_settings,
             "execution_id": self.execution_id,
+            "task_name": self.task_name, "task_run_id": self.task_run_id,
         }
 
 
@@ -96,6 +104,61 @@ class Subagents:
         self.approval_lock = asyncio.Lock()
         root.gateway.approval_lock = self.approval_lock
         self.usage: dict[str, AgentUsage] = {"root": AgentUsage()}
+        self.current_run_id: str | None = None
+
+    def observe_root(self, event: RuntimeEvent) -> None:
+        self.usage["root"].observe(event)
+        if event.kind == "run_started":
+            self.current_run_id = event.run_id
+
+    def short_task_name(self, text: str) -> str:
+        from nexus.app.events import redact
+        from nexus.app.tui import terminal_text
+        clean = terminal_text(str(redact(text, self.root.secret_values())))
+        goal = re.search(r"(?:^|[\n;；])\s*(?:[-*#]\s*)?(?:任务名称|任务|目标|goal|task|title)"
+                         r"\s*[:：]\s*([^\n;；]+)", clean, re.I)
+        first = goal[1] if goal else next((line.strip() for line in clean.splitlines()
+                                          if line.strip()), "未命名任务")
+        name = " ".join(first.split())
+        if cell_len(name) > 24:
+            while cell_len(name) > 23:
+                name = name[:-1]
+            name += "…"
+        return name
+
+    def task_run(self, agent: Agent) -> str | None:
+        # Old logs store the immediate parent's run. Walk to the root delegation.
+        seen: set[str] = set()
+        while agent.task_run_id is None and agent.parent in self.agents:
+            if agent.id in seen:
+                return None
+            seen.add(agent.id)
+            agent = self.agents[agent.parent]
+        return agent.task_run_id or (agent.source_run_id if agent.parent == "root" else None)
+
+    def has_unresolved_effects(self, agent: Agent) -> bool:
+        return any(value.get("agent_id") == agent.id or value.get("run_id") in agent.run_ids
+                   for value in self.root.session.unresolved_effects.values())
+
+    def needs_attention(self, agent: Agent) -> bool:
+        return (agent.state not in {"completed", "aborted"} or agent.accepting
+                or agent.task is not None and not agent.task.done()
+                or agent.result is not None and not agent.delivered
+                or self.has_unresolved_effects(agent)
+                or bool(agent.conversation and agent.conversation.inbox.guides()))
+
+    def current_agents(self) -> set[str]:
+        current = self.root.session.run_id or self.current_run_id
+        visible = {a.id for a in self.agents.values()
+                   if (current is not None and self.task_run(a) == current)
+                   or self.needs_attention(a)}
+        # Keep ancestors as context for an older descendant that still needs work.
+        for ident in list(visible):
+            parent = self.agents[ident].parent
+            while parent in self.agents and parent not in visible:
+                visible.add(parent)
+                parent = self.agents[parent].parent
+        return visible
 
     async def event(self, kind: str, data: Json) -> None:
         assert self.root.events is not None
@@ -143,6 +206,9 @@ class Subagents:
             return {"error": "role_delegation_denied"}
         if any(not isinstance(args.get(k), str) or not args[k].strip() for k in ("task", "scope")):
             return {"error": "task_and_scope_required"}
+        if "task_name" in args and (not isinstance(args["task_name"], str)
+                                    or not args["task_name"].strip()):
+            return {"error": "invalid_task_name"}
         if self.occupied() >= config.max_agents:
             return {"error": "capacity_full", "max_agents": config.max_agents}
         if owner.session.unresolved_effects:
@@ -157,6 +223,9 @@ class Subagents:
                       model.name, model.reasoning_effort, started=time.monotonic())
         agent.log_path = f"{self.root.session.session_id}/subagents/{agent.id}.jsonl"
         agent.source_call_id, agent.source_run_id = call_id, owner.session.run_id
+        agent.task_name = self.short_task_name(args.get("task_name") or agent.assignment)
+        agent.task_run_id = ((self.root.session.run_id or self.current_run_id) if parent == "root"
+                             else self.task_run(self.agents[parent]))
         agent.model_settings = asdict(model)
         self.agents[agent.id] = agent  # Reserve capacity before the first await.
         try:
@@ -185,6 +254,8 @@ class Subagents:
             if agent.state == "cancelling":
                 raise asyncio.CancelledError
             async def consume(event: RuntimeEvent) -> None:
+                if event.run_id is not None:
+                    agent.run_ids.add(event.run_id)
                 self.usage.setdefault(agent.id, AgentUsage()).observe(event)
                 if event.kind == "tool_started":
                     agent.operation = str(event.data.get("name", ""))
@@ -393,27 +464,58 @@ class Subagents:
         matches = [ident for ident in self.agents if ident.startswith(value)]
         return matches[0] if len(matches) == 1 else None
 
-    def panel(self, selected: str = "root") -> str:
+    def panel(self, selected: str = "root", *, history: bool = False, compact: bool = True) -> str:
         from nexus.app.events import redact
         if not self.agents:
             return ""
-        lines = [f"Async Agents · {self.occupied()}/"
-                 f"{self.root.config.multi_agent.max_agents} active · "
+        current = self.current_agents()
+        archived = self.agents.keys() - current
+        visible = archived if history else current
+        heading = "历史" if history else "当前任务 / 待处理"
+        lines = [f"Async Agents · {heading} · {self.occupied()}/"
+                 f"{self.root.config.multi_agent.max_agents} active",
+                 "会话累计（主+全部子代理）: "
                  + usage_label(combined_usage(list(self.usage.values())))]
+        def priority(agent: Agent) -> int:
+            # Put live branches before retained failures and settled results so
+            # a bounded terminal does not bury today's workers under old alerts.
+            active = (agent.state in {"starting", "running", "waiting_decision", "cancelling"}
+                      or agent.task is not None and not agent.task.done())
+            own = 0 if active else 1 if self.needs_attention(agent) else 2
+            return min([own, *(priority(child) for child in self.children(agent.id))])
         def walk(parent: str) -> None:
-            for agent in self.children(parent):
+            children = sorted(self.children(parent), key=priority)
+            for agent in children:
+                if agent.id not in visible:
+                    walk(agent.id)
+                    continue
                 usage = self.usage.get(agent.id, AgentUsage()).public()
                 mark = "!" if agent.state in {"waiting_decision", "failed", "cleanup_failed",
                                              "recovery_failed", "interrupted"} else (
                                                  "✓" if agent.state == "completed" else "●")
                 elapsed = agent.public()["elapsed_ms"] / 1000
                 target = "→ " if agent.id == selected else ""
-                lines.append(f"{'  ' * (agent.depth - 1)}├ {mark} {target}{agent.role} "
-                             f"{agent.id[:8]} · {agent.state} · {elapsed:.1f}s")
-                lines.append(f"{'  ' * (agent.depth - 1)}│   "
-                             f"{agent.operation or 'idle'} · {usage_label(usage)} · fresh")
+                name = agent.task_name or self.short_task_name(agent.assignment)
+                status = agent.state + (
+                    " / unresolved" if self.has_unresolved_effects(agent) else "")
+                if agent.result is not None and not agent.delivered:
+                    status += " / 待交付"
+                current_run = self.root.session.run_id or self.current_run_id
+                if not history and self.task_run(agent) not in {None, current_run}:
+                    status += " [跨轮]"
+                lines.append(f"{'  ' * (agent.depth - 1)}├ {mark} {target}{name} · "
+                             f"{agent.role} {agent.id[:8]} · {status}")
+                if not compact:
+                    lines.append(f"{'  ' * (agent.depth - 1)}│   "
+                                 f"{agent.operation or 'idle'} · {elapsed:.1f}s · "
+                                 f"该代理累计: {usage_label(usage)} · fresh · "
+                                 f"任务 {(self.task_run(agent) or 'unknown')[:8]}")
                 walk(agent.id)
         walk("root")
+        if not visible:
+            lines.append("  暂无历史代理。" if history else "  当前任务暂无子代理。")
+        if not history and archived:
+            lines.append(f"历史 {len(archived)} 个 · /agents history")
         return str(redact("\n".join(lines), self.root.secret_values()))
 
     async def user_message(self, target: str, text: str) -> Json:
@@ -454,7 +556,11 @@ class Subagents:
         return "\n".join(lines)
 
     def result_in_history(self, ident: str, agent: Agent) -> bool:
-        for message in self.owner(ident).session.messages:
+        return self.result_in_messages(self.owner(ident).session.messages, agent)
+
+    @staticmethod
+    def result_in_messages(messages: list[Message], agent: Agent) -> bool:
+        for message in messages:
             if message.input_id == f"agent-result:{agent.id}:{agent.execution_id}":
                 return True
             if message.role != "tool":
@@ -510,10 +616,11 @@ class Subagents:
         from nexus.app.session import now, read_records, resume_session
 
         assert self.root.writer is not None
+        restored_messages = {"root": self.root.session.messages}
         with self.root.writer.path.open("rb") as stream:
             rows, _ = read_records(stream)
         for row in rows:
-            self.usage["root"].observe(RuntimeEvent(
+            self.observe_root(RuntimeEvent(
                 row["kind"], row["timestamp"], row["session_id"], row.get("run_id"), row["data"],
             ))
         for row in rows:
@@ -529,8 +636,12 @@ class Subagents:
                     source_call_id=data.get("call_id", ""), source_run_id=data.get("source_run_id"),
                     model_settings=data.get("model_settings"),
                     execution_id=data.get("execution_id", "legacy"),
+                    task_name=data.get("task_name") or self.short_task_name(data["assignment"]),
+                    task_run_id=data.get("task_run_id"),
                 )
         for agent in self.agents.values():
+            if agent.task_run_id is None:
+                agent.task_run_id = self.task_run(agent)
             # Receipt events are diagnostic. Only the parent's committed message
             # proves delivery (including a crash between message and receipt).
             agent.delivered = False
@@ -541,12 +652,15 @@ class Subagents:
                     continue  # Creation was saved before the child first ran.
                 session, writer, _ = resume_session(path, self.root.workspace, self.root.home,
                                                     directory=path.parent)
+                restored_messages[agent.id] = session.messages
                 agent.log_path = writer.path.relative_to(self.root.writer.path.parent).as_posix()
                 self.root.session.unresolved_effects.update(session.unresolved_effects)
                 with writer.path.open("rb") as stream:
                     child_rows, _ = read_records(stream)
                 ledger = self.usage.setdefault(agent.id, AgentUsage())
                 for row in child_rows:
+                    if row.get("run_id") is not None:
+                        agent.run_ids.add(row["run_id"])
                     ledger.observe(RuntimeEvent(row["kind"], row["timestamp"], row["session_id"],
                                                 row.get("run_id"), row["data"]))
                 marker = next((r["seq"] for r in reversed(child_rows)
@@ -588,6 +702,13 @@ class Subagents:
                 self.root.writer.append(RuntimeEvent(
                     "agent_state", now(), self.root.session.session_id, None, agent.public(),
                 ))
+        for agent in self.agents.values():
+            # Reconstruct delivery from committed parent messages, never from
+            # receipt events. The default panel can then archive settled history
+            # immediately on resume, including nested children.
+            agent.delivered = self.result_in_messages(
+                restored_messages.get(agent.parent, []), agent,
+            )
 
     async def resume(self, parent: str, target: str, text: str) -> Json:
         from nexus.app.config import parse_model
@@ -617,6 +738,8 @@ class Subagents:
         agent.state, agent.result, agent.delivered = "starting", None, False
         agent.accepting = False
         agent.execution_id = uuid4().hex
+        agent.task_run_id = ((self.root.session.run_id or self.current_run_id) if parent == "root"
+                             else self.task_run(self.agents[parent]))
         agent.started = time.monotonic()
         await self.event("agent_state", agent.public())
         agent.task = asyncio.create_task(self.execute(agent, config,
@@ -681,6 +804,8 @@ class Subagents:
                     "type": "object", "properties": {
                         "role": {"type": "string", "enum": ["scout", "worker", "reviewer"]},
                         "task": {"type": "string"}, "scope": {"type": "string"},
+                        "task_name": {"type": "string", "description":
+                            "Short descriptive title in the user's language, e.g. 测试覆盖调查."},
                     }, "required": ["role", "task", "scope"], "additionalProperties": False,
                 }), spawn, "internal"),
             "wait_agents": Tool(ToolSpec("wait_agents", "Wait for direct children, at most 60s. "

@@ -1,0 +1,3 @@
+C:\Users\Archer\AppData\Local\Temp\n8p-pkg-2b8f5412\venv\Lib\site-packages\nexus\app\subagents.py
+Installed current/history grouping, task names and command verified outside source tree
+0.2.0

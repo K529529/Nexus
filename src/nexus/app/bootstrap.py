@@ -283,7 +283,7 @@ class Conversation:
 
     async def observe(self, event: RuntimeEvent) -> None:
         if self.agent_id == "root" and self.coordinator is not None:
-            self.coordinator.usage["root"].observe(event)
+            self.coordinator.observe_root(event)
         await self.consumer(event)
 
     async def start_memory(self) -> None:

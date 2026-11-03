@@ -26,11 +26,11 @@ from nexus.app.input import TaskInput
 from nexus.app.tui import Transcript
 from nexus.core.types import RuntimeEvent
 
-AGENTS = """Async Agents · 2/4 active · ≥15766 tok?
-├ ● scout a12bc345 · running · 6.3s
-│   exec_command · 10532 tok · fresh
-├ ● reviewer d67ef890 · running · 7.1s
-│   model · ≥5234 tok? · fresh"""
+AGENTS = """Async Agents · 当前任务 / 待处理 · 2/4 active
+会话累计（主+全部子代理）: ≥15766 tok?
+├ ● 执行流程调查 · scout a12bc345 · running
+├ ● 测试覆盖调查 · reviewer d67ef890 · running
+历史 2 个 · /agents history"""
 
 
 async def demo(snapshot: Path | None) -> None:

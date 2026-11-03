@@ -163,7 +163,9 @@ async def test_explicit_resume_keeps_child_history_and_new_delivery_identity(
     try:
         agent = next(iter(manager.agents.values()))
         prior = agent.execution_id
+        root.session.run_id = "resume-task"
         assert (await manager.resume("root", agent.id, "inspect only; do not replay"))["agent_id"]
+        assert agent.task_run_id == "resume-task"
         assert agent.task is not None
         await agent.task
         assert agent.state == "completed" and agent.execution_id != prior
@@ -172,6 +174,10 @@ async def test_explicit_resume_keeps_child_history_and_new_delivery_identity(
                    for m in clients[0].requests[0])
         assert any("write once" in m.content for m in clients[0].requests[0])
         assert root.session.unresolved_effects  # Textual success does not clear unknown effects.
+        await manager.deliver_results("root")
+        root.session.run_id = "next-task"
+        assert agent.id in manager.current_agents()
+        assert "unresolved" in manager.panel()
     finally:
         await root.close()
 
