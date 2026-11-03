@@ -78,8 +78,8 @@ async def demo(snapshot: Path | None) -> None:
             snapshot.parent.mkdir(parents=True, exist_ok=True)
             html = recording.export_html(inline_styles=True, theme=TerminalTheme(
                 (30, 31, 34), (222, 222, 230), [(0, 0, 0)] * 8))
-            snapshot.write_text("\n".join(line.rstrip() for line in html.splitlines()) + "\n",
-                                encoding="utf-8")
+            await asyncio.to_thread(snapshot.write_text,
+                "\n".join(line.rstrip() for line in html.splitlines()) + "\n", encoding="utf-8")
         else:
             # Produce committed output while the same draft remains editable.
             for index in range(30):
