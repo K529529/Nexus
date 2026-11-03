@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from prompt_toolkit import Application, PromptSession
+from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.cursor_shapes import CursorShape, SimpleCursorShapeConfig
@@ -37,6 +38,17 @@ PURPLE = "#a78bfa"
 INPUT_HELP = (
     "Enter: send · Ctrl+J/F4: newline · F2: paste mode · F3: expand paste · Ctrl+C: clear/exit"
 )
+
+LiveSubmit = Callable[[str, Literal["guide", "queue"], str], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class SubmittedInput:
+    text: str
+    mode: Literal["guide", "queue"]
+    target: str
+
+
 INPUT_STYLE = Style.from_dict({
     "frame.border": PURPLE,
     "prompt": PURPLE + " bold",
@@ -209,9 +221,13 @@ class TaskInput:
         self.burst_until = 0.0
         self.history = ExpandedHistory(self.expand)
         self.clipboard = ExpandedClipboard(self.expand)
-        self.live_submit: Callable[[str, Literal["guide", "queue"]], Awaitable[None]] | None = None
+        self.live_submit: LiveSubmit | None = None
         self.live_interrupt: Callable[[], None] | None = None
         self.listener: asyncio.Task[None] | None = None
+        self.delivery: asyncio.Task[None] | None = None
+        self.submitted: SubmittedInput | None = None
+        self.read_submitted = False
+        self.accept_handler: Callable[[Buffer], bool] | None = None
         self.submit_mode: Literal["guide", "queue"] = "guide"
         self.saved_draft = ""
         self.target_agent = "root"
@@ -422,6 +438,9 @@ class TaskInput:
 
     def prepare(self) -> None:
         self.prompt.default_buffer.history = self.history
+        if self.prompt.default_buffer.accept_handler != self.accept_input:
+            self.accept_handler = self.prompt.default_buffer.accept_handler
+            self.prompt.default_buffer.accept_handler = self.accept_input
         if self.inline_toolbar:
             # Empty text still activates prompt_toolkit's bottom toolbar after
             # CPR. None actually removes that screen-anchored window.
@@ -548,19 +567,53 @@ class TaskInput:
             if previous is not None:
                 signal.signal(signal.SIGINT, previous)
 
+    def accept_input(self, buffer: Buffer) -> bool:
+        assert self.accept_handler is not None
+        keep = self.accept_handler(buffer)
+        if self.live_submit is not None:
+            # Capture before prompt_async resumes (and before paste atoms are cleared).
+            self.submit_input(self.expand(buffer.text))
+        return keep
+
+    def submit_input(self, text: str) -> None:
+        assert self.live_submit is not None and self.delivery is None
+        self.submitted = SubmittedInput(text, self.submit_mode, self.target_agent)
+        self.read_submitted = True
+        self.saved_draft = ""
+        submitted, submit = self.submitted, self.live_submit
+
+        async def deliver() -> None:
+            await submit(submitted.text, submitted.mode, submitted.target)
+
+        self.delivery = asyncio.create_task(deliver())
+
+    async def finish_submission(self) -> None:
+        delivery = self.delivery
+        if delivery is not None:
+            # Reader cancellation must never propagate into the submitted callback.
+            await asyncio.shield(delivery)
+            if self.delivery is delivery:
+                self.delivery = None
+                self.submitted = None
+
     async def listen(self) -> None:
         assert self.live_submit is not None
         while True:
+            await self.finish_submission()
             self.submit_mode = "guide"
+            self.read_submitted = False
             try:
                 text = await self.read()
             except EOFError:
                 return
-            await self.live_submit(text, self.submit_mode)
+            if not self.read_submitted:
+                # Supports noninteractive PromptSession adapters too.
+                self.submit_input(text)
 
     async def pause_listener(self) -> None:
         if self.listener is not None:
-            if self.prompt.app.is_running and not self.prompt.app.is_done:
+            if (not self.read_submitted and self.prompt.app.is_running
+                    and not self.prompt.app.is_done):
                 self.saved_draft = self.expand(self.prompt.default_buffer.text)
             self.listener.cancel()
             with suppress(asyncio.CancelledError):
@@ -569,7 +622,7 @@ class TaskInput:
 
     @asynccontextmanager
     async def during_run(
-        self, submit: Callable[[str, Literal["guide", "queue"]], Awaitable[None]],
+        self, submit: LiveSubmit,
         interrupt: Callable[[], None],
     ) -> AsyncIterator[None]:
         def cancel() -> None:
@@ -582,9 +635,12 @@ class TaskInput:
         try:
             yield
         finally:
-            await self.pause_listener()
-            self.live_submit = self.live_interrupt = None
-            self.discard()
+            try:
+                await self.pause_listener()
+                await self.finish_submission()
+            finally:
+                self.live_submit = self.live_interrupt = None
+                self.discard()
 
     @contextmanager
     def busy(self, interrupt: Callable[[], None]) -> Iterator[None]:

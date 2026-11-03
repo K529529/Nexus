@@ -233,7 +233,7 @@ async def drive(
             editor.agent_panel = lambda: terminal_text(
                 manager.panel(editor.target_agent) if manager else ""
             )
-            async def receive(text: str, mode: Literal["guide", "queue"]) -> None:
+            async def receive(text: str, mode: Literal["guide", "queue"], target: str) -> None:
                 if conversation.events is None:
                     conversation.ensure_events(text)
                 assert conversation.events is not None
@@ -242,8 +242,8 @@ async def drive(
                 inbox = conversation.inbox
                 if await agent_command(conversation, editor, text):
                     return
-                if editor.target_agent != "root" and manager is not None:
-                    selected = manager.agents.get(editor.target_agent)
+                if target != "root" and manager is not None:
+                    selected = manager.agents.get(target)
                     if selected is not None and selected.conversation is not None:
                         inbox = selected.conversation.inbox
                         pending_emit = selected.conversation.events or emit
@@ -251,10 +251,12 @@ async def drive(
                     await emit("input_pending", {"messages": [
                         {"id": m.id, "mode": m.mode, "text": m.text} for m in inbox.pending
                     ]})
-                elif text.startswith(("/withdraw ", "/edit ")):
+                elif text.split(maxsplit=1)[0:1] in (["/withdraw"], ["/edit"]):
                     parts = text.split(maxsplit=2)
                     replacement = parts[2] if parts[0] == "/edit" and len(parts) == 3 else None
-                    if parts[0] == "/edit" and replacement is None:
+                    if parts[0] == "/withdraw" and len(parts) != 2:
+                        await emit("warning", {"detail": "Use /withdraw ID."})
+                    elif parts[0] == "/edit" and (replacement is None or not replacement.strip()):
                         await emit("warning", {"detail": "Use /edit ID replacement text."})
                     elif not await inbox.change(parts[1], replacement, pending_emit):
                         await emit("warning", {"detail": "Message already delivered or unknown."})
@@ -263,10 +265,10 @@ async def drive(
                         "During execution use /pending, /edit ID text or /withdraw ID."
                     )})
                 else:
-                    if mode == "guide" and editor.target_agent != "root" and manager is not None:
-                        result = await manager.user_message(editor.target_agent, text)
+                    if mode == "guide" and target != "root" and manager is not None:
+                        result = await manager.user_message(target, text)
                         await emit("warning", {"detail": (
-                            f"Received by agent {editor.target_agent[:8]}; parent informed."
+                            f"Received by agent {target[:8]}; parent informed."
                             if "error" not in result else str(result["error"])
                         )})
                     else:
@@ -274,11 +276,16 @@ async def drive(
 
             async with editor.during_run(receive, lambda: interrupt(signal.SIGINT, None)):
                 result = await conversation.turn(text)
+                await editor.pause_listener()
+                await editor.finish_submission()
                 while result.outcome == "completed" and conversation.inbox.guides():
                     # Guidance can arrive during between-run maintenance after the
                     # final model boundary. Continue the same task, preserving history.
                     conversation.session.resume_run_id = conversation.session.run_id
+                    editor.listener = asyncio.create_task(editor.listen())
                     result = await conversation.turn("Continue the task using pending guidance.")
+                    await editor.pause_listener()
+                    await editor.finish_submission()
                 return result
         guard = editor.busy(lambda: interrupt(signal.SIGINT, None)) if editor else nullcontext()
         with guard:

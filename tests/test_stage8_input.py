@@ -79,7 +79,7 @@ async def test_running_editor_enter_tab_and_approval_draft() -> None:
         prompt: PromptSession[str] = PromptSession(output=DummyOutput())
         editor, inbox, recorder = TaskInput(prompt), Inbox(), Recorder()
         async with editor.during_run(
-            lambda text, mode: inbox.receive(text, mode, recorder), lambda: None,
+            lambda text, mode, target: inbox.receive(text, mode, recorder), lambda: None,
         ):
             await until(lambda: prompt.app.is_running)
             pipe.send_text("guidance")

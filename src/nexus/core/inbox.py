@@ -25,9 +25,19 @@ class Inbox:
         if not text.strip():
             return
         item = InputMessage(uuid4().hex[:8], text, mode)
-        await emit("input_received", {"id": item.id, "mode": mode, "text": text})
-        self.pending.append(item)
-        self.changed.set()
+
+        async def commit() -> None:
+            await emit("input_received", {"id": item.id, "mode": mode, "text": text})
+            self.pending.append(item)
+            self.changed.set()
+
+        receipt = asyncio.create_task(commit())
+        try:
+            await asyncio.shield(receipt)
+        except asyncio.CancelledError:
+            # Finish the durable receipt + memory update before acknowledging cancellation.
+            await asyncio.shield(receipt)
+            raise
 
     async def change(self, ident: str, text: str | None, emit: Emit) -> bool:
         item = next((m for m in self.pending if m.id == ident), None)
