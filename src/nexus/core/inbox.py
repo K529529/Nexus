@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import uuid4
 
-from nexus.core.types import Emit
+from nexus.core.types import Emit, Json
 
 
 @dataclass
@@ -41,3 +41,17 @@ class Inbox:
 
     def guides(self) -> list[InputMessage]:
         return [m for m in self.pending if m.mode == "guide"]
+
+    def restore(self, records: list[Json]) -> None:
+        pending: dict[str, InputMessage] = {}
+        for row in records:
+            data = row["data"]
+            if row["kind"] == "input_received":
+                pending[data["id"]] = InputMessage(data["id"], data["text"], data["mode"])
+            elif row["kind"] == "input_updated" and data["id"] in pending:
+                pending[data["id"]].text = data["text"]
+            elif row["kind"] == "input_withdrawn":
+                pending.pop(data["id"], None)
+            elif row["kind"] == "message" and data.get("input_id"):
+                pending.pop(data["input_id"], None)
+        self.pending = list(pending.values())

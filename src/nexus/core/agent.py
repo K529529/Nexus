@@ -66,6 +66,8 @@ async def run_turn(
     inbox: Inbox | None = None,
     finalize: Callable[[], Awaitable[None]] | None = None,
     before_request: Callable[[], Awaitable[None]] | None = None,
+    before_final: Callable[[], Awaitable[bool]] | None = None,
+    user_input_id: str | None = None,
 ) -> RunResult:
     gateway = gateway or SecurityGateway()
     started = time.monotonic()
@@ -170,7 +172,10 @@ async def run_turn(
                 raise RuntimeError("cleanup_incomplete")
         if environment:
             await append_message(session, Message("user", environment), observed)
-        await append_message(session, Message("user", user_text), observed)
+        await append_message(session, Message("user", user_text, input_id=user_input_id), observed)
+        if inbox is not None and user_input_id is not None:
+            inbox.pending[:] = [m for m in inbox.pending if m.id != user_input_id]
+            await observed("input_delivered", {"id": user_input_id, "mode": "queue"})
         context = context or Context(limits)
         builder = ContextBuilder()
 
@@ -189,7 +194,7 @@ async def run_turn(
                     await append_message(session, Message("user", (
                         "[Guidance for the current task; preserve its goal unless explicitly "
                         "changed. Answer questions, then continue the task.]\n" + item.text
-                    )), observed)
+                    ), input_id=item.id), observed)
                     inbox.pending.remove(item)
                     await observed("input_delivered", {"id": item.id, "mode": item.mode})
             context.begin_step()
@@ -282,6 +287,8 @@ async def run_turn(
             await append_message(session, reply.message, observed)
             if not reply.message.tool_calls:
                 if inbox is not None and inbox.guides():
+                    continue
+                if before_final is not None and await before_final():
                     continue
                 result.outcome, result.final_text = "completed", reply.message.content
                 break

@@ -155,6 +155,11 @@ def recover_tools(records: list[Json], session: Session, writer: SessionLog) -> 
         value: ToolResult | None = None
         if "result" in checkpoint:
             value = ToolResult(**checkpoint["result"])
+        elif call.name == "spawn_agent" and (receipt := next((r["data"] for r in evidence
+                if r["kind"] == "agent_created" and r["data"].get("source_run_id") == pending_run),
+                None)) is not None:
+            value = ToolResult(call.id, True, {"agent_id": receipt["agent_id"],
+                "state": "interrupted", "already_created": True})
         elif phase == "PREPARED" and checkpoint.get("call_digest") == call_digest(call):
             deferred = True
         else:

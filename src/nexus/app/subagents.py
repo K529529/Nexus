@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import time
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -14,11 +15,14 @@ from nexus.core.types import (
     Emit,
     ExecutionContext,
     Json,
+    Message,
     RunResult,
     RuntimeEvent,
     Tool,
     ToolResult,
     ToolSpec,
+    Usage,
+    json_text,
 )
 
 if TYPE_CHECKING:
@@ -58,6 +62,11 @@ class Agent:
     task: asyncio.Task[None] | None = None
     result: RunResult | None = None
     delivered: bool = False
+    log_path: str = ""
+    source_call_id: str = ""
+    source_run_id: str | None = None
+    model_settings: Json | None = None
+    execution_id: str = field(default_factory=lambda: uuid4().hex)
 
     def public(self) -> Json:
         return {
@@ -68,6 +77,9 @@ class Agent:
             "elapsed_ms": int((time.monotonic() - self.started) * 1000)
             if self.task is not None and not self.task.done() else self.elapsed_ms,
             "result": asdict(self.result) if self.result is not None else None,
+            "log_path": self.log_path, "call_id": self.source_call_id,
+            "source_run_id": self.source_run_id, "model_settings": self.model_settings,
+            "execution_id": self.execution_id,
         }
 
 
@@ -84,8 +96,12 @@ class Subagents:
     async def event(self, kind: str, data: Json) -> None:
         assert self.root.events is not None
         await self.root.events(kind, data)
-        self.changed.set()
         parent = data.get("parent_id", "root")
+        if parent != "root" and parent in self.agents:
+            owner = self.agents[parent].conversation
+            if owner is not None and owner.events is not None and not owner.closed:
+                await owner.events(kind, data)
+        self.changed.set()
         self.wakes.setdefault(parent, asyncio.Event()).set()
 
     def owner(self, ident: str) -> Conversation:
@@ -104,10 +120,16 @@ class Subagents:
             and self.agents[parent].depth < 2
         )
 
-    async def spawn(self, parent: str, args: Json) -> Json:
+    async def spawn(self, parent: str, args: Json, call_id: str = "") -> Json:
         config = self.root.config.multi_agent
         if not self.can_delegate(parent):
             return {"error": "delegation_disabled"}
+        owner = self.owner(parent)
+        prior = next((a for a in self.children(parent) if call_id
+                      and a.source_call_id == call_id and a.source_run_id == owner.session.run_id),
+                     None)
+        if prior is not None:
+            return {"agent_id": prior.id, "state": prior.state, "already_created": True}
         role = args.get("role")
         if role not in config.roles:
             return {"error": "invalid_role"}
@@ -115,10 +137,8 @@ class Subagents:
             return {"error": "role_delegation_denied"}
         if any(not isinstance(args.get(k), str) or not args[k].strip() for k in ("task", "scope")):
             return {"error": "task_and_scope_required"}
-        if sum(a.task is None or not a.task.done() or a.state == "cleanup_failed"
-               for a in self.agents.values()) >= config.max_agents:
+        if self.occupied() >= config.max_agents:
             return {"error": "capacity_full", "max_agents": config.max_agents}
-        owner = self.owner(parent)
         if owner.session.unresolved_effects:
             return {"error": "unresolved_workspace_effects"}
         settings = config.roles[role]
@@ -129,6 +149,9 @@ class Subagents:
         depth = 1 if parent == "root" else self.agents[parent].depth + 1
         agent = Agent(uuid4().hex, parent, role, args["task"], args["scope"], depth,
                       model.name, model.reasoning_effort, started=time.monotonic())
+        agent.log_path = f"{self.root.session.session_id}/subagents/{agent.id}.jsonl"
+        agent.source_call_id, agent.source_run_id = call_id, owner.session.run_id
+        agent.model_settings = asdict(model)
         self.agents[agent.id] = agent  # Reserve capacity before the first await.
         try:
             await self.event("agent_created", agent.public())
@@ -145,7 +168,8 @@ class Subagents:
         agent.task = asyncio.create_task(self.execute(agent, child_config))
         return {"agent_id": agent.id, "state": agent.state}
 
-    async def execute(self, agent: Agent, config: Config) -> None:
+    async def execute(self, agent: Agent, config: Config, *, resume: Path | None = None,
+                      continuation: str | None = None) -> None:
         from nexus.app.bootstrap import Conversation
         owner = self.owner(agent.parent)
         child: Conversation | None = None
@@ -166,9 +190,16 @@ class Subagents:
                 owner.workspace, config, consume, home=owner.home,
                 skill_directory=owner.catalog.root if owner.catalog else None,
                 coordinator=self, agent_id=agent.id,
+                resume=resume,
             )
             agent.conversation = child
+            self.root.session.unresolved_effects.update(child.session.unresolved_effects)
             child.session.unresolved_effects = self.root.session.unresolved_effects
+            if resume is not None and child.writer is not None:
+                assert self.root.writer is not None
+                agent.log_path = child.writer.path.relative_to(
+                    self.root.writer.path.parent,
+                ).as_posix()
             from nexus.core.security import ApprovalDecision, ApprovalRequest
 
             async def approve(request: ApprovalRequest) -> ApprovalDecision:
@@ -179,9 +210,17 @@ class Subagents:
 
             child.gateway.approver = approve
             child.gateway.approval_lock = self.approval_lock
+            child.ensure_events(agent.assignment)
+            assert child.events is not None
+            await child.events("agent_execution_started", {
+                "agent_id": agent.id, "parent_id": agent.parent,
+                "execution_id": agent.execution_id,
+            })
             agent.state = "running"
             await self.event("agent_state", agent.public())
-            agent.result = await child.turn(agent.assignment + "\n\nAssigned scope: " + agent.scope)
+            agent.result = await child.turn(
+                continuation or agent.assignment + "\n\nAssigned scope: " + agent.scope,
+            )
         except asyncio.CancelledError:
             agent.result = RunResult("aborted", reason="cancelled_before_start")
         except Exception as exc:
@@ -225,11 +264,6 @@ class Subagents:
         values = []
         for agent in children:
             values.append(agent.public())
-            if agent.task is not None and agent.task.done() and not agent.delivered:
-                await self.event("agent_result_delivered", {
-                    "agent_id": agent.id, "parent_id": parent,
-                })
-                agent.delivered = True
         return {"agents": values, "guidance_pending": bool(inbox.guides())}
 
     async def message(self, parent: str, target: str, text: str) -> Json:
@@ -289,6 +323,7 @@ class Subagents:
 
     async def prepare(self, ident: str) -> None:
         owner = self.owner(ident)
+        await self.deliver_results(ident)
         if ident == "root":
             return
         live_servers = {t.server for t in self.root.registry.values() if t.server is not None}
@@ -303,6 +338,158 @@ class Subagents:
                 "[Environment fact] MCP servers unavailable: " + ", ".join(sorted(removed)),
                 "guide", owner.events,
             )
+
+    def occupied(self) -> int:
+        return sum(a.state in {"starting", "running", "waiting_decision", "cancelling",
+                               "cleanup_failed", "recovery_failed"}
+                   or a.task is not None and not a.task.done() for a in self.agents.values())
+
+    def result_in_history(self, ident: str, agent: Agent) -> bool:
+        for message in self.owner(ident).session.messages:
+            if message.input_id == f"agent-result:{agent.id}:{agent.execution_id}":
+                return True
+            if message.role != "tool":
+                continue
+            try:
+                data = json.loads(message.content).get("data", {})
+            except (ValueError, AttributeError):
+                continue
+            agents = data.get("agents", []) if isinstance(data, dict) else []
+            if any(a.get("agent_id") == agent.id and a.get("execution_id") == agent.execution_id
+                   and a.get("result") is not None
+                   and a.get("state") in {"completed", "failed", "aborted", "limited"}
+                   for a in agents if isinstance(a, dict)):
+                return True
+        return False
+
+    async def deliver_results(self, parent: str) -> bool:
+        from nexus.core.agent import append_message
+
+        owner = self.owner(parent)
+        assert owner.events is not None
+        injected = False
+        for agent in self.children(parent):
+            if agent.delivered or agent.result is None or agent.state in {
+                "starting", "running", "waiting_decision", "cancelling", "interrupted",
+            } or agent.task is not None and not agent.task.done():
+                continue
+            if not self.result_in_history(parent, agent):
+                await append_message(owner.session, Message(
+                    "user", "[Subagent result]\n" + json_text(agent.public()),
+                    input_id=f"agent-result:{agent.id}:{agent.execution_id}",
+                ), owner.events)
+                injected = True
+            agent.delivered = True
+            await self.event("agent_result_delivered", {"agent_id": agent.id, "parent_id": parent,
+                                                       "execution_id": agent.execution_id})
+        return injected
+
+    async def before_final(self, parent: str) -> bool:
+        await self.finish(parent)
+        return await self.deliver_results(parent)
+
+    def log_file(self, agent: Agent) -> Path:
+        assert self.root.writer is not None
+        base = self.root.writer.path.parent.resolve()
+        path = (base / agent.log_path).resolve()
+        relative = path.relative_to(base)
+        if len(relative.parts) != 3 or relative.parts[1] != "subagents" or path.suffix != ".jsonl":
+            raise ValueError("Invalid subagent log path")
+        return path
+
+    def restore(self) -> None:
+        from nexus.app.session import now, read_records, resume_session
+
+        assert self.root.writer is not None
+        with self.root.writer.path.open("rb") as stream:
+            rows, _ = read_records(stream)
+        for row in rows:
+            data = row["data"]
+            if row["kind"] in {"agent_created", "agent_state"}:
+                ident = data["agent_id"]
+                self.agents[ident] = Agent(
+                    ident, data["parent_id"], data["role"], data["assignment"], data["scope"],
+                    data["depth"], data["model"], data.get("reasoning_effort"),
+                    state="cleanup_failed" if data.get("state") == "cleanup_failed"
+                    else "interrupted", elapsed_ms=data.get("elapsed_ms", 0),
+                    log_path=data.get("log_path", f"{row['session_id']}/subagents/{ident}.jsonl"),
+                    source_call_id=data.get("call_id", ""), source_run_id=data.get("source_run_id"),
+                    model_settings=data.get("model_settings"),
+                    execution_id=data.get("execution_id", "legacy"),
+                )
+        for agent in self.agents.values():
+            # Receipt events are diagnostic. Only the parent's committed message
+            # proves delivery (including a crash between message and receipt).
+            agent.delivered = False
+            writer = None
+            try:
+                path = self.log_file(agent)
+                if not path.exists():
+                    continue  # Creation was saved before the child first ran.
+                session, writer, _ = resume_session(path, self.root.workspace, self.root.home,
+                                                    directory=path.parent)
+                agent.log_path = writer.path.relative_to(self.root.writer.path.parent).as_posix()
+                self.root.session.unresolved_effects.update(session.unresolved_effects)
+                with writer.path.open("rb") as stream:
+                    child_rows, _ = read_records(stream)
+                marker = next((r["seq"] for r in reversed(child_rows)
+                               if r["kind"] == "agent_execution_started"
+                               and r["data"].get("execution_id") == agent.execution_id),
+                              0 if agent.execution_id == "legacy" else None)
+                if marker is None:
+                    continue
+                last_start = max((r["seq"] for r in child_rows if r["kind"] == "run_started"
+                                  and r["seq"] > marker), default=len(child_rows) + 1)
+                finished = next((r for r in reversed(child_rows) if r["kind"] == "run_finished"
+                                 and r["seq"] > last_start), None)
+                if finished is not None:
+                    data = finished["data"]
+                    agent.result = RunResult(**{**data, "usage": Usage(**data["usage"])})
+                    if agent.state != "cleanup_failed":
+                        agent.state = agent.result.outcome
+                    if "cleanup_incomplete" in (agent.result.reason or ""):
+                        agent.state = "cleanup_failed"
+            except (OSError, ValueError, RuntimeError, KeyError):
+                agent.state = "recovery_failed"
+                self.root.session.unresolved_effects[f"agent:{agent.id}"] = {
+                    "name": "unknown", "agent_id": agent.id,
+                }
+            finally:
+                if writer is not None:
+                    writer.close()
+                self.root.writer.append(RuntimeEvent(
+                    "agent_state", now(), self.root.session.session_id, None, agent.public(),
+                ))
+
+    async def resume(self, parent: str, target: str, text: str) -> Json:
+        from nexus.app.config import parse_model
+
+        agent = self.agents.get(target)
+        if agent is None or agent.parent != parent:
+            return {"error": "not_direct_child"}
+        if (not self.can_delegate(parent)
+                or self.occupied() >= self.root.config.multi_agent.max_agents):
+            return {"error": "delegation_disabled_or_full"}
+        if agent.state not in {"interrupted", "failed", "aborted", "limited"}:
+            return {"error": "agent_not_resumable"}
+        if parent != "root" and agent.role not in ROLE_CHILDREN[self.agents[parent].role]:
+            return {"error": "role_delegation_denied"}
+        owner = self.owner(parent)
+        selected = parse_model({"selected": agent.model_settings}, "selected")
+        role = self.root.config.multi_agent.roles[agent.role]
+        config = replace(owner.config, model=selected,
+                         limits=replace(owner.config.limits, context_window=selected.context_window,
+                                        max_output_tokens=selected.max_output_tokens),
+                         mcp_servers={s: v for s, v in owner.config.mcp_servers.items()
+                                      if s in role.mcp_servers})
+        path = self.log_file(agent)
+        agent.state, agent.result, agent.delivered = "starting", None, False
+        agent.execution_id = uuid4().hex
+        agent.started = time.monotonic()
+        await self.event("agent_state", agent.public())
+        agent.task = asyncio.create_task(self.execute(agent, config,
+            resume=path if path.exists() else None, continuation=text))
+        return {"agent_id": target, "state": "starting"}
 
     def inherited_mcp(self, parent: str, allowed: set[str]) -> dict[str, Tool]:
         owner = self.owner(parent)
@@ -327,7 +514,7 @@ class Subagents:
 
     def tools(self, parent: str) -> dict[str, Tool]:
         async def spawn(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
-            value = await self.spawn(parent, args)
+            value = await self.spawn(parent, args, context.call_id)
             return ToolResult(context.call_id, "error" not in value, value, value.get("error"))
 
         async def wait(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
@@ -349,6 +536,10 @@ class Subagents:
 
         async def cancel(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
             value = await self.cancel(parent, args["agent_id"])
+            return ToolResult(context.call_id, "error" not in value, value, value.get("error"))
+
+        async def resume(args: Json, context: ExecutionContext, emit: Emit) -> ToolResult:
+            value = await self.resume(parent, args["agent_id"], args["message"])
             return ToolResult(context.call_id, "error" not in value, value, value.get("error"))
 
         tools = {
@@ -378,6 +569,12 @@ class Subagents:
                     "type": "object", "properties": {"agent_id": {"type": "string"}},
                     "required": ["agent_id"], "additionalProperties": False,
                 }), cancel, "internal"),
+            "resume_agent": Tool(ToolSpec("resume_agent", "Explicitly continue an interrupted "
+                "direct child from its own history, under current permissions; no task replay.", {
+                    "type": "object", "properties": {"agent_id": {"type": "string"},
+                                                       "message": {"type": "string"}},
+                    "required": ["agent_id", "message"], "additionalProperties": False,
+                }), resume, "internal"),
         }
         if not self.can_delegate(parent):
             tools.pop("spawn_agent")

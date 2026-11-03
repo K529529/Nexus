@@ -35,6 +35,7 @@ class Message:
     seq: int = 0
     # In-memory copy of the existing JSONL event envelope, never model payload data.
     run_id: str | None = None
+    input_id: str | None = None
 
     def public(self) -> Json:
         data: Json = {"role": self.role, "content": self.content}
@@ -42,6 +43,8 @@ class Message:
             data["tool_calls"] = [asdict(c) for c in self.tool_calls]
         if self.tool_call_id is not None:
             data["tool_call_id"] = self.tool_call_id
+        if self.input_id is not None:
+            data["input_id"] = self.input_id
         return data
 
     @classmethod
@@ -61,6 +64,7 @@ class Message:
             protocol_data=protocol_data,
             seq=seq,
             run_id=run_id,
+            input_id=data.get("input_id"),
         )
 
 

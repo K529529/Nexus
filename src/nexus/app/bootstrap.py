@@ -19,7 +19,7 @@ from nexus.app.memory import MemoryStore
 from nexus.app.memory_context import root_id, snapshot
 from nexus.app.memory_index import MemoryIndex
 from nexus.app.memory_setup import DependencyBootstrap
-from nexus.app.session import SessionError, SessionLog, resume_session
+from nexus.app.session import SessionError, SessionLog, read_records, resume_session
 from nexus.app.skills import SkillCatalog
 from nexus.app.subagents import DELEGATION, Subagents, role_prompt
 from nexus.core.agent import run_turn
@@ -70,6 +70,7 @@ class Conversation:
         self.model_alias = "default"
         self.turn_lock = asyncio.Lock()
         self.inbox = Inbox()
+        self.queued_input_id: str | None = None
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
             # No Node import/process in Local; restricted startup stays lazy.
@@ -124,7 +125,13 @@ class Conversation:
         self.closed = False
         self.exit_summary_attempted = False
         if resume:
-            self.session, self.writer, self.warnings = resume_session(resume, self.workspace, home)
+            self.session, self.writer, self.warnings = resume_session(
+                resume, self.workspace, home,
+                directory=resume.parent if agent_id != "root" else None,
+            )
+            with self.writer.path.open("rb") as stream:
+                records, _ = read_records(stream)
+            self.inbox.restore(records)
             if not config.memory_enabled and (
                 (self.session.memory_snapshot or {}).get("content")
                 or any(
@@ -227,10 +234,15 @@ class Conversation:
             ))
             self.base_registry.update(coordinator.tools(agent_id))
             self.registry.update(self.base_registry)
-        elif config.multi_agent.enabled:
+        elif config.multi_agent.enabled or resume is not None and any(
+            r["kind"] == "agent_created" for r in records
+        ):
             self.coordinator = Subagents(self)
-            self.base_registry.update(self.coordinator.tools(agent_id))
-            self.registry.update(self.base_registry)
+            if resume is not None:
+                self.coordinator.restore()
+            if config.multi_agent.enabled:
+                self.base_registry.update(self.coordinator.tools(agent_id))
+                self.registry.update(self.base_registry)
 
     def secret_values(self) -> tuple[str, ...]:
         values = [os.environ.get(self.config.model.api_key_env, "")]
@@ -254,7 +266,7 @@ class Conversation:
             directory = None
             if self.agent_id != "root":
                 assert self.coordinator is not None and self.coordinator.root.writer is not None
-                directory = self.coordinator.root.writer.path.with_suffix("") / "subagents"
+                directory = self.coordinator.log_file(self.coordinator.agents[self.agent_id]).parent
                 self.session.session_id = self.agent_id
             self.writer = SessionLog.create(
                 self.session,
@@ -483,7 +495,11 @@ class Conversation:
                 if coordinator is not None else None,
                 before_request=(lambda: coordinator.prepare(self.agent_id))
                 if coordinator is not None else None,
+                before_final=(lambda: coordinator.before_final(self.agent_id))
+                if coordinator is not None else None,
+                user_input_id=self.queued_input_id,
             )
+            self.queued_input_id = None
             if result.outcome == "completed":
                 try:
                     await self.compact(force=False)

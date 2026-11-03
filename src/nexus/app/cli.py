@@ -209,7 +209,13 @@ async def drive(
                     await inbox.receive(text, mode, emit)
 
             async with editor.during_run(receive, lambda: interrupt(signal.SIGINT, None)):
-                return await conversation.turn(text)
+                result = await conversation.turn(text)
+                while result.outcome == "completed" and conversation.inbox.guides():
+                    # Guidance can arrive during between-run maintenance after the
+                    # final model boundary. Continue the same task, preserving history.
+                    conversation.session.resume_run_id = conversation.session.run_id
+                    result = await conversation.turn("Continue the task using pending guidance.")
+                return result
         guard = editor.busy(lambda: interrupt(signal.SIGINT, None)) if editor else nullcontext()
         with guard:
             if compact:
@@ -377,13 +383,11 @@ async def application(args: argparse.Namespace) -> int:
                             console.print(Text(f"{message.role}: {terminal_text(message.content)}"))
             try:
                 queued = next((m for m in conversation.inbox.pending if m.mode == "queue"), None)
+                if getattr(conversation.session, "resume_run_id", None):
+                    queued = None
                 if queued is not None:
                     draft = queued.text
-                    conversation.inbox.pending.remove(queued)
-                    assert conversation.events is not None
-                    await conversation.events("input_delivered", {
-                        "id": queued.id, "mode": "queue",
-                    })
+                    conversation.queued_input_id = queued.id
                 else:
                     draft = await editor.read()
                 text = draft.strip()

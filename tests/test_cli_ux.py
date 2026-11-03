@@ -24,6 +24,7 @@ from nexus.app import bootstrap, cli, tui
 from nexus.app.input import TaskInput
 from nexus.app.profile import InteractionSummary
 from nexus.app.session import read_records, replay
+from nexus.core.inbox import Inbox
 from nexus.core.security import SecurityGateway
 from nexus.core.types import Json, RunResult, RuntimeEvent
 from tests.conftest import ScriptedModel, reply
@@ -124,6 +125,7 @@ async def test_run_cancellation_quarantines_residual_input_and_cleans_once() -> 
 
     class Conversation:
         gateway = SecurityGateway()
+        inbox = Inbox()
 
         async def turn(self, text: str) -> RunResult:
             calls.append(text)
@@ -435,6 +437,7 @@ async def test_ctrl_c_queued_just_after_submit_still_cancels_run() -> None:
 
     class Conversation:
         gateway = SecurityGateway()
+        inbox = Inbox()
 
         async def turn(self, text: str) -> RunResult:
             try:

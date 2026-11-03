@@ -335,8 +335,11 @@ class SessionLog:
             if event.kind in {
                 "session_created", "tool_checkpoint", "patch_diff", "patch_committed",
                 "patch_manifest", "tool_recovery", "approval_resolved",
-                "tail_recovery_completed",
-            } or (event.kind == "message" and event.data.get("role") == "tool"):
+                "tail_recovery_completed", "agent_created", "agent_state",
+                "agent_result_delivered", "input_received", "input_updated", "input_withdrawn",
+                "agent_execution_started",
+            } or (event.kind == "message" and (event.data.get("role") == "tool"
+                                              or event.data.get("input_id"))):
                 os.fsync(self.stream.fileno())
         except (OSError, ValueError):
             self.failed = True
@@ -353,7 +356,7 @@ class SessionLog:
 
 
 def resume_session(
-    path: Path, workspace: Path, home: Path | None = None
+    path: Path, workspace: Path, home: Path | None = None, *, directory: Path | None = None,
 ) -> tuple[Session, SessionLog, list[str]]:
     writer = SessionLog(path)
     source_writer: SessionLog | None = None
@@ -393,7 +396,7 @@ def resume_session(
                 raise SessionError("Multiple recovery copies; inspect before continuing")
             if successors:
                 writer.close()
-                return resume_session(successors[0], workspace, home)
+                return resume_session(successors[0], workspace, home, directory=directory)
         session = replay(records, workspace)
         writer.seq = records[-1]["seq"]
         if truncated:
@@ -418,6 +421,7 @@ def resume_session(
                 records[0]["data"].get("model", {}),
                 home,
                 recovered_from=prior,
+                directory=directory,
             )
             session = fresh
             # Copy every valid event, preserving seq and run boundaries. Only the
