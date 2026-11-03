@@ -31,12 +31,13 @@ from nexus.app.config import (
     validate_acl_authority,
 )
 from nexus.app.console import DisplayReplay
+from nexus.app.events import redact
 from nexus.app.input import INPUT_HELP, TaskInput
 from nexus.app.memory import MemoryStore
 from nexus.app.memory_index import MemoryIndex, installed_command
 from nexus.app.memory_setup import DependencyBootstrap
 from nexus.app.profile import InteractionSummary, ProfileConsumer
-from nexus.app.session import SessionError, list_sessions
+from nexus.app.session import SessionError, list_sessions, now
 from nexus.app.skills import SkillCatalog
 from nexus.app.tui import (
     Transcript,
@@ -50,7 +51,7 @@ from nexus.app.tui import (
     terminal_text,
 )
 from nexus.core.security import Mode
-from nexus.core.types import Json, ModelError, RunResult, Session, json_text
+from nexus.core.types import Json, ModelError, RunResult, RuntimeEvent, Session, json_text
 
 
 async def authorize_workspace(
@@ -137,6 +138,41 @@ async def memory_command(action: str) -> int:
         await index.close()
 
 
+async def agent_command(conversation: Conversation, editor: TaskInput, text: str) -> bool:
+    if text != "/agents" and not text.startswith("/agent "):
+        return False
+    manager = conversation.coordinator
+    output = "Multi-Agent is disabled; no agents are available."
+    if manager is not None:
+        parts = text.split()
+        if text == "/agents":
+            output = manager.panel(editor.target_agent) or "No subagents yet."
+        elif len(parts) == 2:
+            target = manager.resolve(parts[1])
+            if target is None:
+                output = "Unknown or ambiguous agent ID. Use /agents."
+            else:
+                editor.target_agent = target
+                output = f"Guidance target: {target}. Tab still queues a root task."
+        elif len(parts) == 3 and parts[1] in {"detail", "cancel"}:
+            target = manager.resolve(parts[2])
+            if target is None or target == "root":
+                output = "Select a unique child ID from /agents."
+            elif parts[1] == "detail":
+                output = manager.details(target)
+            else:
+                result = await manager.cancel(manager.agents[target].parent, target)
+                output = f"Agent {target}: {result.get('state', result.get('error'))}"
+        else:
+            output = "Use /agents, /agent ID|root, /agent detail ID, /agent cancel ID."
+    # UI detail is read from child logs; do not copy it into the root JSONL.
+    await conversation.consumer(RuntimeEvent(
+        "agent_inspect", now(), conversation.session.session_id, conversation.session.run_id,
+        {"text": redact(output, conversation.secret_values())},
+    ))
+    return True
+
+
 async def drive(
     conversation: Conversation,
     text: str,
@@ -175,6 +211,12 @@ async def drive(
         async def approve(request: ApprovalRequest) -> ApprovalDecision:
             # Transcript spinners are stopped by the approval_requested event.
             summary, details = approval_text(request, conversation.secret_values())
+            if conversation.coordinator is not None:
+                agent = next((a for a in conversation.coordinator.agents.values()
+                              if a.conversation is not None
+                              and a.conversation.session.session_id == request.session_id), None)
+                label = f"Agent {agent.id[:8]} ({agent.role})\n" if agent else "Root agent\n"
+                summary = label + summary
             choice = await editor.approve(summary, details)
             return ApprovalDecision(
                 request.request_id,
@@ -184,12 +226,27 @@ async def drive(
         conversation.gateway.approver = approve
     try:
         if editor is not None and not compact:
+            manager = getattr(conversation, "coordinator", None)
+            if manager is None or (editor.target_agent != "root"
+                                   and editor.target_agent not in manager.agents):
+                editor.target_agent = "root"
+            editor.agent_panel = lambda: terminal_text(
+                manager.panel(editor.target_agent) if manager else ""
+            )
             async def receive(text: str, mode: Literal["guide", "queue"]) -> None:
                 if conversation.events is None:
                     conversation.ensure_events(text)
                 assert conversation.events is not None
                 emit = conversation.events
+                pending_emit = emit
                 inbox = conversation.inbox
+                if await agent_command(conversation, editor, text):
+                    return
+                if editor.target_agent != "root" and manager is not None:
+                    selected = manager.agents.get(editor.target_agent)
+                    if selected is not None and selected.conversation is not None:
+                        inbox = selected.conversation.inbox
+                        pending_emit = selected.conversation.events or emit
                 if text.strip() == "/pending":
                     await emit("input_pending", {"messages": [
                         {"id": m.id, "mode": m.mode, "text": m.text} for m in inbox.pending
@@ -199,14 +256,21 @@ async def drive(
                     replacement = parts[2] if parts[0] == "/edit" and len(parts) == 3 else None
                     if parts[0] == "/edit" and replacement is None:
                         await emit("warning", {"detail": "Use /edit ID replacement text."})
-                    elif not await inbox.change(parts[1], replacement, emit):
+                    elif not await inbox.change(parts[1], replacement, pending_emit):
                         await emit("warning", {"detail": "Message already delivered or unknown."})
                 elif text.startswith("/"):
                     await emit("warning", {"detail": (
                         "During execution use /pending, /edit ID text or /withdraw ID."
                     )})
                 else:
-                    await inbox.receive(text, mode, emit)
+                    if mode == "guide" and editor.target_agent != "root" and manager is not None:
+                        result = await manager.user_message(editor.target_agent, text)
+                        await emit("warning", {"detail": (
+                            f"Received by agent {editor.target_agent[:8]}; parent informed."
+                            if "error" not in result else str(result["error"])
+                        )})
+                    else:
+                        await conversation.inbox.receive(text, mode, emit)
 
             async with editor.during_run(receive, lambda: interrupt(signal.SIGINT, None)):
                 result = await conversation.turn(text)
@@ -331,6 +395,9 @@ async def application(args: argparse.Namespace) -> int:
     summary = InteractionSummary(profile or transcript)
     editor = TaskInput(prompt, display.repaint if display is not None else None)
     conversation = Conversation(workspace, config, summary)
+    def current_panel() -> str:
+        manager = getattr(conversation, "coordinator", None)
+        return terminal_text(manager.panel(editor.target_agent)) if manager is not None else ""
     select = args.command == "resume"
     exit_reason: str | None = None
     console.print(f"Nexus · execution mode: {config.security.mode} · /help for commands")
@@ -352,6 +419,7 @@ async def application(args: argparse.Namespace) -> int:
             await conversation.select_skill(args.skill)
             console.print(Text(f"Skill selected for this session: {args.skill}"))
         while True:
+            editor.agent_panel = current_panel
             if select:
                 path = await select_session(list_sessions(workspace))
                 select = False
@@ -399,6 +467,8 @@ async def application(args: argparse.Namespace) -> int:
                 return 0
             if not text:
                 continue
+            if await agent_command(conversation, editor, text):
+                continue
             if text == "/exit":
                 exit_reason = "slash-exit"
                 return 0
@@ -417,6 +487,8 @@ async def application(args: argparse.Namespace) -> int:
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
                     "During execution Enter guides the task; Tab queues the next task. "
                     "/pending lists messages; /edit ID text edits; /withdraw ID removes."
+                    " /agents tree; /agent ID|root chooses guidance target; "
+                    "/agent detail ID shows trajectory; /agent cancel ID cancels its subtree."
                 )
             elif text == "/model" or text.startswith("/model "):
                 alias = text.removeprefix("/model").strip()

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from nexus.app.agent_view import AgentUsage, usage_label
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -92,6 +93,7 @@ class Subagents:
         self.decisions: dict[str, asyncio.Future[str]] = {}
         self.approval_lock = asyncio.Lock()
         root.gateway.approval_lock = self.approval_lock
+        self.usage: dict[str, AgentUsage] = {"root": AgentUsage()}
 
     async def event(self, kind: str, data: Json) -> None:
         assert self.root.events is not None
@@ -177,10 +179,13 @@ class Subagents:
             if agent.state == "cancelling":
                 raise asyncio.CancelledError
             async def consume(event: RuntimeEvent) -> None:
+                self.usage.setdefault(agent.id, AgentUsage()).observe(event)
                 if event.kind == "tool_started":
                     agent.operation = str(event.data.get("name", ""))
                 elif event.kind == "model_started":
                     agent.operation = "model"
+                elif event.kind == "approval_requested":
+                    agent.operation = "awaiting approval"
                 await self.root.consumer(RuntimeEvent(
                     "subagent_event", event.timestamp, event.session_id, event.run_id,
                     {"agent_id": agent.id, "kind": event.kind, "data": event.data},
@@ -344,6 +349,59 @@ class Subagents:
                                "cleanup_failed", "recovery_failed"}
                    or a.task is not None and not a.task.done() for a in self.agents.values())
 
+    def resolve(self, value: str) -> str | None:
+        if value == "root":
+            return value
+        matches = [ident for ident in self.agents if ident.startswith(value)]
+        return matches[0] if len(matches) == 1 else None
+
+    def panel(self, selected: str = "root") -> str:
+        from nexus.app.events import redact
+        if not self.agents:
+            return ""
+        lines = [f"Agents · target {selected[:8]} · {self.occupied()}/"
+                 f"{self.root.config.multi_agent.max_agents} occupied"]
+        def walk(parent: str) -> None:
+            for agent in self.children(parent):
+                usage = self.usage.get(agent.id, AgentUsage()).public()
+                mark = "!" if agent.state in {"waiting_decision", "failed", "cleanup_failed",
+                                             "recovery_failed", "interrupted"} else "·"
+                elapsed = agent.public()["elapsed_ms"] / 1000
+                summary = " ".join(agent.assignment.split())[:36]
+                lines.append(f"{'  ' * agent.depth}{mark} {agent.id[:8]} {agent.role} "
+                             f"{agent.state} {agent.operation} {elapsed:.1f}s "
+                             f"{usage_label(usage)} | {summary}")
+                walk(agent.id)
+        walk("root")
+        return str(redact("\n".join(lines), self.root.secret_values()))
+
+    async def user_message(self, target: str, text: str) -> Json:
+        agent = self.agents.get(target)
+        if agent is None:
+            return {"error": "unknown_agent"}
+        result = await self.message(agent.parent, target, text)
+        if "error" not in result:
+            parent = self.owner(agent.parent)
+            assert parent.events is not None
+            await parent.inbox.receive(
+                f"[User guided child {target}]\n{text}", "guide", parent.events,
+            )
+        return result
+
+    def details(self, target: str) -> str:
+        from nexus.app.session import read_records
+        agent = self.agents[target]
+        lines = [json_text({**agent.public(),
+                            "usage": self.usage.get(target, AgentUsage()).public()})]
+        path = self.log_file(agent)
+        if path.exists():
+            with path.open("rb") as stream:
+                rows, _ = read_records(stream)
+            for row in rows[-60:]:
+                if row["kind"] in {"message", "warning", "tool_finished", "approval_requested"}:
+                    lines.append(row["kind"] + ": " + json_text(row["data"]))
+        return "\n".join(lines)
+
     def result_in_history(self, ident: str, agent: Agent) -> bool:
         for message in self.owner(ident).session.messages:
             if message.input_id == f"agent-result:{agent.id}:{agent.execution_id}":
@@ -404,6 +462,10 @@ class Subagents:
         with self.root.writer.path.open("rb") as stream:
             rows, _ = read_records(stream)
         for row in rows:
+            self.usage["root"].observe(RuntimeEvent(
+                row["kind"], row["timestamp"], row["session_id"], row.get("run_id"), row["data"],
+            ))
+        for row in rows:
             data = row["data"]
             if row["kind"] in {"agent_created", "agent_state"}:
                 ident = data["agent_id"]
@@ -432,6 +494,10 @@ class Subagents:
                 self.root.session.unresolved_effects.update(session.unresolved_effects)
                 with writer.path.open("rb") as stream:
                     child_rows, _ = read_records(stream)
+                ledger = self.usage.setdefault(agent.id, AgentUsage())
+                for row in child_rows:
+                    ledger.observe(RuntimeEvent(row["kind"], row["timestamp"], row["session_id"],
+                                                row.get("run_id"), row["data"]))
                 marker = next((r["seq"] for r in reversed(child_rows)
                                if r["kind"] == "agent_execution_started"
                                and r["data"].get("execution_id") == agent.execution_id),

@@ -296,6 +296,35 @@ class Transcript:
             self.console.print(Text("  … audit diff omitted/truncated", style="dim"))
 
     async def __call__(self, event: RuntimeEvent) -> None:
+        if event.kind == "agent_inspect":
+            self.stop_activity()
+            self.console.print(Text(terminal_text(event.data["text"])))
+            return
+        if event.kind == "subagent_event":
+            kind, data = event.data["kind"], event.data["data"]
+            if kind == "approval_requested":
+                self.stop_activity()
+            elif kind in {"input_received", "input_delivered", "input_updated", "input_withdrawn"}:
+                self.console.print(Text(
+                    f"Agent {event.data['agent_id'][:8]} · {kind} [{data['id']}]", style="dim",
+                ))
+            return  # Child output stays in its own log, opened with /agent detail.
+        if event.kind in {"agent_created", "agent_state", "agent_message"}:
+            data = event.data
+            important = data.get("state") in {"failed", "cleanup_failed", "recovery_failed"}
+            important |= bool(data.get("request_decision"))
+            if event.kind == "agent_message" and not important:
+                return
+            self.stop_activity()
+            label = ("DECISION NEEDED: " + str(data.get("text", ""))) if data.get(
+                "request_decision"
+            ) else str(data.get("state", "created"))
+            self.console.print(Text(
+                f"Agent {data['agent_id'][:8]} · {terminal_text(label)}"
+                + (" · /agent ID to reply" if data.get("request_decision") else ""),
+                style="bold yellow" if important else "dim",
+            ))
+            return
         if event.kind.startswith("input_"):
             self.stop_activity()
             data = event.data

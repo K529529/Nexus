@@ -6,6 +6,8 @@ Sub-Agent 排除项；仍使用一套核心循环，不恢复旧架构。授权�
 
 2026-11-03 用户补充：开发完成后不运行 ABK，由 Archer 自行手动运行。
 本次只准备对照配置/统计说明，保留开发侧验证与未验证项记录。
+用户进一步明确 history/HTML trace 指本地 8 case 的 `history.html` 和 `report.html`；
+Stage8-6 扩展这两个现有入口，不新增通用 history 命令。
 
 基线：远端 `codex/nexus-v0.3`，`c6f1b2ca1c1351abc6a3542a232cf18dc8e9a85c`。
 开发分支：`codex/nexus-v0.3-stage8-multi-agent`。
@@ -84,3 +86,19 @@ Sub-Agent 排除项；仍使用一套核心循环，不恢复旧架构。授权�
 - 联合回归 100 passed / 1 failed（旧 CLI 替身尚未提供 inbox）；补齐后该例单独
   1 passed。Ruff、完整 mypy、diff 检查通过。历史清理失败保留状态/额度。
 - 恢复不意味着旧 OS 子进程已经退出；未知副作用仍需核实，不恢复旧一次性审批。
+
+## Stage8-5 — 终端体验
+
+- Stage8-4 已推送：`707e3d4`。
+- 输入框旁实时树显示角色、任务摘要、层级、状态、当前操作、耗时、用量与额度。
+  `/agents` 查看全树；`/agent ID|root` 选择指导目标（支持唯一 ID 前缀）；
+  `/agent detail ID` 从独立子日志查看详情，`/agent cancel ID` 取消整棵子树。
+- Tab 始终排队根任务；选定子代理的 Enter 指导/决策回复会通知父代理。
+  `/pending`、`/edit`、`/withdraw` 操作所选代理的待投递输入。
+- 子代理流不混入主输出；求助/失败明显提示；审批显示所属 Agent、串行接管输入，
+  原草稿保留。详情展示不再复制进主 JSONL。
+- 统一事件用量投影包含失败/重试/压缩请求，缓存不重复相加，缺失保持 unknown；
+  接入离线入口留在下一阶段。
+- 原有输入/审批/缩放/CLI 回归 87 passed；新增真实 prompt_toolkit 渲染、草稿保持、
+  目标指导/父通知/详情隔离和用量测试 3 passed。Ruff、完整 mypy、diff 检查通过。
+- Windows 实际终端、中文 IME 与真实模型交互仍待 Archer 人工验收。

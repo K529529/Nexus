@@ -214,6 +214,14 @@ class TaskInput:
         self.listener: asyncio.Task[None] | None = None
         self.submit_mode: Literal["guide", "queue"] = "guide"
         self.saved_draft = ""
+        self.target_agent = "root"
+        self.agent_panel: Callable[[], str] = lambda: ""
+        panel = ConditionalContainer(
+            Window(FormattedTextControl(lambda: self.agent_panel()),
+                   height=Dimension(max=8), dont_extend_height=True),
+            Condition(lambda: bool(self.agent_panel())),
+        )
+        self.prompt.app.layout.container = HSplit([self.prompt.app.layout.container, panel])
 
         @self.bindings.add("enter")
         def submit(event: KeyPressEvent) -> None:
@@ -478,8 +486,8 @@ class TaskInput:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
         if self.live_submit is not None:
-            return ("Enter guide · Tab queue · /pending · /edit ID text · "
-                    "/withdraw ID · Ctrl+C cancel")
+            return (f"→ {self.target_agent[:8]} · Enter guide · Tab queue · "
+                    "/pending · /agents · /agent ID · Ctrl+C cancel")
         return "Enter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit"
 
     def discard(self, interrupt: Callable[[], None] | None = None) -> None:
@@ -516,7 +524,7 @@ class TaskInput:
                     bottom_toolbar=None if self.inline_toolbar else self.toolbar,
                     show_frame=True,
                     cursor=SimpleCursorShapeConfig(CursorShape.BLINKING_BEAM),
-                    refresh_interval=0,
+                    refresh_interval=0.2 if self.live_submit is not None else 0,
                     style=INPUT_STYLE,
                     input_processors=[PasteDisplay(self.blocks)],
                     completer=SlashCompleter(),

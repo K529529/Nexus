@@ -276,8 +276,13 @@ class Conversation:
                 directory=directory,
             )
         self.events = Events(
-            self.session, self.writer, self.consumer, self.secret_values(), self.config.tracing
+            self.session, self.writer, self.observe, self.secret_values(), self.config.tracing
         )
+
+    async def observe(self, event: RuntimeEvent) -> None:
+        if self.agent_id == "root" and self.coordinator is not None:
+            self.coordinator.usage["root"].observe(event)
+        await self.consumer(event)
 
     async def start_memory(self) -> None:
         """Start once per Conversation; dependency failure never blocks the coding loop."""
