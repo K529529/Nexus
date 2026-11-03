@@ -278,7 +278,8 @@ async def drive(
                 result = await conversation.turn(text)
                 await editor.pause_listener()
                 await editor.finish_submission()
-                while result.outcome == "completed" and conversation.inbox.guides():
+                while (not cancelled and result.outcome == "completed"
+                       and conversation.inbox.guides()):
                     # Guidance can arrive during between-run maintenance after the
                     # final model boundary. Continue the same task, preserving history.
                     conversation.session.resume_run_id = conversation.session.run_id

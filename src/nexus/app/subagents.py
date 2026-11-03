@@ -68,6 +68,8 @@ class Agent:
     source_run_id: str | None = None
     model_settings: Json | None = None
     execution_id: str = field(default_factory=lambda: uuid4().hex)
+    accepting: bool = False
+    input_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def public(self) -> Json:
         return {
@@ -178,6 +180,7 @@ class Subagents:
         from nexus.app.bootstrap import Conversation
         owner = self.owner(agent.parent)
         child: Conversation | None = None
+        result: RunResult | None = None
         try:
             if agent.state == "cancelling":
                 raise asyncio.CancelledError
@@ -221,31 +224,60 @@ class Subagents:
             child.gateway.approval_lock = self.approval_lock
             child.ensure_events(agent.assignment)
             assert child.events is not None
-            await child.events("agent_execution_started", {
-                "agent_id": agent.id, "parent_id": agent.parent,
-                "execution_id": agent.execution_id,
-            })
             agent.state = "running"
+            agent.accepting = True
             await self.event("agent_state", agent.public())
-            agent.result = await child.turn(
-                continuation or agent.assignment + "\n\nAssigned scope: " + agent.scope,
-            )
+            text = continuation or agent.assignment + "\n\nAssigned scope: " + agent.scope
+            while True:
+                await child.events("agent_execution_started", {
+                    "agent_id": agent.id, "parent_id": agent.parent,
+                    "execution_id": agent.execution_id,
+                })
+                result = await child.turn(text)
+                # The same boundary serializes acceptance with the decision to finish.
+                # A message already committing holds this lock until it reaches Inbox.
+                async with agent.input_lock:
+                    if agent.state == "cancelling" or (
+                        agent.task is not None and agent.task.cancelling()
+                    ):
+                        agent.accepting = False
+                        if result.outcome == "completed":
+                            result = replace(result, outcome="aborted", reason="user_abort")
+                        break
+                    if result.outcome != "completed" or not child.inbox.guides():
+                        agent.accepting = False
+                        break
+                    child.session.resume_run_id = child.session.run_id
+                    agent.execution_id = uuid4().hex
+                    text = "Continue the task using pending guidance."
+                # Preserve the agent/history/run, but each further core execution has
+                # distinct trace identity. Never publish an intermediate final result.
+                await self.event("agent_state", agent.public())
         except asyncio.CancelledError:
-            agent.result = RunResult("aborted", reason="cancelled_before_start")
+            result = RunResult("aborted", reason="user_abort")
         except Exception as exc:
-            agent.result = RunResult("failed", reason=f"runtime_error:{type(exc).__name__}")
+            result = RunResult("failed", reason=f"runtime_error:{type(exc).__name__}")
         finally:
+            agent.accepting = False
             try:
                 if child is not None:
-                    await child.close()
-                if agent.result is not None and (
-                    "cleanup_incomplete" in (agent.result.reason or "")
+                    try:
+                        async with agent.input_lock:
+                            if child.events is not None and result is not None:
+                                await child.events("agent_execution_finished", {
+                                    "execution_id": agent.execution_id, "result": asdict(result),
+                                })
+                    finally:
+                        await child.close()
+                if result is not None and (
+                    "cleanup_incomplete" in (result.reason or "")
                 ):
                     agent.state = "cleanup_failed"
                 else:
-                    agent.state = agent.result.outcome if agent.result else "failed"
+                    agent.state = result.outcome if result else "failed"
             except Exception:
                 agent.state = "cleanup_failed"
+            agent.result = result
             agent.elapsed_ms = int((time.monotonic() - agent.started) * 1000)
             agent.operation = ""
             await self.event("agent_state", agent.public())
@@ -279,17 +311,18 @@ class Subagents:
         agent = self.agents.get(target)
         if agent is None or agent.parent != parent:
             return {"error": "not_direct_child"}
-        child = agent.conversation
-        if child is None or child.closed:
-            return {"error": "agent_not_running"}
-        await self.event("agent_message", {"agent_id": target, "parent_id": parent,
-                                           "direction": "to_child", "text": text})
-        decision = self.decisions.get(target)
-        if decision is not None and not decision.done():
-            decision.set_result(text)
-        else:
-            assert child.events is not None
-            await child.inbox.receive(text, "guide", child.events)
+        async with agent.input_lock:
+            child = agent.conversation
+            if child is None or child.closed or not agent.accepting or agent.state == "cancelling":
+                return {"error": "agent_not_accepting"}
+            await self.event("agent_message", {"agent_id": target, "parent_id": parent,
+                                               "direction": "to_child", "text": text})
+            decision = self.decisions.get(target)
+            if decision is not None and not decision.done():
+                decision.set_result(text)
+            else:
+                assert child.events is not None
+                await child.inbox.receive(text, "guide", child.events)
         return {"received": True}
 
     async def report(self, sender: str, text: str, request_decision: bool) -> Json:
@@ -323,6 +356,7 @@ class Subagents:
             return {"error": "not_direct_child"}
         if agent.task is not None and not agent.task.done():
             cancelling = agent.state == "cancelling"
+            agent.accepting = False
             agent.state = "cancelling"
             await self.event("agent_state", agent.public())
             if agent.conversation is not None and not cancelling:
@@ -517,12 +551,23 @@ class Subagents:
                                if r["kind"] == "agent_execution_started"
                                and r["data"].get("execution_id") == agent.execution_id),
                               0 if agent.execution_id == "legacy" else None)
-                if marker is None:
+                settled = next((r for r in reversed(child_rows)
+                                if r["kind"] == "agent_execution_finished"
+                                and r["data"].get("execution_id") == agent.execution_id), None)
+                if marker is None and settled is None:
                     continue
                 last_start = max((r["seq"] for r in child_rows if r["kind"] == "run_started"
-                                  and r["seq"] > marker), default=len(child_rows) + 1)
+                                  and r["seq"] > (marker or 0)), default=len(child_rows) + 1)
                 finished = next((r for r in reversed(child_rows) if r["kind"] == "run_finished"
                                  and r["seq"] > last_start), None)
+                if settled is not None:
+                    finished = {"data": settled["data"]["result"]}
+                elif finished is not None:
+                    from nexus.core.inbox import Inbox
+                    pending = Inbox()
+                    pending.restore(child_rows)
+                    if pending.guides():
+                        finished = None  # Core finished, but accepted guidance remains unfinished.
                 if finished is not None:
                     data = finished["data"]
                     agent.result = RunResult(**{**data, "usage": Usage(**data["usage"])})
@@ -568,6 +613,7 @@ class Subagents:
                                       if s in role.mcp_servers})
         path = self.log_file(agent)
         agent.state, agent.result, agent.delivered = "starting", None, False
+        agent.accepting = False
         agent.execution_id = uuid4().hex
         agent.started = time.monotonic()
         await self.event("agent_state", agent.public())
@@ -587,6 +633,7 @@ class Subagents:
         for agent in children:
             if agent.task is not None and not agent.task.done():
                 cancelling = agent.state == "cancelling"
+                agent.accepting = False
                 agent.state = "cancelling"
                 if agent.conversation is not None and not cancelling:
                     agent.task.cancel()

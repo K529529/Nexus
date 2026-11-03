@@ -22,3 +22,45 @@
   TUI 集合：135 passed。Ruff、完整 mypy（145 文件）、diff 检查通过。
 - 本增量未运行真实模型、人工 Windows 终端体验或 ABK；全量与全部 Stage8 专项将在
   第二增量完成后执行。审查报告中的 Linux 代理依赖/基线 mypy 问题不归入这三个缺陷。
+
+第一增量已提交并推送：`b246243`。
+
+## 增量二：子代理收尾指导（问题 2）
+
+- 每个子代理增加接收标志与接收/完成边界锁。父指导、用户选定子代理后的指导，以及
+  收尾时的完成判断串行经过该边界；正在持久化的接收先完成，再判断是否可以结束。
+  边界关闭后返回 `agent_not_accepting`，即使资源尚在关闭也不再报告接收成功。
+- 收尾压缩期间已确认接收的指导由同一个 Conversation、同一代理和原 run 的历史继续
+  处理，复用现有 `turn` / Agent Loop，不重发原始任务、不重放已执行工具。
+  后续 core execution 有独立 ID，仍关联原根任务；中间结果不交给父代理，最终结果去重。
+- 继续处理指导时保留原额度。取消立即关闭接收；即使收尾压缩吸收了 CancelledError，
+  也不会重启工作。`cleanup_incomplete` 不被取消结果覆盖，清理失败继续占用额度。
+- 子日志增加最终 execution 收尾收据，经过 fsync。恢复和本地历史投影区分核心循环
+  的早期完成与代理最终完成；已接收指导后进程崩溃标为 interrupted，等待显式恢复。
+  正常取消的终态也不会从旧的 completed 核心收据中误恢复。
+- 使用异步屏障覆盖父指导接收仍在提交、真实 Enter 指导选中子代理、完成边界后拒收、
+  接收前后发生取消、取消保留清理失败，以及真实进程崩溃后的结果去重/副作用不重放。
+  工具配对、原任务文本只出现一次、更新结果交付一次、执行 span ID 唯一均有断言。
+- 全部 Stage8 专项与受影响输入、审批、Conversation、持久化恢复、TUI、遥测联合回归：
+  250 passed；最终补齐取消/清理边界后完成与恢复集合：13 passed。
+
+## 尝试、最终验证及边界
+
+- 首次新增恢复用例因测试未初始化根 Events 而失败（10 passed / 1 failed）；补齐
+  测试初始化后通过，保留“不交付旧结果、显式恢复处理指导、counter 只写一次”断言。
+- 一次联合测试命令误写不存在的 `tests/test_recovery.py`，未执行测试；更正为实际的
+  `test_durable_execution.py` / Session 测试后，上述联合回归 250 项通过。
+- 第一轮全量：1221 passed / 10 skipped；输出保存在
+  [初次全量输出](evidence/stage8-review/windows-pytest-initial.txt)。随后补充取消不能覆盖
+  清理失败的保护与回归，最终全量输出保存在 [最终输出](evidence/stage8-review/windows-pytest.txt)。
+- 最终 Windows 全量：**1222 passed / 10 skipped**，耗时 160.76 秒；跳过项均为显式
+  opt-in Docker 隔离验收，16 条警告来自既有第三方 LiteLLM/Pydantic 弃用提示。
+- Ruff、完整 mypy（146 文件）、diff 检查通过；uv lock 检查（102 packages）、wheel/sdist
+  构建通过；Windows 新建系统临时 venv 按锁定版本离线安装，源码目录外 `python -I`
+  导入和 CLI 启动通过。未修改依赖锁文件或全局安装。
+- 本轮未重复 Linux 全量测试。用户提供的先前 Linux CLI 时序、缺 socksio 和基线
+  CREATE_NEW_PROCESS_GROUP 类型问题仅作为审查环境信息，不计为本轮三个缺陷。
+  未修改用户代理配置；未运行真实模型、远端遥测试发、ABK 或人工 Windows IME/TUI 验收。
+- 原有未跟踪文件保留。pytest 使用系统临时目录下独立短父目录，失败临时目录保留给
+  pytest 的既有保留策略；专用安装验证临时目录在验证后清理，证据保存在仓库。
+- 最终交付等待复审与人工体验验收，不自动合并或发布。

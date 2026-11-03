@@ -39,6 +39,10 @@ async def event(self,kind,data,**kwargs):
     seq = await original(self,kind,data,**kwargs)
     if window == 'created' and kind == 'agent_created': os._exit(77)
     if window == 'completed' and is_child and kind == 'run_finished': os._exit(77)
+    if window == 'guidance' and is_child and kind == 'run_finished':
+        accepted = await root.coordinator.message('root', self.session.session_id, 'late guidance')
+        assert accepted['received']
+        os._exit(77)
     if window == 'delivered' and not is_child and kind == 'message':
         delivered = str(data.get('input_id','')).startswith('agent-result:')
         if data.get('role') == 'tool':
@@ -182,3 +186,44 @@ def test_inbox_recovery_uses_committed_messages_not_early_receipts() -> None:
         {"kind": "message", "data": {"role": "user", "input_id": "b", "content": "next"}},
     ])
     assert [(m.id, m.text) for m in inbox.pending] == [("a", "new")]
+
+
+async def test_crash_with_late_guidance_recovers_interrupted_not_stale_completed(
+    tmp_path: Path, monkeypatch: Any,
+) -> None:
+    path = await asyncio.to_thread(crash, tmp_path, "guidance")
+    monkeypatch.setenv("STAGE8_TEST_KEY", "test")
+    cfg = replace(config(monkeypatch), memory_enabled=False,
+                  multi_agent=MultiAgentConfig(enabled=True))
+    clients: list[ScriptedModel] = []
+
+    class Model(ScriptedModel):
+        def __init__(self, _: Any) -> None:
+            super().__init__([reply(text="handled saved guidance")])
+            clients.append(self)
+
+        async def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(bootstrap, "ChatModel", Model)
+    root = bootstrap.Conversation(tmp_path, cfg, ignore, home=tmp_path / "home", resume=path)
+    root.ensure_events("resume")
+    root.ensure_events("resume")
+    manager = root.coordinator
+    assert manager is not None
+    try:
+        agent = next(iter(manager.agents.values()))
+        assert agent.state == "interrupted" and agent.result is None and agent.task is None
+        assert not await manager.deliver_results("root")
+        assert not clients
+        assert (await manager.resume("root", agent.id, "continue"))["agent_id"] == agent.id
+        assert agent.task is not None
+        await agent.task
+        assert agent.state == "completed" and agent.result is not None
+        assert agent.result.final_text == "handled saved guidance"
+        assert any("late guidance" in m.content for m in clients[0].requests[0])
+        assert (tmp_path / "counter").read_bytes() == b"x"
+        assert await manager.deliver_results("root")
+        assert not await manager.deliver_results("root")
+    finally:
+        await root.close()

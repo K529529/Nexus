@@ -337,7 +337,7 @@ class SessionLog:
                 "patch_manifest", "tool_recovery", "approval_resolved",
                 "tail_recovery_completed", "agent_created", "agent_state",
                 "agent_result_delivered", "input_received", "input_updated", "input_withdrawn",
-                "agent_execution_started",
+                "agent_execution_started", "agent_execution_finished",
             } or (event.kind == "message" and (event.data.get("role") == "tool"
                                               or event.data.get("input_id"))):
                 os.fsync(self.stream.fileno())

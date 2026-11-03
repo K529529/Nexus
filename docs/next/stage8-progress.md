@@ -134,3 +134,8 @@ Stage8-6 扩展这两个现有入口，不新增通用 history 命令。
   原始输出、首次失败与修复、平台边界见 [验收证据](evidence/stage8/acceptance.md)。
 - ABK / 真实本地 8-case 未运行，由 Archer 手动执行；真实模型协作与 Windows 终端手感
   尚待人工验收。未声称多 Agent 更快或更省，未合入 V0.3 / main，未发布包。
+
+## Stage8 审查修复
+
+基于 `96686de` 的输入交接、命令参数健壮性、子代理收尾指导三个问题，按两个增量
+修复并推送。实现边界、回归与环境限制见 [审查修复记录](stage8-review-fixes.md)。

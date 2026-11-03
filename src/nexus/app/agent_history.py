@@ -95,6 +95,17 @@ def tree_facts(path: Path) -> Json:
         last_end = next((r for r in reversed(rows) if r["kind"] == "run_finished"
                          and r["seq"] > last_start), None)
         state = last_end["data"].get("outcome", "unknown") if last_end else "interrupted"
+        settlement = next((r for r in reversed(rows) if r["kind"] == "agent_execution_finished"
+                           and r["seq"] > last_start
+                           and r["data"].get("execution_id") == node.get("execution_id")), None)
+        if settlement is not None:
+            state = settlement["data"]["result"]["outcome"]
+        elif ident != "root":
+            from nexus.core.inbox import Inbox
+            pending = Inbox()
+            pending.restore(rows)
+            if pending.guides():
+                state = "interrupted"
         if node.get("state") in {"cleanup_failed", "recovery_failed"}:
             state = node["state"]
         # Public bodies only. Private provider continuation fields never enter HTML.
