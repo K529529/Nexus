@@ -92,6 +92,7 @@ def collect_history(home: Path) -> Json:
                 )
             }
             config["limits"] = manifest.get("limits")
+            config["multi_agent"] = manifest.get("multi_agent", {"enabled": False})
             config["context_policy"] = manifest.get("context_policy")
             config["conversation_projection"] = manifest.get("conversation_projection")
             config["compaction"] = manifest.get("compaction")
@@ -136,7 +137,11 @@ def collect_history(home: Path) -> Json:
                     metrics=metrics,
                     partial=partial,
                     cases=[
-                        dict(id=c["case_id"], status=c["status"], metrics=c.get("metrics", {}))
+                        dict(id=c["case_id"], status=c["status"], metrics=c.get("metrics", {}),
+                             agents=[{key: a.get(key) for key in ("agent_id", "parent_id", "role",
+                                      "depth", "state", "model", "reasoning_effort", "usage")}
+                                     for a in c.get("collaboration", {}).get("agents", [])],
+                             delegated=c.get("collaboration", {}).get("delegated", False))
                         for c in cases
                     ],
                     report=f"results/{quote(directory.name, safe='')}/report.html",

@@ -25,6 +25,7 @@ class AgentUsage:
             complete = self.started == self.finished == len(known)
             result[name] = sum(known) if complete else None
             result[name + "_known"] = sum(known)
+            result[name + "_coverage"] = len(known)
         result["cost"] = None  # No price guess; cached tokens are a subset of input.
         return result
 
@@ -32,3 +33,8 @@ class AgentUsage:
 def usage_label(usage: Json) -> str:
     total = usage.get("total_tokens")
     return f"{total} tok" if total is not None else f"≥{usage.get('total_tokens_known', 0)} tok?"
+
+
+def combined_usage(ledgers: list[AgentUsage]) -> Json:
+    return AgentUsage(sum(v.started for v in ledgers), sum(v.finished for v in ledgers),
+                      [r for v in ledgers for r in v.reports]).public()

@@ -6,10 +6,11 @@ import asyncio
 import sys
 from collections.abc import Awaitable, Callable
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from nexus.app.session import SessionLog, now, read_records
-from nexus.app.tracing import TraceConfig, export_rows
+from nexus.app.tracing import TraceConfig, export_file, export_rows
 from nexus.core.types import Json, RuntimeEvent, Session
 
 DELTA_KINDS = {"assistant_delta", "tool_output_delta"}
@@ -36,12 +37,14 @@ class Events:
         consumer: Callable[[RuntimeEvent], Awaitable[None]],
         secrets: tuple[str, ...] = (),
         tracing: TraceConfig | None = None,
+        tree_path: Path | None = None,
     ) -> None:
         self.session, self.writer, self.consumer = session, writer, consumer
         self.secrets = tuple(s for s in secrets if s)
         self.pending: dict[tuple[str, str, str], tuple[str, Json]] = {}
         self.consumer_failed = False
         self.tracing = tracing or TraceConfig()
+        self.tree_path = tree_path
         self.trace_rows: list[Json] = []
         self.exported: set[str] = set()
         if self.tracing.enabled and session.resume_run_id:
@@ -139,9 +142,14 @@ class Events:
         ):
             self.exported.add(self.session.run_id)
             try:
-                ok, diagnostics = await export_rows(
-                    self.trace_rows, self.session.run_id, self.tracing
-                )
+                if self.tree_path is not None:
+                    ok, diagnostics = await export_file(
+                        self.tree_path, self.session.run_id, self.tracing
+                    )
+                else:
+                    ok, diagnostics = await export_rows(
+                        self.trace_rows, self.session.run_id, self.tracing
+                    )
             except (Exception, asyncio.CancelledError):
                 ok, diagnostics = False, ["export_failed"]
             if not ok:

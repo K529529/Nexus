@@ -82,6 +82,24 @@ def identifier(value: Any) -> str | None:
 
 def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
     rows = [r for r in rows if r.get("run_id") == run_id]
+    # Each resumed execution has its own trace, excluding process downtime.
+    if any(r["kind"] == "run_started" and r["data"].get("execution_id") for r in rows):
+        spans: list[Json] = []
+        diagnostics: list[str] = []
+        segment: list[Json] = []
+        for row in rows:
+            if row["kind"] == "run_started" and segment:
+                items, notes = _project_execution(segment, run_id)
+                spans.extend(items)
+                diagnostics.extend(notes)
+                segment = []
+            segment.append(row)
+        items, notes = _project_execution(segment, run_id)
+        return spans + items, diagnostics + notes
+    return _project_execution(rows, run_id)
+
+
+def _project_execution(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
     diagnostics: list[str] = []
     spans: list[Json] = []
     starts: dict[str, Json] = {}
@@ -95,6 +113,12 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
     rows = [r for r in rows if r["seq"] <= end["seq"]]
     session = str(root["session_id"])
     seed = session + ":" + run_id
+    metadata = {"nexus." + key: value for key in (
+        "execution_id", "agent_id", "parent_agent_id", "root_session_id", "root_run_id",
+        "root_execution_id", "parent_execution_id", "delegation_call_id",
+    ) if (value := identifier(root["data"].get(key))) is not None}
+    if execution := metadata.get("nexus.execution_id"):
+        seed += ":" + execution
     trace = stable_id(seed, 16)
     root_key = "run"
 
@@ -116,7 +140,8 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
             "parent_id": stable_id(seed + parent, 8) if parent else None,
             "start": timestamp(first),
             "end": timestamp(last),
-            "attributes": {"nexus.session_id": session, "nexus.run_id": run_id, **attrs},
+            "attributes": {"nexus.session_id": session, "nexus.run_id": run_id,
+                           **metadata, **attrs},
             "error": error,
         }
         spans.append(value)
@@ -141,6 +166,14 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
             compact = None
             last_request = None
             spans[0]["attributes"]["nexus.resumed"] = True
+        elif kind == "agent_message":
+            attrs: Json = {"langsmith.span.kind": "chain"}
+            for key in ("agent_id", "parent_id", "direction"):
+                if value := identifier(d.get(key)):
+                    attrs["nexus.message." + key] = value
+            if type(d.get("request_decision")) is bool:
+                attrs["nexus.message.request_decision"] = d["request_decision"]
+            span("message:" + str(row["seq"]), root_key, "nexus.agent.message", row, row, attrs)
         elif kind == "compaction_started":
             compact = row
         elif kind in {"context_compacted", "compaction_failed"} and compact:
@@ -164,7 +197,7 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
             first = starts.pop("model")
             fd = first["data"]
             request = str(fd.get("request_id") or "legacy:" + str(first["seq"]))
-            attrs: Json = {"langsmith.span.kind": "llm", "gen_ai.operation.name": "chat"}
+            attrs = {"langsmith.span.kind": "llm", "gen_ai.operation.name": "chat"}
             for source, target in {
                 "model": "gen_ai.request.model",
                 "response_model": "gen_ai.response.model",
@@ -239,6 +272,7 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
             "end": b["end"],
             "error": b["error"],
             "attributes": {
+                **metadata,
                 "nexus.session_id": session,
                 "nexus.run_id": run_id,
                 "nexus.request_id": request,
@@ -256,6 +290,33 @@ def project_run(rows: list[Json], run_id: str) -> tuple[list[Json], list[str]]:
             break
         diagnostics.append("orphaned_operations: omitted")
         spans = complete
+    return spans, diagnostics
+
+
+def project_tree(logs: dict[str, list[Json]], run_id: str) -> tuple[list[Json], list[str]]:
+    spans, diagnostics = project_run(logs["root"], run_id)
+    children: list[Json] = []
+    for ident, rows in logs.items():
+        if ident == "root":
+            continue
+        for child_run in dict.fromkeys(r.get("run_id") for r in rows if r.get("run_id")):
+            items, notes = project_run(rows, str(child_run))
+            children.extend(s for s in items if s["attributes"].get("nexus.root_run_id") == run_id)
+            diagnostics.extend(notes)
+    executions = {s["attributes"].get("nexus.execution_id"): s for s in spans + children
+                  if s["name"] == "nexus.run"}
+    for item in children:
+        attrs = item["attributes"]
+        root = executions.get(attrs.get("nexus.root_execution_id"))
+        parent = executions.get(attrs.get("nexus.parent_execution_id"))
+        if root is None or parent is None:
+            diagnostics.append("unlinked_child_execution: omitted")
+            continue
+        item["trace_id"] = root["trace_id"]
+        if item["name"] == "nexus.run":
+            item["name"] = "nexus.agent"
+            item["parent_id"] = parent["span_id"]
+        spans.append(item)
     return spans, diagnostics
 
 
@@ -286,6 +347,12 @@ async def export_rows(rows: list[Json], run_id: str, config: TraceConfig) -> tup
     if not config.enabled:
         return True, []
     spans, diagnostics = project_run(rows, run_id)
+    return await export_spans(spans, diagnostics, config)
+
+
+async def export_spans(
+    spans: list[Json], diagnostics: list[str], config: TraceConfig,
+) -> tuple[bool, list[str]]:
     if not spans:
         return False, diagnostics
     if not os.environ.get(config.api_key_env):
@@ -316,14 +383,17 @@ async def export_rows(rows: list[Json], run_id: str, config: TraceConfig) -> tup
 
 
 async def export_file(path: Path, run_id: str, config: TraceConfig) -> tuple[bool, list[str]]:
-    from nexus.app.session import read_records
+    from nexus.app.agent_history import read_tree
 
-    with path.open("rb") as stream:
-        rows, damaged_tail = read_records(stream)
-    ok, diagnostics = await export_rows(rows, run_id, config)
-    if damaged_tail:
-        diagnostics.append("damaged_tail: incomplete final record ignored")
-    return ok, diagnostics
+    if not config.enabled:
+        return True, []
+    logs, nodes, warnings = await asyncio.to_thread(read_tree, path)
+    if nodes:
+        spans, diagnostics = project_tree(logs, run_id)
+        ok, diagnostics = await export_spans(spans, diagnostics, config)
+    else:
+        ok, diagnostics = await export_rows(logs["root"], run_id, config)
+    return ok, diagnostics + warnings
 
 
 def worker() -> int:

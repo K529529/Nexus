@@ -173,6 +173,7 @@ class Session:
     pending_tools: list[ToolCall] = field(default_factory=list)
     recovered_results: dict[str, ToolResult] = field(default_factory=dict)
     unresolved_effects: dict[str, Json] = field(default_factory=dict)
+    execution_id: str | None = None
     plan: PlanState | None = None
     skill_catalog: tuple[SkillInfo, ...] = ()
     selected_skill: SkillSnapshot | None = None

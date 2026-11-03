@@ -16,6 +16,7 @@ from rich.text import Text
 
 from nexus.app.tui import terminal_text
 from nexus.core.types import Json
+from nexus.evaluation.agent_trace import SCRIPT, STYLE, render_agents
 
 
 def write_json(path: Path, data: object) -> None:
@@ -173,7 +174,7 @@ def save_report(directory: Path, results: list[Json], selected: list[str]) -> st
 
 
 def render_html(summary: Json, manifest: Json) -> str:
-    """Offline view of saved metrics; no JavaScript, remote assets or new statistics."""
+    """Offline saved metrics and optional agent filtering; no remote assets."""
 
     def text(value: object) -> str:
         return escape("unknown" if value is None else str(value))
@@ -274,6 +275,8 @@ def render_html(summary: Json, manifest: Json) -> str:
         if partial
         else "Usage 完整。"
     )
+    agents = "".join(render_agents(r.get("collaboration", {}), r["case_id"])
+                     for r in summary["cases"])
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -333,4 +336,6 @@ thead th {{position:static}} .cards {{gap:8px}}}}
 上下文指标单位为 tokens；字节按 1024 换算，悬停可查看原始字节数。<br>
 {link("summary.json", "summary.json")} · {link("manifest.json", "manifest.json")}
  · {link("report.txt", "report.txt")}</footer>
-</main></body></html>"""
+{agents}
+</main>{'<style>' + STYLE + '</style><script>' + SCRIPT + '</script>' if agents else ''}
+</body></html>"""

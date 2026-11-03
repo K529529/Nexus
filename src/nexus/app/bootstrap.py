@@ -64,6 +64,7 @@ class Conversation:
     ) -> None:
         self.workspace = workspace.resolve()
         self.config, self.consumer, self.home = config, consumer, home
+        self.registry_source = registry
         self.agent_id = agent_id
         self.coordinator = coordinator
         self.default_model = config.model
@@ -276,7 +277,8 @@ class Conversation:
                 directory=directory,
             )
         self.events = Events(
-            self.session, self.writer, self.observe, self.secret_values(), self.config.tracing
+            self.session, self.writer, self.observe, self.secret_values(), self.config.tracing,
+            tree_path=self.writer.path if self.agent_id == "root" and self.coordinator else None,
         )
 
     async def observe(self, event: RuntimeEvent) -> None:
@@ -503,6 +505,10 @@ class Conversation:
                 before_final=(lambda: coordinator.before_final(self.agent_id))
                 if coordinator is not None else None,
                 user_input_id=self.queued_input_id,
+                execution_id=coordinator.agents[self.agent_id].execution_id
+                if coordinator is not None and self.agent_id != "root" else None,
+                execution_metadata=(lambda: coordinator.execution_metadata(self.agent_id))
+                if coordinator is not None else None,
             )
             self.queued_input_id = None
             if result.outcome == "completed":

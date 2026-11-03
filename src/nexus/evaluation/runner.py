@@ -164,6 +164,32 @@ async def run_case(
                     output
                 ).as_posix()
         result["metrics"] = profile_metrics(profiler.profile)
+        if conversation and conversation.writer and conversation.coordinator is not None:
+            from nexus.app.agent_history import tree_facts
+
+            try:
+                facts = tree_facts(conversation.writer.path)
+                result["collaboration"] = facts
+                aggregate = facts["usage"]
+                metrics = result["metrics"]
+                metrics.update(facts["metrics"])
+                metrics["context_scope"] = "root_agent"
+                metrics["model_calls"] = aggregate["requests"]
+                metrics["usage_calls"] = aggregate["requests"]
+                metrics["usage_coverage"] = aggregate["total_tokens_coverage"]
+                metrics["usage"] = {name: {
+                    "reported": aggregate[name + "_known"]
+                    if aggregate[name + "_coverage"] else None,
+                    "coverage": aggregate[name + "_coverage"], "calls": aggregate["requests"],
+                } for name in ("input_tokens", "output_tokens", "total_tokens",
+                               "cached_input_tokens")}
+                metrics["tool_calls"] = sum(e["kind"] == "tool_started"
+                    for a in facts["agents"] for e in a["events"])
+                metrics["tool_failures"] = sum(e["kind"] == "tool_finished" and not e["data"]["ok"]
+                    for a in facts["agents"] for e in a["events"])
+                metrics["usage_scope"] = "agent_tree_actual_requests"
+            except (OSError, ValueError, RuntimeError):
+                profile_error = True
         if profile_error:
             result["metrics"] = dict(
                 available=False, unavailable_reason="Profile collection failed"
@@ -209,6 +235,7 @@ async def evaluate(selected: list[str], config: Config, home: Path | None = None
         nexus=implementation_identity(SUITE.parents[1]),
         model=model,
         compaction_model=compaction_model,
+        multi_agent=asdict(config.multi_agent),
         limits=asdict(replace(config.limits, shell="/bin/sh")),
         **provenance(),
         cases=[case.identity() for case in cases],

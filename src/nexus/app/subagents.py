@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from nexus.app.agent_view import AgentUsage, usage_label
+from nexus.app.agent_view import AgentUsage, combined_usage, usage_label
 from nexus.core.types import (
     Emit,
     ExecutionContext,
@@ -127,6 +127,8 @@ class Subagents:
         if not self.can_delegate(parent):
             return {"error": "delegation_disabled"}
         owner = self.owner(parent)
+        if isinstance(owner.registry_source, dict):
+            return {"error": "delegation_requires_session_registry_factory"}
         prior = next((a for a in self.children(parent) if call_id
                       and a.source_call_id == call_id and a.source_run_id == owner.session.run_id),
                      None)
@@ -166,6 +168,7 @@ class Subagents:
                            max_output_tokens=model.max_output_tokens),
             mcp_servers={name: entry for name, entry in owner.config.mcp_servers.items()
                          if name in settings.mcp_servers},
+            tracing=replace(owner.config.tracing, enabled=False),
         )
         agent.task = asyncio.create_task(self.execute(agent, child_config))
         return {"agent_id": agent.id, "state": agent.state}
@@ -193,6 +196,7 @@ class Subagents:
 
             child = Conversation(
                 owner.workspace, config, consume, home=owner.home,
+                registry=owner.registry_source, environment_display=owner.environment_display,
                 skill_directory=owner.catalog.root if owner.catalog else None,
                 coordinator=self, agent_id=agent.id,
                 resume=resume,
@@ -360,7 +364,8 @@ class Subagents:
         if not self.agents:
             return ""
         lines = [f"Agents · target {selected[:8]} · {self.occupied()}/"
-                 f"{self.root.config.multi_agent.max_agents} occupied"]
+                 f"{self.root.config.multi_agent.max_agents} occupied · "
+                 + usage_label(combined_usage(list(self.usage.values())))]
         def walk(parent: str) -> None:
             for agent in self.children(parent):
                 usage = self.usage.get(agent.id, AgentUsage()).public()
@@ -387,6 +392,16 @@ class Subagents:
                 f"[User guided child {target}]\n{text}", "guide", parent.events,
             )
         return result
+
+    def execution_metadata(self, ident: str) -> Json:
+        agent = self.agents.get(ident)
+        return {"agent_id": ident, "parent_agent_id": agent.parent if agent else None,
+                "root_session_id": self.root.session.session_id,
+                "root_run_id": self.root.session.run_id,
+                "root_execution_id": self.root.session.execution_id,
+                "parent_execution_id": self.owner(agent.parent).session.execution_id
+                if agent else None,
+                "delegation_call_id": agent.source_call_id if agent else None}
 
     def details(self, target: str) -> str:
         from nexus.app.session import read_records
@@ -544,6 +559,7 @@ class Subagents:
         selected = parse_model({"selected": agent.model_settings}, "selected")
         role = self.root.config.multi_agent.roles[agent.role]
         config = replace(owner.config, model=selected,
+                         tracing=replace(owner.config.tracing, enabled=False),
                          limits=replace(owner.config.limits, context_window=selected.context_window,
                                         max_output_tokens=selected.max_output_tokens),
                          mcp_servers={s: v for s, v in owner.config.mcp_servers.items()

@@ -68,11 +68,14 @@ async def run_turn(
     before_request: Callable[[], Awaitable[None]] | None = None,
     before_final: Callable[[], Awaitable[bool]] | None = None,
     user_input_id: str | None = None,
+    execution_id: str | None = None,
+    execution_metadata: Callable[[], Json] | None = None,
 ) -> RunResult:
     gateway = gateway or SecurityGateway()
     started = time.monotonic()
     first_message = len(session.messages)
     session.run_id = session.resume_run_id or uuid4().hex
+    session.execution_id = execution_id or uuid4().hex
     if session.plan is not None and session.plan.run_id != session.run_id:
         session.plan = None
     if session.skills_run_id != session.run_id:
@@ -156,7 +159,9 @@ async def run_turn(
 
     try:
         await observed("run_started", {"workspace": str(session.workspace),
-                                       "execution_mode": gateway.policy.mode})
+                                       "execution_mode": gateway.policy.mode,
+                                       "execution_id": session.execution_id,
+                                       **(execution_metadata() if execution_metadata else {})})
         session.resume_run_id = None
         # Finish the interrupted message group before adding any new user message.
         pending = list(session.pending_tools)
