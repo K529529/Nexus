@@ -47,6 +47,7 @@ async def test_model_command(
 
     from nexus.app import cli
     from nexus.app.config import Config, ModelConfig
+    from nexus.core.inbox import Inbox
     from nexus.core.security import SecurityGateway
     from nexus.core.types import Limits
 
@@ -60,10 +61,10 @@ async def test_model_command(
         config = cfg
         default_model = cfg.model
         model_alias = "default"
-        session = SimpleNamespace(messages=[], selected_skill=None)
+        session = SimpleNamespace(messages=[], selected_skill=None, resume_run_id=None)
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            pass
+            self.inbox = Inbox()
 
         async def start_memory(self) -> None:
             pass

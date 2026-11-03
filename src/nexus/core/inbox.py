@@ -13,6 +13,7 @@ class InputMessage:
     id: str
     text: str
     mode: Literal["guide", "queue"]
+    delivering: bool = False
 
 
 class Inbox:
@@ -30,13 +31,14 @@ class Inbox:
 
     async def change(self, ident: str, text: str | None, emit: Emit) -> bool:
         item = next((m for m in self.pending if m.id == ident), None)
-        if item is None:
+        if item is None or item.delivering:
             return False
-        await emit("input_updated" if text else "input_withdrawn", {"id": ident, "text": text})
+        # Make the edit visible before the event consumer can yield to delivery.
         if text:
             item.text = text
         else:
             self.pending.remove(item)
+        await emit("input_updated" if text else "input_withdrawn", {"id": ident, "text": text})
         return True
 
     def guides(self) -> list[InputMessage]:

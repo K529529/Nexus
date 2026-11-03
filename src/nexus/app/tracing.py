@@ -301,7 +301,9 @@ def project_tree(logs: dict[str, list[Json]], run_id: str) -> tuple[list[Json], 
             continue
         for child_run in dict.fromkeys(r.get("run_id") for r in rows if r.get("run_id")):
             items, notes = project_run(rows, str(child_run))
-            children.extend(s for s in items if s["attributes"].get("nexus.root_run_id") == run_id)
+            # Nested communications are also summarized in the root log.
+            children.extend(s for s in items if s["attributes"].get("nexus.root_run_id") == run_id
+                            and s["name"] != "nexus.agent.message")
             diagnostics.extend(notes)
     executions = {s["attributes"].get("nexus.execution_id"): s for s in spans + children
                   if s["name"] == "nexus.run"}

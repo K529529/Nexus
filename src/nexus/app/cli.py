@@ -454,6 +454,7 @@ async def application(args: argparse.Namespace) -> int:
                 if getattr(conversation.session, "resume_run_id", None):
                     queued = None
                 if queued is not None:
+                    queued.delivering = True
                     draft = queued.text
                     conversation.queued_input_id = queued.id
                 else:
@@ -467,6 +468,10 @@ async def application(args: argparse.Namespace) -> int:
                 return 0
             if not text:
                 continue
+            if queued is not None:
+                # Queued input is task text, even when it starts with '/'.
+                # Dispatching it as an idle command would leave it queued forever.
+                text = ""
             if await agent_command(conversation, editor, text):
                 continue
             if text == "/exit":

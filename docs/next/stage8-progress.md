@@ -120,3 +120,17 @@ Stage8-6 扩展这两个现有入口，不新增通用 history 命令。
   用量不重复、恢复轨迹分离、正文与私有续写字段不导出、缺尾旧日志兼容。
 - 仅验证本地遥测投影及既有本机失败端点测试，未调用真实 LangSmith 服务。
   未运行本地 8-case / ABK；按用户要求由 Archer 手动执行。
+
+## Stage8-7 — 集成与交付
+
+- Stage8-6 已推送：`f265cf2`。
+- 补齐 [配置、操作、恢复与人工验收说明](stage8-usage.md)，README 与使用手册提供入口。
+  主/子/孙仍复用同一消息驱动循环，未增加规划器或调度框架。
+- 修复全量发现的旧 CLI 替身接口；补齐退出汇总的子代理实际用量、投递中的输入不可编辑、
+  排队 `/` 文本只作为任务执行一次，以及嵌套通信遥测去重。
+- Windows 全量 1209 passed / 10 skipped；之后最终输入边界集合 6 passed。
+  Linux 独立 wheel 的 Stage8 + 工具/MCP 集合 118 passed / 1 skipped。
+- Ruff、完整 mypy、uv lock、wheel/sdist 构建、Windows 源码外独立安装和 uv tool 安装通过。
+  原始输出、首次失败与修复、平台边界见 [验收证据](evidence/stage8/acceptance.md)。
+- ABK / 真实本地 8-case 未运行，由 Archer 手动执行；真实模型协作与 Windows 终端手感
+  尚待人工验收。未声称多 Agent 更快或更省，未合入 V0.3 / main，未发布包。

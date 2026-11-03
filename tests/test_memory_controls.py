@@ -129,11 +129,10 @@ async def test_interactive_switch_opens_clean_sessions_and_blocks_memory_resume(
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            from types import SimpleNamespace
-
+            from prompt_toolkit import Application
             from prompt_toolkit.input import DummyInput
 
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             return next(answers)

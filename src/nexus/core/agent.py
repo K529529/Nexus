@@ -196,6 +196,9 @@ async def run_turn(
                 await before_request()
             if inbox is not None:
                 for item in inbox.guides():
+                    if item not in inbox.pending:
+                        continue
+                    item.delivering = True
                     await append_message(session, Message("user", (
                         "[Guidance for the current task; preserve its goal unless explicitly "
                         "changed. Answer questions, then continue the task.]\n" + item.text

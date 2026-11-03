@@ -7,6 +7,8 @@
 一个轻量的终端 Coding Agent：读取代码、修改文件、运行测试，并展示执行过程。
 单个消息驱动循环，无需数据库或仓库索引。
 
+V0.3 开发分支新增可选原生多 Agent 协作与运行中输入，见 [Stage8 使用与验收](docs/next/stage8-usage.md)。
+
 Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
 
 [English](README.md) / **简体中文** &nbsp; · &nbsp; [快速开始](#快速开始) &nbsp; · &nbsp; [使用手册](docs/next/usage-guide.zh-CN.md) &nbsp; · &nbsp; [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) &nbsp; · &nbsp; [发布记录](https://github.com/K529529/Nexus/releases/tag/v0.2.0)

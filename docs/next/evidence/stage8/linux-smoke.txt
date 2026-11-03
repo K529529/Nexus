@@ -1,0 +1,6 @@
+/tmp/n8-linux-5Dl0y13P/venv/lib/python3.12/site-packages/nexus/__init__.py
+.............................................................s.......... [ 60%]
+...............................................                          [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_tool_reliability.py:88: Windows PowerShell regression
+118 passed, 1 skipped in 17.27s

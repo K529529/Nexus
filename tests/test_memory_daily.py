@@ -290,11 +290,10 @@ async def test_cli_terminal_stops_before_exit_summary(
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            from types import SimpleNamespace
-
+            from prompt_toolkit import Application
             from prompt_toolkit.input import DummyInput
 
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, text: str, **kwargs: Any) -> str:
             value = next(answers)

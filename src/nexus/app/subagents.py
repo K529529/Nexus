@@ -557,6 +557,8 @@ class Subagents:
             return {"error": "role_delegation_denied"}
         owner = self.owner(parent)
         selected = parse_model({"selected": agent.model_settings}, "selected")
+        if isinstance(owner.registry_source, dict):
+            return {"error": "delegation_requires_session_registry_factory"}
         role = self.root.config.multi_agent.roles[agent.role]
         config = replace(owner.config, model=selected,
                          tracing=replace(owner.config.tracing, enabled=False),

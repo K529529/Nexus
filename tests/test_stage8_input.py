@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import create_app_session
@@ -12,7 +13,7 @@ from nexus.app.config import default_shell
 from nexus.app.input import TaskInput
 from nexus.core.agent import run_turn
 from nexus.core.inbox import Inbox
-from nexus.core.types import Emit, Limits, Message, ModelReply, Session, ToolSpec
+from nexus.core.types import Emit, Json, Limits, Message, ModelReply, Session, ToolSpec
 from nexus.tools.registry import native_tools
 from tests.conftest import Recorder, ScriptedModel, call, python_command, reply
 from tests.test_cli_ux import until
@@ -101,3 +102,73 @@ async def test_running_editor_enter_tab_and_approval_draft() -> None:
             await until(lambda: prompt.app.is_running)
             assert prompt.default_buffer.text == "draft 中文"
         assert editor.saved_draft == "draft 中文"
+
+
+async def test_guidance_cannot_be_edited_while_commit_is_yielding(tmp_path: Path) -> None:
+    inbox, recorder = Inbox(), Recorder()
+    await inbox.receive("keep this guidance", "guide", recorder)
+    ident = inbox.pending[0].id
+
+    async def emit(kind: str, data: Json, *, protocol_data: Json | None = None) -> int:
+        if kind == "message" and data.get("input_id") == ident:
+            assert not await inbox.change(ident, None, recorder)
+            assert not await inbox.change(ident, "too late", recorder)
+        return await recorder(kind, data)
+
+    result = await run_turn(Session(tmp_path), "task", ScriptedModel([reply(text="done")]),
+                            {}, emit, Limits(), inbox=inbox)
+    assert result.outcome == "completed" and not inbox.pending
+
+
+async def test_queued_slash_text_runs_once_as_task(tmp_path: Path, monkeypatch: Any) -> None:
+    import argparse
+    import io
+    import sys
+
+    from prompt_toolkit import Application
+    from prompt_toolkit.input import DummyInput
+    from rich.console import Console
+
+    from nexus.app import bootstrap, cli
+    from nexus.core.inbox import InputMessage
+    from tests.test_conversation import config
+
+    cfg = config(monkeypatch)
+    instances: list[bootstrap.Conversation] = []
+    original = bootstrap.Conversation
+
+    class Model(ScriptedModel):
+        async def close(self) -> None:
+            pass
+
+    model = Model([reply(text="task handled")])
+
+    def conversation(*args: Any, **kwargs: Any) -> bootstrap.Conversation:
+        instance = original(*args, **kwargs)
+        instance.inbox.pending.append(InputMessage("queued", "/help", "queue"))
+        instances.append(instance)
+        return instance
+
+    class Prompt:
+        def __init__(self, **kwargs: Any) -> None:
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
+
+        async def prompt_async(self, *args: Any, **kwargs: Any) -> str:
+            return "/exit"
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr(cli, "load_config", lambda **kw: cfg)
+    monkeypatch.setattr(cli, "read_toml", lambda _: {"model": {"name": "test"}})
+    monkeypatch.setattr(cli, "Console", lambda **kw: Console(file=io.StringIO()))
+    monkeypatch.setattr(cli, "PromptSession", Prompt)
+    monkeypatch.setattr(cli, "Conversation", conversation)
+    monkeypatch.setattr(bootstrap, "ChatModel", lambda _: model)
+    with create_app_session(output=DummyOutput()):
+        assert await asyncio.wait_for(cli.application(argparse.Namespace(command=None)), 5) == 0
+    assert len(model.requests) == 1
+    assert not instances[0].inbox.pending
+    assert any(m.input_id == "queued" and m.content == "/help"
+               for m in instances[0].session.messages)

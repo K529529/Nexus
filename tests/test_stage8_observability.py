@@ -8,6 +8,7 @@ from typing import Any
 from nexus.app import bootstrap
 from nexus.app.agent_history import tree_facts
 from nexus.app.config import MultiAgentConfig
+from nexus.app.profile import InteractionSummary
 from nexus.app.session import SessionLog
 from nexus.core.types import Emit, ExecutionContext, Json, RuntimeEvent, Session, Tool, ToolResult
 from nexus.evaluation.agent_trace import render_agents
@@ -126,3 +127,17 @@ async def test_custom_environment_factory_is_inherited_without_host_shell(
         assert manager.owner(ident).memory is None
     finally:
         await root.close()
+
+
+async def test_shutdown_summary_counts_wrapped_child_requests_once() -> None:
+    summary = InteractionSummary(ignore)
+    for kind, data in [("model_started", {}), ("model_finished", {
+        "usage": {"source": "reported", "total_tokens": 17}, "duration_ms": 10,
+    })]:
+        await summary(RuntimeEvent("subagent_event", "now", "child", "run", {
+            "agent_id": "child", "kind": kind, "data": data,
+        }))
+    await summary(RuntimeEvent("agent_result_delivered", "now", "root", "run", {
+        "agent_id": "child", "usage": {"total_tokens": 17},
+    }))
+    assert summary.models == 1 and summary.tokens == 17 and summary.usage_calls == 1

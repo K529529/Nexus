@@ -15,6 +15,9 @@ def test_tree_trace_links_lifecycles_and_requests_without_content(tmp_path: Path
         "data": {"agent_id": "child", "parent_id": "root", "direction": "to_parent",
                  "request_decision": True, "text": "PRIVATE_MESSAGE"}})
     root_rows[-1]["seq"] = 101
+    logs["child"].insert(-1, {**root_rows[-2], "session_id": "child", "run_id": "child",
+                             "seq": 100})
+    logs["child"][-1]["seq"] = 101
     spans, diagnostics = project_tree(logs, "root-session")
     assert not diagnostics
     root = next(s for s in spans if s["name"] == "nexus.run")
@@ -27,6 +30,7 @@ def test_tree_trace_links_lifecycles_and_requests_without_content(tmp_path: Path
     assert {s["parent_id"] for s in requests} == {root["span_id"], child["span_id"]}
     assert sum(s["attributes"].get("gen_ai.usage.input_tokens", 0) for s in spans) == 30
     message = next(s for s in spans if s["name"] == "nexus.agent.message")
+    assert len([s for s in spans if s["name"] == "nexus.agent.message"]) == 1
     assert message["attributes"]["nexus.message.request_decision"]
     assert "PRIVATE" not in json.dumps(spans)
     assert "public result" not in json.dumps(spans)

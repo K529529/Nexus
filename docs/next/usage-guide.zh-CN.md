@@ -227,6 +227,9 @@ collect，具体准备、官方命令、原始 base_commit diff 和报告关联�
 
 ## 固定八项开发评测
 
+V0.3 Stage8 的运行中输入、多 Agent 配置、代理查看、恢复及评测对照说明见
+[Stage8 使用与验收](stage8-usage.md)。
+
 从本源码 checkout 启动 Docker Desktop（Linux containers），沿用现有模型配置和环境变量：
 
 ```powershell

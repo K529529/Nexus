@@ -245,8 +245,7 @@ async def test_permissions_transition_preserves_session_until_consent(
     monkeypatch: pytest.MonkeyPatch,
     answer: bool,
 ) -> None:
-    from types import SimpleNamespace
-
+    from prompt_toolkit import Application
     from prompt_toolkit.input import DummyInput
 
     work, path, _ = consent_fixture
@@ -281,7 +280,7 @@ async def test_permissions_transition_preserves_session_until_consent(
 
     class Prompt:
         def __init__(self, **kwargs: Any) -> None:
-            self.app = SimpleNamespace(input=DummyInput())
+            self.app: Application[str] = Application(input=DummyInput(), output=DummyOutput())
 
         async def prompt_async(self, *args: Any, **kwargs: Any) -> str:
             return next(inputs)

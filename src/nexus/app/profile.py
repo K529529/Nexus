@@ -408,6 +408,9 @@ class InteractionSummary:
 
     async def __call__(self, event: RuntimeEvent) -> None:
         data, kind = event.data, event.kind
+        if kind == "subagent_event":
+            # Count the child's actual events once; keep terminal delivery wrapped.
+            data, kind = data["data"], data["kind"]
         self.sessions.add(event.session_id)
         if kind == "run_started":
             self.runs += 1
