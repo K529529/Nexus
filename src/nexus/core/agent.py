@@ -10,6 +10,7 @@ from uuid import uuid4
 from nexus.core.context import Context, ContextBuilder, execution_budget
 from nexus.core.durable import prepared, remember_risk, save_result
 from nexus.core.handoff import make_handoff
+from nexus.core.inbox import Inbox
 from nexus.core.security import SecurityGateway
 from nexus.core.stagnation import GUIDANCE, StagnationDetector
 from nexus.core.types import (
@@ -61,6 +62,7 @@ async def run_turn(
     compaction_model: Model | None = None,
     context: Context | None = None,
     gateway: SecurityGateway | None = None,
+    inbox: Inbox | None = None,
 ) -> RunResult:
     gateway = gateway or SecurityGateway()
     started = time.monotonic()
@@ -177,6 +179,14 @@ async def run_turn(
 
         for step in range(1, limits.max_steps + 1):
             result.steps = step
+            if inbox is not None:
+                for item in inbox.guides():
+                    await append_message(session, Message("user", (
+                        "[Guidance for the current task; preserve its goal unless explicitly "
+                        "changed. Answer questions, then continue the task.]\n" + item.text
+                    )), observed)
+                    inbox.pending.remove(item)
+                    await observed("input_delivered", {"id": item.id, "mode": item.mode})
             context.begin_step()
             context.execution_budget = execution_budget(step, limits.max_steps)
             specs = [t.spec for t in registry.values()]
@@ -266,6 +276,8 @@ async def run_turn(
             pending_guidance = None
             await append_message(session, reply.message, observed)
             if not reply.message.tool_calls:
+                if inbox is not None and inbox.guides():
+                    continue
                 result.outcome, result.final_text = "completed", reply.message.content
                 break
             pending = list(reply.message.tool_calls)

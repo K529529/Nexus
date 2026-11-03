@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import os
 import signal
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from contextlib import asynccontextmanager, contextmanager, suppress
 from dataclasses import dataclass
+from typing import Literal
 
 from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
@@ -208,6 +209,11 @@ class TaskInput:
         self.burst_until = 0.0
         self.history = ExpandedHistory(self.expand)
         self.clipboard = ExpandedClipboard(self.expand)
+        self.live_submit: Callable[[str, Literal["guide", "queue"]], Awaitable[None]] | None = None
+        self.live_interrupt: Callable[[], None] | None = None
+        self.listener: asyncio.Task[None] | None = None
+        self.submit_mode: Literal["guide", "queue"] = "guide"
+        self.saved_draft = ""
 
         @self.bindings.add("enter")
         def submit(event: KeyPressEvent) -> None:
@@ -291,8 +297,15 @@ class TaskInput:
 
         @self.bindings.add("tab")
         def tab(event: KeyPressEvent) -> None:
-            if self.capture is None and event.current_buffer.text.startswith("/"):
+            if event.current_buffer.complete_state is not None:
+                event.current_buffer.complete_next()
+            elif self.capture is None and event.current_buffer.text.startswith("/"):
                 event.current_buffer.start_completion(select_first=True)
+            elif (self.live_submit is not None and self.capture is None
+                  and self.expand(event.current_buffer.text).strip()
+                  and self.pending_enter is None and not event.app.key_processor.input_queue):
+                self.submit_mode = "queue"
+                event.current_buffer.validate_and_handle()
             else:
                 self.insert("\t")
 
@@ -312,13 +325,22 @@ class TaskInput:
         @self.bindings.add("c-c")
         @self.bindings.add("<sigint>")
         def cancel(event: KeyPressEvent) -> None:
+            if self.live_interrupt is not None:
+                event.current_buffer.reset()
+                self.clear()
+                event.app.key_processor.empty_queue()
+                self.live_interrupt()
+                return
             if event.current_buffer.text or self.capture is not None:
                 event.current_buffer.reset()
                 self.clear()
                 event.app.key_processor.empty_queue()
                 self.discard()
             else:
-                event.app.exit(exception=KeyboardInterrupt)
+                if self.live_interrupt is not None:
+                    self.live_interrupt()
+                else:
+                    event.app.exit(exception=KeyboardInterrupt)
 
     def ime_width(self) -> Dimension:
         columns = self.prompt.app.output.get_size().columns
@@ -455,6 +477,9 @@ class TaskInput:
     def toolbar(self) -> str:
         if self.capture is not None:
             return "PASTE MODE · Enter adds a line · F2 finishes capture · Ctrl+C clears"
+        if self.live_submit is not None:
+            return ("Enter guide · Tab queue · /pending · /edit ID text · "
+                    "/withdraw ID · Ctrl+C cancel")
         return "Enter send · F2 paste · F3 expand · F4 newline · Ctrl+C clear/exit"
 
     def discard(self, interrupt: Callable[[], None] | None = None) -> None:
@@ -479,7 +504,7 @@ class TaskInput:
 
         # Windows prompt_toolkit cannot install an asyncio signal handler.
         # Use the same draft/idle binding for both a key and an OS signal.
-        previous = signal.signal(signal.SIGINT, interrupt)
+        previous = signal.signal(signal.SIGINT, interrupt) if self.live_submit is None else None
         try:
             with patch_stdout(raw=True):
                 result = await self.prompt.prompt_async(
@@ -502,7 +527,9 @@ class TaskInput:
                     clipboard=self.clipboard,
                     pre_run=self.prepare,
                     handle_sigint=False,
+                    default=self.saved_draft,
                 )
+                self.saved_draft = ""
                 return self.expand(result)
         finally:
             if self.resize_handle is not None:
@@ -510,7 +537,46 @@ class TaskInput:
                 self.resize_handle = None
             self.clear()
             active = False
-            signal.signal(signal.SIGINT, previous)
+            if previous is not None:
+                signal.signal(signal.SIGINT, previous)
+
+    async def listen(self) -> None:
+        assert self.live_submit is not None
+        while True:
+            self.submit_mode = "guide"
+            try:
+                text = await self.read()
+            except EOFError:
+                return
+            await self.live_submit(text, self.submit_mode)
+
+    async def pause_listener(self) -> None:
+        if self.listener is not None:
+            if self.prompt.app.is_running and not self.prompt.app.is_done:
+                self.saved_draft = self.expand(self.prompt.default_buffer.text)
+            self.listener.cancel()
+            with suppress(asyncio.CancelledError):
+                await self.listener
+            self.listener = None
+
+    @asynccontextmanager
+    async def during_run(
+        self, submit: Callable[[str, Literal["guide", "queue"]], Awaitable[None]],
+        interrupt: Callable[[], None],
+    ) -> AsyncIterator[None]:
+        def cancel() -> None:
+            interrupt()
+            if self.listener is not None:
+                self.listener.cancel()
+
+        self.live_submit, self.live_interrupt = submit, cancel
+        self.listener = asyncio.create_task(self.listen())
+        try:
+            yield
+        finally:
+            await self.pause_listener()
+            self.live_submit = self.live_interrupt = None
+            self.discard()
 
     @contextmanager
     def busy(self, interrupt: Callable[[], None]) -> Iterator[None]:
@@ -545,6 +611,7 @@ class TaskInput:
         source = self.prompt.app.input
         if source.closed:
             return "deny"
+        await self.pause_listener()
         selected = 0
         shown = False
         painted = False
@@ -640,3 +707,5 @@ class TaskInput:
             return "cancel"
         finally:
             self.approval = None
+            if self.live_submit is not None:
+                self.listener = asyncio.create_task(self.listen())

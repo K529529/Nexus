@@ -296,6 +296,26 @@ class Transcript:
             self.console.print(Text("  … audit diff omitted/truncated", style="dim"))
 
     async def __call__(self, event: RuntimeEvent) -> None:
+        if event.kind.startswith("input_"):
+            self.stop_activity()
+            data = event.data
+            if event.kind == "input_received":
+                self.console.print(Text(
+                    f"Received {data['mode']} [{data['id']}]: {terminal_text(data['text'])}",
+                    style="cyan",
+                ))
+            elif event.kind == "input_delivered":
+                self.console.print(Text(f"Delivered to agent [{data['id']}]", style="dim"))
+            elif event.kind == "input_pending":
+                for item in data["messages"]:
+                    self.console.print(Text(
+                        f"[{item['id']}] {item['mode']}: {terminal_text(item['text'])}"
+                    ))
+                if not data["messages"]:
+                    self.console.print("No pending messages.")
+            else:
+                self.console.print(Text(f"{event.kind} [{data['id']}]", style="dim"))
+            return
         data, kind = event.data, event.kind
         if kind == "tool_output_delta":
             # Keep tool observations intact for the model/logs, out of the transcript.

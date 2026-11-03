@@ -11,7 +11,7 @@ import sys
 from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app_session
@@ -183,6 +183,33 @@ async def drive(
 
         conversation.gateway.approver = approve
     try:
+        if editor is not None and not compact:
+            async def receive(text: str, mode: Literal["guide", "queue"]) -> None:
+                if conversation.events is None:
+                    conversation.ensure_events(text)
+                assert conversation.events is not None
+                emit = conversation.events
+                inbox = conversation.inbox
+                if text.strip() == "/pending":
+                    await emit("input_pending", {"messages": [
+                        {"id": m.id, "mode": m.mode, "text": m.text} for m in inbox.pending
+                    ]})
+                elif text.startswith(("/withdraw ", "/edit ")):
+                    parts = text.split(maxsplit=2)
+                    replacement = parts[2] if parts[0] == "/edit" and len(parts) == 3 else None
+                    if parts[0] == "/edit" and replacement is None:
+                        await emit("warning", {"detail": "Use /edit ID replacement text."})
+                    elif not await inbox.change(parts[1], replacement, emit):
+                        await emit("warning", {"detail": "Message already delivered or unknown."})
+                elif text.startswith("/"):
+                    await emit("warning", {"detail": (
+                        "During execution use /pending, /edit ID text or /withdraw ID."
+                    )})
+                else:
+                    await inbox.receive(text, mode, emit)
+
+            async with editor.during_run(receive, lambda: interrupt(signal.SIGINT, None)):
+                return await conversation.turn(text)
         guard = editor.busy(lambda: interrupt(signal.SIGINT, None)) if editor else nullcontext()
         with guard:
             if compact:
@@ -349,7 +376,16 @@ async def application(args: argparse.Namespace) -> int:
                         if message.role in {"user", "assistant"} and message.content:
                             console.print(Text(f"{message.role}: {terminal_text(message.content)}"))
             try:
-                draft = await editor.read()
+                queued = next((m for m in conversation.inbox.pending if m.mode == "queue"), None)
+                if queued is not None:
+                    draft = queued.text
+                    conversation.inbox.pending.remove(queued)
+                    assert conversation.events is not None
+                    await conversation.events("input_delivered", {
+                        "id": queued.id, "mode": "queue",
+                    })
+                else:
+                    draft = await editor.read()
                 text = draft.strip()
             except KeyboardInterrupt:
                 exit_reason = "ctrl-c"
@@ -375,7 +411,8 @@ async def application(args: argparse.Namespace) -> int:
                     "Enter sends; Ctrl+J/F4 inserts a newline. F2 toggles safe paste capture; "
                     "F3 expands a paste for editing. "
                     "Ctrl+C cancels the run, clears a draft, or exits an empty prompt. "
-                    "Input typed during execution/cleanup is discarded."
+                    "During execution Enter guides the task; Tab queues the next task. "
+                    "/pending lists messages; /edit ID text edits; /withdraw ID removes."
                 )
             elif text == "/model" or text.startswith("/model "):
                 alias = text.removeprefix("/model").strip()

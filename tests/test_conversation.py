@@ -286,6 +286,9 @@ async def test_cli_new_and_resume_close_old_lifetimes(tmp_path: Path, monkeypatc
 
             # The replacement opens before the old conversation closes, so failure is safe.
             self.closed = False
+            from nexus.core.inbox import Inbox
+
+            self.inbox = Inbox()
             self.session = SimpleNamespace(messages=[], selected_skill=None)
             self.resume = kwargs.get("resume")
             instances.append(self)

@@ -24,6 +24,7 @@ from nexus.app.skills import SkillCatalog
 from nexus.core.agent import run_turn
 from nexus.core.compaction import provenance
 from nexus.core.context import Context, ContextBuilder, instructions
+from nexus.core.inbox import Inbox
 from nexus.core.model import ChatModel, CompactionModel
 from nexus.core.security import SecurityGateway
 from nexus.core.skills import check_active
@@ -63,6 +64,7 @@ class Conversation:
         self.default_model = config.model
         self.model_alias = "default"
         self.turn_lock = asyncio.Lock()
+        self.inbox = Inbox()
         self.gateway = SecurityGateway(config.security)
         if config.security.mode != "local":
             # No Node import/process in Local; restricted startup stays lazy.
@@ -443,6 +445,7 @@ class Conversation:
                 compaction_model=self.compaction_model,
                 context=self.context,
                 gateway=self.gateway,
+                inbox=self.inbox,
             )
             if result.outcome == "completed":
                 try:
