@@ -93,4 +93,39 @@ Inbox，而回调还在异步接收。修正测试为等待 `finish_submission()
 [复验输出](evidence/release-0.3.0/candidate-screen-recheck.txt)。
 该次失败不得作为最终候选 PASS，后续必须完整双平台复验。
 
-最终候选完整 CI 与 main 合入结果在检查通过后记录；任何失败期间不进入 main。
+## 最终功能候选检查与交付门禁
+
+回归同步修正提交 `9358de1162cf3d5fff8dc614c94c5cc91e65190b` 已推送。
+[完整 CI 41941751122](https://github.com/K529529/Nexus/actions/runs/41941751122) **PASS**：
+
+| 项目 | Windows | Linux |
+| --- | --- | --- |
+| 完整 pytest | 1244 passed / 10 skipped | 1224 passed / 30 skipped |
+| Ruff / mypy / 锁 / diff | PASS | PASS |
+| wheel + sdist，100 个包文件核对 | PASS | PASS |
+| 源码外新环境 wheel 安装、version/help、metadata 一致 | PASS | PASS |
+| 16 项必要资源、两个 tokenizer/模板、依赖检查 | PASS | PASS |
+| uv tool 独立安装 | PASS | PASS |
+
+[CI 摘要、跳过原因、分发 SHA256](evidence/release-0.3.0/candidate-ci-summary.txt)。
+每个平台的精确分发文件保存在该 CI 的 candidate-* artifacts。Windows 的 10 个 skip 是
+opt-in Docker；Linux 另外 20 个为 Windows 专用能力。16 个警告来自已锁定 LiteLLM/Pydantic。
+本轮不在运行 ABK 的宿主另外开启真实 Docker/ACL 专项、QMD 下载或真实模型评测，
+这些记 **NOT RUN**，既有平台人工证据保留原提交条件。
+
+没有剩余已知的自动化发布阻断项。PyCharm/中文 IME 手感、真实多 Agent 体验及尚未完成的
+ABK 对照仍需用户检查，不宣称它们已由离线套件证明。
+发布工作流实际发布、GitHub Release、PyPI 上传/公开索引安装均 **NOT RUN（等待批准）**。
+
+相对 ABK `0fd7fa4`，产品源码只改变 `src/nexus/__init__.py` 的版本号和
+`src/nexus/tools/sandbox.py` 的平台类型分支；其余是测试同步、CI/打包检查和文档。
+评测仍用原 commit/archive hash/image ID，不把发布候选伪装成被测镜像。
+
+本次专属独立安装/构建目录已归档证据及分发文件后清理；
+[清理记录](evidence/release-0.3.0/temporary-cleanup.txt)。原有 `.idea`、Stage4 PoC 与
+系统 pytest 默认保留失败目录未清理；没有改代理配置、电源配置或全局 Nexus 安装。
+
+本验收归档之后只更新提交记录，不再改变功能。合入 main 仍需重新 fetch，确认保留
+main 独立变更、采用可快进/保留历史合并，并检查合入后的完整 CI。
+最终远端 main SHA 与 CI 作为交付报告中的待发布对象；若之后变化，发布前必须重新确认。
+Stage8 与 V0.3 分支保留；不创建 v0.3.0 标签、不发布 Release、不上传 PyPI。

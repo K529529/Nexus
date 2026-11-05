@@ -1,0 +1,39 @@
+Commit: 9358de1162cf3d5fff8dc614c94c5cc91e65190b
+CI: https://github.com/K529529/Nexus/actions/runs/41941751122
+
+Windows:
+2026-11-05T00:30:24.5019024Z All checks passed!
+2026-11-05T00:30:57.6643113Z Success: no issues found in 150 source files
+2026-11-05T00:33:57.9152562Z SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+2026-11-05T00:33:57.9153042Z SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+2026-11-05T00:33:57.9153489Z SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+2026-11-05T00:33:57.9153916Z ========== 1244 passed, 10 skipped, 16 warnings in 177.87s (0:02:57) ==========
+2026-11-05T00:34:02.9618582Z {"status": "PASS", "version": "0.3.0", "package_files_verified": 100, "artifacts": {"nexus_coding_agent-0.3.0-py3-none-any.whl": "01adeb388abea0ef7e7504d9347f7f42bf47cc2ddc07144494bdb6ad7ae4ce34", "nexus_coding_agent-0.3.0.tar.gz": "907ed10ae87a44a5e5bfb9a2886a016d976daf42f8889ec1ce062f7b67caee5c"}}
+2026-11-05T00:34:10.9032174Z {"status": "PASS", "version": "0.3.0", "package": "D:\\a\\_temp\\wheel-test\\Lib\\site-packages\\nexus", "resources": 16, "tokenizers": ["deepseek", "qwen"]}
+2026-11-05T00:34:10.9990699Z All installed packages are compatible
+
+Linux:
+2026-11-05T00:30:06.0634748Z All checks passed!
+2026-11-05T00:30:32.7276893Z Success: no issues found in 150 source files
+2026-11-05T00:32:20.6364361Z SKIPPED [2] tests/test_acl_consent.py:42: Windows consent
+2026-11-05T00:32:20.6364802Z SKIPPED [1] tests/test_acl_consent.py:74: Windows consent
+2026-11-05T00:32:20.6365260Z SKIPPED [1] tests/test_acl_consent.py:159: Windows junctions
+2026-11-05T00:32:20.6365695Z SKIPPED [1] tests/test_acl_consent.py:194: Windows consent
+2026-11-05T00:32:20.6366119Z SKIPPED [1] tests/test_acl_consent.py:213: Windows consent
+2026-11-05T00:32:20.6366580Z SKIPPED [2] tests/test_acl_consent.py:241: Windows consent
+2026-11-05T00:32:20.6367100Z SKIPPED [8] tests/test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+2026-11-05T00:32:20.6367711Z SKIPPED [1] tests/test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+2026-11-05T00:32:20.6368334Z SKIPPED [1] tests/test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+2026-11-05T00:32:20.6368909Z SKIPPED [1] tests/test_sandbox_stage4.py:55: PowerShell Bridge target
+2026-11-05T00:32:20.6369563Z SKIPPED [1] tests/test_sandbox_stage4.py:93: PowerShell Bridge target
+2026-11-05T00:32:20.6370102Z SKIPPED [1] tests/test_sandbox_stage4.py:163: Windows Node Bridge target
+2026-11-05T00:32:20.6370632Z SKIPPED [1] tests/test_sandbox_stage4.py:199: Windows Node Bridge target
+2026-11-05T00:32:20.6371156Z SKIPPED [2] tests/test_srt_system_paths.py:23: Windows Node policy
+2026-11-05T00:32:20.6371637Z SKIPPED [1] tests/test_srt_system_paths.py:66: Windows Node policy
+2026-11-05T00:32:20.6372130Z SKIPPED [3] tests/test_srt_system_paths.py:109: Windows Node policy
+2026-11-05T00:32:20.6372671Z SKIPPED [1] tests/test_tool_reliability.py:88: Windows PowerShell regression
+2026-11-05T00:32:20.6373236Z SKIPPED [1] tests/test_windows_native.py:91: System PowerShell installation
+2026-11-05T00:32:20.6373776Z ========== 1224 passed, 30 skipped, 16 warnings in 106.76s (0:01:46) ===========
+2026-11-05T00:32:24.8261334Z {"status": "PASS", "version": "0.3.0", "package_files_verified": 100, "artifacts": {"nexus_coding_agent-0.3.0-py3-none-any.whl": "b431b9693b120aafafb65e900232decf01a1a8169ba48e8e0c6b1ccdb56892dd", "nexus_coding_agent-0.3.0.tar.gz": "55f41beeec5ab74e1c5796bfcb052c66c1dd00c23a2b64e6ac71efd65e1d05bc"}}
+2026-11-05T00:32:30.2863171Z {"status": "PASS", "version": "0.3.0", "package": "/home/runner/work/_temp/wheel-test/lib/python3.12/site-packages/nexus", "resources": 16, "tokenizers": ["deepseek", "qwen"]}
+2026-11-05T00:32:30.3703304Z All installed packages are compatible
