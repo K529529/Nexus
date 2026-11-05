@@ -1,9 +1,9 @@
 # Nexus 0.3 usage reference
 
 [Quick start](../../README.md) · [中文](usage-guide.zh-CN.md) ·
-[Release candidate and limitations](release-0.3.0.md)
+[Release notes and limitations](release-0.3.0.md)
 
-This describes the 0.3.0 candidate. Historical designs and experiments remain available;
+This describes Nexus 0.3.0. Historical designs and experiments remain available;
 their old defaults and outcomes are not current recommendations.
 
 ## Configure
@@ -88,9 +88,14 @@ See [model implementation and evidence](stage7-observability-models.md).
 
 ### Install and upgrade
 
-Use the [candidate source installation](../../README.md#quick-start), or a wheel built from
-the reviewed candidate. **0.3.0 is not yet published**; do not assume a version-pinned PyPI
-install is available. Back up config, sessions and memory before upgrading.
+Install from PyPI in a dedicated Python 3.12+ environment:
+
+```sh
+python -m pip install --upgrade nexus-coding-agent==0.3.0
+```
+
+Alternatively, use `uv tool install nexus-coding-agent==0.3.0` or follow the
+[source installation](../../README.md#quick-start). Back up config, sessions and memory before upgrading.
 Verify `python -m nexus --version` and the executable selected by `Get-Command nexus`
 (PowerShell) or `command -v nexus` (Linux); an old global executable may still run 0.2.
 

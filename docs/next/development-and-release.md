@@ -1,6 +1,6 @@
 # 开发、打包与发布
 
-适用：0.3.0 待发布候选。[发布说明](release-0.3.0.md) ·
+适用：Nexus 0.3.0。[发布说明](release-0.3.0.md) ·
 [验收记录](release-0.3.0-validation.md) · [代码导读](engineering-walkthrough.md)
 
 ## 开发环境与检查
@@ -78,7 +78,8 @@ CI push 覆盖 main、next、codex/nexus-v0.3、codex/nexus-v0.3-*；PR 均检�
 发布前：分阶段保留提交历史；Stage8 → V0.3 → main，优先快进，分叉正常合并；
 核实 main 精确 SHA 与其双平台 CI。不得 squash 历史、force push，或提前创建标签。
 
-**本轮到 main 候选即停止。** 用户检查并明确核准后才执行：
+正式发布需先停在 main 候选，待维护者检查并明确核准后才执行以下步骤。
+0.3.0 已按此流程发布；结果见[发布验收记录](release-0.3.0-validation.md)。
 
 1. 再 fetch 核对 main 与获准 SHA；若候选变化，说明差异并重新确认。
 2. 从获准 SHA 创建并推送 `v0.3.0` 标签，Release 内容使用本页链接的 Release Notes。

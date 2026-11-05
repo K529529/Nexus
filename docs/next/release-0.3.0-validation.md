@@ -1,7 +1,7 @@
 # 0.3.0 发布准备与验证记录
 
-状态：准备中，**未发布**。本轮允许分阶段提交、推送及 Stage8 → V0.3 → main 合入；
-创建标签、发布 GitHub Release（会触发 PyPI）、上传 PyPI 均等待用户检查后另行确认。
+状态：**0.3.0 已于 2026-11-05 经用户核准发布**。正式发布记录见文末。
+以下准备阶段记录保留当时状态；其中“待批准 / NOT RUN”不代表当前发布状态。
 
 ## 冻结评测与基线
 
@@ -129,3 +129,33 @@ ABK 对照仍需用户检查，不宣称它们已由离线套件证明。
 main 独立变更、采用可快进/保留历史合并，并检查合入后的完整 CI。
 最终远端 main SHA 与 CI 作为交付报告中的待发布对象；若之后变化，发布前必须重新确认。
 Stage8 与 V0.3 分支保留；不创建 v0.3.0 标签、不发布 Release、不上传 PyPI。
+
+## 正式发布：2026-11-05
+
+用户核准 main `ddf06420eed65b0f5986faeae50aa2243694aab2` 后发布，未更改已核准代码。
+该提交已包含 README 产品介绍与 Multi-Agent 使用说明；
+[双平台 CI 41983400227](https://github.com/K529529/Nexus/actions/runs/41983400227)为 PASS。
+标签 `v0.3.0` 固定于该提交，后续安装说明和发布状态更新不移动标签、不重新上传同版本包。
+
+- [GitHub Release](https://github.com/K529529/Nexus/releases/tag/v0.3.0)：已发布，非预发布；
+  附 wheel、sdist 和 SHA256SUMS.txt。
+- [正式发布工作流 41984455825](https://github.com/K529529/Nexus/actions/runs/41984455825)：PASS。
+  Linux pytest **1224 passed / 30 skipped / 16 warnings**；Ruff、mypy（150 files）、
+  锁文件、差异检查、100 个包文件比对、源码外安装与资源检查均 PASS。
+- [PyPI 0.3.0](https://pypi.org/project/nexus-coding-agent/0.3.0/)：OIDC 上传成功。
+  公开索引、Actions 产物与 GitHub 附件的 wheel/sdist SHA256 一致。
+- Windows 源码目录外、全新 Python 3.12 环境，从 `https://pypi.org/simple` 安装
+  `nexus-coding-agent==0.3.0`：PASS。CLI version/help、包与运行时版本、16 项必要资源、
+  DeepSeek/Qwen tokenizer、91 个已安装包的依赖一致性检查均 PASS。
+- 首次无缓存安装因依赖网络持续重试而中止，未计作 PASS。第二次复用正常依赖缓存，
+  刷新 Nexus 索引并从 PyPI 下载正式包后成功；未修改用户代理或现有安装环境。
+- 本轮未调用真实模型、未重跑 ABK、未启动额外沙箱专项；原有 NOT RUN 范围不变。
+
+| 文件 | SHA256 |
+| --- | --- |
+| nexus_coding_agent-0.3.0-py3-none-any.whl | `13a429822c8d7b3db181a46996408ea1a6450502810377e0f39fbc6c50118465` |
+| nexus_coding_agent-0.3.0.tar.gz | `463e42f44ffe0889518844f7bc74a86617a8142a9cf6ffcbcec00c28d4fe30e5` |
+
+原始安装重试、正式工作流和独立安装日志保存在本地
+`artifacts/release-0.3.0/published/`（忽略目录）；公开证据为以上工作流、索引与附件。
+ABK 仍固定于 `0fd7fa4ba1f0bc8e313fca04cf1771c2a33720dd`，评测配置、数据和进程未改动。

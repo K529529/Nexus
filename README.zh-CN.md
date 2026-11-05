@@ -29,7 +29,19 @@ Python 3.12+ · Windows / Linux · [MIT](LICENSE)
 
 ### 1. 安装
 
-需要 Python 3.12+ 和 Git。在独立环境中从源码安装：
+需要 Python 3.12+。推荐使用 [uv](https://docs.astral.sh/uv/) 安装独立 CLI：
+
+```sh
+uv tool install nexus-coding-agent==0.3.0
+nexus --version
+```
+
+也可在自己的 Python 环境中运行 `python -m pip install --upgrade nexus-coding-agent==0.3.0`。
+
+<details>
+<summary>从源码安装（需要 Git）</summary>
+
+创建独立环境：
 
 ```sh
 git clone https://github.com/K529529/Nexus.git
@@ -56,6 +68,8 @@ python -m pip install .
 python -m nexus --version
 ```
 
+</details>
+
 ### 2. 连接模型
 
 运行 `nexus`，按首次启动向导填写模型名、Base URL、上下文窗口和 API Key 环境变量名。
@@ -78,7 +92,7 @@ export NEXUS_MODEL_API_KEY="<你的密钥>"
 
 ### 3. 在项目里开始工作
 
-保持安装环境激活，切换到要处理的项目目录：
+切换到要处理的项目目录；如果使用 pip 安装，保持对应 Python 环境激活：
 
 ```sh
 cd /path/to/your/project

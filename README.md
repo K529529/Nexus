@@ -30,7 +30,19 @@ Python 3.12+ · Windows / Linux · [MIT](LICENSE)
 
 ### 1. Install
 
-You need Python 3.12+ and Git. Install from source in a dedicated environment:
+You need Python 3.12+. Install an isolated CLI with [uv](https://docs.astral.sh/uv/):
+
+```sh
+uv tool install nexus-coding-agent==0.3.0
+nexus --version
+```
+
+Or run `python -m pip install --upgrade nexus-coding-agent==0.3.0` in your Python environment.
+
+<details>
+<summary>Install from source (requires Git)</summary>
+
+Create a dedicated environment:
 
 ```sh
 git clone https://github.com/K529529/Nexus.git
@@ -57,6 +69,8 @@ python -m pip install .
 python -m nexus --version
 ```
 
+</details>
+
 ### 2. Connect a model
 
 Run `nexus`. The first-launch wizard asks for a model name, Base URL, context window
@@ -81,7 +95,7 @@ See [model and context configuration](docs/next/usage-guide.md#configure).
 
 ### 3. Start in your project
 
-Keep the environment activated and change to the project you want to work on:
+Change to the project you want to work on (keep your Python environment activated if using pip):
 
 ```sh
 cd /path/to/your/project

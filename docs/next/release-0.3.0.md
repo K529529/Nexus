@@ -1,7 +1,9 @@
-# Nexus 0.3.0 Release Notes · 待发布 / Unreleased
+# Nexus 0.3.0 Release Notes
 
-本页描述待检查的源码候选。**尚未创建 v0.3.0 标签、发布 GitHub Release 或上传 PyPI。**
-GitHub Release 的 `published` 事件会触发 PyPI，不能用正式 Release 代替准备操作。
+已于 2026-11-05 发布：[GitHub Release](https://github.com/K529529/Nexus/releases/tag/v0.3.0) ·
+[PyPI 0.3.0](https://pypi.org/project/nexus-coding-agent/0.3.0/)。
+发布标签固定于 `ddf06420eed65b0f5986faeae50aa2243694aab2`；
+[正式发布流水线](https://github.com/K529529/Nexus/actions/runs/41984455825)已通过。
 [验证、CI 与合入记录](release-0.3.0-validation.md) ·
 [中文使用手册](usage-guide.zh-CN.md) · [English guide](usage-guide.md)
 
@@ -27,7 +29,8 @@ GitHub Release 的 `published` 事件会触发 PyPI，不能用正式 Release �
 
 ## 升级与配置
 
-发布前从 V0.3 源码或经过核验的候选 wheel 安装；不要把 0.2.0 PyPI 包当作当前代码。
+在独立 Python 3.12+ 环境运行 `python -m pip install --upgrade nexus-coding-agent==0.3.0`，
+或使用 `uv tool install nexus-coding-agent==0.3.0`。
 备份用户 config、sessions、memory，核对实际 CLI 路径和 `python -m nexus --version`。
 独立压缩模型必须显式配置；其 key、超时和输出预算不从主模型偷偷继承。
 
@@ -57,7 +60,7 @@ GitHub Release 的 `published` 事件会触发 PyPI，不能用正式 Release �
 
 ABK 单/多 Agent 对照固定于 **`0fd7fa4ba1f0bc8e313fca04cf1771c2a33720dd`**。
 它的包版本字符串仍可能为 0.2.0，以 commit、源码包 SHA256、实际镜像 ID 为身份依据。
-本轮发布不改变其镜像、配置、数据或运行状态；新候选包含后续类型修复、CI/测试改进、
+本轮发布不改变其镜像、配置、数据或运行状态；0.3.0 包含后续类型修复、CI/测试改进、
 0.3.0 元数据和文档/包检查，不重新标记或覆盖旧评测证据。
 
 | 实验 | 条件与状态（2026-11-05 发布准备时记录） |
@@ -81,6 +84,5 @@ Local 八项开发评测、历史污染数据和 ABK FeatureBench 分开，不�
 - [Stage7 模型与元数据遥测](stage7-observability-models.md)
 - [开发/构建/正式发布步骤](development-and-release.md)
 
-审核重点：Windows 实际终端体验；默认能力/权限；历史会话升级；多 Agent 任务选择、
-指导/排队、取消和已完成只读；摘要限制和评测条件；候选 SHA 与双平台 CI。
-只有用户明确确认该 main 提交后，才创建标签、发布 Release 并验证 PyPI。
+使用反馈重点：Windows 实际终端体验；默认能力/权限；历史会话升级；多 Agent 任务选择、
+指导/排队、取消和已完成只读。摘要限制和评测条件仍按上文与原始证据记录。

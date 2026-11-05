@@ -1,9 +1,9 @@
 # Nexus 0.3 使用手册
 
 [快速开始](../../README.zh-CN.md) · [English](usage-guide.md) ·
-[待发布说明与限制](release-0.3.0.md)
+[发布说明与限制](release-0.3.0.md)
 
-本文描述当前 0.3.0 候选代码。历史设计和阶段实验保留在原文档，
+本文适用于 Nexus 0.3.0。历史设计和阶段实验保留在原文档，
 不把旧配置、旧成绩或阶段状态当作当前推荐。
 
 ## 配置
@@ -86,8 +86,13 @@ Nexus 不按模型名称猜测或在拒绝后改用其他参数。
 
 ### 安装与升级
 
-当前从 [README 源码步骤](../../README.zh-CN.md#快速开始)安装，或安装经核准候选构建的 wheel。
-不要在正式发布前执行 `pip install nexus-coding-agent==0.3.0` 并假定索引已有该版本。
+在独立的 Python 3.12+ 环境中从 PyPI 安装：
+
+```sh
+python -m pip install --upgrade nexus-coding-agent==0.3.0
+```
+
+也可运行 `uv tool install nexus-coding-agent==0.3.0`，或使用 [README 源码步骤](../../README.zh-CN.md#快速开始)。
 升级前备份 `~/.nexus/config.toml`、sessions 与 memory；升级不会自动修改这些内容。
 独立环境安装后检查 `python -m nexus --version`，并确认 `Get-Command nexus`（Windows）
 或 `command -v nexus`（Linux）指向预期解释器。旧的全局 CLI 可能仍运行旧代码。
