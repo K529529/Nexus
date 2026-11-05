@@ -1,6 +1,10 @@
-# Nexus Next V0
+# Nexus Next · V0.3
 
-本仓库当前开发 Nexus Next V0。本文件只作开发入口，不复制项目契约。
+本仓库当前准备 Nexus 0.3.0 发布候选。本文件只作开发入口，不复制项目契约。
+当前行为见 [使用手册](docs/next/usage-guide.zh-CN.md)、
+[代码导读](docs/next/engineering-walkthrough.md) 与
+[发布/验收记录](docs/next/release-0.3.0.md)。原始 V0 设计保留为历史基线，
+V0.3 已批准的增量见开发设计顶部索引；不从旧基线推断尚未实现或禁止现有能力。
 
 ## 有效设计依据
 

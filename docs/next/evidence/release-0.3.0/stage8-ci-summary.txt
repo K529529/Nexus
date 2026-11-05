@@ -1,0 +1,6 @@
+quality (windows-latest)	Run uv run --frozen ruff check .	2026-11-05T00:10:54.9896740Z All checks passed!
+quality (windows-latest)	Run uv run --frozen mypy src tests	2026-11-05T00:11:42.5844960Z Success: no issues found in 150 source files
+quality (windows-latest)	Run uv run --frozen pytest	2026-11-05T00:15:10.7392619Z ========== 1244 passed, 10 skipped, 16 warnings in 205.41s (0:03:25) ==========
+quality (ubuntu-latest)	Run uv run --frozen ruff check .	2026-11-05T00:10:41.3123946Z All checks passed!
+quality (ubuntu-latest)	Run uv run --frozen mypy src tests	2026-11-05T00:11:17.2328229Z Success: no issues found in 150 source files
+quality (ubuntu-latest)	Run uv run --frozen pytest	2026-11-05T00:13:17.7752850Z ========== 1224 passed, 30 skipped, 16 warnings in 119.23s (0:01:59) ===========

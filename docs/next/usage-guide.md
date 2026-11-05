@@ -1,341 +1,260 @@
-# Nexus usage reference
+# Nexus 0.3 usage reference
 
-[Quick start](../../README.md) · [中文](usage-guide.zh-CN.md)
+[Quick start](../../README.md) · [中文](usage-guide.zh-CN.md) ·
+[Release candidate and limitations](release-0.3.0.md)
 
-Detailed configuration, session behavior, tool boundaries and developer evaluation commands.
-
-The V0.3 Stage 2 source branch adds model-driven global Markdown memory, private QMD
-hybrid search, recoverable deletion, and stable session snapshots. This is not in the
-published V0.2 package. See the [Stage 2 implementation report](v0.3-stage2-memory.md)
-and [setup instructions](usage-guide.zh-CN.md#v03-stage-2长期记忆).
-Memory defaults to ON. Session startup automatically prepares missing user-local Node/QMD
-dependencies; subsequent sessions reuse installed dependencies, indexes and GGUF caches.
-`nexus memory status` and `/memory [status]` show diagnostics without a model call.
-Interactive `/memory on/off` persists the choice and opens a fresh Session when changing modes,
-so OFF cannot carry memory-derived tool results or summaries into the next request. Prior sessions
-are preserved; enable Memory before resuming an older session that used it.
-`nexus memory on/off` also persists the choice for new Sessions; it does not control other running
-processes. OFF preserves all memory files, Recovery, indexes and models.
-See [setup, platform verification and boundaries](memory-setup-and-controls.md).
+This describes the 0.3.0 candidate. Historical designs and experiments remain available;
+their old defaults and outcomes are not current recommendations.
 
 ## Configure
 
-V0.3 Stage 1 uses the [DeepSeek official + SiliconFlow Qwen example](context-runtime-v0.3.toml).
-Back up and merge required sections into `~/.nexus/config.toml`; there is no `--config` option.
-`[model]` and `[compaction_model]` have separate clients and API-key environment variables.
-Never put keys in TOML. Legacy main-only configurations work within capacity, with an explicit
-missing-compactor warning and no main-model fallback. Qwen supports the verified
-`enable_thinking=false`; its meaning is not inferred from DeepSeek's `reasoning_effort`.
-See [runtime design and limitations](context-runtime-v0.3.md). The generic V0.2 example follows.
+Only `~/.nexus/config.toml` is loaded (Windows: `%USERPROFILE%\.nexus\config.toml`).
+There is no `--config` flag. Project `.env` and `.nexus/config.toml` are not loaded.
+The first interactive wizard configures the main model; add the compaction model separately.
+Back up and merge your configuration rather than overwriting model aliases, MCP or permissions.
+Unknown fields are rejected.
 
-The fidelity follow-up adds traceable sources and evidence-backed updates, but fixed Qwen
-experiments still fail semantic review and expose increased schema rejection. This remains
-a stage-review candidate; see [all results and limitations](compaction-fidelity-hardening.md).
-
-Run `nexus` in a terminal for first-use setup, or create `~/.nexus/config.toml`.
-The wizard asks for an environment variable **name**, never the key value.
-It preserves other TOML sections and does not overwrite invalid TOML.
+Replace the placeholder models/endpoints with values supported by your service:
 
 ```toml
 [model]
-name = "your-tool-capable-model"
+name = "your-coding-model"
+provider = "openai"
 base_url = "https://your-service.example/v1"
 api_key_env = "NEXUS_MODEL_API_KEY"
-context_window = 32768
+context_window = 128000
 max_output_tokens = 8192
+request_timeout_seconds = 120
 include_usage = true
-# request_timeout_seconds = 120  # Entire model response, 1..600 seconds
-# output_token_parameter = "max_completion_tokens"  # Opt in if supported by your service
 # reasoning_effort = "high"
+# output_token_parameter = "max_completion_tokens"
+
+[compaction_model]
+name = "your-compaction-model"
+provider = "openai"
+base_url = "https://your-compaction-service.example/v1"
+api_key_env = "NEXUS_COMPACTION_MODEL_API_KEY"
+context_window = 128000
+max_output_tokens = 4096
+# enable_thinking = false
 
 [runtime]
 max_steps = 40
-response_language = "zh-CN"  # default; also accepts "en" and "auto"
+response_language = "en"
 
 [execution]
 output_limit_bytes = 32768
-# shell = "C:/Program Files/PowerShell/7/pwsh.exe"
 
-# [mcp.servers.example]
-# command = "/absolute/path/to/already-installed-server"
-# args = []
-# env_from = { SERVICE_TOKEN = "MY_SERVICE_TOKEN" }
+[security]
+mode = "local"
+
+[memory]
+enabled = true
+
+[multi_agent]
+enabled = false
+allowNestedSubagents = false
+max_agents = 3
+
+[web]
+enabled = false
+
+[tracing]
+enabled = false
 ```
 
-`runtime.response_language` controls visible model progress and replies. Explicit user
-language requests take precedence; `auto` follows the latest user request. This does not
-translate private reasoning or tool arguments, or add model calls. Reopen the Conversation
-to reload configuration.
+Keys belong in named environment variables, never TOML or chat. Both configured model keys
+must be available to the launching process. Restart old terminals after changing Windows
+user variables. Reopen Nexus after editing configuration.
 
-Set the key in the same terminal before starting:
+Supported providers are `openai`, `deepseek`, `dashscope`, through LiteLLM with no automatic
+model fallback. Use `openai` for compatible custom endpoints. Provider acceptance of
+`reasoning_effort`, `enable_thinking` and the selected output parameter is service-specific.
+Nexus does not infer support from model names or silently switch parameters on rejection.
+`request_timeout_seconds` is a model-response deadline, not a whole-task/ABK budget.
 
-```powershell
-$env:NEXUS_MODEL_API_KEY = '<key>'
-nexus
+The main `context_window` is the managed input window; `max_output_tokens` independently
+caps output rather than being subtracted from that window. Leave room for both within
+your provider's real total capacity. Compaction also reserves its own output/safety budget.
+A missing compaction model never falls back to the main model: tasks within capacity can
+continue, but unavailable compaction/overflow is reported explicitly.
+
+`NEXUS_MODEL_NAME/BASE_URL` and `NEXUS_COMPACTION_MODEL_NAME/BASE_URL` override corresponding
+fields. `runtime.response_language` accepts `en`, `zh-CN` or `auto`.
+Add `[models.alias]` with the same model fields; `/model` opens a keyboard menu,
+`/model alias` switches directly, and `default` selects the startup model.
+This does not replace the separate compactor or existing child model snapshots.
+See [model implementation and evidence](stage7-observability-models.md).
+
+### Install and upgrade
+
+Use the [candidate source installation](../../README.md#quick-start), or a wheel built from
+the reviewed candidate. **0.3.0 is not yet published**; do not assume a version-pinned PyPI
+install is available. Back up config, sessions and memory before upgrading.
+Verify `python -m nexus --version` and the executable selected by `Get-Command nexus`
+(PowerShell) or `command -v nexus` (Linux); an old global executable may still run 0.2.
+
+Keep compatible 0.2 model settings, add compaction, and explicitly opt in to new capabilities.
+Legacy `observability`, SRT-only and domain-policy settings are not current tracing/platform
+configuration. Old sessions without durable evidence remain conservatively recoverable;
+upgrading does not make unknown side effects replayable.
+For 0.1 migration, see the [historical migration notes](release-0.2.0.md#install-and-migrate).
+
+## Commands and input
+
+| Action | Command / key |
+| --- | --- |
+| Interactive / one task | `nexus` / `nexus exec "task"` |
+| Public events / profile | `nexus exec "task" --json` / `nexus --profile` |
+| Resume this workspace's saved session | `nexus resume` or `/resume`, then select |
+| New conversation / compact | `/new` / `/compact` |
+| Model / permissions | `/model [alias]` / `/permissions` |
+| Memory | `/memory [status\|on\|off]` |
+| Skills | `/skills`, `/skill name`, `/skill off` |
+| Help / exit | `/help` / `/exit` |
+
+`--json` and `--profile` are mutually exclusive. Resume has no positional Session-ID
+argument. Override permissions for one invocation with
+`nexus exec "task" --permission-mode read-only`; choices are
+`local`, `read-only`, `workspace-write`.
+
+While running, **Enter sends guidance; Tab queues a subsequent root task**. No guidance
+command is required. Delivery waits for a complete tool-batch boundary; received and
+delivered are distinct. `/pending`, `/edit ID text`, `/withdraw ID` apply to pending
+input for the selected agent. Missing arguments/unknown IDs give feedback without stopping
+input. Delivered input cannot be edited. Queued text is a task even if it begins with "/".
+
+F4, Alt+Enter or Ctrl+J insert a newline. F2 toggles long-paste capture; F3 expands a paste
+block. Bracketed paste is supported; completion menus take precedence over Tab queueing.
+Ctrl+C cancels the active run and waits for tool cleanup. PgUp/PgDn browse history;
+Ctrl+End returns to latest output. New output does not force a reader to the bottom.
+Native terminal/IME behavior still needs manual acceptance.
+
+## Optional Multi-Agent
+
+`multi_agent.enabled` defaults to false. Enable it explicitly for new root sessions.
+The default capacity is **3 active descendants**, excluding root; waiting for decisions
+and cancellation cleanup still consume capacity. Nesting defaults off; when enabled,
+the maximum depth is root → child → grandchild. Every instance reuses the same Agent Loop.
+
+scout defaults to low reasoning, worker/reviewer to high. Models inherit the creator's
+current model unless overridden by `[multi_agent.roles.scout]` (or worker/reviewer) with
+`model = "alias"` and `reasoning_effort`. scout/reviewer lack apply_patch, but Shell
+access is not a read-only security boundary. All roles retain Gateway enforcement.
+
+Children have Fresh context: task/background/scope, not the parent's whole conversation.
+They keep their own histories and share the workspace; assigned scope is not a file lock.
+Avoid overlapping edits. MCP is absent from children by default; `mcp_servers` grants only
+the intersection of role configuration and parent permission.
+See [full configuration and role/nesting rules](stage8-usage.md).
+
+F6 or `/agents` opens the task/role/short-ID/status selector.
+`/agents ID` and `/agent ID` enter a child conversation; Esc or `/agent root` returns.
+Enter guides the selected child; Tab still queues root work. Completed children are
+read-only, not automatically revived. The current tree keeps active/actionable agents;
+archived finished agents appear under `/agents history`.
+`/agent detail ID` shows trajectory; `/agent cancel ID` cancels the subtree.
+Cumulative token display covers **the entire session, root plus all historical children**.
+
+## Context and memory
+
+Runs share continuous session history until compaction; `/new` creates a fresh session.
+Compaction triggers near 90% of the managed input window, retains roughly 20K recent tokens
+in complete message/tool groups, and can occur before requests, during finalization,
+through `/compact`, or once after provider overflow. Raw JSONL remains unchanged.
+Semantic summaries can be wrong even when structurally valid; deterministic Runtime Facts
+preserve execution receipts without upgrading a zero exit code to task success.
+See [current context behavior](context-runtime-v0.3.md) and
+[negative fidelity evidence](compaction-simplification.md).
+
+Memory defaults on. Markdown in `~/.nexus/memory/` (MEMORY.md, SCRATCHPAD.md, daily/) is
+the authority; QMD is a rebuildable retrieval index, and recovery/ preserves recoverable
+deletions. Local first use may download user-local Node/QMD and retrieval models.
+`nexus memory status` is read-only; `nexus memory off` affects future sessions and keeps
+files/indexes/models. Interactive `/memory off` starts a new session so old memory content
+cannot leak into its context. Memory-bearing sessions cannot be resumed with memory off.
+[Setup and platform evidence](memory-setup-and-controls.md) distinguishes real bootstrap
+validation from offline fixtures.
+
+## Tools, Skills and MCP
+
+Native tools share one Registry and Gateway. Install trusted Skills at
+`~/.nexus/skills/<name>/SKILL.md`; `nexus skills list` lists them.
+Use `nexus --skill name` or `nexus exec "task" --skill name` to select explicitly.
+`/skill off` clears explicit selection; automatic loading remains available.
+Skills do not grant permissions or automatically execute bundled scripts.
+
+Only explicitly configured stdio MCP servers are connected:
+
+```toml
+[mcp.servers.example]
+command = "/absolute/path/to/already-installed-server"
+args = []
+env_from = { SERVICE_TOKEN = "MY_SERVICE_TOKEN" }
 ```
 
-```sh
-export NEXUS_MODEL_API_KEY='<key>'
-nexus
-```
+Values of `env_from` are current-process environment variable names, not secrets.
+Text, structured content and embedded text resources are bounded; sampling/elicitation
+are unsupported. Host MCP tools are exposed only in Local, not disguised as sandbox tools.
+Opt-in `[web] enabled = true` adds Local-only DeepSeek web_search/web_fetch with a separate
+key. This is not a generic web capability of every model provider.
+See [web configuration](stage7-web-tools.md).
 
-`output_token_parameter` selects `max_tokens` (compatible default) or
-`max_completion_tokens`. For services where `max_tokens` excludes reasoning,
-select a supported total-completion parameter so the provider cap includes both
-reasoning and the answer. `max_output_tokens` supplies the same value to that
-parameter and the Context reserve. Nexus does not guess from the model name or
-retry with another parameter when a service rejects it. Verify enforcement with a
-bounded provider probe: an accepted but ignored parameter is not a working cap.
-See [live parameter evidence](cost-hardening.md).
+## Permissions and recovery
 
-Use your service's actual context limit. `context_window` must exceed
-`max_output_tokens + 1024`. `NEXUS_MODEL_NAME` and `NEXUS_MODEL_BASE_URL` override
-only the corresponding model fields. Repository `.env` and `.nexus/config.toml`
-are never loaded. Old Nexus configuration sections (including `observability`)
-are unsupported: preserve a backup and remove those sections before using Next.
+Local (default) uses current-user permissions. Windows restricted modes use Native
+tokens/ACLs/Jobs with **partial enforcement and unrestricted network**. Existing file read
+permissions can expose credential files. Workspace grants can leave persistent ACL changes;
+eligible roots require explicit `windows_acl_roots`. Dependencies belong outside writable roots.
 
-The current cost-first Bailian candidate is `qwen3.8-flash`, reasoning `low`,
-16,384 total completion tokens, a 300-second request deadline, and 40 model steps.
-One full round achieved 6/8 PASS and 8/8 autonomous completions at about CNY 1.54
-in reported-token cost; this is not evidence of stable 8/8. Exact settings and
-remaining failures are in the [hardening report](suite-hardening-evidence.md).
+Linux/WSL restricted modes use non-root Docker containers: RO/RW workspace bind, default
+2 CPU / 1024 MiB / 128 PID, bridge or none network. `nexus sandbox doctor` diagnoses;
+`nexus sandbox setup` explicitly prepares an image. Missing/invalid backends fail closed,
+never silently revert to Local. macOS restricted execution is not validated in this release.
 
-The initial small-task acceptance used `deepseek-v4.1-flash`, Chat
-Completions, `reasoning_effort = "high"`, `context_window = 1000000`, and
-`max_output_tokens = 32768`. Configure the Base URL for your account/region and
-`api_key_env = "DASHSCOPE_API_KEY"`; no endpoint or key is hard-coded into the runtime.
-This historical profile is not a general reliability recommendation. Later Requests/Sphinx
-runs used different output/reasoning settings and exposed edit/finish failures; see
-[execution-budget evidence](execution-budget-evidence.md).
-The [subsequent model comparison](model-delivery-evidence.md) records Qwen's
-Requests PASS with autonomous completion and a Sphinx PASS interrupted by service access denial.
-After service access was restored, broader low-cost model comparisons continued;
-see [current eight-case results and limitations](suite-hardening-evidence.md).
-The earlier Max candidate is not the selected default or a reliability guarantee.
+Allow once is bound to an exact denied Patch/call/scope, not arbitrary Shell or future
+permissions. Tree-wide approvals are serialized with agent ownership and draft retention.
+Restricted host memory requires explicit permission and does not automatically inject
+QMD/snapshots; trusted Skills are separately controlled.
+See [platform boundaries and known limitations](stage4-platform-backends.md).
 
-## Work and resume
+Durable PREPARED calls may continue through current permission checks. DISPATCHING without
+a complete result is UNKNOWN and is not replayed. COMPLETED restores the saved result.
+Incomplete Patch recovery checks actual before/after hashes without inventing success.
+Root resume reconstructs the agent tree, not old OS tasks; explicit resume_agent continues
+a child's own history without reusing old approvals.
+See [durable execution](stage6-durable-execution.md).
 
-```sh
-nexus
-nexus exec "Fix the empty-input bug and run the existing tests"
-nexus exec "Explain this test failure" --json
-nexus resume
-```
+## Logs, reports and observability
 
-Interactive commands: `/new`, `/resume`, `/compact`, `/skills`, `/skill <name>`, `/skill off`, `/help`, `/exit`. The selector shows
-task title, project, update time and status; use arrows/Enter or Esc. Ctrl+C
-aborts the active turn with bounded process cleanup; at an idle prompt it clears
-input. Non-interactive callers must use `exec`. Exit codes are 0 completed,
-1 failed, 2 configuration/arguments, 3 limited, and 130 aborted.
+Root sessions are under `~/.nexus/sessions/`; child JSONL files sit beneath the root log
+directory at `<session_id>/subagents/<agent_id>.jsonl`.
+They contain conversation/code/tool content: review before sharing. Metadata-only export
+does not make local logs secret-free. JSONL uses an exclusive writer lock; damaged-tail
+recovery preserves the original and creates a new copy.
 
-The default transcript omits per-round model-start messages. Ordinary successful tools
-leave one summary line with status and duration; a terminal shows a temporary activity
-line while a tool runs. Read/search/test/Git labels are display hints only; compound or
-long commands use "Run shell command". No shell/MCP output is dumped. Failures show up
-to four excerpt lines; patches show at most three
-file summaries with short diff previews. Assistant progress and final answers remain
-visible. This only changes presentation: model observations and session records retain
-the tool-budgeted results. Use `nexus exec "task" --json` for detailed public events.
+Local eight-case evaluation creates `~/.nexus/evaluation/history.html` and
+`~/.nexus/evaluation/results/<run-id>/report.html`.
+Rebuild offline with `python -m nexus.evaluation.history`, optionally
+`--home /path/to/evaluation`. These are neither automatic HTML for every interactive session
+nor ABK reports. See the [evaluation guide](../../evaluation/next-dev-v0/README.md).
 
-One conversation reuses its model client, tool registry, and MCP connections across
-turns. `/new`, selecting a resumed conversation, or exiting closes those resources;
-a new conversation connects lazily on its first task. Failed or interrupted MCP servers
-stay disabled until a new conversation. Configuration is reloaded for new conversations,
-not hot-reloaded between turns. Internal callers must await `Conversation.close()` in
-the same async task that runs its turns.
+Use `--profile` for run metrics and `exec --json` for public events. Distinguish root and
+child endings; a child's final event is not the root outcome. Tree-wide usage counts actual
+model requests, retains unknown values, and does not add cached input twice.
+Parallel child durations are not summed into root wall time.
 
-Sessions are append-only JSONL under `~/.nexus/sessions/<workspace-key>/` with one
-writer per session. Resume restores conversation and waits for a new user request.
-Each ordinary input starts an independent execution run with continuous Session history:
-intermediate assistant messages, tool calls and paired results remain visible until semantic
-compaction. A new Conversation does not inherit this history.
-Use `/resume` or `nexus resume` to select a session whose latest run is unfinished
-(interrupted, aborted, failed or limited); the next input continues that run's context.
-A completed session's next input starts a new run. Run IDs remain internal metadata;
-the selector resumes only the latest unfinished run. V0.3 compacts at 90% of the model window
-(115200 for 128000), with an independent output/safety reserve that can trigger earlier.
-It keeps approximately 20000 tokens of recent complete message groups and sends only the older
-prefix plus the previous summary to the independent compactor. There is no HOT/COLD shrinking
-or old-run excerpt layer. Checkpoints are appended before switching the projection;
-original messages remain intact and replay reconstructs the same Session checkpoint.
-Compaction runs before an agent request, after completed runs before input, or through `/compact`.
-The manual command creates no Coding Run, tools or Agent steps. Provider overflow permits one
-compaction and one retry. Failed compaction retains history; unsafe requests stop explicitly.
-TUI context estimates/thresholds and compactor usage are separate from cumulative usage.
-Changing providers can make retained private protocol incompatible: it is never silently rebound.
-Schema validity does not prove summary fidelity; live tests found semantic misclassification.
-See [design](context-runtime-v0.3.md) and [evidence](context-runtime-v0.3-evidence.md).
-The last three turns carry a validation/handoff
-reminder; exhausting the budget remains limited without an extra model call. Unfinished
-runs save bounded tool facts and model-reported pending plan items for explicit Resume.
-Tool success is not task verification. See [stage 1 design](v0.3-stage1.md).
-It never reruns old commands. Missing results after interruption become
-`interrupted_unknown`; inspect actual files/process state before retrying. A
-corrupt final line is recovered into a new file while preserving the original;
-middle corruption is rejected. Each complete record is flushed; this is not a
-durable transaction or an exactly-once execution guarantee.
+Tracing defaults off. Opt in with `[tracing]`: enabled, full traces endpoint, api_key_env,
+project. Export contains identifiers/parent-child relationships, model/tool correlation,
+state, timing and usage, not prompts, reasoning, source, tool output, workspace paths or
+communication bodies. `nexus trace export /path/session.jsonl --run-id RUN_ID` explicitly
+re-exports a saved run. Destination deduplication is not guaranteed.
+Failures leave local business outcomes unchanged; missing end events do not acquire fake
+completion timestamps. See [OTel configuration](stage7-observability-models.md).
 
-Execution is trusted local execution with your account's permissions. Shell/MCP
-can access files and networks available to that account. Patch writes are confined
-to the workspace, which does not sandbox the other tools. Shell output has a shared
-head/tail budget, and timeout/nonzero exit/patch conflicts are observations for the
-model. `exit_code` is the shell's exit code (PowerShell does not always return its
-child process's numeric code). A cleanup failure stops the turn visibly.
+## Development and evidence
 
-`apply_patch` uses the Nexus `*** Begin Patch` format with Add/Update/Delete File
-operations and context-based `@@` chunks, without line numbers or hunk counts.
-Legacy UTF-8 unified diffs remain accepted. No rename, binary or mode changes.
-Ambiguous context is rejected. All files are preflighted; individual replacement
-is atomic, but a multi-file I/O failure can leave an explicitly reported partial result.
-
-`update_plan` replaces a run's progress list with pending/in_progress/completed items;
-at most one item can be in progress, and an empty list clears it. The committed list
-is restored on resume and projected into each request without accumulating history.
-Plan completion does not prove correctness or end the Agent. The stagnation detector
-can send one progress reminder per execution window; it does not force an edit.
-The request also shows the remaining model-turn budget. These are model guidance,
-not guarantees of progress or timely completion.
-
-Public JSON events omit private continuation fields and redact configured known
-credentials. Local session history contains user input and source/tool content;
-it is not a general secret detector. When a provider returns `reasoning_content`,
-the adapter retains it as private, service/model-bound continuation data in the local
-session and sends it on subsequent requests. Public events omit it; changing the
-service/model requires a fresh session rather than reusing those private fields.
-
-## Develop and inspect
-
-Opt in to a developer report after each run:
-
-```sh
-nexus --profile
-nexus exec "Explain the repository structure" --profile
-```
-
-With the existing Windows development environment, use
-`.\.venv\Scripts\nexus.exe --profile` or
-`.\.venv\Scripts\nexus.exe exec "Explain the repository structure" --profile`.
-The normal TUI is unchanged without the flag; `--profile` and `--json` are mutually
-exclusive. The report is a derived human-readable summary; JSONL remains the canonical
-full trajectory, and the report prints its actual path. Cumulative tokens include all
-model calls, while active-context first/peak/final input uses successful normal calls
-and excludes compaction calls. With incomplete usage, known token subtotals show `≥`
-and usage coverage; a field with no reported values stays `unknown`. Successes, failed
-attempts and explicit retries are counted separately. Metrics reset for
-each run, including a resumed execution. See the
-[offline example and metric definitions](developer-run-profiler-v0.1-evidence.md).
-
-```sh
-uv run --frozen ruff check .
-uv run --frozen mypy src tests
-uv run --frozen pytest
-uv lock --check
-uv build
-git diff --check
-```
-
-CI runs offline behavior tests on Windows/Linux with Python 3.12. Git is needed
-for the evaluation collector tests, not for ordinary Nexus startup. Cloud live
-tests are separate from paid CI. Read `src/nexus/core/agent.py` for the loop,
-`core/model.py` for the wire adapter, `tools/` for execution, and `app/` for local
-sessions and terminal consumers. Five direct runtime dependencies: OpenAI SDK,
-MCP SDK, prompt_toolkit, Rich and PyYAML (safe Skill metadata parsing). SDK transitive dependencies are listed in `uv.lock`.
-For a code-based explanation of the design, tradeoffs and evidence boundaries, see
-the [engineering walkthrough](engineering-walkthrough.md).
-
-## Official SWE-bench integration
-
-The optional developer script has only `predict` and `collect`; it does not grade.
-Install the official harness in a separate Linux/Docker environment. Prepare clean
-inference workspaces externally, at each task's exact base commit with dependencies.
-Tasks JSONL fields: `instance_id`, `repo`, `base_commit`, `problem_statement`,
-`workspace`. Do not expose official patches/tests/answers to the agent.
-
-An environment JSON record must contain `dataset`, `dataset_revision`, `network`
-and `contamination`. Record access to future Git history and mounted answers; a
-clean Git status alone does not establish an uncontaminated benchmark environment.
-
-```sh
-python -m pip install swebench==5.0.2
-
-uv run --frozen python scripts/swebench_v0.py predict \
-  --tasks tasks.jsonl --output /outside-inference/artifacts \
-  --environment-record environment.json
-
-python -m swebench.harness.run_evaluation \
-  --dataset_name SWE-bench/SWE-bench_Lite \
-  --predictions_path /outside-inference/artifacts/predictions.jsonl \
-  --instance_ids <verified-instance-id> --max_workers 1 --run_id <new-run-id>
-
-uv run --frozen python scripts/swebench_v0.py collect \
-  --runs /outside-inference/artifacts/runs.jsonl \
-  --harness-root logs/run_evaluation/<new-run-id> --harness-version 5.0.2 \
-  --output official-results.jsonl
-```
-
-Select the official dataset containing your verified instance. The collector
-compares final files against the original base commit using a temporary Git index,
-including model-committed changes and unignored new files. It preserves the user's
-index. Reports are linked by instance, run, and exact patch hash; missing reports
-remain unknown. Keep raw reports and use a fresh harness run ID for every new patch.
-See the [official evaluation guide](https://www.swebench.com/SWE-bench/guides/evaluation/).
-
-Harness 5.0.2 requires the `image` and evaluation fields in the current official
-`SWE-bench/SWE-bench_Lite` dataset; the older `princeton-nlp` copy lacks those fields.
-Record the exact dataset revision. For a pinned local run, the official harness also
-accepts an unmodified JSON export of its dataset rows as `--dataset_name`; verify
-the instance, original base commit and problem text against the inference task.
-The script does not manufacture missing grader fields. A patch containing a known
-configured credential is not exported, and the run records a collection error.
-
-## Design authority
-
-- [Frozen architecture](architecture-contract-v0.md)
-- [Approved development design](01-development-design.md)
-- [Delivery and acceptance checklist](02-delivery-and-acceptance.md)
-
-Old Day workflows, graph nodes, Plan authorization, databases, retrieval, the legacy
-Skill system and the old evaluation platform have been removed. The lightweight Skills
-below are implemented through the same message loop and Tool Registry.
-
-
-## Fixed development evaluation
-
-From this source checkout, with Docker Desktop using Linux containers and the existing model configuration:
-
-```sh
-nexus eval pvlib__pvlib-python-1707
-nexus eval --all
-```
-
-Evaluation automatically collects Profile metrics and prints a compact aggregate report including `FinalCtx` and `ToolResultBytes`. Artifacts live under `~/.nexus/evaluation/results/`. These are local Next Dev Set checks, not official SWE-bench scores. See [Evaluation V0](../../evaluation/next-dev-v0/README.md) for frozen environments and limitations, and [actual acceptance evidence](evaluation-v0-evidence.md) for results.
-
-[Autonomous hardening stage results and cost evidence](suite-hardening-evidence.md).
-
-## Lightweight Skills
-
-Install trusted, self-contained Markdown at `~/.nexus/skills/<name>/SKILL.md`.
-The [pytest regression example](skills/pytest-regression/SKILL.md) can be
-copied manually; examples are not automatically installed or activated.
-
-```text
-nexus skills list
-nexus --skill pytest-regression
-nexus exec "Fix the bug with regression coverage" --skill pytest-regression
-```
-
-Inside the prompt, `/skills` refreshes availability and shows selection/loading status;
-`/skill <name>` selects or replaces the session default; `/skill off` clears that explicit
-selection and restores automatic mode; `/new` clears the old session's selection.
-The model can use the ordinary `load_skill` tool for task-specific loading. Automatic
-loads last only for their run. Resume restores saved bodies, even if files change.
-Skills do not execute scripts or grant permissions; their input cost is budgeted.
-Fixed evaluation does not discover personal Skills.
-
-The resume selector displays nine recent entries per page, showing the latest user
-input, UTC update time and outcome. Use arrows/Enter or digits 1-9; Esc cancels.
-See [Skills design, limits and rollback](skills-v0.1.md).
-
-## License
-
-[MIT](../../LICENSE).
+[Development/build/release](development-and-release.md) ·
+[Architecture walkthrough](engineering-walkthrough.md) ·
+[Candidate checks](release-0.3.0-validation.md).
+Frozen designs and negative experiments remain historical evidence.

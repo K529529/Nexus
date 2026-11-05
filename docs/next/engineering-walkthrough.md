@@ -1,133 +1,119 @@
-# Nexus 工程讲解：代码、取舍与证据
+# Nexus V0.3 工程讲解：代码、取舍与证据
 
-本文是现有实现的讲解入口，不新增架构契约。目标是能从问题讲到代码和验证，
-不把功能清单或一次 PASS 当作可靠性证明。
+这是当前实现的代码导读，不新增架构契约。[使用手册](usage-guide.zh-CN.md) ·
+[Release Notes](release-0.3.0.md) · [验证记录](release-0.3.0-validation.md)。
+原始 V0 设计和早期实验保留，当前连续上下文已替代 HOT/COLD 与 Run 级历史过滤。
 
-## 一分钟介绍
+## 1. 一个手写消息循环
 
-Nexus 是一个轻量本地 coding agent。单个消息循环让模型选择工具、接收执行结果，
-再决定下一步；运行时负责协议、资源限制、工具执行、会话记录和故障恢复。
-没有额外 Planner/Judge，也没有数据库或仓库索引。
-
-工程重点是三个问题：如何在缩短上下文时保留工具协议与最近结果；如何在中断后
-恢复可信的会话状态；如何把模型生成的补丁变成可检查、可报告失败的文件操作。
-模型能否正确修复并及时结束，要用独立评测检验，不能由运行时状态代替。
-
-## 1. 消息循环与执行边界
-
-入口：[run_turn](../../src/nexus/core/agent.py)、[ChatModel](../../src/nexus/core/model.py)、
-[工具装配](../../src/nexus/tools/registry.py)。
+入口：[CLI](../../src/nexus/app/cli.py) →
+[Conversation 装配](../../src/nexus/app/bootstrap.py) →
+[run_turn](../../src/nexus/core/agent.py)。
 
 ```text
-当前 run 的逻辑消息
-  → 构造实际请求、检查容量
-  → model.complete
-  → 校验并保存 assistant
-  → 有 tool_calls：按顺序 dispatch，保存配对的 ToolResult，再请求模型
-  → 无 tool_calls 的合法 final：completed
+用户任务 / 待处理指导
+  → ContextBuilder 组装模型请求
+  → ChatModel / LiteTransport
+  → 保存 assistant
+  → 有 tool_calls：逐项经过 Registry / Gateway，保存配对结果，再请求模型
+  → 无 tool_calls 的合法 final：结束核心执行
 ```
 
-这是一种模型驱动的 action/observation 循环。统一的 ToolSpec/ToolResult 让模型适配器、
-执行器和终端显示分离；同一 Conversation 装配路径支持 interactive、exec 和 Docker eval。
-私有 reasoning continuation 由 adapter 处理，Agent 不读取推理文本来决定工作阶段。
+模型选择探索、编辑、测试和修复动作；运行时负责协议、预算、授权、持久化和清理。
+没有 Planner/Validator/Repair 图节点，不以输出关键词替代独立验证。
+Java 后端类比：ToolSpec 是调用契约、Registry 是分发注册表，ToolResult 是明确回执；
+模型是可失败的外部决策服务，不能承担权限校验或持久化事务职责。
 
-Java 后端类比：ToolSpec 是接口契约，Registry 类似命令处理器注册表，ToolResult 是统一
-返回值；模型是会犯错的外部决策服务。因此参数校验、执行边界和异常路径不能委托给模型。
+同一个 Loop 支持 interactive、exec、受限后端和子代理。工具批次内顺序执行并保持
+assistant/tool ID 配对；多个代理可异步运行，不等于同一工具批次无序并发。
 
-证据入口：`tests/test_agent.py`、`tests/test_model.py`、`tests/test_conversation.py`。
-局限：本地 shell/MCP 使用用户权限，workspace 内 patch 边界不是通用执行沙箱。
+## 2. Session 与 Run、压缩与执行事实
 
-## 2. 原始历史与模型请求分离
-
-入口：[observations.project](../../src/nexus/core/observations.py)、
-[ContextBuilder / Context](../../src/nexus/core/context.py)、
-[project_plan](../../src/nexus/core/plan.py)。
-
-Session/JSONL 保存原始消息；模型请求是从原始逻辑上下文派生的视图：
+[Session](../../src/nexus/app/session.py) 保存跨 Run 连续历史；Run 重置执行预算、
+Plan 和自动 Skill 加载状态。`/new` 换 Session；普通下一次输入不清空历史。
 
 ```text
-当前 run 历史 / safety snapshot
-  → Observation Projection：HOT + 最近工作集保留 FULL，旧结果使用确定性 preview
-  → 最新 Plan 快照
-  → 本次任务 guidance / 剩余轮次说明
-  → 容量检查、必要时摘要和重建
-  → model.complete
+原始 Session JSONL + 唯一压缩 checkpoint
+  → 历史摘要 + 近期完整原文 + checkpoint 后的消息
+  → 当前 Plan / Skills / memory snapshot / guidance 等请求上下文
+  → tokenizer / provider usage 校准 / 容量检查
+  → 主模型调用
 ```
 
-HOT 是尚未被后续有效 assistant 消费的工具结果，不是按英文工具标题猜出的重要性。
-工作集目标为 min(16K tokens, 输入预算 / 4)，HOT 不会因超出这个目标而被截掉。
-Safety compaction 按完整 assistant/tool 组处理，保护 HOT、system 和用户输入；
-不能为压缩而留下半组 call ID 配对。
+[Context](../../src/nexus/core/context.py) 在主输入窗口约 90% 时调用独立压缩模型；
+[history](../../src/nexus/core/history.py) 按完整消息与工具组切分，目标保留约 20K 近期 token。
+[compaction](../../src/nexus/core/compaction.py) 的 V4 摘要保存意图、约束、决策、进度和下一步；
+[Runtime Facts](../../src/nexus/core/runtime_facts.py) 独立保留执行回执、退出码、Patch 路径/hash、
+未知副作用与 Run outcome。原始 JSONL 不被摘要改写。
 
-Plan 和预算说明是 request-only 数据，不能逐轮向历史追加。检查、发送、usage 校准使用
-同一份实际请求，避免“估算时装得下，发送时多塞一块”的错误。
-动态状态合并到唯一的临时 user 后缀，稳定 system 和历史前缀可以命中服务端缓存；
-内部类型把这个后缀与真实用户消息区分开，它不参与历史引用或最近交互组保护。
-Usage 保存 provider 报告的 cached_input_tokens（输入的子集）；缺失与测得零必须区分，
-成本分析不能把估算 token 或单次命中率冒充账单。
-Java 后端类比：原始历史与查询投影分离；投影能重建，不能反向修改权威状态。
+主模型输入窗口与 API 输出上限分别管理，不能从模型名字猜容量。
+结构校验不证明摘要语义真实；命令 exit=0 不证明项目测试充分或用户目标已达成。
+保真失败和权衡见 [实验原文](compaction-simplification.md)。
 
-证据入口：`tests/test_observation_lifecycle.py`、`tests/test_safety_compaction.py`、
-`tests/test_plan_context.py`、`tests/test_execution_budget.py`、`tests/test_request_context.py`、
-`tests/test_cache_usage.py`。
-局限：preview/摘要会损失信息，token 校准是估计；受保护内容仍超预算时诚实返回 context_limit。
+## 3. 持久化、恢复和取消
 
-## 3. 追加日志、提交顺序与恢复不确定性
+[durable](../../src/nexus/core/durable.py) / [tool_recovery](../../src/nexus/app/tool_recovery.py)
+区分 PREPARED（未分发）、DISPATCHING（可能有副作用）、COMPLETED（完整结果已保存）。
+重要 checkpoint 和 Patch ACK 前执行 flush/fsync；普通 JSONL 追加不能等同完整数据库事务。
 
-入口：[SessionLog / replay / resume_session](../../src/nexus/app/session.py)、
-[create_update_plan_tool](../../src/nexus/tools/plan.py)。
+恢复只续跑有明确未分发证据的调用，通过当前 Gateway；已完成结果复用，未知调用不重放。
+Patch manifest 与 before/after 哈希支持只读核对，不虚构缺失的完成回执。
+损坏尾部保留原文件并建立新副本；单写者锁避免同一日志被两个会话同时续写。
+取消等待工具树清理；cleanup_incomplete 保留未知状态，不把取消异常当作干净成功。
+这是外部副作用的保守恢复协议，不是跨任意 Shell/MCP 的 exactly-once 事务。
 
-每条事件有 session_id、run_id、seq、timestamp。Plan 更新先校验并构造新值，
-再 await 写入/flush `plan_updated`，成功后替换 Session.plan，最后返回工具结果。
-完整事件已写入而 ToolResult 尚未写入时，恢复已提交 Plan；缺失工具结果仍按中断处理。
-新 run 不继承旧 Plan，同 run 的 resume 保留最新清单。
+## 4. 工具、权限与平台后端
 
-这里借用了追加日志和提交记录的思想，不能宣称实现了数据库级事务。
-日志 flush 不等于断电持久性；shell 副作用与日志也不是一个原子事务。
-如果命令已执行、结果尚未保存就崩溃，恢复只能记为 `interrupted_unknown`，不能自动重跑。
-这是处理外部副作用时必须承认的不确定窗口。
+[Registry](../../src/nexus/tools/registry.py) 与
+[SecurityGateway](../../src/nexus/core/security.py) 分离工具实现和授权。
+Local 使用宿主用户权限。Windows Native 是 token/ACL/Job 的部分强制隔离；
+Linux/WSL Docker 使用非 root 容器和明确挂载。不可用时 fail closed，不回退 Local。
+精确 Patch 一次性批准绑定 request/call/参数摘要/范围，不转化为任意 Shell 权限。
 
-证据入口：`tests/test_plan.py`、`tests/test_session_context.py`、`tests/test_boundaries.py`。
-面试追问重点：为什么不自动重试未知命令；为什么 Plan 状态要在事件提交之后才修改。
+Patch 提前解析并检查范围、非普通文件、链接、上下文和写入顺序；
+它降低模型生成文本格式的负担，不证明补丁业务逻辑正确。
+MCP 是显式 stdio 工具来源，Skills 是受预算约束的说明文本，Web 是 Local 的显式可选能力。
+这些都复用工具事件/权限路径，不建立第二套编排框架。
+[平台限制](stage4-platform-backends.md)明确网络、ACL、读权限和清理的真实边界。
 
-## 4. 补丁执行：降低生成负担，严格检查落点
+## 5. 长期记忆与模型接入
 
-入口：[parse_nexus_patch / resolve_update](../../src/nexus/tools/patch_format.py)、
-[apply_patch](../../src/nexus/tools/patch.py)。
+[MemoryStore](../../src/nexus/app/memory.py) 以用户级 Markdown 为权威；QMD 仅索引检索。
+Session 启动保存稳定快照，后续写入与跨会话失效有独立控制；关闭 Memory 换新会话，
+不会把旧快照默默携带进“关闭记忆”的下一次请求。记忆默认开启，首次可触发依赖/模型下载。
+恢复删除、Daily 和退出摘要仍可能失败，状态必须可见。
 
-模型只提供路径、旧上下文和新文本，不必计算 unified diff 行号/行数。
-解析器使用确定性匹配；重复上下文必须能唯一定位，不能悄悄选择第一个相似位置。
-先检查整批格式、路径和旧内容，再写入；每次提交前再次核对原内容，检测预检后的变化。
-单文件替换原子，但跨文件不是事务；发生部分写入时返回真实 changed_files、partial 和失败位置。
+[LiteTransport](../../src/nexus/core/transport.py) 支持 openai/deepseek/dashscope，
+独立管理模型客户端、重试和关闭。`/model` 切换主模型，压缩模型与已创建子代理快照独立。
+不引入 Router、自动 fallback 或外部 tracing callback 驱动业务流程。
 
-这与数据库迁移前校验、乐观并发检查有相似之处，但不保证其他进程并发写入时的完整隔离。
-不能把一次 apply_patch 调用等同于成功修改，也不能把成功修改等同于测试通过。
+## 6. 多 Agent 与终端输入
 
-证据入口：`tests/test_patch_v02.py`、`tests/test_tools.py`。
+[Subagents](../../src/nexus/app/subagents.py) 是同一 Conversation/Loop 的生命周期管理：
+Fresh 上下文、原实例/历史续接、全树活跃额度、MCP 权限交集和父子结果交付。
+默认关闭；角色是协作约定，不是文件锁或 Shell 只读安全隔离。共享工作区要求划分编辑范围。
+已确认接收的收尾指导由原实例处理后才越过完成边界；取消优先，不复活取消任务。
 
-## 5. 可靠性结论如何成立
+[Inbox](../../src/nexus/core/inbox.py) 保存接收/投递边界，
+[TaskInput](../../src/nexus/app/input.py) 区分草稿、已提交未交付和已交付消息。
+审批接管输入时保存草稿并收拢已提交消息，不通过取消监听丢弃它们。
+[ConversationScreen](../../src/nexus/app/screen.py) 持有终端渲染区域与代理会话视图，
+避免 Rich 和输入组件争用终端。普通 Enter 指导、Tab 排队，用户无需命令发指导。
 
-| 要回答的问题 | 看什么证据 | 不能用什么代替 |
-| --- | --- | --- |
-| 是否实际编辑 | 工具实际变更记录和收集到的 diff | 调用了 apply_patch |
-| 修复是否符合回归要求 | 独立 validator 的结果、覆盖范围 | Plan completed / final 自述 |
-| 是否自主收尾 | Agent outcome 与最后模型响应 | validator PASS |
-| 成本和效率如何 | 模型调用、reported usage 覆盖率、耗时 | 仅看模型轮数 |
-| 运行时是否遵守契约 | 离线失败注入、配对、恢复、预算测试 | 一次真实 case PASS |
+## 7. 证据是运行时之外的独立结论
 
-Plan 是模型的进度声明，Detector 和 Execution budget 是提示。模型仍可能忽略它们。
-2026-10-05 的 DeepSeek Requests/Sphinx 样本已经表明：提示实现正确，不代表行为目标达成。
-见[原始对照记录](execution-budget-evidence.md)。比较不同模型必须保留同一任务、工具、
-限制和独立 validator，并分别记录正确性与自主结束；小样本不能推出长期稳定成功率。
+本地会话 JSONL、八项评测 history/report 和外部 metadata-only OTLP 是不同查看路径。
+[agent_history](../../src/nexus/app/agent_history.py) 按实际模型请求汇总全树用量：
+缺失保留 unknown，缓存不重复加，父结果快照不重复累计。并行时长不相加成墙钟耗时。
 
-这些失效案例也是工程经验：先区分协议缺陷、执行器缺陷与模型决策行为，再决定改哪一层。
-不要为单一 benchmark 标题写特判，不把“强制输出一段总结”算成任务已经完成。
+确定性测试覆盖边界和协议，真实模型 smoke 证明指定服务链路，官方 verifier 验证候选。
+三者不能互相替代。历史失败、环境错误、跳过项与未验证平台见各自原报告；
+发布 CI 不证明真实模型成功率提高。ABK 固定 `0fd7fa4`，最终发布候选使用后续提交。
 
-## 演示顺序
+## 开发者阅读顺序
 
-1. 运行一次小型真实任务，展示工具调用、实际 diff、测试结果和 final。
-2. 打开对应 JSONL，说明 assistant/tool 配对、run 隔离与公开/私有字段边界。
-3. 用已有离线测试演示一个补丁冲突或中断恢复，说明失败时系统能保证什么。
-4. 展示 Requests/Sphinx 的独立 validator 与 Agent outcome，对能力和未解决限制分别作结论。
-
-准备讲解时优先把上述三个核心工程点讲透，无需再添加 RAG、多 Agent 或工作流框架凑技术栈。
+先读 types → agent → Conversation → Gateway/执行器 → session/durable → context/compaction，
+最后读 Inbox/Subagents/Screen。对 Java 后端转 Agent 开发，优先掌握异步取消、
+外部调用失败、工具协议配对和持久化提交顺序，再考虑增加能力。
+对应测试：test_agent、test_conversation、test_durable_execution、test_session_compaction、
+test_stage8_handoff、test_stage8_completion、test_stage8_screen。

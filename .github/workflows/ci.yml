@@ -27,17 +27,28 @@ jobs:
       - run: uv run --frozen mypy src tests
       - run: uv run --frozen pytest
       - run: uv build
+      - run: uv run --frozen python scripts/package_smoke.py artifacts
       - run: git diff --check
       - name: Install wheel outside source and as a uv tool
         shell: bash
         run: |
           wheel="$(pwd)/$(ls dist/*.whl)"
+          smoke="$(pwd)/scripts/package_smoke.py"
+          version="$(uv run --frozen python -c 'import nexus; print(nexus.__version__)')"
           cd "$RUNNER_TEMP"
           uv venv --python 3.12 wheel-test
           uv pip install --python wheel-test "$wheel"
-          uv run --no-project --python wheel-test python -m nexus --version
-          uv run --no-project --python wheel-test python -m nexus --help
+          uv run --no-project --python wheel-test python -I -m nexus --version
+          uv run --no-project --python wheel-test python -I -m nexus --help
+          uv run --no-project --python wheel-test python -I "$smoke" installed --expected-version "$version"
+          uv pip check --python wheel-test
           export UV_TOOL_DIR="$RUNNER_TEMP/nexus-tools"
           export UV_TOOL_BIN_DIR="$RUNNER_TEMP/nexus-bin"
           uv tool install --python 3.12 "$wheel"
           "$UV_TOOL_BIN_DIR/nexus" --version
+      - name: Preserve candidate distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error

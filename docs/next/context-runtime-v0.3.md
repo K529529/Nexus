@@ -2,7 +2,7 @@
 
 2026-10-22 用户授权的实施增量。此文替代旧 Stage 1 的有界 ConversationHistory、
 Run 级压缩及 HOT/COLD 工具结果投影；其余单 Loop、工具执行、Plan/Skills 与恢复边界保留。
-阶段分支为 `codex/nexus-v0.3-stage1`，不代表已合入 V0.3 主开发分支或发布。
+阶段实现已整合到 V0.3；当前为 0.3.0 待发布候选，见 [发布说明](release-0.3.0.md)。
 实际验收与已发现问题见 [实施证据](context-runtime-v0.3-evidence.md)。
 后续保真专项的设计、固定输入与全部失败记录见
 [Compaction Fidelity Hardening](compaction-fidelity-hardening.md)。

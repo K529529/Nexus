@@ -1,5 +1,8 @@
 # Nexus Next V0：实施与验收清单
 
+> 以下为原始 V0 历史清单，保留原始判定。V0.3 当前验收与合入状态见
+> [0.3.0 发布准备记录](release-0.3.0-validation.md)，不是下文旧阶段状态的机械延续。
+
 状态：**APPROVED v0.2 / Phase 2 Implementation** · 2026-10-01
 
 依据：[冻结架构契约](architecture-contract-v0.md)、[开发设计](01-development-design.md)。用户已在本次实施任务明确授权连续推进 S1 → S5。以下表格定义验收标准，实际执行结果另记 acceptance-evidence.md；历史 S0 说明不再表示本次实施未授权。

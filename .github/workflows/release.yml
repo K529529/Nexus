@@ -30,8 +30,7 @@ jobs:
               print(tomllib.load(fh)['project']['version'])
           PY
           )"
-          release_version="${GITHUB_REF_NAME#v}"
-          test "$package_version" = "$release_version"
+          test "$GITHUB_REF_NAME" = "v$package_version"
           echo "Publishing version $package_version"
 
       - name: Install locked development dependencies
@@ -46,17 +45,22 @@ jobs:
           git diff --check
 
       - name: Build sdist and wheel
-        run: uv build
+        run: |
+          uv build
+          uv run --frozen python scripts/package_smoke.py artifacts
 
       - name: Smoke-test installed wheel outside the checkout
         shell: bash
         run: |
           wheel="$(pwd)/$(ls dist/*.whl)"
+          smoke="$(pwd)/scripts/package_smoke.py"
+          version="$(uv run --frozen python -c 'import nexus; print(nexus.__version__)')"
           cd "$RUNNER_TEMP"
           uv venv --python 3.12 nexus-release-test
           uv pip install --python nexus-release-test "$wheel"
           nexus-release-test/bin/python -I -m nexus --version
           nexus-release-test/bin/python -I -m nexus --help
+          nexus-release-test/bin/python -I "$smoke" installed --expected-version "$version"
           uv pip check --python nexus-release-test
 
       - name: Upload distribution artifacts

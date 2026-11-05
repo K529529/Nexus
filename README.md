@@ -4,122 +4,100 @@
 
 ### Turn a task into code, right from your project terminal.
 
-A lightweight coding agent that reads code, edits files, runs tests and shows its work.
-One message-driven loop. No database or repository index required.
+Nexus reads code, edits files, runs tools and keeps an inspectable conversation.
+One hand-written, message-driven Agent Loop; optional subagents reuse that same loop.
 
-Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
+Python 3.12+ · Windows / Linux · [MIT](LICENSE) · **English** / [简体中文](README.zh-CN.md)
 
-**English** / [简体中文](README.zh-CN.md) &nbsp; · &nbsp; [Quick start](#quick-start) &nbsp; · &nbsp; [User guide](docs/next/usage-guide.md) &nbsp; · &nbsp; [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) &nbsp; · &nbsp; [Release notes](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
+**0.3.0 is a release candidate, not a published PyPI release.**
+[Release notes](docs/next/release-0.3.0.md) · [Validation and CI](docs/next/release-0.3.0-validation.md)
+· [User guide](docs/next/usage-guide.md)
 
----
+## Quick start
 
-<a id="quick-start"></a>
-## 01 / Quick start
-
-You need Python 3.12+ and an account with an OpenAI-compatible model service that supports tool calling.
-**Choose either installation method below.**
-
-### Option 1: Install from PyPI (recommended)
-
-Open a terminal in the project root you want Nexus to work on:
+Install the candidate from source in a dedicated environment:
 
 ```sh
-python -m pip install "nexus-coding-agent==0.2.0"
-nexus
-```
-
-No Nexus checkout needed. Install once, then run `nexus` in any project using the same Python environment.
-A virtual environment is recommended. If the command is not on your PATH, use `python -m nexus`.
-
-### Option 2: Install from source
-
-For developers who want to read or modify Nexus itself. Requires Git:
-
-```sh
-git clone https://github.com/K529529/Nexus.git
+git clone --branch codex/nexus-v0.3 https://github.com/K529529/Nexus.git
 cd Nexus
-python -m pip install -e .
+python -m venv .venv
 ```
 
-Then **change to the project root you want Nexus to work on** and run:
+Activate it with `.venv\Scripts\Activate.ps1` in PowerShell, or
+`source .venv/bin/activate` on Linux. Then:
 
 ```sh
+python -m pip install -e .
+python -m nexus --version
+cd /path/to/your/project
 nexus
 ```
 
-The editable install (`-e`) picks up changes to Nexus's Python source without reinstalling.
-Your launch directory is the workspace; Nexus also reads that directory's `AGENTS.md` for project guidance.
+The working directory is the project Nexus operates on. Its `AGENTS.md` supplies project
+guidance. An editable install follows this checkout; keep the environment activated, or
+use the absolute path to its `nexus` executable when working in another project.
 
-### First launch: connect your model
-
-On first launch, `nexus` prompts for a model name, Base URL, context window and the **name of an API key environment variable**.
-Settings are saved in `~/.nexus/config.toml` and shared across projects.
-
-For example, keep the default variable name `NEXUS_MODEL_API_KEY`, save the settings, then set your real key in the same terminal and restart:
+On first interactive launch, the wizard asks for a model name, endpoint, context window
+and **API-key environment variable name**. Settings live in `~/.nexus/config.toml`.
+Set the named variable in the launching terminal; never put a key in chat or TOML:
 
 ```powershell
-# Windows PowerShell
-$env:NEXUS_MODEL_API_KEY = "your API key"
+$env:NEXUS_MODEL_API_KEY = "<your key>"
 nexus
 ```
 
-```sh
-# Linux
-export NEXUS_MODEL_API_KEY="your API key"
-nexus
-```
+Linux: `export NEXUS_MODEL_API_KEY="<your key>"`. For long sessions, configure a separate
+compaction model too; the wizard's main-model configuration alone does not enable compaction.
+See [configuration and upgrade](docs/next/usage-guide.md#configure).
 
-Type your task at the `You ›` prompt:
+Local execution is the default and uses your user permissions.
+Memory is **on** by default and may download user-local Node/QMD and embedding models on
+first use. Run `nexus memory off` before starting if you do not want this.
+Multi-Agent, web tools and external tracing are **off** by default.
 
-```text
-You › Reject whitespace-only titles, add a regression test and run the existing tests.
-```
+## Everyday use
 
-Put the key in the environment variable, not in chat. Your provider bills model API usage.
-For manual configuration, MCP and model parameters, see the [user guide](docs/next/usage-guide.md#configure).
-
-<a id="everyday-use"></a>
-## 02 / Everyday use
-
-| Task | Command |
+| Action | Command / key |
 | --- | --- |
-| Work interactively | Run `nexus` in your project |
-| Run one task | `nexus exec "Fix the bug and run tests"` |
-| Show timing, tokens and tool statistics | `nexus --profile` |
-| Pick a recent session | `nexus resume`, or `/resume` in chat |
-| Start a new session | `/new` |
-| Show available Skills and their status | `/skills` |
-| Select / clear an explicit Skill | `/skill <name>` / `/skill off` |
-| Help / exit | `/help` / `/exit` |
+| Interactive work / one task | `nexus` / `nexus exec "Fix the bug and run tests"` |
+| Guide a running task | Type normally and press **Enter** |
+| Queue the next root task | Type normally and press **Tab** while running |
+| Inspect / change pending input | `/pending`, `/edit ID text`, `/withdraw ID` |
+| Select an agent conversation | **F6**, `/agents`, or `/agents ID` |
+| Return to root / browse archived agents | **Esc**, `/agent root` / `/agents history` |
+| Read history / jump to latest | **PgUp**, **PgDn**, **Ctrl+End** |
+| Newline / cancel | **F4** or **Alt+Enter** / **Ctrl+C** |
+| Switch model / permissions | `/model` / `/permissions` |
+| Resume / new conversation | `nexus resume`, `/resume` / `/new` |
+| Memory / Skills / help | `/memory`, `/skills`, `/help` |
+| Runtime events / profile | `nexus exec "task" --json` / `nexus --profile` |
 
-Skills live at `~/.nexus/skills/<name>/SKILL.md`; start with the [pytest regression example](docs/next/skills/pytest-regression/SKILL.md).
-`/skill off` clears explicit selection while automatic loading remains available. Sessions are saved under `~/.nexus/sessions/`.
-Runs in the same Session share continuous message history until semantic compaction; `/new` starts fresh.
+Completion menus take precedence over Tab queueing. Enter in a child view guides that
+child; Tab still queues a root task. Finished child views are read-only.
+See [Multi-Agent configuration and boundaries](docs/next/stage8-usage.md).
 
-<a id="capabilities-and-evidence"></a>
-## 03 / Capabilities and evidence
+## What 0.3 adds
 
-- **Coding loop**: execute commands, apply patches, run checks and act on tool feedback.
-- **Context management (V0.3 stage branch)**: continuous Session history, independent compaction model and Run-local Plan/Todo progress. See [runtime design and limits](docs/next/context-runtime-v0.3.md).
-- **Extensible and inspectable**: local Skills, stdio MCP, session recovery, JSONL trajectories and run profiles.
+- Continuous session context with an independent compaction model and deterministic
+  execution facts; original JSONL history remains intact.
+- Global Markdown memory, QMD retrieval, recoverable forgetting and session snapshots.
+- Windows Native and Linux/WSL Docker restricted execution, explicit approval and durable
+  tool checkpoints. Windows enforcement is partial; Local is unrestricted.
+- Model aliases and switching, stdio MCP resources/tools, opt-in web tools and metadata-only
+  OTLP tracing.
+- Optional Fresh-context scout/worker/reviewer agents in a shared workspace, with explicit
+  capacity, message delivery, cancellation, recovery and conversation views.
 
-V0.2 release validation: **498 tests passed** on each of Windows and Linux; 10 opt-in Docker checks were skipped in the offline suite. V0.3 stage results and the unresolved summary-fidelity issue are recorded in [runtime evidence](docs/next/context-runtime-v0.3-evidence.md).
-One cost-first round of the fixed eight-case development set achieved **6/8 PASS and 8/8 autonomous completions**.
-This is local acceptance evidence, not stable 8/8 or an official SWE-bench score.
-See [results and limitations](docs/next/suite-hardening-evidence.md).
+A completed Agent run is not proof that a candidate passes tests. Test evidence, platform
+limits and historical failures are linked from the [release notes](docs/next/release-0.3.0.md).
+The FeatureBench comparison stays pinned to `0fd7fa4`; release fixes are subsequent commits.
+The DeepSeek Pro/high single-Agent batch is recorded as in progress, and the matching
+Multi-Agent batch has not been started by this release work. No speed or quality gain is claimed.
 
-Local is the default and runs with your user permissions. The Stage 4 candidate adds
-Windows Native and Linux/WSL2 Docker execution through `/permissions`; see
-[platform behavior and limitations](docs/next/stage4-platform-backends.md).
-Review code changes and test results; dual-platform manual acceptance is still pending.
-Upgrading from legacy `0.1.0`? Read the [migration notes](docs/next/release-0.2.0.md#install-and-migrate) first.
+## Documentation
 
-<a id="learn-more"></a>
-## 04 / Learn more
-
-[User guide](docs/next/usage-guide.md) · [Engineering walkthrough](docs/next/engineering-walkthrough.md) · [Development evaluation](evaluation/next-dev-v0/README.md) · [0.2.0 release record](docs/next/release-0.2.0.md)
-
-<a id="license"></a>
-## 05 / License
-
-[MIT](LICENSE)
+- [User guide](docs/next/usage-guide.md): configuration, permissions, recovery, logs and shortcuts.
+- [Architecture and code walkthrough](docs/next/engineering-walkthrough.md).
+- [Development, packaging and release procedure](docs/next/development-and-release.md).
+- [Local eight-case evaluation](evaluation/next-dev-v0/README.md): separate from ABK FeatureBench.
+- [Historical 0.2.0 release](docs/next/release-0.2.0.md): historical installation and results.

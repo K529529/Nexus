@@ -1,3 +1,6 @@
+> 历史阶段记录：以下状态、实验与失败保留当时原貌。当前合入/发布状态见
+> [0.3.0 发布准备记录](release-0.3.0-validation.md)，当前使用见 [手册](usage-guide.zh-CN.md)。
+
 # Stage8 完整交互改版
 
 2026-11-04，开发分支 `codex/nexus-v0.3-stage8-multi-agent`，起点 `a6f8cdb`。

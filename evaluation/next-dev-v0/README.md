@@ -1,6 +1,6 @@
 # Next Dev Set V0
 
-Fixed local evaluation for eight coding tasks. It reports local validator results, **not official SWE-bench resolved results**. Current runs record Context Runtime V0.2.1 and its fixed observation-projection policy in their manifests. The earlier V0.1.1 model baseline has contamination caveats; no new clean baseline or V0.2.1 model suite was run during lifecycle implementation.
+Fixed local evaluation for eight coding tasks. It reports local validator results, **not official SWE-bench or ABK FeatureBench results**. Current V0.3 manifests record continuous-session context, V4 compaction, model settings, implementation identity and Multi-Agent configuration. Historical V0.1.1/V0.2.1 results retain their original conditions and contamination caveats; they are not current candidate scores. See [0.3.0 release evidence](../../docs/next/release-0.3.0.md).
 
 From the Nexus checkout, with Docker Desktop running Linux containers and your existing model configuration/key environment variable:
 
@@ -15,7 +15,7 @@ Results: `~/.nexus/evaluation/results/<run-id>/`. Each case has `result.json`, t
 
 ## Fixed environments
 
-Eight local image IDs in the case TOMLs are frozen after actual negative/positive qualification. See [qualification.json](qualification.json) and [acceptance evidence](../../docs/next/evaluation-v0-evidence.md). The current host already has all eight images and verified source caches.
+Eight local image IDs in the case TOMLs are frozen after actual negative/positive qualification. See [qualification.json](qualification.json) and [acceptance evidence](../../docs/next/evaluation-v0-evidence.md). These historical host caches are not shipped with the package; verify availability on your own machine. Run this fixed suite from the source checkout (the evaluation data is not bundled in the wheel).
 
 The internal prepare step validates the image identity and each source blob/file mode, builds a fresh one-commit repository, and starts a fresh container. Tools run without network, user MCP configuration, model credentials, Docker socket or validator mounts. Model access stays on the host. Only the disposable project workspace is mounted into the Agent container. Preparation and validation time are excluded from Agent Profile duration.
 

@@ -1,3 +1,11 @@
+# 当前入口（2026-11-05）
+
+以下原文保留历史审核与阶段状态，不覆盖 V0.3 当前实现。
+当前说明见 [0.3.0 Release Notes](release-0.3.0.md)、
+[发布准备与验收](release-0.3.0-validation.md) 及 [使用手册](usage-guide.zh-CN.md)。
+
+---
+
 # Nexus Next V0：审核入口与迁移说明
 
 状态：**Phase 2 Implementation 已获用户授权（2026-10-01）**

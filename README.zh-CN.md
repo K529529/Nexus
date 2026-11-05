@@ -2,122 +2,95 @@
   <img src="docs/next/assets/nexus-wordmark-violet.svg" alt="Nexus" width="320">
 </p>
 
-### 在你的项目目录里，用自然语言完成编程任务。
+### 在项目终端里，用自然语言完成编程任务。
 
-一个轻量的终端 Coding Agent：读取代码、修改文件、运行测试，并展示执行过程。
-单个消息驱动循环，无需数据库或仓库索引。
+Nexus 阅读代码、修改文件、运行工具，并保留可检查的会话记录。
+核心是一套手写、消息驱动的 Agent Loop；可选子代理复用同一套循环。
 
-V0.3 开发分支新增可选原生多 Agent 协作与运行中输入，见 [Stage8 使用与验收](docs/next/stage8-usage.md)。
+Python 3.12+ · Windows / Linux · [MIT](LICENSE) · [English](README.md) / **简体中文**
 
-Python 3.12+ &nbsp; / &nbsp; Windows · Linux &nbsp; / &nbsp; [MIT](LICENSE)
+**当前为 0.3.0 待发布候选，不代表 PyPI 已提供 0.3.0。**
+[Release Notes](docs/next/release-0.3.0.md) · [验收记录与 CI](docs/next/release-0.3.0-validation.md)
+· [使用手册](docs/next/usage-guide.zh-CN.md)
 
-[English](README.md) / **简体中文** &nbsp; · &nbsp; [快速开始](#快速开始) &nbsp; · &nbsp; [使用手册](docs/next/usage-guide.zh-CN.md) &nbsp; · &nbsp; [PyPI](https://pypi.org/project/nexus-coding-agent/0.2.0/) &nbsp; · &nbsp; [发布记录](https://github.com/K529529/Nexus/releases/tag/v0.2.0)
+## 快速开始
 
----
-
-<a id="快速开始"></a>
-## 01 / 快速开始
-
-准备 Python 3.12+，以及一个支持工具调用的 OpenAI-compatible 模型服务账号。
-**下面两种方式任选一种。**
-
-### 方式一：从 PyPI 安装（推荐）
-
-在你希望 Nexus 处理的项目根目录打开终端，执行：
+在独立环境中安装候选源码：
 
 ```sh
-python -m pip install "nexus-coding-agent==0.2.0"
-nexus
-```
-
-不需要克隆 Nexus 仓库。安装一次后，在同一个 Python 环境中，进入任意项目目录运行 `nexus` 即可。
-建议使用虚拟环境；若终端找不到 `nexus`，可用 `python -m nexus` 启动。
-
-### 方式二：从源码安装运行
-
-适合想阅读或修改 Nexus 源码的开发者，需要 Git：
-
-```sh
-git clone https://github.com/K529529/Nexus.git
+git clone --branch codex/nexus-v0.3 https://github.com/K529529/Nexus.git
 cd Nexus
-python -m pip install -e .
+python -m venv .venv
 ```
 
-安装完成后，**切换到你要处理的项目根目录**，再运行：
+PowerShell 激活：`.venv\Scripts\Activate.ps1`；Linux 激活：
+`source .venv/bin/activate`。然后运行：
 
 ```sh
+python -m pip install -e .
+python -m nexus --version
+cd /path/to/your/project
 nexus
 ```
 
-`-e` 是可编辑安装，修改 Nexus 的 Python 源码后无需重新安装。
-运行 `nexus` 时所在的目录就是工作区；它也会读取该目录的 `AGENTS.md` 作为项目指引。
+启动目录就是工作区，其中的 `AGENTS.md` 提供项目指导。
+可编辑安装会跟随这份源码；换项目后仍需使用同一个环境，
+也可以通过该环境的 `nexus` 可执行文件绝对路径启动。
 
-### 首次启动：配置模型
-
-首次运行 `nexus` 会引导你填写模型名称、Base URL、上下文窗口，以及 **API key 的环境变量名**。
-配置保存在 `~/.nexus/config.toml`，无需每个项目重复配置。
-
-例如在引导中使用默认变量名 `NEXUS_MODEL_API_KEY`，保存后在同一终端设置真实 key 并重新启动：
+首次交互启动会询问模型名、endpoint、上下文窗口和 **API Key 环境变量名**，
+保存到 `~/.nexus/config.toml`。在启动终端设置对应变量，不把密钥写入聊天或 TOML：
 
 ```powershell
-# Windows PowerShell
-$env:NEXUS_MODEL_API_KEY = "你的 API key"
+$env:NEXUS_MODEL_API_KEY = "<你的密钥>"
 nexus
 ```
 
-```sh
-# Linux
-export NEXUS_MODEL_API_KEY="你的 API key"
-nexus
-```
+Linux 使用 `export NEXUS_MODEL_API_KEY="<你的密钥>"`。长会话还需要单独配置压缩模型；
+首次向导只配置主模型，不会自动启用压缩。详见[配置与升级](docs/next/usage-guide.zh-CN.md#配置)。
 
-随后在 `You ›` 提示符后输入任务：
+默认 **Local**，工具以你的用户权限执行。长期记忆默认**开启**，首次使用可能下载
+用户目录内的 Node/QMD 和检索模型；不需要时可先执行 `nexus memory off`。
+多 Agent、Web 工具和外部遥测默认**关闭**。
 
-```text
-You › 修复空白标题仍能提交的问题，补充回归测试并运行现有测试。
-```
+## 日常使用
 
-API key 填入环境变量，不填入聊天框。模型调用费用由服务商收取。
-手动配置、MCP 和模型参数见[使用手册](docs/next/usage-guide.zh-CN.md#配置)。
-
-<a id="日常使用"></a>
-## 02 / 日常使用
-
-| 你想做什么 | 操作 |
+| 操作 | 命令 / 快捷键 |
 | --- | --- |
-| 交互式工作 | 在项目目录运行 `nexus` |
-| 执行一条任务 | `nexus exec "修复缺陷并运行测试"` |
-| 查看耗时、token 与工具统计 | `nexus --profile` |
-| 选择最近的会话 | `nexus resume`，或聊天中输入 `/resume` |
-| 开始新会话 | `/new` |
-| 查看可用 Skill 和启用状态 | `/skills` |
-| 指定 / 取消指定 Skill | `/skill <名称>` / `/skill off` |
-| 查看帮助 / 退出 | `/help` / `/exit` |
+| 交互 / 单次任务 | `nexus` / `nexus exec "修复问题并运行测试"` |
+| 指导正在执行的任务 | 直接输入，按 **Enter** |
+| 排队根代理的下一项任务 | 运行中直接输入，按 **Tab** |
+| 查看 / 编辑 / 撤回待处理输入 | `/pending`、`/edit ID 内容`、`/withdraw ID` |
+| 选择代理会话 | **F6**、`/agents`、`/agents ID` |
+| 回到主代理 / 查看归档代理 | **Esc**、`/agent root` / `/agents history` |
+| 阅读历史 / 回到最新 | **PgUp**、**PgDn**、**Ctrl+End** |
+| 换行 / 取消 | **F4** 或 **Alt+Enter** / **Ctrl+C** |
+| 模型 / 权限菜单 | `/model` / `/permissions` |
+| 恢复 / 新会话 | `nexus resume`、`/resume` / `/new` |
+| 记忆 / Skills / 帮助 | `/memory`、`/skills`、`/help` |
+| JSON 事件 / 运行统计 | `nexus exec "任务" --json` / `nexus --profile` |
 
-Skill 放在 `~/.nexus/skills/<名称>/SKILL.md`，可参考 [pytest 回归测试示例](docs/next/skills/pytest-regression/SKILL.md)。
-`/skill off` 取消显式指定，仍允许模型按任务自动加载。会话保存在 `~/.nexus/sessions/`；
-同一 Session 的各次 Run 共享连续消息历史，直到统一语义压缩；`/new` 开始新会话。
+补全菜单优先于 Tab 排队。进入子代理视图后，Enter 指导该子代理，
+Tab 仍排到根代理；已完成子代理为只读。见[多 Agent 配置与边界](docs/next/stage8-usage.md)。
 
-<a id="能力与验证"></a>
-## 03 / 能力与验证
+## V0.3 能力
 
-- **编码闭环**：执行命令、应用补丁、运行检查，并根据工具结果继续修复。
-- **上下文管理（V0.3 阶段分支）**：连续 Session 历史、独立压缩模型与 Run 内 Plan/Todo。详见[运行时设计与限制](docs/next/context-runtime-v0.3.md)。
-- **可扩展、可追溯**：本地 Skills、stdio MCP、会话恢复、JSONL 轨迹与执行统计。
+- 连续会话上下文、独立压缩模型、确定性的执行事实；原始 JSONL 不被摘要覆盖。
+- 全局 Markdown 记忆、QMD 检索、可恢复遗忘与稳定会话快照。
+- Windows Native、Linux/WSL Docker 受限执行、显式审批与工具级恢复；
+  Windows 是部分强制隔离，Local 使用当前用户权限。
+- 模型别名与切换、stdio MCP 资源/工具、可选 Web 与仅元数据的 OTLP 遥测。
+- 可选 Fresh 上下文的 scout/worker/reviewer；共享工作区、全树并发额度、
+  消息交付、取消、恢复和独立会话视图。
 
-V0.2 发布验证：Windows / Linux 各 **498 项测试通过**，10 项 Docker 验收按需运行、未计入当次离线测试。V0.3 阶段结果与尚未解决的摘要保真问题见[运行时证据](docs/next/context-runtime-v0.3-evidence.md)。
-固定八例开发评测的一轮成本优先配置取得 **6/8 PASS、8/8 自主结束**；这是本地验收结果，
-不代表稳定 8/8 或官方 SWE-bench 成绩。详见[评测结果与限制](docs/next/suite-hardening-evidence.md)。
+Agent 宣布完成不等于独立测试通过。[发布说明](docs/next/release-0.3.0.md)保留验证证据、
+平台限制及历史失败。FeatureBench 对照固定为 `0fd7fa4`，发布修复是后续提交。
+DeepSeek Pro/high 单 Agent 批次记录为进行中；本轮发布准备未启动多 Agent 对照。
+不预填分数，也不宣称多 Agent 更快或更准确。
 
-Nexus 使用你的本机权限执行命令，不是操作系统沙箱；请审查代码改动与测试结果。
-从旧 `0.1.0` 升级前，请先阅读[迁移说明](docs/next/release-0.2.0.md#install-and-migrate)。
+## 文档入口
 
-<a id="深入了解"></a>
-## 04 / 深入了解
-
-[完整使用手册](docs/next/usage-guide.zh-CN.md) · [工程设计与代码导读](docs/next/engineering-walkthrough.md) · [开发评测指南](evaluation/next-dev-v0/README.md) · [0.2.0 发布记录](docs/next/release-0.2.0.md)
-
-<a id="许可证"></a>
-## 05 / 许可证
-
-[MIT](LICENSE)
+- [使用手册](docs/next/usage-guide.zh-CN.md)：配置、权限、恢复、日志和快捷键。
+- [当前架构与代码导读](docs/next/engineering-walkthrough.md)。
+- [开发、构建与发布流程](docs/next/development-and-release.md)。
+- [本地八项评测](evaluation/next-dev-v0/README.md)：与 ABK FeatureBench 分开。
+- [历史 0.2.0 发布记录](docs/next/release-0.2.0.md)：保留历史安装和成绩。

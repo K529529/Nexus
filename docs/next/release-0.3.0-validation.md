@@ -39,4 +39,28 @@ CI push 覆盖 main、next、V0.3 及其阶段分支，PR 继续全部覆盖。
   [专项输出](evidence/release-0.3.0/stage8-targeted.txt)。Ruff 随后指出循环闭包 B023，
   将当前 Event 显式绑定到回调默认参数，避免下一轮覆盖；再做质量及全量复验。
 
-后续检查、合入 SHA 和 CI 链接将在各阶段实际完成后补充。
+最终本机 Windows 全量 **1244 passed / 10 skipped / 16 warnings**（170.50s），见
+[完整输出](evidence/release-0.3.0/stage8-windows-pytest-final.txt)。警告来自 LiteLLM/Pydantic，
+跳过项为 opt-in Docker 验收。
+
+提交 `315832d284c6808909253fb7417caaba6106b000` 已推送，
+[双平台 CI 41939344088](https://github.com/K529529/Nexus/actions/runs/41939344088) **PASS**：
+Windows 1244 passed / 10 skipped；Linux 1224 passed / 30 skipped。
+两边 Ruff、mypy、锁、构建、diff 和源码外 wheel/uv tool 安装均通过。
+[CI 摘要](evidence/release-0.3.0/stage8-ci-summary.txt)。
+
+重新 fetch 后 Stage8 → V0.3 于 2026-11-05 **fast-forward**，远端 V0.3 和 Stage8
+均核对为 `315832d284c6808909253fb7417caaba6106b000`；Stage8 保留。
+
+## 增量二：0.3.0 版本、文档与包验证
+
+在 V0.3 更新 pyproject、运行时版本及 uv.lock；锁文件只改变本项目版本，依赖不升级。
+双语 README/使用手册、代码导读、八项评测入口、Stage8 当前使用、开发/发布步骤、
+Release Notes 已对照实际代码更新；历史设计/阶段报告仅增加历史入口，不改写结果。
+新增 package_smoke.py 对比 wheel/sdist 全部包文件，源码外实际加载资源、检查版本与依赖；
+CI 保留候选分发文件，release workflow 校验精确 v 标签并复用资源检查。
+
+进行中的 ABK 仍固定 `0fd7fa4`。旧 16 题 qwen3.8-flash/low 的 1/16 与新
+deepseek-v4-pro/high 批次分开描述；不写新批次分数或多 Agent 性能结论。
+
+最终候选检查与 main 合入结果将在完成后追加。

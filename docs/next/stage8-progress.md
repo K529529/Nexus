@@ -1,3 +1,6 @@
+> 历史阶段记录：以下状态、实验与失败保留当时原貌。当前合入/发布状态见
+> [0.3.0 发布准备记录](release-0.3.0-validation.md)，当前使用见 [手册](usage-guide.zh-CN.md)。
+
 # Stage 8 实施记录
 
 授权范围见 [用户实施方案](stage8-multi-agent-plan.md)。本次明确扩展 V0 的

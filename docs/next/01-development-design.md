@@ -1,5 +1,11 @@
 # Nexus Next V0：开发设计
 
+> 历史设计基线及增量索引。当前 V0.3 已包含连续 Session/独立压缩、长期记忆、
+> 平台沙箱、Durable Execution、模型/遥测和 [Stage8 原生协作](stage8-multi-agent-plan.md)。
+> Stage8 复用同一个手写 Loop，不沿用旧“禁止所有多 Agent”的范围判断。
+> 当前行为见 [代码导读](engineering-walkthrough.md) 和 [0.3.0 待发布说明](release-0.3.0.md)；
+> 下文原始 V0 设计保留，不代表所有旧上下文/恢复规则仍生效。
+
 状态：**APPROVED v0.2 / Phase 2 Implementation** · 2026-10-01
 用户在本次实施任务中明确批准本开发设计与验收清单（IMPLEMENTATION AUTHORIZATION: APPROVED）。按 S1 → S5 连续实施；实际验收状态见 acceptance-evidence.md。不另设 ADR 审批层。
 

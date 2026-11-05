@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nexus-coding-agent"
-version = "0.2.0"
+version = "0.3.0"
 description = "A small, local, message-driven coding agent."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -55,6 +55,7 @@ include = [
     "/scripts/memory_controls_smoke.py",
     "/scripts/memory_daily_smoke.py",
     "/scripts/stage7_model_smoke.py",
+    "/scripts/stage8_ui_smoke.py", "/scripts/package_smoke.py",
     "/README.md", "/README.zh-CN.md", "/LICENSE", "/AGENTS.md", "/uv.lock",
 ]
 exclude = [

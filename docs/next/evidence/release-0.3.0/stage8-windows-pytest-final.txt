@@ -1,0 +1,116 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\WorkSpace\releasePro\github\Nexus\Nexus-next
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.14.2, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1254 items
+
+tests\test_acl_consent.py .....................                          [  1%]
+tests\test_agent.py ........                                             [  2%]
+tests\test_boundaries.py .......                                         [  2%]
+tests\test_cache_usage.py .......                                        [  3%]
+tests\test_cli_ux.py ................................                    [  5%]
+tests\test_compaction_fidelity.py ................                       [  7%]
+tests\test_compaction_lifecycle.py ..........                            [  8%]
+tests\test_context_runtime.py ..........                                 [  8%]
+tests\test_conversation.py .........                                     [  9%]
+tests\test_dual_model.py ...                                             [  9%]
+tests\test_durable_execution.py ......................................   [ 12%]
+tests\test_eval.py ....                                                  [ 13%]
+tests\test_evaluation_docker.py ssssssssss                               [ 13%]
+tests\test_evaluation_history.py ....                                    [ 14%]
+tests\test_evaluation_isolation.py ..                                    [ 14%]
+tests\test_evaluation_v0.py ............................................ [ 17%]
+.......                                                                  [ 18%]
+tests\test_execution_budget.py ......                                    [ 18%]
+tests\test_handoff.py ....                                               [ 19%]
+tests\test_input_v02.py ...............                                  [ 20%]
+tests\test_linux_docker.py ..........................                    [ 22%]
+tests\test_litellm_transport.py ......................................   [ 25%]
+tests\test_mcp_resources.py ...........                                  [ 26%]
+tests\test_mcp_tui.py ..............................................     [ 30%]
+tests\test_memory.py ............                                        [ 31%]
+tests\test_memory_controls.py ........                                   [ 31%]
+tests\test_memory_conversation.py .....                                  [ 32%]
+tests\test_memory_daily.py ...............................               [ 34%]
+tests\test_memory_exit_final.py .............                            [ 35%]
+tests\test_memory_index.py .....                                         [ 36%]
+tests\test_memory_setup.py ..........                                    [ 36%]
+tests\test_memory_snapshot.py ........                                   [ 37%]
+tests\test_model.py ................................................     [ 41%]
+tests\test_model_menu.py ...........                                     [ 42%]
+tests\test_model_transport.py ........................................   [ 45%]
+tests\test_patch_audit.py ..............                                 [ 46%]
+tests\test_patch_v02.py ................................................ [ 50%]
+......................................                                   [ 53%]
+tests\test_plan.py ..................................................... [ 57%]
+.                                                                        [ 57%]
+tests\test_plan_context.py ....                                          [ 57%]
+tests\test_profile.py ............................                       [ 60%]
+tests\test_request_context.py ..                                         [ 60%]
+tests\test_response_language.py .........                                [ 61%]
+tests\test_runtime_facts.py .................                            [ 62%]
+tests\test_sandbox_stage4.py ..............                              [ 63%]
+tests\test_security_stage4.py ..........................                 [ 65%]
+tests\test_session_compaction.py ...............                         [ 66%]
+tests\test_session_context.py .........................                  [ 68%]
+tests\test_skill_cli.py ...........                                      [ 69%]
+tests\test_skills.py ......................                              [ 71%]
+tests\test_srt_system_paths.py ......                                    [ 71%]
+tests\test_stage31b_reliability.py ...............................       [ 74%]
+tests\test_stage4b.py ......................                             [ 76%]
+tests\test_stage8_collaboration.py ........                              [ 76%]
+tests\test_stage8_completion.py ......                                   [ 77%]
+tests\test_stage8_handoff.py .....                                       [ 77%]
+tests\test_stage8_input.py ......                                        [ 78%]
+tests\test_stage8_observability.py ....                                  [ 78%]
+tests\test_stage8_panel_scope.py ............                            [ 79%]
+tests\test_stage8_recovery.py .......                                    [ 79%]
+tests\test_stage8_runtime_ui.py ....                                     [ 80%]
+tests\test_stage8_screen.py ......                                       [ 80%]
+tests\test_stage8_subagents.py ....                                      [ 81%]
+tests\test_stage8_tracing.py ..                                          [ 81%]
+tests\test_stage8_tui.py ...                                             [ 81%]
+tests\test_stagnation.py ...............................                 [ 83%]
+tests\test_token_accuracy.py ......................................      [ 87%]
+tests\test_token_performance.py ...                                      [ 87%]
+tests\test_tool_reliability.py ..............                            [ 88%]
+tests\test_tools.py ...............                                      [ 89%]
+tests\test_tracing.py ..............                                     [ 90%]
+tests\test_tui_polish.py ...........................                     [ 92%]
+tests\test_tui_resize.py ....                                            [ 93%]
+tests\test_tui_stage4d.py ............................                   [ 95%]
+tests\test_web.py ........................................               [ 98%]
+tests\test_windows_native.py ..................                          [100%]
+
+============================== warnings summary ===============================
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[openai]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[deepseek]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_tools_reasoning_continuation_and_usage[dashscope]
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+tests/test_litellm_transport.py::test_sdk_gzip_sse_reports_real_usage
+  D:\WorkSpace\releasePro\github\Nexus\Nexus-next\.venv\Lib\site-packages\litellm\litellm_core_utils\model_response_utils.py:18: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    attribute: Final[_AttributeView] = {"value": getattr(source, name)}
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [8] tests\test_evaluation_docker.py:27: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:48: Opt-in Docker isolation acceptance
+SKIPPED [1] tests\test_evaluation_docker.py:173: Opt-in Docker isolation acceptance
+========== 1244 passed, 10 skipped, 16 warnings in 170.50s (0:02:50) ==========
