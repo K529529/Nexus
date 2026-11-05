@@ -97,6 +97,9 @@ async def test_persistent_composer_navigation_and_child_guidance(
                 await until(lambda: prompt.default_buffer.text == "child guidance")
                 pipe.send_text("\r")
                 await until(lambda: len(received) == 2)
+                # The callback records entry before its asynchronous Inbox receipt.
+                # Observe completion before asserting the committed child message.
+                await editor.finish_submission()
                 assert received[-1] == ("child guidance", "guide", first)
                 assert any(m.text == "child guidance" for m in child.inbox.guides())
                 pipe.send_text("queued task")

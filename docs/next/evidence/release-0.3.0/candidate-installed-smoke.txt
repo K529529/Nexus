@@ -1,0 +1,28 @@
+0.3.0
+usage: nexus [-h] [--version] [--profile] [--skill SKILL]
+             [--permission-mode {local,read-only,workspace-write}]
+             {trace,sandbox,memory,skills,eval,exec,resume} ...
+
+Nexus Next local coding agent
+
+positional arguments:
+  {trace,sandbox,memory,skills,eval,exec,resume}
+    trace               Export one saved run through OTLP/HTTP
+    sandbox             Linux Docker diagnostics and explicit setup
+    memory              Inspect memory/index state without a model call
+    skills              List local Skills without a model connection
+    eval                Run fixed Next Dev Set V0 cases
+    exec                Run one coding task
+    resume              Select a local conversation in this workspace
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --profile             Show a developer report after each run
+  --skill SKILL         Select a local Skill for this session
+  --permission-mode {local,read-only,workspace-write}
+                        Temporary execution mode; overrides user security.mode
+{"status": "PASS", "version": "0.3.0", "package": "C:\\Users\\Archer\\AppData\\Local\\Temp\\nx030-be60f021\\installed\\Lib\\site-packages\\nexus", "resources": 16, "tokenizers": ["deepseek", "qwen"]}
+Using Python 3.12.10 environment at: installed
+Checked 91 packages in 5ms
+All installed packages are compatible

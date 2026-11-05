@@ -63,4 +63,34 @@ CI 保留候选分发文件，release workflow 校验精确 v 标签并复用资
 进行中的 ABK 仍固定 `0fd7fa4`。旧 16 题 qwen3.8-flash/low 的 1/16 与新
 deepseek-v4-pro/high 批次分开描述；不写新批次分数或多 Agent 性能结论。
 
-最终候选检查与 main 合入结果将在完成后追加。
+版本/文档增量 `d658eff80932afd6fe1b88ff0fd4e095963fce32` 已独立提交并推送。
+109 个当前文档本地链接、2 份完整 TOML 示例经真实 Config loader 校验通过，
+Ruff、mypy、锁与 diff PASS；新增包脚本已通过 Ruff 格式检查。
+
+## 候选构建、独立安装与后续回归
+
+从 `d658eff` 的 git archive 构建，不包含原工作区未跟踪内容：
+
+- wheel/sdist **PASS**，两者的 100 个包文件逐字节核对通过。
+  [构建输出](evidence/release-0.3.0/candidate-build.txt)、
+  [SHA256/完整性](evidence/release-0.3.0/candidate-artifacts.json)。
+- Windows 源码外新环境实际安装 wheel；`python -I -m nexus --version/--help`、
+  runtime/metadata=0.3.0、16 项必要资源、两个 tokenizer/模板实际加载、
+  `uv pip check` **PASS**。安装使用 wheel 声明的依赖范围，未改仓库锁；
+  [实际依赖版本](evidence/release-0.3.0/candidate-install.txt)、
+  [安装检查](evidence/release-0.3.0/candidate-installed-smoke.txt)。
+- 工作流静态核验 PASS：CI 两平台/相关分支/PR；Release 仅 published；
+  标签须精确 `v<package version>`；PyPI pypi environment/OIDC 入口保留。
+  未创建标签、Release 或上传 PyPI；真实发布及公开索引安装 **NOT RUN**。
+
+首轮候选 [CI 41941059482](https://github.com/K529529/Nexus/actions/runs/41941059482)
+的 Linux pytest **FAIL：1223 passed / 1 failed / 30 skipped**。
+`test_persistent_composer_navigation_and_child_guidance[True]` 观察到回调入口计数即断言
+Inbox，而回调还在异步接收。修正测试为等待 `finish_submission()` 后再检查原消息，
+保持内容、目标、队列和恰好一次断言；不修改产品代码。
+[原始失败](evidence/release-0.3.0/candidate-linux-ci-failure.txt)。
+修正后 Windows 界面专项 **6 passed**，Ruff/mypy PASS，见
+[复验输出](evidence/release-0.3.0/candidate-screen-recheck.txt)。
+该次失败不得作为最终候选 PASS，后续必须完整双平台复验。
+
+最终候选完整 CI 与 main 合入结果在检查通过后记录；任何失败期间不进入 main。
