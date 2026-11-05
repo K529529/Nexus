@@ -1,0 +1,68 @@
+   Building nexus-coding-agent @ file:///D:/WorkSpace/releasePro/github/Nexus/Nexus-next
+      Built nexus-coding-agent @ file:///D:/WorkSpace/releasePro/github/Nexus/Nexus-next
+Uninstalled 1 package in 12ms
+Installed 1 package in 53ms
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\WorkSpace\releasePro\github\Nexus\Nexus-next
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.14.2, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1233 items / 1 error
+
+=================================== ERRORS ====================================
+_________________ ERROR collecting tests/test_acl_consent.py __________________
+tests\test_acl_consent.py:21: in <module>
+    from nexus.app import acl_consent, cli
+src\nexus\app\cli.py:21: in <module>
+    from nexus.app.bootstrap import Conversation
+src\nexus\app\bootstrap.py:20: in <module>
+    from nexus.app.memory_index import MemoryIndex
+src\nexus\app\memory_index.py:15: in <module>
+    from mcp import Client, StdioServerParameters
+.venv\Lib\site-packages\mcp\__init__.py:64: in <module>
+    from .client._input_required import InputRequiredRoundsExceededError
+.venv\Lib\site-packages\mcp\client\__init__.py:13: in <module>
+    from mcp.client.client import Client
+.venv\Lib\site-packages\mcp\client\client.py:46: in <module>
+    from mcp.client._memory import InMemoryTransport
+.venv\Lib\site-packages\mcp\client\_memory.py:13: in <module>
+    from mcp.server import Server
+.venv\Lib\site-packages\mcp\server\__init__.py:4: in <module>
+    from .mcpserver import MCPServer
+.venv\Lib\site-packages\mcp\server\mcpserver\__init__.py:27: in <module>
+    from .resources import DEFAULT_RESOURCE_SECURITY, ResourceSecurity
+.venv\Lib\site-packages\mcp\server\mcpserver\resources\__init__.py:2: in <module>
+    from .resource_manager import ResourceManager
+.venv\Lib\site-packages\mcp\server\mcpserver\resources\resource_manager.py:13: in <module>
+    from mcp.server.mcpserver.resources.templates import (
+.venv\Lib\site-packages\mcp\server\mcpserver\resources\templates.py:15: in <module>
+    from mcp.server.mcpserver.resources.types import FunctionResource, Resource
+.venv\Lib\site-packages\mcp\server\mcpserver\resources\types.py:13: in <module>
+    import httpx2
+.venv\Lib\site-packages\httpx2\__init__.py:1: in <module>
+    from .__version__ import __description__, __title__, __version__
+.venv\Lib\site-packages\httpx2\__version__.py:5: in <module>
+    __version__ = version("httpx2")
+                  ^^^^^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\importlib\metadata\__init__.py:889: in version
+    return distribution(distribution_name).version
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\importlib\metadata\__init__.py:467: in version
+    return self.metadata['Version']
+           ^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\importlib\metadata\__init__.py:452: in metadata
+    return _adapters.Message(email.message_from_string(text))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\email\__init__.py:37: in message_from_string
+    return Parser(*args, **kws).parsestr(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\Tools\python\py312\Lib\email\parser.py:64: in parsestr
+    return self.parse(StringIO(text), headersonly=headersonly)
+                      ^^^^^^^^^^^^^^
+E   MemoryError
+=========================== short test summary info ===========================
+ERROR tests/test_acl_consent.py - MemoryError
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+============================== 1 error in 5.05s ===============================

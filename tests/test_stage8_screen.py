@@ -328,8 +328,17 @@ async def test_quiet_frames_typing_scroll_and_async_delivery(
                 assert "New output 9" not in "\n".join(screen_rows(prompt))
                 for rows, columns in ((10, 40), (8, 25), (24, 90)):
                     size[0] = Size(rows=rows, columns=columns)
-                    prompt.app.invalidate()
-                    await asyncio.sleep(0.1)
+                    frame_ready = asyncio.Event()
+
+                    def rendered_frame(_: Any, ready: asyncio.Event = frame_ready) -> None:
+                        ready.set()
+
+                    prompt.app.after_render.add_handler(rendered_frame)
+                    try:
+                        prompt.app.invalidate()
+                        await asyncio.wait_for(frame_ready.wait(), 3)
+                    finally:
+                        prompt.app.after_render.remove_handler(rendered_frame)
                     rendered = prompt.app.renderer.last_rendered_screen
                     assert rendered is not None
                     cursor = rendered.get_cursor_position(prompt.app.layout.current_window)

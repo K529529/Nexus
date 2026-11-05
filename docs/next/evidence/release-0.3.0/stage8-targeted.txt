@@ -1,0 +1,12 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\WorkSpace\releasePro\github\Nexus\Nexus-next
+configfile: pyproject.toml
+plugins: anyio-4.14.2, asyncio-1.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 20 items
+
+tests\test_stage8_screen.py ......                                       [ 30%]
+tests\test_sandbox_stage4.py ..............                              [100%]
+
+============================= 20 passed in 19.11s =============================

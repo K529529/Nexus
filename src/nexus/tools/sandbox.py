@@ -282,11 +282,11 @@ class BridgeClient:
             raise BridgeError("bridge_closed")
         if self.process is not None:
             return
-        options: Json = (
-            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-            if sys.platform == "win32"
-            else {"start_new_session": True}
-        )
+        options: Json
+        if sys.platform == "win32":
+            options = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        else:
+            options = {"start_new_session": True}
         spawn = asyncio.create_task(
             asyncio.create_subprocess_exec(
                 *self.argv,
